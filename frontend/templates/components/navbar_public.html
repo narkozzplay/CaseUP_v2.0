@@ -8,12 +8,14 @@
                     <a href="{% url 'frontend:home' %}">Главная</a>
                     <a href="{% url 'frontend:dashboard_preview' %}">Dashboard</a>
                     {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}">Подписки</a>{% endif %}
+                    <a href="{% url 'game_servers:list' %}">CS2</a>
                     <a href="{% url 'frontend:testing_preview' %}">Testing</a>
                     <a href="{% url 'admin:index' %}" class="btn btn-secondary btn-sm">Admin</a>
                 {% else %}
                     <a href="{% url 'frontend:home' %}">Home</a>
                     <a href="{% url 'frontend:dashboard_preview' %}">Dashboard</a>
                     {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}">Subscriptions</a>{% endif %}
+                    <a href="{% url 'game_servers:list' %}">CS2</a>
                     <a href="{% url 'frontend:testing_preview' %}">Testing</a>
                     <a href="{% url 'admin:index' %}" class="btn btn-secondary btn-sm">Admin</a>
                 {% endif %}
@@ -24,12 +26,14 @@
 
                 {% if request.user.is_authenticated %}
                     {% if LANGUAGE_CODE == "ru" %}
+                        <span class="status-pill status-pill--sm">Баланс: {{ coins }} {{ site_settings.site_currency_symbol|default:"₽" }}</span>
                         <a href="{% url 'profiles:profile' %}" class="btn btn-secondary btn-sm">Профиль</a>
                         <form method="post" action="{% url 'accounts:logout' %}" class="inline-form">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-primary btn-sm">Выйти</button>
                         </form>
                     {% else %}
+                        <span class="status-pill status-pill--sm">Balance: {{ coins }} {{ site_settings.site_currency_symbol|default:"₽" }}</span>
                         <a href="{% url 'profiles:profile' %}" class="btn btn-secondary btn-sm">Profile</a>
                         <form method="post" action="{% url 'accounts:logout' %}" class="inline-form">
                             {% csrf_token %}

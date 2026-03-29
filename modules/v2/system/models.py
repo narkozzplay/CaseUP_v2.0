@@ -173,6 +173,15 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 30,
             },
             {
+                "key": "game_servers",
+                "label_ru": "CS2 серверы",
+                "label_en": "CS2 servers",
+                "url_name": "game_servers:list",
+                "group": cls.Group.OVERVIEW,
+                "visibility_condition": cls.Visibility.ALWAYS,
+                "sort_order": 35,
+            },
+            {
                 "key": "testing_preview",
                 "label_ru": "Testing Preview",
                 "label_en": "Testing Preview",

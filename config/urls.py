@@ -26,6 +26,7 @@ urlpatterns += i18n_patterns(
     path("control-center/celery-tasks/", include("modules.v2.celery_tasks.urls")),
     path("control-center/tg-notifier/", include("modules.v2.tg_notifier.urls")),
     path("subscriptions/", include("modules.v2.subscriptions.urls")),
+    path("servers/", include("modules.v2.game_servers.urls")),
     path("", include("frontend.urls")),
     path("", include("modules.v2.profiles.urls")),
     prefix_default_language=False,

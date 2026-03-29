@@ -74,6 +74,7 @@ PROJECT_APPS = [
     "modules.v2.steam_trading.apps.SteamTradingConfig",
     "modules.v2.celery_tasks.apps.CeleryTasksConfig",
     "modules.v2.tg_notifier.apps.TgNotifierConfig",
+    "modules.v2.game_servers.apps.GameServersConfig",
 ]
 
 PLUGIN_APPS = []
@@ -217,7 +218,11 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+
 CELERY_TASK_TRACK_STARTED = True
+
+GAME_SERVER_STATUS_TIMEOUT_SECONDS = float(os.getenv("GAME_SERVER_STATUS_TIMEOUT_SECONDS", "1.5"))
+GAME_SERVER_STATUS_CACHE_TTL_SECONDS = int(os.getenv("GAME_SERVER_STATUS_CACHE_TTL_SECONDS", "30"))
 CELERY_TASK_TIME_LIMIT = int(os.getenv("CELERY_TASK_TIME_LIMIT", "1200"))
 CELERY_TASK_SOFT_TIME_LIMIT = int(os.getenv("CELERY_TASK_SOFT_TIME_LIMIT", "900"))
 CELERY_RULE_RUNNING_STALE_SECONDS = int(os.getenv("CELERY_RULE_RUNNING_STALE_SECONDS", "3600"))

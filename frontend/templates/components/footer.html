@@ -14,6 +14,7 @@
         <div class="footer-links">
             <a href="{% url 'frontend:home' %}">{% if LANGUAGE_CODE == "ru" %}Главная{% else %}Home{% endif %}</a>
             <a href="{% url 'frontend:dashboard_preview' %}">Dashboard</a>
+            <a href="{% url 'game_servers:list' %}">CS2</a>
             <a href="{% url 'frontend:testing_preview' %}">Testing</a>
         </div>
     </div>

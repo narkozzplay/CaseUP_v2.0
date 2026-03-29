@@ -44,6 +44,7 @@ SHELL_DISABLED_URL_NAMES = {
 ACTIVE_VIEW_ALIASES = {
     "dashboard_preview": {"frontend:dashboard_preview"},
     "profile": {"profiles:profile", "profiles:profile_detail", "profiles:profile_admin_update"},
+    "game_servers": {"game_servers:list", "game_servers:detail"},
     "notification_center": {"tg_notifier:center"},
     "farm_dashboard": {"farm:dashboard"},
     "farm_accounts": {"farm:accounts_list", "farm:accounts_add", "farm:accounts_detail", "farm:account_inventory_sync"},

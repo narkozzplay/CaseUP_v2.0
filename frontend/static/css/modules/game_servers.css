@@ -1,0 +1,151 @@
+.game-servers-hero-wrap,
+.game-server-detail-wrap {
+    padding-top: 24px;
+}
+
+.game-servers-hero,
+.game-server-topbar,
+.game-server-banner {
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.game-servers-hero__body,
+.game-server-topbar__body,
+.game-server-banner__body {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+.game-servers-hero__meta,
+.game-server-topbar__actions,
+.game-server-banner__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.game-servers-hero__text {
+    max-width: 840px;
+    margin-bottom: 0;
+}
+
+.game-server-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.game-server-card__body,
+.game-server-card__header,
+.game-server-card__stats,
+.game-server-card__actions {
+    display: flex;
+    gap: 18px;
+}
+
+.game-server-card__body {
+    flex-direction: column;
+}
+
+.game-server-card__header {
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.game-server-card__header h2 {
+    margin: 10px 0 6px;
+}
+
+.game-server-card__stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.game-server-card__stats div,
+.game-server-banner__cta-card {
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.game-server-card__stats span,
+.game-server-banner__cta-card .text-muted {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.game-server-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(320px, 0.95fr);
+    gap: 24px;
+}
+
+.game-server-main,
+.game-server-side,
+.game-server-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.game-server-state-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.game-server-checks-list .dashboard-list__row {
+    align-items: flex-start;
+}
+
+.game-server-priv-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.game-server-info-bar {
+    margin-bottom: 0;
+}
+
+.status-pill--success {
+    background: rgba(80, 200, 120, 0.14);
+    border-color: rgba(80, 200, 120, 0.28);
+    color: #9ff0b6;
+}
+
+.status-pill--danger {
+    background: rgba(255, 92, 92, 0.12);
+    border-color: rgba(255, 92, 92, 0.24);
+    color: #ffb4b4;
+}
+
+@media (max-width: 1280px) {
+    .game-server-grid,
+    .game-server-layout,
+    .game-server-priv-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .game-server-state-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .game-servers-hero__body,
+    .game-server-topbar__body,
+    .game-server-banner__body,
+    .game-server-card__header {
+        flex-direction: column;
+    }
+
+    .game-server-card__stats,
+    .game-server-state-grid {
+        grid-template-columns: 1fr;
+    }
+}

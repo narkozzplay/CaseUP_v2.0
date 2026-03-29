@@ -1,0 +1,86 @@
+{% extends "layouts/base_public.html" %}
+{% load static %}
+
+{% block title %}{{ site_settings.site_name|default:"CaseUP" }} — CS2 Servers{% endblock %}
+
+{% block extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/modules/game_servers.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="section section--compact game-servers-hero-wrap">
+    <div class="container">
+        <div class="game-servers-hero card">
+            <div class="card-body game-servers-hero__body">
+                <div>
+                    <span class="eyebrow">Counter-Strike 2</span>
+                    <h1 class="page-title page-title--sm">
+                        {% if LANGUAGE_CODE == "ru" %}Сервера CaseUP / CS2{% else %}CaseUP / CS2 servers{% endif %}
+                    </h1>
+                    <p class="text-muted game-servers-hero__text">
+                        {% if LANGUAGE_CODE == "ru" %}
+                            Локальный MVP-контур: хранение серверов в БД, проверка online/offline, основа под магазин, привилегии и будущую синхронизацию с игровым сервером.
+                        {% else %}
+                            Local MVP contour: DB-backed servers, online/offline checks and foundation for shop, privileges and future game-server sync.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="game-servers-hero__meta">
+                    <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Всего серверов:{% else %}Servers:{% endif %} {{ servers_total }}</span>
+                    <span class="status-pill {% if online_total %}status-pill--success{% endif %}">{% if LANGUAGE_CODE == "ru" %}Онлайн:{% else %}Online:{% endif %} {{ online_total }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-server-grid">
+            {% for server in servers %}
+                <article class="card game-server-card">
+                    <div class="card-body game-server-card__body">
+                        <div class="game-server-card__header">
+                            <div>
+                                <span class="badge">{{ server.get_game_display }}</span>
+                                <h2>{{ server.name }}</h2>
+                                <p class="text-muted">{{ server.endpoint }}</p>
+                            </div>
+                            <span class="status-pill {% if server.status == 'online' %}status-pill--success{% elif server.status == 'offline' %}status-pill--danger{% endif %}">
+                                {{ server.get_status_display }}
+                            </span>
+                        </div>
+
+                        <div class="game-server-card__stats">
+                            <div>
+                                <span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Последняя проверка{% else %}Last check{% endif %}</span>
+                                <strong>{{ server.last_check_at|date:"d.m.Y H:i"|default:"—" }}</strong>
+                            </div>
+                            <div>
+                                <span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Последний online{% else %}Last seen online{% endif %}</span>
+                                <strong>{{ server.last_seen_online_at|date:"d.m.Y H:i"|default:"—" }}</strong>
+                            </div>
+                            <div>
+                                <span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Latency{% else %}Latency{% endif %}</span>
+                                <strong>{% if server.last_latency_ms %}{{ server.last_latency_ms }} ms{% else %}—{% endif %}</strong>
+                            </div>
+                        </div>
+
+                        <p class="text-muted">{{ server.description|default:server.shop_description|default:"—" }}</p>
+
+                        <div class="game-server-card__actions">
+                            <a href="{% url 'game_servers:detail' server.slug %}" class="btn btn-primary">
+                                {% if LANGUAGE_CODE == "ru" %}Открыть сервер{% else %}Open server{% endif %}
+                            </a>
+                        </div>
+                    </div>
+                </article>
+            {% empty %}
+                <article class="card">
+                    <div class="card-body">
+                        <p class="text-muted">{% if LANGUAGE_CODE == "ru" %}Серверы пока не добавлены.{% else %}No servers configured yet.{% endif %}</p>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

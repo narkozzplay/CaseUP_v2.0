@@ -68,6 +68,14 @@ MODULE_REGISTRY: dict[str, ModuleDefinition] = {
         namespaces=("subscriptions",),
         default_enabled=True,
     ),
+    "game_servers": ModuleDefinition(
+        key="game_servers",
+        label="Game Servers",
+        description="Локальная интеграция игровых серверов, мониторинг статуса и foundation под привилегии.",
+        namespaces=("game_servers",),
+        addon_targets=("subscriptions",),
+        default_enabled=True,
+    ),
 }
 
 NAMESPACE_TO_MODULE_KEY = {

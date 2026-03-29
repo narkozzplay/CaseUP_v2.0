@@ -1,0 +1,192 @@
+{% extends "layouts/base_public.html" %}
+{% load static %}
+
+{% block title %}{{ site_settings.site_name|default:"CaseUP" }} — {{ server.name }}{% endblock %}
+
+{% block extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/modules/game_servers.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="section section--compact game-server-detail-wrap">
+    <div class="container">
+        <div class="game-server-topbar card">
+            <div class="card-body game-server-topbar__body">
+                <div>
+                    <span class="eyebrow">{{ server.get_game_display }}</span>
+                    <h1 class="page-title page-title--sm">{{ server.name }}</h1>
+                    <p class="text-muted">{{ server.endpoint }}{% if server.server_path %} · {{ server.server_path }}{% endif %}</p>
+                </div>
+                <div class="game-server-topbar__actions">
+                    <span class="status-pill {% if server.status == 'online' %}status-pill--success{% elif server.status == 'offline' %}status-pill--danger{% endif %}">{{ server.get_status_display }}</span>
+                    <a href="{% url 'game_servers:list' %}" class="btn btn-secondary btn-sm">{% if LANGUAGE_CODE == "ru" %}Все серверы{% else %}All servers{% endif %}</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-server-layout">
+            <section class="game-server-main">
+                <article class="card game-server-banner">
+                    <div class="card-body game-server-banner__body">
+                        <div>
+                            <span class="eyebrow">MVP</span>
+                            <h2>
+                                {% if LANGUAGE_CODE == "ru" %}Локальная интеграция CS2 ↔ CaseUP{% else %}Local CS2 ↔ CaseUP integration{% endif %}
+                            </h2>
+                            <p class="text-muted">{{ server.description|default:server.sync_notes }}</p>
+                            <div class="game-server-banner__meta">
+                                <span class="status-pill">Host: {{ server.host }}</span>
+                                <span class="status-pill">Port: {{ server.port }}</span>
+                                <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Последняя проверка:{% else %}Last check:{% endif %} {{ server.last_check_at|date:"d.m.Y H:i"|default:"—" }}</span>
+                            </div>
+                        </div>
+                        <div class="game-server-banner__cta">
+                            <div class="game-server-banner__cta-card">
+                                <strong>{% if LANGUAGE_CODE == "ru" %}Последний online{% else %}Last seen online{% endif %}</strong>
+                                <div>{{ server.last_seen_online_at|date:"d.m.Y H:i"|default:"—" }}</div>
+                                <div class="text-muted">{% if server.last_latency_ms %}Latency: {{ server.last_latency_ms }} ms{% else %}{% if LANGUAGE_CODE == "ru" %}Latency пока нет{% else %}Latency not available yet{% endif %}{% endif %}</div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <div class="game-server-sections">
+                    <article class="card dashboard-panel">
+                        <div class="card-body">
+                            <div class="section-head-inline">
+                                <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Состояние сервера{% else %}Server state{% endif %}</h2>
+                            </div>
+                            <div class="game-server-state-grid">
+                                <div class="online-role-card">
+                                    <div class="online-role-card__value">{{ server.get_status_display }}</div>
+                                    <div class="online-role-card__label">{% if LANGUAGE_CODE == "ru" %}Текущий статус{% else %}Current status{% endif %}</div>
+                                    <div class="text-muted online-role-card__meta">{{ server.endpoint }}</div>
+                                </div>
+                                <div class="online-role-card">
+                                    <div class="online-role-card__value">{{ recent_checks|length }}</div>
+                                    <div class="online-role-card__label">{% if LANGUAGE_CODE == "ru" %}Недавних проверок{% else %}Recent checks{% endif %}</div>
+                                    <div class="text-muted online-role-card__meta">TTL probe on page open</div>
+                                </div>
+                                <div class="online-role-card">
+                                    <div class="online-role-card__value">{% if server.last_latency_ms %}{{ server.last_latency_ms }}{% else %}—{% endif %}</div>
+                                    <div class="online-role-card__label">Latency ms</div>
+                                    <div class="text-muted online-role-card__meta">TCP probe</div>
+                                </div>
+                            </div>
+
+                            <div class="dashboard-list game-server-checks-list">
+                                {% for check in recent_checks %}
+                                    <div class="dashboard-list__row">
+                                        <div>
+                                            <strong>{{ check.get_status_display }}</strong>
+                                            <div class="text-muted">{{ check.checked_at|date:"d.m.Y H:i:s" }}</div>
+                                        </div>
+                                        <div class="text-muted">
+                                            {% if check.latency_ms %}{{ check.latency_ms }} ms{% else %}—{% endif %}
+                                            {% if check.error %}<div>{{ check.error }}</div>{% endif %}
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <p class="text-muted">{% if LANGUAGE_CODE == "ru" %}История проверок пока пустая.{% else %}No checks yet.{% endif %}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="card dashboard-panel">
+                        <div class="card-body">
+                            <div class="section-head-inline">
+                                <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Магазин и привилегии{% else %}Shop and privileges{% endif %}</h2>
+                            </div>
+                            <p class="text-muted">{{ server.shop_description|default:server.sync_notes }}</p>
+
+                            <div class="quick-actions-grid game-server-priv-grid">
+                                {% for privilege in privilege_groups.vip %}
+                                    <div class="quick-action-card">
+                                        <strong>{{ privilege.name }}</strong>
+                                        <span>{{ privilege.get_privilege_type_display }} · {{ privilege.duration_days }} {% if LANGUAGE_CODE == "ru" %}дн.{% else %}days{% endif %}</span>
+                                        <span>{{ privilege.price }} {{ site_settings.site_currency_symbol|default:"₽" }}</span>
+                                    </div>
+                                {% empty %}
+                                    <div class="quick-action-card">
+                                        <strong>VIP</strong>
+                                        <span>{% if LANGUAGE_CODE == "ru" %}Заготовка под будущие VIP-пакеты.{% else %}Placeholder for future VIP packages.{% endif %}</span>
+                                    </div>
+                                {% endfor %}
+
+                                {% for privilege in privilege_groups.admin %}
+                                    <div class="quick-action-card">
+                                        <strong>{{ privilege.name }}</strong>
+                                        <span>{{ privilege.get_privilege_type_display }} · {{ privilege.duration_days }} {% if LANGUAGE_CODE == "ru" %}дн.{% else %}days{% endif %}</span>
+                                        <span>{{ privilege.price }} {{ site_settings.site_currency_symbol|default:"₽" }}</span>
+                                    </div>
+                                {% empty %}
+                                    <div class="quick-action-card">
+                                        <strong>Admin</strong>
+                                        <span>{% if LANGUAGE_CODE == "ru" %}Заготовка под будущие admin-привилегии.{% else %}Placeholder for future admin privileges.{% endif %}</span>
+                                    </div>
+                                {% endfor %}
+
+                                {% for privilege in privilege_groups.moderation %}
+                                    <div class="quick-action-card">
+                                        <strong>{{ privilege.name }}</strong>
+                                        <span>{{ privilege.get_privilege_type_display }} · {{ privilege.duration_days }} {% if LANGUAGE_CODE == "ru" %}дн.{% else %}days{% endif %}</span>
+                                        <span>{{ privilege.price }} {{ site_settings.site_currency_symbol|default:"₽" }}</span>
+                                    </div>
+                                {% empty %}
+                                    <div class="quick-action-card">
+                                        <strong>Moderation</strong>
+                                        <span>{% if LANGUAGE_CODE == "ru" %}Заготовка под модераторские роли.{% else %}Placeholder for moderation roles.{% endif %}</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <aside class="game-server-side">
+                <article class="card dashboard-panel">
+                    <div class="card-body">
+                        <div class="section-head-inline">
+                            <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Foundation{% else %}Foundation{% endif %}</h2>
+                        </div>
+                        <div class="dashboard-list">
+                            <div class="dashboard-list__row">
+                                <div>
+                                    <strong>SteamID</strong>
+                                    <div class="text-muted">{% if LANGUAGE_CODE == "ru" %}В профиле уже есть поле steam_id, можно связывать пользователя с серверными привилегиями без отдельного костыля.{% else %}steam_id already exists in the profile model and can be reused for entitlement sync.{% endif %}</div>
+                                </div>
+                            </div>
+                            <div class="dashboard-list__row">
+                                <div>
+                                    <strong>RCON / CSS / Metamod</strong>
+                                    <div class="text-muted">{% if LANGUAGE_CODE == "ru" %}Подключение ещё не включено в MVP, но модель и service-layer уже готовы для следующего шага.{% else %}Connection is not enabled in the MVP yet, but the model and service layer are ready for the next step.{% endif %}</div>
+                                </div>
+                            </div>
+                            <div class="dashboard-list__row">
+                                <div>
+                                    <strong>{% if LANGUAGE_CODE == "ru" %}Последняя ошибка{% else %}Last error{% endif %}</strong>
+                                    <div class="text-muted">{{ server.last_error|default:"—" }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </aside>
+        </div>
+
+        <section class="section section--compact">
+            <div class="stats-grid stats-grid--dashboard game-server-info-bar">
+                {% include "components/stats_card.html" with label="Host" value=server.host meta="Endpoint" %}
+                {% include "components/stats_card.html" with label="Port" value=server.port meta="Game port" %}
+                {% include "components/stats_card.html" with label="Status" value=server.get_status_display meta="Current probe" %}
+                {% include "components/stats_card.html" with label="Last seen" value=server.last_seen_online_at|date:"d.m H:i"|default:"—" meta="Online marker" %}
+                {% include "components/stats_card.html" with label="Latency" value=server.last_latency_ms|default:"—" meta="ms" %}
+                {% include "components/stats_card.html" with label="Privileges" value=server.privileges.count meta="Seeded placeholders" %}
+            </div>
+        </section>
+    </div>
+</section>
+{% endblock %}
