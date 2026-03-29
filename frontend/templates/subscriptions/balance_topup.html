@@ -1,0 +1,39 @@
+{% extends "layouts/base_public.html" %}
+{% load static %}
+
+{% block title %}Пополнение баланса | CaseUP{% endblock %}
+
+{% block extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/modules/subscriptions.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="hero hero--pricing">
+    <div class="container">
+        <article class="card pricing-hero">
+            <div class="card-body pricing-hero__body">
+                <div>
+                    <span class="eyebrow">Balance topup</span>
+                    <h1 class="page-title">Пополнение баланса</h1>
+                    <p class="hero-text pricing-hero__text">
+                        Пока здесь заглушка. Следующим патчем можно подключить полноценный сценарий пополнения баланса.
+                    </p>
+                    <div class="pricing-hero__actions">
+                        <a href="{% url 'subscriptions:plans' %}" class="btn btn-secondary btn-sm">Site-планы</a>
+                        <a href="{% url 'subscriptions:farmer_plans' %}" class="btn btn-secondary btn-sm">Farmer-планы</a>
+                    </div>
+                </div>
+
+                <div class="pricing-hero__aside">
+                    <div class="pricing-current-plan">
+                        <span class="badge">Current balance</span>
+                        <strong>{{ viewer_balance|default:0|floatformat:2 }} ₽</strong>
+                        <small>После появления реального topup-flow здесь можно будет запускать оплату и затем возвращать пользователя к покупке тарифа.</small>
+                    </div>
+                </div>
+            </div>
+        </article>
+    </div>
+</section>
+{% endblock %}

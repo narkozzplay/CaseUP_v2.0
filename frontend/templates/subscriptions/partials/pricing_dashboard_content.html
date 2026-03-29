@@ -1,0 +1,358 @@
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">Admin pricing</span>
+            <h1 class="page-title page-title--sm">Subscription control center</h1>
+            <p class="text-muted">Overview показывает только цену, статус и состав модулей. Детальные тексты и наполнение тарифа редактируются внутри карточки конкретного плана.</p>
+        </div>
+        <div class="pricing-hero__actions">
+            <a href="{% url 'subscriptions:plans' %}" class="btn btn-secondary">Открыть site plans</a>
+            <a href="{% url 'subscriptions:farmer_plans' %}" class="btn btn-secondary">Открыть farmer plans</a>
+        </div>
+    </div>
+
+    <article class="card">
+        <div class="card-body">
+            <div class="pricing-engine-header">
+                <div>
+                    <h2 class="section-title">Pricing engine settings</h2>
+                    <p class="text-muted">Этот блок влияет только на рекомендованную цену. Доступность модулей и содержимое тарифа настраиваются ниже, в планах и feature-матрице.</p>
+                </div>
+                <div class="pricing-engine-note">
+                    <strong>Как применять</strong>
+                    <ul>
+                        <li>Base price — старт цены для семейства тарифов.</li>
+                        <li>Level step — надбавка за каждый следующий уровень.</li>
+                        <li>Reference turnover и capture ratio — только для оценки ценности reduced commission.</li>
+                        <li>Global floor и reasonable delta управляют нижней границей и статусом цены.</li>
+                    </ul>
+                </div>
+            </div>
+            <form method="post" class="form-stack" data-dashboard-shell-form>
+                {% csrf_token %}
+                <input type="hidden" name="form_scope" value="config">
+                <div class="profile-grid">
+                    {% for field in config_form %}
+                        <div class="form-field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <small class="form-help">{{ field.help_text }}</small>
+                            {% endif %}
+                            {{ field.errors }}
+                        </div>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="btn btn-primary">Сохранить pricing settings</button>
+            </form>
+        </div>
+    </article>
+
+    <div class="profile-grid profile-grid--equal">
+        <article class="card">
+            <div class="card-body">
+                <div class="pricing-config-header">
+                    <div>
+                        <h2 class="section-title">Site pricing health</h2>
+                        <p class="text-muted">Карточки с краткой сводкой. По клику открывается детальная расшифровка формулы.</p>
+                    </div>
+                </div>
+                <div class="pricing-health-list">
+                    {% for row in site_pricing_rows %}
+                        <details class="pricing-health-card" {% if forloop.first %}open{% endif %}>
+                            <summary class="pricing-health-card__summary">
+                                <div class="pricing-health-card__title-group">
+                                    <strong>{{ row.plan.name }}</strong>
+                                    <span class="text-muted">Level {{ row.plan.level }} · {{ row.plan.billing_period_days }} дн.</span>
+                                </div>
+                                <div class="pricing-health-card__metrics">
+                                    <span class="status-pill status-pill--sm">{{ row.current_price_rub|floatformat:2 }} ₽</span>
+                                    <span class="status-pill status-pill--sm">rec {{ row.recommended_price_rub|floatformat:2 }} ₽</span>
+                                    <span class="pricing-status-chip pricing-status-chip--{{ row.price_status }}">{{ row.price_status_label }}</span>
+                                </div>
+                            </summary>
+                            <div class="pricing-health-card__body">
+                                <div class="pricing-health-card__topline">
+                                    <div>
+                                        <div class="text-muted">Отклонение</div>
+                                        <strong>{{ row.delta_rub|floatformat:2 }} ₽ / {{ row.delta_percent|floatformat:2 }}%</strong>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted">Модули</div>
+                                        <div class="pricing-feature-chips pricing-feature-chips--compact">
+                                            {% for feature in row.plan.features.all %}
+                                                {% if feature.is_active %}
+                                                    <span class="status-pill status-pill--sm">{{ feature.name }}</span>
+                                                {% endif %}
+                                            {% empty %}
+                                                <span class="text-muted">Нет активных модулей</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="pricing-factor-list">
+                                    {% for factor in row.factors %}
+                                        <div class="pricing-factor-item">
+                                            <div>
+                                                <strong>{{ factor.label }}</strong>
+                                                <div class="text-muted">{{ factor.explanation }}</div>
+                                            </div>
+                                            <span>{{ factor.value_rub|floatformat:2 }} ₽</span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </details>
+                    {% endfor %}
+                </div>
+            </div>
+        </article>
+
+        <article class="card">
+            <div class="card-body">
+                <div class="pricing-config-header">
+                    <div>
+                        <h2 class="section-title">Farmer pricing health</h2>
+                        <p class="text-muted">Та же сводка по farmer-линейке. Лишняя простыня ушла, формула осталась прозрачной.</p>
+                    </div>
+                </div>
+                <div class="pricing-health-list">
+                    {% for row in farmer_pricing_rows %}
+                        <details class="pricing-health-card" {% if forloop.first %}open{% endif %}>
+                            <summary class="pricing-health-card__summary">
+                                <div class="pricing-health-card__title-group">
+                                    <strong>{{ row.plan.name }}</strong>
+                                    <span class="text-muted">Level {{ row.plan.level }} · {{ row.plan.billing_period_days }} дн.</span>
+                                </div>
+                                <div class="pricing-health-card__metrics">
+                                    <span class="status-pill status-pill--sm">{{ row.current_price_rub|floatformat:2 }} ₽</span>
+                                    <span class="status-pill status-pill--sm">rec {{ row.recommended_price_rub|floatformat:2 }} ₽</span>
+                                    <span class="pricing-status-chip pricing-status-chip--{{ row.price_status }}">{{ row.price_status_label }}</span>
+                                </div>
+                            </summary>
+                            <div class="pricing-health-card__body">
+                                <div class="pricing-health-card__topline">
+                                    <div>
+                                        <div class="text-muted">Отклонение</div>
+                                        <strong>{{ row.delta_rub|floatformat:2 }} ₽ / {{ row.delta_percent|floatformat:2 }}%</strong>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted">Модули</div>
+                                        <div class="pricing-feature-chips pricing-feature-chips--compact">
+                                            {% for feature in row.plan.features.all %}
+                                                {% if feature.is_active %}
+                                                    <span class="status-pill status-pill--sm">{{ feature.name }}</span>
+                                                {% endif %}
+                                            {% empty %}
+                                                <span class="text-muted">Нет активных модулей</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="pricing-factor-list">
+                                    {% for factor in row.factors %}
+                                        <div class="pricing-factor-item">
+                                            <div>
+                                                <strong>{{ factor.label }}</strong>
+                                                <div class="text-muted">{{ factor.explanation }}</div>
+                                            </div>
+                                            <span>{{ factor.value_rub|floatformat:2 }} ₽</span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </details>
+                    {% endfor %}
+                </div>
+            </div>
+        </article>
+    </div>
+
+    <article class="card profile-history">
+        <div class="card-body">
+            <div class="pricing-config-header">
+                <div>
+                    <h2 class="section-title">Site-планы</h2>
+                    <p class="text-muted">Короткая сводка сверху, все детальные настройки — внутри карточки конкретного плана.</p>
+                </div>
+            </div>
+            <form method="post" class="form-stack" data-dashboard-shell-form>
+                {% csrf_token %}
+                <input type="hidden" name="form_scope" value="site_plans">
+                {{ site_plan_formset.management_form }}
+                <div class="pricing-config-list">
+                    {% for form in site_plan_formset %}
+                        <details class="pricing-config-card" {% if forloop.first %}open{% endif %}>
+                            <summary class="pricing-config-card__summary">
+                                <div class="pricing-config-card__title-group">
+                                    <strong>{{ form.instance.name|default:"Новый site-план" }}</strong>
+                                    <span class="text-muted">{{ form.instance.code|default:"new_site_plan" }} · Level {{ form.instance.level|default:"—" }}</span>
+                                </div>
+                                <div class="pricing-config-card__meta">
+                                    <span class="status-pill status-pill--sm">{{ form.instance.price_rub|default_if_none:"0.00"|floatformat:2 }} ₽</span>
+                                    {% if form.instance.ui_badge %}
+                                        <span class="status-pill status-pill--sm">{{ form.instance.ui_badge }}</span>
+                                    {% endif %}
+                                    <span class="text-muted">{{ form.instance.billing_period_days|default:30 }} дн.</span>
+                                </div>
+                            </summary>
+                            <div class="pricing-config-card__body">
+                                {{ form.id }}
+                                <div class="pricing-config-grid pricing-config-grid--compact">
+                                    <div class="form-field"><label for="{{ form.code.id_for_label }}">Code</label>{{ form.code }}{{ form.code.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.level.id_for_label }}">Level</label>{{ form.level }}{{ form.level.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.name.id_for_label }}">Name</label>{{ form.name }}{{ form.name.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.audience.id_for_label }}">Audience</label>{{ form.audience }}{{ form.audience.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.ui_badge.id_for_label }}">Badge</label>{{ form.ui_badge }}{{ form.ui_badge.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.price_rub.id_for_label }}">Цена</label>{{ form.price_rub }}{{ form.price_rub.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.price_floor_rub.id_for_label }}">Floor</label>{{ form.price_floor_rub }}{{ form.price_floor_rub.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.manual_price_adjustment_rub.id_for_label }}">Manual adj.</label>{{ form.manual_price_adjustment_rub }}{{ form.manual_price_adjustment_rub.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.billing_period_days.id_for_label }}">Период</label>{{ form.billing_period_days }}{{ form.billing_period_days.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.sort_order.id_for_label }}">Sort</label>{{ form.sort_order }}{{ form.sort_order.errors }}</div>
+                                    <div class="form-field form-field--toggle"><label for="{{ form.is_active.id_for_label }}">Активен</label>{{ form.is_active }}{{ form.is_active.errors }}</div>
+                                </div>
+                                <div class="pricing-config-grid pricing-config-grid--details">
+                                    <div class="form-field form-field--full"><label for="{{ form.description.id_for_label }}">Описание</label>{{ form.description }}{{ form.description.errors }}</div>
+                                    <div class="form-field form-field--full"><label for="{{ form.ui_features_text.id_for_label }}">UI features</label>{{ form.ui_features_text }}{{ form.ui_features_text.errors }}</div>
+                                </div>
+                            </div>
+                        </details>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="btn btn-primary">Сохранить site plans</button>
+            </form>
+        </div>
+    </article>
+
+    <article class="card profile-history">
+        <div class="card-body">
+            <h2 class="section-title">Site feature-матрица</h2>
+            <p class="text-muted">Здесь задается, с какого тарифа открывается feature и сколько она добавляет к расчетной цене.</p>
+            <form method="post" class="form-stack" data-dashboard-shell-form>
+                {% csrf_token %}
+                <input type="hidden" name="form_scope" value="site_rules">
+                {{ site_rule_formset.management_form }}
+                <div class="table-wrap">
+                    <table class="table table--dark">
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Открывается с плана</th>
+                                <th>Value ₽</th>
+                                <th>Sort</th>
+                                <th>Активна</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for form in site_rule_formset %}
+                                <tr>
+                                    {{ form.id }}
+                                    <td>{{ form.feature }}{{ form.feature.errors }}</td>
+                                    <td>{{ form.required_plan }}{{ form.required_plan.errors }}</td>
+                                    <td>{{ form.value_rub }}{{ form.value_rub.errors }}</td>
+                                    <td>{{ form.sort_order }}{{ form.sort_order.errors }}</td>
+                                    <td>{{ form.is_enabled }}{{ form.is_enabled.errors }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <button type="submit" class="btn btn-primary">Сохранить site feature matrix</button>
+            </form>
+        </div>
+    </article>
+
+    <article class="card profile-history">
+        <div class="card-body">
+            <div class="pricing-config-header">
+                <div>
+                    <h2 class="section-title">Farmer-планы</h2>
+                    <p class="text-muted">Детальные тексты и состав тарифа лежат внутри конфигурации конкретного плана.</p>
+                </div>
+            </div>
+            <form method="post" class="form-stack" data-dashboard-shell-form>
+                {% csrf_token %}
+                <input type="hidden" name="form_scope" value="farmer_plans">
+                {{ farmer_plan_formset.management_form }}
+                <div class="pricing-config-list">
+                    {% for form in farmer_plan_formset %}
+                        <details class="pricing-config-card">
+                            <summary class="pricing-config-card__summary">
+                                <div class="pricing-config-card__title-group">
+                                    <strong>{{ form.instance.name|default:"Новый farmer-план" }}</strong>
+                                    <span class="text-muted">{{ form.instance.code|default:"new_farmer_plan" }} · Level {{ form.instance.level|default:"—" }}</span>
+                                </div>
+                                <div class="pricing-config-card__meta">
+                                    <span class="status-pill status-pill--sm">{{ form.instance.price_rub|default_if_none:"0.00"|floatformat:2 }} ₽</span>
+                                    {% if form.instance.ui_badge %}
+                                        <span class="status-pill status-pill--sm">{{ form.instance.ui_badge }}</span>
+                                    {% endif %}
+                                    <span class="text-muted">{{ form.instance.billing_period_days|default:30 }} дн.</span>
+                                </div>
+                            </summary>
+                            <div class="pricing-config-card__body">
+                                {{ form.id }}
+                                <div class="pricing-config-grid pricing-config-grid--compact">
+                                    <div class="form-field"><label for="{{ form.code.id_for_label }}">Code</label>{{ form.code }}{{ form.code.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.level.id_for_label }}">Level</label>{{ form.level }}{{ form.level.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.name.id_for_label }}">Name</label>{{ form.name }}{{ form.name.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.audience.id_for_label }}">Audience</label>{{ form.audience }}{{ form.audience.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.ui_badge.id_for_label }}">Badge</label>{{ form.ui_badge }}{{ form.ui_badge.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.price_rub.id_for_label }}">Цена</label>{{ form.price_rub }}{{ form.price_rub.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.price_floor_rub.id_for_label }}">Floor</label>{{ form.price_floor_rub }}{{ form.price_floor_rub.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.manual_price_adjustment_rub.id_for_label }}">Manual adj.</label>{{ form.manual_price_adjustment_rub }}{{ form.manual_price_adjustment_rub.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.billing_period_days.id_for_label }}">Период</label>{{ form.billing_period_days }}{{ form.billing_period_days.errors }}</div>
+                                    <div class="form-field"><label for="{{ form.sort_order.id_for_label }}">Sort</label>{{ form.sort_order }}{{ form.sort_order.errors }}</div>
+                                    <div class="form-field form-field--toggle"><label for="{{ form.is_active.id_for_label }}">Активен</label>{{ form.is_active }}{{ form.is_active.errors }}</div>
+                                </div>
+                                <div class="pricing-config-grid pricing-config-grid--details">
+                                    <div class="form-field form-field--full"><label for="{{ form.description.id_for_label }}">Описание</label>{{ form.description }}{{ form.description.errors }}</div>
+                                    <div class="form-field form-field--full"><label for="{{ form.ui_features_text.id_for_label }}">UI features</label>{{ form.ui_features_text }}{{ form.ui_features_text.errors }}</div>
+                                </div>
+                            </div>
+                        </details>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="btn btn-primary">Сохранить farmer plans</button>
+            </form>
+        </div>
+    </article>
+
+    <article class="card profile-history">
+        <div class="card-body">
+            <h2 class="section-title">Farmer feature-матрица</h2>
+            <p class="text-muted">Feature rule автоматически раздает доступ всем тарифам того же семейства, которые не ниже выбранного required plan.</p>
+            <form method="post" class="form-stack" data-dashboard-shell-form>
+                {% csrf_token %}
+                <input type="hidden" name="form_scope" value="farmer_rules">
+                {{ farmer_rule_formset.management_form }}
+                <div class="table-wrap">
+                    <table class="table table--dark">
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Открывается с плана</th>
+                                <th>Value ₽</th>
+                                <th>Sort</th>
+                                <th>Активна</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for form in farmer_rule_formset %}
+                                <tr>
+                                    {{ form.id }}
+                                    <td>{{ form.feature }}{{ form.feature.errors }}</td>
+                                    <td>{{ form.required_plan }}{{ form.required_plan.errors }}</td>
+                                    <td>{{ form.value_rub }}{{ form.value_rub.errors }}</td>
+                                    <td>{{ form.sort_order }}{{ form.sort_order.errors }}</td>
+                                    <td>{{ form.is_enabled }}{{ form.is_enabled.errors }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <button type="submit" class="btn btn-primary">Сохранить farmer feature matrix</button>
+            </form>
+        </div>
+    </article>
+</section>

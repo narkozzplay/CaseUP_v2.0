@@ -1,0 +1,32 @@
+{% extends "layouts/base_dashboard.html" %}
+
+{% block title %}Add Trade Bot | CaseUP{% endblock %}
+
+{% block content %}
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">TradeHub</span>
+            <h1 class="page-title page-title--sm">Новый трейд-бот</h1>
+        </div>
+        <div class="hero-actions dashboard-actions">
+            <a href="{% url 'tradehub:bots_list' %}" class="btn btn-secondary">Назад к ботам</a>
+        </div>
+    </div>
+
+    <article class="card"><div class="card-body">
+        <form method="post" class="dashboard-form-grid">{% csrf_token %}
+            {% for field in form %}
+                <div class="form-group">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}<div class="form-error">{{ field.errors|join:", " }}</div>{% endif %}
+                </div>
+            {% endfor %}
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Создать бота</button>
+            </div>
+        </form>
+    </div></article>
+</section>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "layouts/base_public.html" %}
+
+{% block title %}CaseUP — Platform{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="container hero-grid">
+        <div class="hero-copy">
+            <span class="eyebrow">Modular gaming platform</span>
+            {% if LANGUAGE_CODE == "ru" %}
+                <h1>Новая архитектурная база для CaseUP</h1>
+                <p class="hero-text">
+                    Платформа с разделением на core, legacy и плагины.
+                    Новый frontend shell уже поднят и готов к переносу доменных модулей.
+                </p>
+            {% else %}
+                <h1>New architectural base for CaseUP</h1>
+                <p class="hero-text">
+                    Platform with separation into core, legacy and plugins.
+                    The new frontend shell is already up and ready for migration of domain modules.
+                </p>
+            {% endif %}
+
+            <div class="hero-actions">
+                <a href="{% url 'frontend:dashboard_preview' %}" class="btn btn-primary">
+                    {% if LANGUAGE_CODE == "ru" %}Открыть dashboard preview{% else %}Open dashboard preview{% endif %}
+                </a>
+                <a href="{% url 'frontend:testing_preview' %}" class="btn btn-secondary">
+                    {% if LANGUAGE_CODE == "ru" %}Testing area{% else %}Testing area{% endif %}
+                </a>
+                {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}" class="btn btn-secondary">
+                    {% if LANGUAGE_CODE == "ru" %}Смотреть тарифы{% else %}View subscriptions{% endif %}
+                </a>{% endif %}
+            </div>
+        </div>
+
+        <div class="hero-card card">
+            <div class="card-header">
+                <span class="badge">Current status</span>
+            </div>
+            <div class="card-body">
+                <ul class="feature-list">
+                    {% if LANGUAGE_CODE == "ru" %}
+                        <li>Рабочий Django bootstrap</li>
+                        <li>Новая template-архитектура</li>
+                        <li>Разделение public / dashboard / testing</li>
+                        <li>Подготовка к переносу v2-модулей</li>
+                    {% else %}
+                        <li>Working Django bootstrap</li>
+                        <li>New template architecture</li>
+                        <li>Public / dashboard / testing separation</li>
+                        <li>Preparation for v2 modules migration</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="section-heading">
+            <span class="eyebrow">Architecture</span>
+            {% if LANGUAGE_CODE == "ru" %}
+                <h2>Как теперь устроен проект</h2>
+                <p class="text-muted">
+                    Новый каркас собирается вокруг модульности, управляемой миграции и
+                    более чистой frontend-оболочки.
+                </p>
+            {% else %}
+                <h2>How the project is structured now</h2>
+                <p class="text-muted">
+                    The new shell is built around modularity, controlled migration and
+                    a cleaner frontend layer.
+                </p>
+            {% endif %}
+        </div>
+
+        <div class="cards-grid">
+            <article class="card">
+                <div class="card-body">
+                    <h3>modules/legacy</h3>
+                    <p class="text-muted">
+                        {% if LANGUAGE_CODE == "ru" %}
+                            Изолированная зона для старого кода, который переносится поэтапно.
+                        {% else %}
+                            Isolated zone for legacy code that is migrated step by step.
+                        {% endif %}
+                    </p>
+                </div>
+            </article>
+
+            <article class="card">
+                <div class="card-body">
+                    <h3>modules/v2</h3>
+                    <p class="text-muted">
+                        {% if LANGUAGE_CODE == "ru" %}
+                            Новое ядро проекта: чистые домены, новые сервисы и единый центр тяжести.
+                        {% else %}
+                            New core of the project: clean domains, new services and a single center of gravity.
+                        {% endif %}
+                    </p>
+                </div>
+            </article>
+
+            <article class="card">
+                <div class="card-body">
+                    <h3>modules/plugins</h3>
+                    <p class="text-muted">
+                        {% if LANGUAGE_CODE == "ru" %}
+                            Отключаемые и дополнительные подсистемы, которые не обязаны жить в core.
+                        {% else %}
+                            Optional subsystems that do not have to live in the core.
+                        {% endif %}
+                    </p>
+                </div>
+            </article>
+        </div>
+    </div>
+</section>
+{% endblock %}

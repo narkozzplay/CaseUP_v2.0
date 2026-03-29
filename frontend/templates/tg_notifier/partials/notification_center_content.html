@@ -1,0 +1,247 @@
+<section class="section section--compact">
+    <div class="section-head">
+        <div>
+            <h1 class="page-title">Центр уведомлений</h1>
+            <p class="text-muted">
+                Здесь видно, какие уведомления доступны, по каким правилам они формируются и в каком состоянии сейчас Telegram.
+            </p>
+        </div>
+    </div>
+
+    <div class="profile-grid profile-grid--3">
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Статус Telegram</h2>
+                <dl class="details-list details-list--compact">
+                    <div>
+                        <dt>Модуль TG notifier</dt>
+                        <dd>{% if tg_module_enabled %}Включен{% else %}Выключен{% endif %}</dd>
+                    </div>
+                    <div>
+                        <dt>Notifier config</dt>
+                        <dd>{% if config.is_enabled %}Включен{% else %}Выключен{% endif %}</dd>
+                    </div>
+                    <div>
+                        <dt>Пользовательский Telegram</dt>
+                        <dd>{% if profile.telegram_is_linked %}Подключен{% else %}Не подключен{% endif %}</dd>
+                    </div>
+                    <div>
+                        <dt>Chat ID</dt>
+                        <dd>{{ profile.telegram_chat_id|default:"—" }}</dd>
+                    </div>
+                    <div>
+                        <dt>Bot username</dt>
+                        <dd>
+                            {% if config.bot_username %}
+                                @{{ config.bot_username }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>Default chat id</dt>
+                        <dd>{{ config.default_chat_id|default:"—" }}</dd>
+                    </div>
+                </dl>
+
+                {% if not profile.telegram_is_linked %}
+                    <div class="faceit-error" style="margin-top: 1rem;">
+                        Telegram у текущего пользователя не привязан. Персональные уведомления в такой ситуации некуда доставлять.
+                    </div>
+
+                    <div style="margin-top: 1rem;">
+                        <a href="{% url 'profiles:profile' %}" class="btn btn-primary btn-block">
+                            Открыть профиль и привязать Telegram
+                        </a>
+                    </div>
+                {% endif %}
+                <hr style="margin:1rem 0;border-color:rgba(255,255,255,.08);">
+                <div class="section-head-inline">
+                    <h2 class="section-title">Мои пользовательские price rules</h2>
+                    <a href="{% url 'steam_catalog:alert_rules' %}" class="btn btn-secondary">Открыть</a>
+                </div>
+                {% if user_rules %}
+                    <div class="table-wrap">
+                        <table class="table table--dark">
+                            <thead><tr><th>Название</th><th>Scope</th><th>Reference</th><th>Порог</th><th>Статус</th></tr></thead>
+                            <tbody>
+                                {% for rule in user_rules %}
+                                    <tr><td>{{ rule.name }}</td><td>{{ rule.get_scope_type_display }}</td><td>{{ rule.get_reference_point_display }}</td><td>{{ rule.min_change_rub }} ₽ / {{ rule.min_change_percent }}%</td><td>{{ rule.get_status_display }}</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted empty-state">Пользовательских правил пока нет.</p>
+                {% endif %}
+
+            </div>
+        </article>
+
+        <article class="card" style="grid-column: span 2;">
+            <div class="card-body">
+                <h2 class="section-title">Какие уведомления есть</h2>
+                <div class="table-wrap">
+                    <table class="table table--dark">
+                        <thead>
+                            <tr>
+                                <th>Тип</th>
+                                <th>Описание</th>
+                                <th>Куда доставляется</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in notification_types %}
+                                <tr>
+                                    <td>{{ item.title }}</td>
+                                    <td>{{ item.description }}</td>
+                                    <td>{{ item.delivery }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </article>
+    </div>
+
+    <div class="profile-grid profile-grid--3">
+        <article class="card" style="grid-column: span 2;">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">Активные правила price alerts</h2>
+                    <span class="text-muted">{{ active_rules|length }}</span>
+                </div>
+
+                {% if active_rules %}
+                    <div class="table-wrap">
+                        <table class="table table--dark">
+                            <thead>
+                                <tr>
+                                    <th>Тип предмета</th>
+                                    <th>Направление</th>
+                                    <th>Окно</th>
+                                    <th>Мин. изменение ₽</th>
+                                    <th>Мин. изменение %</th>
+                                    <th>Шаг повтора ₽</th>
+                                    <th>Шаг повтора %</th>
+                                    <th>Cooldown</th>
+                                    <th>Transport</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rule in active_rules %}
+                                    <tr>
+                                        <td>{{ rule.item_type }}</td>
+                                        <td>{{ rule.get_direction_display }}</td>
+                                        <td>{{ rule.lookback_hours }} ч</td>
+                                        <td>{{ rule.min_drop_rub }}</td>
+                                        <td>{{ rule.min_drop_percent }}%</td>
+                                        <td>{{ rule.repeat_step_rub }}</td>
+                                        <td>{{ rule.repeat_step_percent }}%</td>
+                                        <td>{{ rule.cooldown_minutes }} мин</td>
+                                        <td>{{ rule.notify_transport }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted empty-state">Активных правил сейчас нет.</p>
+                {% endif %}
+            </div>
+        </article>
+
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Что это значит</h2>
+                <div class="dashboard-list">
+                    <div class="dashboard-list__row">
+                        <strong>Если правило активно</strong>
+                        <span class="text-muted">система создает PriceDropAlertEvent</span>
+                    </div>
+                    <div class="dashboard-list__row">
+                        <strong>Если event = pending</strong>
+                        <span class="text-muted">ждет Celery-dispatch</span>
+                    </div>
+                    <div class="dashboard-list__row">
+                        <strong>Если event = sent</strong>
+                        <span class="text-muted">Telegram успешно отработал хотя бы по одному получателю</span>
+                    </div>
+                    <div class="dashboard-list__row">
+                        <strong>Если event = error</strong>
+                        <span class="text-muted">доставка не удалась или получателей нет</span>
+                    </div>
+                </div>
+            </div>
+        </article>
+    </div>
+
+    <article class="card">
+        <div class="card-body">
+            <div class="section-head-inline">
+                <h2 class="section-title">Последние price alert events</h2>
+                <span class="text-muted">{{ recent_price_alert_events|length }}</span>
+            </div>
+
+            {% if recent_price_alert_events %}
+                <div class="table-wrap">
+                    <table class="table table--dark">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Предмет</th>
+                                <th>Тип</th>
+                                <th>Направление</th>
+                                <th>Изменение ₽</th>
+                                <th>Изменение %</th>
+                                <th>Шаг</th>
+                                <th>Статус</th>
+                                <th>Ошибка</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in recent_price_alert_events %}
+                                <tr>
+                                    <td>{{ event.created_at|date:"d.m.Y H:i" }}</td>
+                                    <td>{{ event.item.group_name|default:event.item.market_hash_name }}</td>
+                                    <td>{{ event.item.item_type }}</td>
+                                    <td>{{ event.get_direction_display }}</td>
+                                    <td>{{ event.drop_rub }}</td>
+                                    <td>{{ event.drop_percent }}%</td>
+                                    <td>{{ event.step_index }}</td>
+                                    <td>{{ event.status }}</td>
+                                    <td>{{ event.error_message|default:"—" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted empty-state">Событий price alerts пока нет.</p>
+            {% endif %}
+        
+            <hr style="margin:1rem 0;border-color:rgba(255,255,255,.08);">
+            <div class="section-head-inline">
+                <h2 class="section-title">Последние user price alert events</h2>
+                <a href="{% url 'steam_catalog:alert_history' %}" class="btn btn-secondary">Открыть историю</a>
+            </div>
+            {% if recent_user_price_alert_events %}
+                <div class="table-wrap">
+                    <table class="table table--dark">
+                        <thead><tr><th>Дата</th><th>Правило</th><th>Предмет</th><th>Δ ₽</th><th>Δ %</th><th>Статус</th></tr></thead>
+                        <tbody>
+                            {% for event in recent_user_price_alert_events %}
+                                <tr><td>{{ event.created_at|date:"d.m.Y H:i" }}</td><td>{{ event.rule.name }}</td><td>{{ event.item.group_name }}</td><td>{{ event.change_rub }}</td><td>{{ event.change_percent }}%</td><td>{{ event.get_delivery_status_display }}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted empty-state">Пользовательских событий пока нет.</p>
+            {% endif %}
+
+        </div>
+    </article>
+</section>

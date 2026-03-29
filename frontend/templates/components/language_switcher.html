@@ -1,0 +1,11 @@
+{% load frontend_i18n %}
+<div class="lang-switcher-wrap">
+    <div class="lang-switcher">
+        <a href="{% switch_lang_url request 'ru' %}" class="lang-switcher__btn {% if LANGUAGE_CODE == 'ru' %}is-active{% endif %}">
+            RU
+        </a>
+        <a href="{% switch_lang_url request 'en' %}" class="lang-switcher__btn {% if LANGUAGE_CODE == 'en' %}is-active{% endif %}">
+            EN
+        </a>
+    </div>
+</div>

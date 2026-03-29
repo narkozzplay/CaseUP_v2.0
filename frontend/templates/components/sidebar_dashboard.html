@@ -1,0 +1,74 @@
+<aside class="dashboard-sidebar" data-dashboard-sidebar>
+    <div class="dashboard-sidebar__inner">
+        <div class="dashboard-sidebar__brand-wrap">
+            <a href="{% url 'frontend:dashboard_preview' %}" class="brand brand--dashboard" data-dashboard-nav="true">{{ site_settings.site_name|default:"CaseUP" }} Dashboard</a>
+            <p class="dashboard-sidebar__subtitle">
+                {% if LANGUAGE_CODE == "ru" %}
+                    Внутренний контур платформы
+                {% else %}
+                    Internal platform control layer
+                {% endif %}
+            </p>
+        </div>
+
+        {% include "components/language_switcher.html" %}
+
+        {% if request.user.is_authenticated %}
+            <div class="dashboard-user-card card card--soft">
+                <div class="card-body dashboard-user-card__body">
+                    <div class="dashboard-user-card__head">
+                        {% if request.user.profile_v2.steam_avatar %}
+                            <img src="{{ request.user.profile_v2.steam_avatar }}" alt="Steam avatar" class="dashboard-user-card__avatar">
+                        {% endif %}
+                        <div>
+                            <p class="dashboard-user-card__name">{{ request.user.profile_v2.steam_personaname|default:request.user.username }}</p>
+                            <p class="dashboard-user-card__meta">{{ request.user.profile_v2.role|default:"user" }}</p>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-user-card__stats">
+                        <span class="status-pill status-pill--sm">{% if LANGUAGE_CODE == "ru" %}Баланс:{% else %}Balance:{% endif %} {{ coins }}</span>
+                        <span class="status-pill status-pill--sm">Steam lvl: {% if request.user.profile_v2.steam_level %}{{ request.user.profile_v2.steam_level }}{% else %}—{% endif %}</span>
+                        <span class="status-pill status-pill--sm">Site: {{ subscription_context.plan_name }}</span>
+                        {% if request.user.profile_v2.role == "farmer" or role_access.is_admin_plus %}
+                            <span class="status-pill status-pill--sm">Farm: {{ farmer_subscription_context.plan_name }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="auth-card__actions">
+                        {% if LANGUAGE_CODE == "ru" %}
+                            <a href="{% url 'profiles:profile' %}" class="btn btn-secondary btn-block" data-dashboard-nav="true">Открыть профиль</a>
+                            <form method="post" action="{% url 'accounts:logout' %}" class="inline-form inline-form--block">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-block">Выйти</button>
+                            </form>
+                        {% else %}
+                            <a href="{% url 'profiles:profile' %}" class="btn btn-secondary btn-block" data-dashboard-nav="true">Open profile</a>
+                            <form method="post" action="{% url 'accounts:logout' %}" class="inline-form inline-form--block">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-block">Logout</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        {% for group in dashboard_menu_groups %}
+            <details class="dashboard-menu-group" data-dashboard-group="{{ group.key }}" {% if group.is_open %}open{% endif %}>
+                <summary class="dashboard-menu-group__summary">{{ group.label }}</summary>
+                <nav class="dashboard-nav dashboard-nav--grouped">
+                    {% for item in group.items %}
+                        <a
+                            href="{{ item.url }}"
+                            data-dashboard-nav="{% if item.is_shell_nav %}true{% else %}false{% endif %}"
+                            data-menu-key="{{ item.key }}"
+                            class="{% if item.is_active %}is-active{% endif %}"
+                            {% if item.is_active %}aria-current="page"{% endif %}
+                        >{{ item.label }}</a>
+                    {% endfor %}
+                </nav>
+            </details>
+        {% endfor %}
+    </div>
+</aside>

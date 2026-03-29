@@ -1,0 +1,320 @@
+.site-main {
+    min-height: calc(100vh - 160px);
+}
+
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    backdrop-filter: blur(16px);
+    background: rgba(11, 16, 32, 0.72);
+    border-bottom: 1px solid var(--border);
+}
+
+.site-header--testing {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    min-height: 72px;
+}
+
+.brand {
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.nav-links a {
+    color: var(--text-soft);
+}
+
+.nav-links a:hover {
+    color: var(--text);
+}
+
+.nav-links--auth {
+    margin-left: auto;
+}
+
+.hero {
+    padding: var(--space-8) 0 var(--space-7);
+}
+
+.hero-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 0.9fr;
+    gap: var(--space-5);
+    align-items: center;
+}
+
+.hero-copy h1 {
+    margin: 16px 0;
+    font-size: clamp(2.4rem, 5vw, 4.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+}
+
+.hero-text {
+    max-width: 720px;
+    color: var(--text-muted);
+    font-size: 1.05rem;
+}
+
+.hero-actions {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    margin-top: var(--space-5);
+}
+
+.site-footer {
+    margin-top: var(--space-7);
+    padding: var(--space-5) 0;
+    border-top: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.footer-inner {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.footer-links {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    color: var(--text-muted);
+}
+
+.dashboard-shell {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+}
+
+.dashboard-sidebar {
+    border-right: 1px solid var(--border);
+    background:
+        radial-gradient(circle at top, rgba(111, 124, 255, 0.12), transparent 30%),
+        rgba(10, 15, 29, 0.88);
+    backdrop-filter: blur(14px);
+}
+
+.dashboard-sidebar__inner {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px;
+}
+
+.brand--dashboard {
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.dashboard-sidebar__brand-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dashboard-sidebar__subtitle {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+}
+
+.dashboard-user-card {
+    border-color: rgba(111, 124, 255, 0.16);
+    background:
+        linear-gradient(180deg, rgba(111, 124, 255, 0.12), rgba(255, 255, 255, 0.03));
+}
+
+.dashboard-user-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.dashboard-user-card__head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.dashboard-user-card__avatar {
+    width: 56px;
+    height: 56px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    object-fit: cover;
+}
+
+.dashboard-user-card__name {
+    margin: 0 0 4px;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.dashboard-user-card__meta {
+    margin: 0;
+    color: var(--text-muted);
+    text-transform: lowercase;
+}
+
+.dashboard-user-card__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.dashboard-nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dashboard-menu-group {
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.02);
+    overflow: hidden;
+}
+
+.dashboard-menu-group[open] {
+    border-color: rgba(111, 124, 255, 0.14);
+}
+
+.dashboard-menu-group__summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.dashboard-menu-group__summary::-webkit-details-marker {
+    display: none;
+}
+
+.dashboard-menu-group__summary::after {
+    content: "⌄";
+    float: right;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+}
+
+.dashboard-menu-group[open] .dashboard-menu-group__summary::after {
+    transform: rotate(180deg);
+}
+
+.dashboard-nav--grouped {
+    padding: 0 10px 10px;
+}
+
+.dashboard-nav-group__title {
+    margin: 0;
+    padding-left: 6px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.dashboard-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dashboard-nav a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    color: var(--text-soft);
+}
+
+.dashboard-nav a:hover {
+    background: rgba(111, 124, 255, 0.08);
+    border-color: rgba(111, 124, 255, 0.14);
+    color: var(--text);
+}
+
+.dashboard-content {
+    padding: 24px 0;
+}
+
+.container--dashboard {
+    width: min(100% - 32px, 1280px);
+}
+
+@media (max-width: 960px) {
+    .hero-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .navbar {
+        min-height: auto;
+        padding: 16px 0;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .hero {
+        padding-top: var(--space-6);
+    }
+
+    .dashboard-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-sidebar {
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .dashboard-sidebar__inner {
+        position: static;
+    }
+
+    .dashboard-user-card__stats {
+        flex-direction: column;
+    }
+}
+
+.dashboard-nav a.is-active {
+    background: rgba(111, 124, 255, 0.12);
+    border-color: rgba(111, 124, 255, 0.28);
+    color: var(--text);
+}
+
+.dashboard-shell.is-loading .dashboard-content {
+    opacity: 0.78;
+    transition: opacity 0.16s ease;
+}

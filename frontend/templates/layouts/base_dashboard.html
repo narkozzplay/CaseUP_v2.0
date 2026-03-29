@@ -1,0 +1,34 @@
+{% extends "layouts/base.html" %}
+{% load static %}
+
+{% block extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/modules/farm.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modules/profiles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modules/steam_catalog.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modules/steam_trading.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modules/subscriptions.css' %}">
+    {% block dashboard_extra_head %}{% endblock %}
+{% endblock %}
+
+{% block body_class %}theme-dashboard{% endblock %}
+
+{% block page %}
+    <div class="dashboard-shell" data-dashboard-shell>
+        {% include "components/sidebar_dashboard.html" %}
+
+        <section class="dashboard-content">
+            <div class="container container--dashboard" id="dashboard-content-root" data-dashboard-content-root>
+                {% include "components/messages.html" %}
+                <div class="dashboard-content-frame" data-dashboard-page-title="{{ dashboard_page_title|default:site_settings.site_name|default:'CaseUP' }}" data-dashboard-active-menu="{{ dashboard_active_menu_key|default:'' }}">
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
+        </section>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    {{ block.super }}
+    <script src="{% static 'js/dashboard_shell.js' %}"></script>
+{% endblock %}

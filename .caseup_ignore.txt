@@ -1,0 +1,49 @@
+# Git
+.git/
+.gitignore
+
+# Env / secrets
+.env
+.env.*
+*.env
+*.example
+
+# Python cache / tooling
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Frontend / build garbage
+node_modules/
+dist/
+build/
+
+# Django runtime artifacts
+staticfiles/
+media/
+*.sqlite3
+*.db
+*.sql
+*.dump
+*.log
+*.tmp
+
+# OS / IDE
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local generated archives
+*.zip

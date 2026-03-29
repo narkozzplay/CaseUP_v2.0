@@ -1,0 +1,48 @@
+{% if session_rows %}
+    <div class="table-wrap">
+        <table class="table table--dark">
+            <thead>
+                <tr>
+                    <th>Дроп</th>
+                    <th>Аккаунт</th>
+                    <th>На сборе</th>
+                    <th>Сейчас</th>
+                    <th>Δ</th>
+                    <th>PnL</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in session_rows %}
+                    <tr>
+                        <td>
+                            <strong>{{ row.session.title|default:row.session.get_source_type_display }}</strong>
+                            <div class="text-muted">{{ row.session.collected_at|date:"d.m.Y H:i" }}</div>
+                        </td>
+                        <td>{{ row.session.account.title }}</td>
+                        {% if analytics_locked %}
+                            <td><span class="text-muted">—</span></td>
+                            <td><span class="text-muted">—</span></td>
+                            <td><span class="text-muted">Locked</span></td>
+                            <td><span class="text-muted">Locked</span></td>
+                        {% else %}
+                            <td>{{ row.collected_value_rub|floatformat:2 }} ₽</td>
+                            <td>{{ row.current_value_rub|floatformat:2 }} ₽</td>
+                            <td class="{% if row.delta_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">
+                                {{ row.delta_rub|floatformat:2 }} ₽ / {{ row.delta_percent|floatformat:2 }}%
+                            </td>
+                            <td class="{% if row.total_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">
+                                {{ row.total_pnl_rub|floatformat:2 }} ₽
+                            </td>
+                        {% endif %}
+                        <td>
+                            <a href="{% url 'farm:sessions_detail' row.session.id %}" class="btn btn-secondary btn-sm">Открыть</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <p class="text-muted empty-state">Farm drop records пока нет.</p>
+{% endif %}

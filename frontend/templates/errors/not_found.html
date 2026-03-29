@@ -1,0 +1,39 @@
+{% extends error_layout_template %}
+
+{% block title %}{{ error_title }} | CaseUP{% endblock %}
+
+{% block content %}
+    {% if error_is_dashboard %}
+        <section class="section section--compact">
+            <article class="card">
+                <div class="card-body">
+                    <span class="eyebrow">Error {{ error_code }}</span>
+                    <h1 class="page-title page-title--sm">{{ error_title }}</h1>
+                    <p class="text-muted">{{ error_description }}</p>
+
+                    <div class="hero-actions">
+                        <a href="{{ error_primary_url }}" class="btn btn-primary">{{ error_primary_label }}</a>
+                        <a href="{{ error_secondary_url }}" class="btn btn-secondary">{{ error_secondary_label }}</a>
+                    </div>
+                </div>
+            </article>
+        </section>
+    {% else %}
+        <section class="auth-section">
+            <div class="container auth-grid auth-grid--single">
+                <div class="auth-card card">
+                    <div class="card-body auth-card__body">
+                        <span class="eyebrow">Error {{ error_code }}</span>
+                        <h1 class="auth-title">{{ error_title }}</h1>
+                        <p class="text-muted auth-description">{{ error_description }}</p>
+
+                        <div class="hero-actions">
+                            <a href="{{ error_primary_url }}" class="btn btn-primary">{{ error_primary_label }}</a>
+                            <a href="{{ error_secondary_url }}" class="btn btn-secondary">{{ error_secondary_label }}</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,255 @@
+<section class="section section--compact">
+    <div class="dashboard-hero card dashboard-hero--admin">
+        <div class="card-body dashboard-hero__body">
+            <div>
+                <span class="eyebrow">Admin+</span>
+                <h1 class="page-title page-title--sm">System Settings</h1>
+                <p class="text-muted dashboard-hero__text">
+                    Централизованное управление site configuration, maintenance mode и feature flags модулей без runtime-изменения INSTALLED_APPS.
+                </p>
+            </div>
+
+            <div class="dashboard-hero__meta">
+                <span class="status-pill">Public URL: {{ summary.public_base_url }}</span>
+                <span class="status-pill">Maintenance: {{ summary.maintenance_label }}</span>
+                <span class="status-pill">Modules: {{ summary.enabled_count }}/{{ summary.total_count }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-grid profile-grid--3">
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Public runtime</h2>
+                <div class="dashboard-list">
+                    <div class="dashboard-list__row">
+                        <strong>Public base URL</strong>
+                        <span class="status-pill status-pill--sm">{{ summary.public_base_url }}</span>
+                    </div>
+                    <div class="dashboard-list__row">
+                        <strong>Support email</strong>
+                        <span class="status-pill status-pill--sm">{{ summary.support_email }}</span>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Site access</h2>
+                <div class="dashboard-list">
+                    <div class="dashboard-list__row">
+                        <strong>Maintenance</strong>
+                        <span class="status-pill status-pill--sm">{{ summary.maintenance_label }}</span>
+                    </div>
+                    <div class="dashboard-list__row">
+                        <strong>Registration</strong>
+                        <span class="status-pill status-pill--sm">{{ summary.registration_label }}</span>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Feature flags</h2>
+                <div class="dashboard-list">
+                    <div class="dashboard-list__row">
+                        <strong>TG Notifier</strong>
+                        <span class="status-pill status-pill--sm">
+                            {% if summary.tg_notifier_enabled %}Enabled{% else %}Disabled{% endif %}
+                        </span>
+                    </div>
+                    <div class="dashboard-list__row">
+                        <strong>Steam Catalog</strong>
+                        <span class="status-pill status-pill--sm">
+                            {% if summary.steam_catalog_enabled %}Enabled{% else %}Disabled{% endif %}
+                        </span>
+                    </div>
+                    <div class="dashboard-list__row">
+                        <strong>Active modules</strong>
+                        <span class="status-pill status-pill--sm">{{ summary.enabled_count }}/{{ summary.total_count }}</span>
+                    </div>
+                    <div class="dashboard-list__row">
+                        <strong>Subscriptions</strong>
+                        <span class="status-pill status-pill--sm">
+                            {% if summary.subscriptions_enabled %}Enabled{% else %}Disabled{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </article>
+    </div>
+
+    <form method="post" class="form-stack" data-dashboard-shell-form>
+        {% csrf_token %}
+
+        <article class="card">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">Site configuration</h2>
+                    <span class="text-muted">Singleton configuration used by middleware and template context.</span>
+                </div>
+
+                {% if form.non_field_errors %}
+                    <div class="card card--soft">
+                        <div class="card-body">
+                            {{ form.non_field_errors }}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="profile-grid profile-grid--3">
+                    <div class="form-field">
+                        <label for="{{ form.site_name.id_for_label }}">Site name</label>
+                        {{ form.site_name }}
+                        {{ form.site_name.errors }}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.site_currency_code.id_for_label }}">Currency code</label>
+                        {{ form.site_currency_code }}
+                        {{ form.site_currency_code.errors }}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.site_currency_symbol.id_for_label }}">Currency symbol</label>
+                        {{ form.site_currency_symbol }}
+                        {{ form.site_currency_symbol.errors }}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.support_email.id_for_label }}">Support email</label>
+                        {{ form.support_email }}
+                        {{ form.support_email.errors }}
+                    </div>
+
+                    <div class="form-field" style="grid-column: span 2;">
+                        <label for="{{ form.public_base_url.id_for_label }}">Public base URL</label>
+                        {{ form.public_base_url }}
+                        <p class="text-muted">
+                            Используется публичными интеграциями и ссылками, в том числе для внешних callback/webhook сценариев.
+                        </p>
+                        {{ form.public_base_url.errors }}
+                    </div>
+                </div>
+
+                <div class="profile-grid profile-grid--3">
+                    <div class="form-field toggle-field">
+                        <label class="toggle-control" for="{{ form.registration_enabled.id_for_label }}">
+                            {{ form.registration_enabled }}
+                            <span class="toggle-control__track" aria-hidden="true"></span>
+                            <span class="toggle-control__text">Registration enabled</span>
+                        </label>
+                        <p class="text-muted">Управляет доступностью пользовательской регистрации.</p>
+                        {{ form.registration_enabled.errors }}
+                    </div>
+                
+                    <div class="form-field toggle-field">
+                        <label class="toggle-control" for="{{ form.maintenance_mode_enabled.id_for_label }}">
+                            {{ form.maintenance_mode_enabled }}
+                            <span class="toggle-control__track" aria-hidden="true"></span>
+                            <span class="toggle-control__text">Maintenance mode</span>
+                        </label>
+                        <p class="text-muted">Обычные пользователи получат maintenance page, admin+ сохраняет доступ.</p>
+                        {{ form.maintenance_mode_enabled.errors }}
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label for="{{ form.maintenance_message.id_for_label }}">Maintenance message</label>
+                    {{ form.maintenance_message }}
+                    {{ form.maintenance_message.errors }}
+                </div>
+            </div>
+        </article>
+
+        <article class="card">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">Module flags</h2>
+                    <span class="text-muted">Зависимости модулей валидируются до сохранения.</span>
+                </div>
+
+                {% if module_preview and module_preview.cascaded_disabled_labels %}
+                    <div class="card card--soft">
+                        <div class="card-body">
+                            <strong>Cascade preview:</strong>
+                            при сохранении также будут выключены зависимые модули:
+                            {{ module_preview.cascaded_disabled_labels|join:", " }}.
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="dashboard-list">
+                    {% for card in module_cards %}
+                        <div class="dashboard-list__row">
+                            <div>
+                                <div class="section-head-inline">
+                                    <strong>{{ card.row.label }}</strong>
+                                    <span class="status-pill status-pill--sm">{{ card.row.status_label }}</span>
+                                </div>
+
+                                <div class="text-muted">{{ card.row.description }}</div>
+
+                                {% if card.row.dependency_labels %}
+                                    <div class="text-muted">
+                                        <strong>Depends on:</strong> {{ card.row.dependency_labels|join:", " }}
+                                    </div>
+                                {% endif %}
+
+                                {% if card.row.missing_dependency_labels %}
+                                    <div class="text-muted">
+                                        <strong>Blocked by:</strong> {{ card.row.missing_dependency_labels|join:", " }}
+                                    </div>
+                                {% endif %}
+
+                                {% if card.row.cascade_disable_labels and not card.row.is_enabled %}
+                                    <div class="text-muted">
+                                        <strong>Will cascade off:</strong> {{ card.row.cascade_disable_labels|join:", " }}
+                                    </div>
+                                {% endif %}
+
+                                {% if card.row.dependent_labels %}
+                                    <div class="text-muted">
+                                        <strong>Dependents:</strong> {{ card.row.dependent_labels|join:", " }}
+                                    </div>
+                                {% endif %}
+
+                                {% if card.row.addon_source_labels %}
+                                    <div class="text-muted">
+                                        <strong>Extended by:</strong> {{ card.row.addon_source_labels|join:", " }}
+                                    </div>
+                                {% endif %}
+
+                                {% if card.row.addon_target_labels %}
+                                    <div class="text-muted">
+                                        <strong>Commercial access for:</strong> {{ card.row.addon_target_labels|join:", " }}
+                                    </div>
+                                {% endif %}
+
+                                {% if card.row.blocked_reason %}
+                                    <div class="text-muted">{{ card.row.blocked_reason }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <label class="toggle-control" for="{{ card.field.id_for_label }}">
+                                    {{ card.field }}
+                                    <span class="toggle-control__track" aria-hidden="true"></span>
+                                </label>
+                                {{ card.field.errors }}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">No modules registered.</p>
+                    {% endfor %}
+                </div>
+
+                <div class="auth-card__actions">
+                    <button type="submit" class="btn btn-primary">Save configuration</button>
+                </div>
+            </div>
+        </article>
+    </form>
+</section>

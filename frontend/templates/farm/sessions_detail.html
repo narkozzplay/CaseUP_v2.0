@@ -1,0 +1,167 @@
+{% extends "layouts/base_dashboard.html" %}
+{% load static %}
+
+{% block title %}{{ session.title|default:'Farm drop' }} | CaseUP{% endblock %}
+
+{% block dashboard_extra_head %}
+    <link rel="stylesheet" href="{% static 'css/modules/farm.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">Farmer zone</span>
+            <h1 class="page-title page-title--sm">{{ session.title|default:session.get_source_type_display }}</h1>
+            <p class="text-muted">{{ session.account.title }} · {{ session.collected_at|date:"d.m.Y H:i" }} · {{ session.get_status_display }}</p>
+        </div>
+        <div class="hero-actions">
+            <a href="{% url 'farm:sessions_list' %}" class="btn btn-secondary">К списку</a>
+        </div>
+    </div>
+
+    <div class="cards-grid farm-overview-grid">
+        <article class="card card--soft"><div class="card-body"><h3>Аккаунт</h3><p class="metric">{{ session.account.title }}</p><p class="text-muted">{{ session.get_source_type_display }}</p></div></article>
+        <article class="card card--soft"><div class="card-body"><h3>Позиции</h3><p class="metric">{{ item_rows_count }}</p><p class="text-muted">Открытых: {{ remaining_quantity }}</p></div></article>
+        <article class="card card--soft"><div class="card-body"><h3>CaseUP commission</h3><p class="metric">{{ current_caseup_fee_percent|floatformat:2 }}%</p><p class="text-muted">базовая: {{ default_caseup_fee_percent|floatformat:2 }}% · по плану: {{ subscribed_caseup_fee_percent|floatformat:2 }}%</p></div></article>
+        <article class="card card--soft"><div class="card-body"><h3>Продажи</h3><p class="metric">{{ sales|length }}</p><p class="text-muted">CaseUP — основная площадка продажи внутри CaseUP</p></div></article>
+    </div>
+
+    <div class="profile-grid farm-dashboard-grid">
+        <article class="card">
+            <div class="card-body">
+                <div class="farm-locked-stack">
+                    {% include "farm/partials/analytics_summary.html" with analytics=analytics analytics_locked=analytics_locked analytics_plan_name=analytics_plan_name %}
+
+                    <div class="farm-section-gap"></div>
+                    <h2 class="section-title">Позиции</h2>
+                    {% if item_rows %}
+                        <div class="table-wrap">
+                            <table class="table table--dark">
+                                <thead>
+                                    <tr>
+                                        <th>Предмет</th>
+                                        <th>Сбор</th>
+                                        <th>Текущая цена</th>
+                                        <th>Продано / осталось</th>
+                                        <th>Realized</th>
+                                        <th>Unrealized</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in item_rows %}
+                                        <tr id="item-{{ row.item.id }}">
+                                            <td>
+                                                <strong>{{ row.item.market_hash_name_snapshot }}</strong>
+                                                {% if row.item.notes %}<div class="text-muted">{{ row.item.notes }}</div>{% endif %}
+                                            </td>
+                                            {% if analytics_locked %}
+                                                <td><span class="text-muted">—</span></td>
+                                                <td><span class="text-muted">Locked</span></td>
+                                                <td>{{ row.sold_quantity }} / {{ row.remaining_quantity }}</td>
+                                                <td><span class="text-muted">Locked</span></td>
+                                                <td><span class="text-muted">Locked</span></td>
+                                                <td><span class="text-muted">Locked</span></td>
+                                            {% else %}
+                                                <td>{{ row.collected_unit_price_rub|floatformat:2 }} ₽</td>
+                                                <td>
+                                                    {{ row.current_unit_price_rub|floatformat:2 }} ₽
+                                                    <div class="text-muted">{{ row.unit_delta_rub|floatformat:2 }} ₽ / {{ row.unit_delta_percent|floatformat:2 }}%</div>
+                                                </td>
+                                                <td>{{ row.sold_quantity }} / {{ row.remaining_quantity }}</td>
+                                                <td class="{% if row.realized_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{{ row.realized_pnl_rub|floatformat:2 }} ₽</td>
+                                                <td class="{% if row.unrealized_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{{ row.unrealized_pnl_rub|floatformat:2 }} ₽</td>
+                                                <td class="{% if row.total_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{{ row.total_pnl_rub|floatformat:2 }} ₽</td>
+                                            {% endif %}
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted empty-state">В дропе пока нет позиций.</p>
+                    {% endif %}
+
+                    {% if analytics_locked %}
+                        <div class="farm-section-gap"></div>
+                        {% include "farm/partials/analytics_locked_cta.html" %}
+                    {% endif %}
+                </div>
+            </div>
+        </article>
+
+        <article class="card">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <div>
+                        <h2 class="section-title">Продать дроп</h2>
+                        <p class="text-muted">Продажи доступны без farmer-подписки. Комиссия считается централизованно через FarmModuleConfig.</p>
+                    </div>
+                    <span class="status-pill status-pill--sm">CaseUP {{ current_caseup_fee_percent|floatformat:2 }}%</span>
+                </div>
+
+                <div class="farm-sale-note card card--soft">
+                    <div class="card-body">
+                        <strong>CaseUP как площадка продажи</strong>
+                        <p class="text-muted">По умолчанию комиссия CaseUP берётся из конфигурации и сейчас равна {{ default_caseup_fee_percent|floatformat:2 }}%. Для farmer-плана действует reduced commission {{ subscribed_caseup_fee_percent|floatformat:2 }}%.</p>
+                    </div>
+                </div>
+
+                <form method="post" class="form-stack">
+                    {% csrf_token %}
+                    {% for field in sale_form %}
+                        <div class="form-field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {{ field.errors }}
+                            {% if field.help_text %}<p class="text-muted">{{ field.help_text }}</p>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary btn-block">Сохранить продажу</button>
+                </form>
+            </div>
+        </article>
+    </div>
+
+    <article class="card profile-history">
+        <div class="card-body">
+            <h2 class="section-title">Продажи</h2>
+            {% if sales %}
+                <div class="table-wrap">
+                    <table class="table table--dark">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Предмет</th>
+                                <th>Платформа</th>
+                                <th>Qty</th>
+                                <th>Gross</th>
+                                <th>Fee</th>
+                                <th>Net</th>
+                                <th>PnL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in sales %}
+                                <tr>
+                                    <td>{{ sale.sold_at|date:"d.m.Y H:i" }}</td>
+                                    <td>{{ sale.item.market_hash_name_snapshot }}</td>
+                                    <td>{{ sale.get_platform_display }}</td>
+                                    <td>{{ sale.quantity }}</td>
+                                    <td>{{ sale.gross_sale_rub|floatformat:2 }} ₽</td>
+                                    <td>{{ sale.fee_rub|floatformat:2 }} ₽ <div class="text-muted">{{ sale.fee_percent_snapshot|floatformat:2 }}%</div></td>
+                                    <td>{{ sale.net_sale_rub|floatformat:2 }} ₽</td>
+                                    <td class="{% if sale.profit_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{{ sale.profit_rub|floatformat:2 }} ₽</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">Продаж по этому дропу пока нет.</p>
+            {% endif %}
+        </div>
+    </article>
+</section>
+{% endblock %}

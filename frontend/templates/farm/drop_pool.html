@@ -1,0 +1,102 @@
+{% extends "layouts/base_dashboard.html" %}
+{% load static %}
+
+{% block title %}Активный пул дропа | CaseUP{% endblock %}
+
+
+{% block dashboard_extra_head %}
+    <link rel="stylesheet" href="{% static 'css/modules/farm.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">Farm staff</span>
+            <h1 class="page-title page-title--sm">Активный пул дропа CS2</h1>
+            <p class="text-muted">
+                Ручное управление предметами, которые считаются актуальным weekly drop pool.
+            </p>
+        </div>
+        <a href="{% url 'farm:drops_add' %}" class="btn btn-secondary">Перейти к добавлению дропа</a>
+    </div>
+
+    <div class="profile-grid">
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Добавить предмет в пул</h2>
+
+                <form method="post" class="form-stack">
+                    {% csrf_token %}
+                    <div class="form-field">
+                        <label for="{{ form.item.id_for_label }}">Предмет</label>
+                        {{ form.item }}
+                        {{ form.item.errors }}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.sort_order.id_for_label }}">Sort order</label>
+                        {{ form.sort_order }}
+                        {{ form.sort_order.errors }}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.note.id_for_label }}">Комментарий</label>
+                        {{ form.note }}
+                        {{ form.note.errors }}
+                    </div>
+
+                    {% if form.non_field_errors %}
+                        <div class="faceit-error">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-primary btn-block">Добавить в пул</button>
+                </form>
+            </div>
+        </article>
+
+        <article class="card">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">Текущий пул</h2>
+                    <span class="text-muted">{{ entries|length }} записей</span>
+                </div>
+
+                {% if entries %}
+                    <div class="table-wrap">
+                        <table class="table table--dark">
+                            <thead>
+                                <tr>
+                                    <th>Предмет</th>
+                                    <th>Тип</th>
+                                    <th>Комментарий</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in entries %}
+                                    <tr>
+                                        <td>{{ entry.item.group_name }}</td>
+                                        <td>{{ entry.item.get_item_type_display }}</td>
+                                        <td>{{ entry.note|default:"—" }}</td>
+                                        <td>
+                                            <form method="post" action="{% url 'farm:drop_pool_remove' entry.id %}" class="inline-form">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-secondary">Удалить</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted empty-state">Активный пул еще не заполнен.</p>
+                {% endif %}
+            </div>
+        </article>
+    </div>
+</section>
+{% endblock %}

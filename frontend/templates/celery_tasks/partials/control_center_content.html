@@ -1,0 +1,239 @@
+<section class="section section--compact">
+    <div class="dashboard-hero card dashboard-hero--admin">
+        <div class="card-body dashboard-hero__body">
+            <div>
+                <span class="eyebrow">Admin+</span>
+                <h1 class="page-title page-title--sm">Celery Tasks</h1>
+                <p class="text-muted dashboard-hero__text">
+                    Управление авто-апдейтом цен Steam Catalog по категориям через Celery.
+                </p>
+            </div>
+
+            <div class="dashboard-hero__meta">
+                <span class="status-pill">Rules: {{ rules|length }}</span>
+                <span class="status-pill">Logs: {{ recent_logs|length }}</span>
+                <span class="status-pill">
+                    {% if current_rule %}Edit: {{ current_rule.category }}{% else %}Create mode{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-grid profile-grid--3">
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">
+                    {% if current_rule %}Edit rule{% else %}Create rule{% endif %}
+                </h2>
+
+                <form method="post" class="form-stack" data-dashboard-shell-form>
+                    {% csrf_token %}
+                    {% if current_rule %}
+                        <input type="hidden" name="rule_id" value="{{ current_rule.id }}">
+                    {% endif %}
+
+                    <div class="form-field">
+                        <label for="{{ form.category.id_for_label }}">Категория</label>
+                        {{ form.category }}
+                        {{ form.category.errors }}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.schedule_mode.id_for_label }}">Режим расписания</label>
+                        {{ form.schedule_mode }}
+                        {{ form.schedule_mode.errors }}
+                    </div>
+
+                    <div class="form-field js-schedule-field js-schedule-field--interval">
+                        <label for="{{ form.interval_minutes.id_for_label }}">Интервал</label>
+                        {{ form.interval_minutes }}
+                        <p class="text-muted">Используется в режиме «От точки старта».</p>
+                        {{ form.interval_minutes.errors }}
+                    </div>
+
+                    <div class="form-field js-schedule-field js-schedule-field--interval">
+                        <label for="{{ form.start_at.id_for_label }}">Точка старта</label>
+                        {{ form.start_at }}
+                        <p class="text-muted">Можно оставить пустым — тогда правило стартует сразу после включения.</p>
+                        {{ form.start_at.errors }}
+                    </div>
+
+                    <div class="form-field js-schedule-field js-schedule-field--hourly">
+                        <label for="{{ form.hourly_minute.id_for_label }}">Минута запуска</label>
+                        {{ form.hourly_minute }}
+                        <p class="text-muted">Пример: 15 = запуск каждый час в xx:15.</p>
+                        {{ form.hourly_minute.errors }}
+                    </div>
+
+                    <div class="form-field">
+                        <label>
+                            {{ form.is_enabled }}
+                            Включено
+                        </label>
+                        {{ form.is_enabled.errors }}
+                    </div>
+
+                    <div class="auth-card__actions">
+                        <button type="submit" class="btn btn-primary btn-block">
+                            {% if current_rule %}Save changes{% else %}Create rule{% endif %}
+                        </button>
+
+                        {% if current_rule %}
+                            <a href="{% url 'celery_tasks:control_center' %}" class="btn btn-secondary btn-block">
+                                Cancel edit
+                            </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </article>
+
+        <article class="card" style="grid-column: span 2;">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">Rules</h2>
+                    <span class="text-muted">{{ rules|length }}</span>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="table table--dark">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Mode</th>
+                                <th>Schedule</th>
+                                <th>Status</th>
+                                <th>Last trigger</th>
+                                <th>Last run</th>
+                                <th>Next run</th>
+                                <th>Touched</th>
+                                <th>Updated</th>
+                                <th>History</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rule in rules %}
+                                <tr>
+                                    <td>{{ rule.category }}</td>
+                                    <td>{{ rule.get_schedule_mode_display }}</td>
+                                    <td>{{ rule.schedule_display }}</td>
+                                    <td>{{ rule.last_status }}</td>
+                                    <td>{{ rule.last_trigger|default:"—" }}</td>
+                                    <td>
+                                        {% if rule.last_run_at %}
+                                            {{ rule.last_run_at|date:"d.m.Y H:i:s" }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if rule.next_run_at %}
+                                            {{ rule.next_run_at|date:"d.m.Y H:i:s" }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ rule.touched_items_count }}</td>
+                                    <td>{{ rule.updated_items_count }}</td>
+                                    <td>{{ rule.history_written_count }}</td>
+                                    <td>
+                                        <div class="auth-card__actions">
+                                            <a href="{% url 'celery_tasks:control_center' %}?edit={{ rule.id }}" class="btn btn-secondary btn-block">
+                                                Edit
+                                            </a>
+
+                                            <form method="post" action="{% url 'celery_tasks:run_rule_now' rule.id %}" class="inline-form inline-form--block" data-dashboard-shell-form>
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-primary btn-block">Run now</button>
+                                            </form>
+
+                                            <form method="post" action="{% url 'celery_tasks:toggle_rule' rule.id %}" class="inline-form inline-form--block" data-dashboard-shell-form>
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-secondary btn-block">
+                                                    {% if rule.is_enabled %}Disable{% else %}Enable{% endif %}
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% if rule.last_error %}
+                                    <tr>
+                                        <td colspan="11" class="text-muted">
+                                            <strong>Last error:</strong><br>
+                                            <pre style="white-space: pre-wrap; margin: 0;">{{ rule.last_error }}</pre>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% empty %}
+                                <tr>
+                                    <td colspan="11" class="text-muted">No rules yet.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </article>
+    </div>
+
+    <article class="card">
+        <div class="card-body">
+            <div class="section-head-inline">
+                <h2 class="section-title">Run logs</h2>
+                <span class="text-muted">Last {{ recent_logs|length }}</span>
+            </div>
+
+            <div class="table-wrap">
+                <table class="table table--dark">
+                    <thead>
+                        <tr>
+                            <th>Started</th>
+                            <th>Finished</th>
+                            <th>Rule</th>
+                            <th>Trigger</th>
+                            <th>Status</th>
+                            <th>Touched</th>
+                            <th>Updated</th>
+                            <th>History</th>
+                            <th>Errors</th>
+                            <th>Summary</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in recent_logs %}
+                            <tr>
+                                <td>{{ log.started_at|date:"d.m.Y H:i:s" }}</td>
+                                <td>
+                                    {% if log.finished_at %}
+                                        {{ log.finished_at|date:"d.m.Y H:i:s" }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td>{{ log.category }}</td>
+                                <td>{{ log.triggered_by|default:"—" }}</td>
+                                <td>{{ log.status }}</td>
+                                <td>{{ log.touched_items_count }}</td>
+                                <td>{{ log.updated_items_count }}</td>
+                                <td>{{ log.history_written_count }}</td>
+                                <td>{{ log.errors_count }}</td>
+                                <td>
+                                    {% if log.error_summary %}
+                                        <pre style="white-space: pre-wrap; margin: 0;">{{ log.error_summary }}</pre>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="10" class="text-muted">No logs yet.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </article>
+</section>

@@ -1,0 +1,122 @@
+{% extends "layouts/base_dashboard.html" %}
+{% load static %}
+
+{% block title %}Добавить legacy weekly log | CaseUP{% endblock %}
+
+{% block dashboard_extra_head %}
+    <link rel="stylesheet" href="{% static 'css/modules/farm.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">Farmer legacy</span>
+            <h1 class="page-title page-title--sm">Добавить legacy weekly log</h1>
+            <p class="text-muted">Используйте только для старого weekly-учёта. Новый сценарий дропов работает через FarmDropSession.</p>
+        </div>
+        <div class="hero-actions">
+            <a href="{% url 'farm:sessions_add' %}" class="btn btn-secondary">Добавить дроп</a>
+            <a href="{% url 'farm:drops_list' %}" class="btn btn-secondary">Открыть legacy</a>
+        </div>
+    </div>
+
+    <div class="profile-grid">
+        <article class="card">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">Фильтр предметов</h2>
+                    <span class="text-muted">Активный пул: {{ active_pool_count }}</span>
+                </div>
+
+                <form method="get" class="form-stack">
+                    <div class="drop-filter-grid">
+                        <div class="form-field">
+                            <label for="catalog_scope">Источник</label>
+                            <select id="catalog_scope" name="catalog_scope" class="form-control">
+                                <option value="active" {% if catalog_scope == "active" %}selected{% endif %}>Активный пул</option>
+                                <option value="all" {% if catalog_scope == "all" %}selected{% endif %}>Все предметы</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="item_type_filter">Тип предмета</label>
+                            <select id="item_type_filter" name="item_type_filter" class="form-control">
+                                <option value="" {% if not item_type_filter %}selected{% endif %}>Все типы</option>
+                                <option value="case" {% if item_type_filter == "case" %}selected{% endif %}>Case</option>
+                                <option value="skin" {% if item_type_filter == "skin" %}selected{% endif %}>Skin</option>
+                                <option value="graffiti" {% if item_type_filter == "graffiti" %}selected{% endif %}>Graffiti</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="search">Поиск</label>
+                            <input id="search" type="text" name="search" value="{{ search }}" class="form-control" placeholder="market_hash_name / RU-name / family">
+                        </div>
+                    </div>
+
+                    <div class="hero-actions">
+                        <button type="submit" class="btn btn-secondary">Применить фильтр</button>
+                        <span class="text-muted">Найдено предметов: {{ available_items_count }}</span>
+                    </div>
+                </form>
+            </div>
+        </article>
+
+        <article class="card">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">Создание legacy-записи</h2>
+                    {% if selected_week_preview %}
+                        <span class="text-muted">{{ selected_week_preview.month_year_label }} · {{ selected_week_preview.range_label }}</span>
+                    {% endif %}
+                </div>
+
+                <form method="post" class="form-stack">
+                    {% csrf_token %}
+                    <input type="hidden" name="catalog_scope" value="{{ catalog_scope }}">
+                    <input type="hidden" name="item_type_filter" value="{{ item_type_filter }}">
+                    <input type="hidden" name="search" value="{{ search }}">
+
+                    <div class="form-field">
+                        <label for="{{ form.account.id_for_label }}">Аккаунт</label>
+                        {{ form.account }}
+                        {{ form.account.errors }}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.week_index.id_for_label }}">Неделя</label>
+                        {{ form.week_index }}
+                        {{ form.week_index.errors }}
+                        <p class="text-muted week-helper">Одна неделя на один аккаунт. Повтор для той же недели запрещён.</p>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.item_1.id_for_label }}">Предмет 1</label>
+                        {{ form.item_1 }}
+                        {{ form.item_1.errors }}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.item_2.id_for_label }}">Предмет 2</label>
+                        {{ form.item_2 }}
+                        {{ form.item_2.errors }}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.notes.id_for_label }}">Комментарий</label>
+                        {{ form.notes }}
+                        {{ form.notes.errors }}
+                    </div>
+
+                    {% if form.non_field_errors %}
+                        <div class="faceit-error">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-primary btn-block">Сохранить legacy-log</button>
+                </form>
+            </div>
+        </article>
+    </div>
+</section>
+{% endblock %}

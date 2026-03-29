@@ -1,0 +1,35 @@
+{% extends "layouts/base_dashboard.html" %}
+{% load static %}
+
+{% block title %}Новый Farm Account | CaseUP{% endblock %}
+
+
+{% block dashboard_extra_head %}
+    <link rel="stylesheet" href="{% static 'css/modules/farm.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="container auth-grid auth-grid--single">
+        <div class="auth-card card">
+            <div class="card-body auth-card__body">
+                <span class="eyebrow">Farmer zone</span>
+                <h1 class="auth-title">Добавить farm account</h1>
+
+                <form method="post" class="form-stack">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="form-field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {{ field.errors }}
+                        </div>
+                    {% endfor %}
+
+                    <button type="submit" class="btn btn-primary btn-block">Сохранить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

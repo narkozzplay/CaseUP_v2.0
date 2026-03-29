@@ -1,0 +1,8 @@
+{% include "components/messages.html" %}
+<div
+    class="dashboard-content-frame"
+    data-dashboard-page-title="{{ dashboard_page_title|default:'' }}"
+    data-dashboard-active-menu="{{ dashboard_active_menu_key|default:'' }}"
+>
+    {% include dashboard_page_partial_template %}
+</div>

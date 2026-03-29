@@ -1,0 +1,121 @@
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">TradeHub</span>
+            <h1 class="page-title page-title--sm">Сделка #{{ order.id }}</h1>
+            <p class="text-muted">{{ order.seller.username }} · {{ order.farm_account.title }}</p>
+        </div>
+        <div class="hero-actions dashboard-actions">
+            <a href="{% url 'tradehub:sales_list' %}" class="btn btn-secondary">Назад к продажам</a>
+        </div>
+    </div>
+
+    <div class="profile-grid">
+        <article class="card"><div class="card-body">
+            <h2 class="section-title">Основное</h2>
+            <dl class="details-list">
+                <div><dt>Статус</dt><dd>{{ order.get_status_display }}</dd></div>
+                <div><dt>Бот</dt><dd>{{ order.bot_account.title|default:"—" }}</dd></div>
+                <div><dt>Предметов</dt><dd>{{ order.items_count }}</dd></div>
+                <div><dt>Payout</dt><dd>{{ order.total_payout_rub|floatformat:2 }}</dd></div>
+                <div><dt>Выплата</dt><dd>{% if order.payout_paid %}Да{% else %}Нет{% endif %}</dd></div>
+                <div><dt>Причина отмены</dt><dd>{{ order.cancelled_reason|default:order.failure_reason|default:"—" }}</dd></div>
+            </dl>
+        </div></article>
+        <article class="card"><div class="card-body">
+            <h2 class="section-title">Trade offer</h2>
+            {% if offer %}
+                <dl class="details-list">
+                    <div><dt>Статус</dt><dd>{{ offer.get_status_display }}</dd></div>
+                    <div><dt>Внешний ID</dt><dd>{{ offer.external_offer_id|default:"—" }}</dd></div>
+                    <div><dt>Проверен</dt><dd>{{ offer.last_checked_at|date:"d.m.Y H:i"|default:"—" }}</dd></div>
+                    <div><dt>Закрыт</dt><dd>{{ offer.closed_at|date:"d.m.Y H:i"|default:"—" }}</dd></div>
+                </dl>
+            {% else %}
+                <p class="text-muted">Оффер ещё не создан.</p>
+            {% endif %}
+        </div></article>
+    </div>
+
+    {% if tradehub_access.staff_access %}
+        <article class="card"><div class="card-body">
+            <h2 class="section-title">Ручные действия</h2>
+            <div class="profile-grid">
+                <form method="post" action="{% url 'tradehub:sale_action' order.id %}" class="card card--soft inline-form--block">{% csrf_token %}
+                    <div class="card-body">
+                        <input type="hidden" name="action" value="mark_sent">
+                        <label class="form-label">External offer id</label>
+                        <input type="text" name="external_offer_id" class="form-control" placeholder="Steam offer id">
+                        <button type="submit" class="btn btn-secondary btn-block" style="margin-top:12px;">Пометить как sent</button>
+                    </div>
+                </form>
+                <form method="post" action="{% url 'tradehub:sale_action' order.id %}" class="card card--soft inline-form--block">{% csrf_token %}
+                    <div class="card-body">
+                        <input type="hidden" name="action" value="mark_accepted">
+                        <button type="submit" class="btn btn-secondary btn-block">Пометить как accepted</button>
+                    </div>
+                </form>
+                <form method="post" action="{% url 'tradehub:sale_action' order.id %}" class="card card--soft inline-form--block">{% csrf_token %}
+                    <div class="card-body">
+                        <input type="hidden" name="action" value="finalize">
+                        <button type="submit" class="btn btn-primary btn-block">Завершить и выплатить</button>
+                    </div>
+                </form>
+                <form method="post" action="{% url 'tradehub:sale_action' order.id %}" class="card card--soft inline-form--block">{% csrf_token %}
+                    <div class="card-body">
+                        <input type="hidden" name="action" value="cancel_user">
+                        <input type="text" name="reason" class="form-control" placeholder="Причина отмены пользователем">
+                        <button type="submit" class="btn btn-secondary btn-block" style="margin-top:12px;">Отмена пользователем</button>
+                    </div>
+                </form>
+            </div>
+        </div></article>
+    {% endif %}
+
+    <article class="card"><div class="card-body">
+        <h2 class="section-title">Предметы</h2>
+        <div class="table-wrap">
+            <table class="table table--dark">
+                <thead><tr><th>Item</th><th>Asset</th><th>Catalog</th><th>Payout</th><th>Inventory state</th></tr></thead>
+                <tbody>
+                    {% for row in order.items.all %}
+                        <tr>
+                            <td>{{ row.market_hash_name_snapshot }}</td>
+                            <td class="farm-mono">{{ row.asset_id_snapshot }}</td>
+                            <td>{% if row.steam_item %}<a href="{% url 'steam_catalog:detail' row.steam_item.id %}" class="table-link">{{ row.steam_item.group_name }}</a>{% else %}—{% endif %}</td>
+                            <td>{{ row.payout_price_rub_snapshot|floatformat:2 }}</td>
+                            <td>{{ row.inventory_item.get_sale_state_display }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div></article>
+
+    <div class="profile-grid">
+        <article class="card"><div class="card-body">
+            <h2 class="section-title">Журнал</h2>
+            {% if order.logs.all %}
+                <dl class="details-list">
+                    {% for log in order.logs.all %}
+                        <div><dt>{{ log.created_at|date:"d.m.Y H:i" }} · {{ log.event }}</dt><dd>{{ log.message|default:"—" }}</dd></div>
+                    {% endfor %}
+                </dl>
+            {% else %}
+                <p class="text-muted">Лог пуст.</p>
+            {% endif %}
+        </div></article>
+        <article class="card"><div class="card-body">
+            <h2 class="section-title">Санкции</h2>
+            {% if order.penalties.all %}
+                <dl class="details-list">
+                    {% for penalty in order.penalties.all %}
+                        <div><dt>{{ penalty.get_type_display }}</dt><dd>{{ penalty.reason }}</dd></div>
+                    {% endfor %}
+                </dl>
+            {% else %}
+                <p class="text-muted">Санкций по сделке нет.</p>
+            {% endif %}
+        </div></article>
+    </div>
+</section>

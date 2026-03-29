@@ -1,0 +1,27 @@
+<div class="feature-lock-card{% if compact %} feature-lock-card--compact{% endif %}">
+    <div class="feature-lock-card__badge">Upgrade</div>
+    <h3 class="feature-lock-card__title">{{ title }}</h3>
+    <p class="feature-lock-card__text">{{ description|default:access_state.message }}</p>
+
+    <div class="feature-lock-card__meta">
+        <span class="status-pill status-pill--sm">
+            Текущий тариф: {% if access_state.active_plan %}{{ access_state.active_plan.name }}{% else %}Без подписки{% endif %}
+        </span>
+        {% if access_state.required_plan %}
+            <span class="status-pill status-pill--sm">
+                Нужен тариф: {{ access_state.required_plan.name }}
+            </span>
+        {% endif %}
+    </div>
+
+    <div class="feature-lock-card__actions">
+        {% if plans_url_name %}
+            <a href="{% url plans_url_name %}" class="btn btn-primary btn-sm">Смотреть тарифы</a>
+        {% else %}
+            <a href="{% url 'subscriptions:plans' %}" class="btn btn-primary btn-sm">Смотреть тарифы</a>
+        {% endif %}
+        {% if access_state.required_plan %}
+            <span class="feature-lock-card__hint">Минимальный апгрейд: Level {{ access_state.required_plan.level }}</span>
+        {% endif %}
+    </div>
+</div>

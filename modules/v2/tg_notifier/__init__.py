@@ -1,0 +1,1 @@
+default_app_config = "modules.v2.tg_notifier.apps.TgNotifierConfig"

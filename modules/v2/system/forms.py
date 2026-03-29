@@ -1,0 +1,111 @@
+from __future__ import annotations
+
+from django import forms
+from django.core.exceptions import ValidationError
+
+from .module_registry import MODULE_REGISTRY
+from .models import SiteConfiguration
+from .services import (
+    build_effective_module_state_map,
+    get_module_state_map,
+    save_site_configuration,
+    validate_module_state_map,
+)
+
+
+class SiteConfigurationForm(forms.ModelForm):
+    class Meta:
+        model = SiteConfiguration
+        fields = [
+            "site_name",
+            "site_currency_code",
+            "site_currency_symbol",
+            "support_email",
+            "public_base_url",
+            "maintenance_mode_enabled",
+            "maintenance_message",
+            "registration_enabled",
+        ]
+        widgets = {
+            "site_name": forms.TextInput(attrs={"class": "form-control"}),
+            "site_currency_code": forms.TextInput(attrs={"class": "form-control"}),
+            "site_currency_symbol": forms.TextInput(attrs={"class": "form-control"}),
+            "support_email": forms.EmailInput(attrs={"class": "form-control"}),
+            "public_base_url": forms.URLInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "https://caseup.example.com",
+                }
+            ),
+            "maintenance_message": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.initial_module_state_map = get_module_state_map()
+
+        self.fields["maintenance_mode_enabled"].widget.attrs["class"] = "toggle-control__input"
+        self.fields["registration_enabled"].widget.attrs["class"] = "toggle-control__input"
+
+        for key, definition in MODULE_REGISTRY.items():
+            self.fields[f"module__{key}"] = forms.BooleanField(
+                required=False,
+                initial=self.initial_module_state_map.get(key, definition.default_enabled),
+                label=definition.label,
+                help_text=self._build_help_text(definition),
+            )
+            self.fields[f"module__{key}"].widget.attrs["class"] = "toggle-control__input"
+
+    def _build_help_text(self, definition):
+        parts = [definition.description]
+        if definition.dependencies:
+            deps = ", ".join(MODULE_REGISTRY[item].label for item in definition.dependencies)
+            parts.append(f"Зависит от: {deps}.")
+        if definition.addon_targets:
+            targets = ", ".join(MODULE_REGISTRY[item].label for item in definition.addon_targets)
+            parts.append(f"Коммерчески расширяет: {targets}.")
+        return " ".join(parts)
+
+    def clean_public_base_url(self):
+        value = (self.cleaned_data.get("public_base_url") or "").strip().rstrip("/")
+        if value and not (value.startswith("http://") or value.startswith("https://")):
+            raise ValidationError("Public base URL должен начинаться с http:// или https://")
+        return value
+
+    def clean(self):
+        cleaned_data = super().clean()
+        module_states = self.get_module_states(cleaned_data)
+    
+        try:
+            build_effective_module_state_map(self.initial_module_state_map, module_states)
+        except ValidationError as exc:
+            self.add_error(None, exc)
+    
+        return cleaned_data
+
+    def get_module_states(self, cleaned_data=None) -> dict[str, bool]:
+        cleaned_data = cleaned_data or self.cleaned_data
+        return {
+            key: bool(cleaned_data.get(f"module__{key}"))
+            for key in MODULE_REGISTRY
+        }
+
+    def get_submitted_module_states(self) -> dict[str, bool]:
+        if not self.is_bound:
+            return self.initial_module_state_map.copy()
+
+        submitted: dict[str, bool] = {}
+        for key in MODULE_REGISTRY:
+            field_name = f"module__{key}"
+            field = self.fields[field_name]
+            submitted[key] = bool(
+                field.widget.value_from_datadict(self.data, self.files, self.add_prefix(field_name))
+            )
+        return submitted
+
+    def save(self, commit=True):
+        instance: SiteConfiguration = super().save(commit=False)
+        module_states = self.get_module_states()
+        if not commit:
+            return instance
+        return save_site_configuration(config=instance, module_states=module_states)

@@ -1,0 +1,13 @@
+{% extends "layouts/base_dashboard.html" %}
+
+{% block title %}{{ feature_lock_title }} | CaseUP{% endblock %}
+
+{% block content %}
+<section class="section section--compact">
+    <article class="card dashboard-panel">
+        <div class="card-body">
+            {% include "subscriptions/partials/upgrade_card.html" with access_state=access_state title=feature_lock_title description=feature_lock_description plans_url_name=plans_url_name %}
+        </div>
+    </article>
+</section>
+{% endblock %}

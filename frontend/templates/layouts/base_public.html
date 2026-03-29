@@ -1,0 +1,13 @@
+{% extends "layouts/base.html" %}
+
+{% block body_class %}theme-public{% endblock %}
+
+{% block page %}
+    {% include "components/navbar_public.html" %}
+
+    <main class="site-main">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include "components/footer.html" %}
+{% endblock %}

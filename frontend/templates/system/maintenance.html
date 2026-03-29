@@ -1,0 +1,20 @@
+{% extends "layouts/base_public.html" %}
+
+{% block title %}{{ site_settings.site_name }} — Maintenance{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="container auth-grid auth-grid--single">
+        <div class="auth-card card">
+            <div class="card-body auth-card__body">
+                <span class="eyebrow">Maintenance</span>
+                <h1 class="auth-title">{{ site_settings.site_name }} временно недоступен</h1>
+                <p class="text-muted auth-description">{{ maintenance_message }}</p>
+                {% if site_settings.support_email %}
+                    <p class="text-muted auth-description">Support: {{ site_settings.support_email }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

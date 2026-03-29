@@ -1,0 +1,29 @@
+{% extends "layouts/base_public.html" %}
+
+{% block title %}Регистрация отключена | CaseUP{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="container auth-grid auth-grid--single">
+        <div class="auth-card card">
+            <div class="card-body auth-card__body">
+                <span class="eyebrow">Регистрация отключена</span>
+                <h1 class="auth-title">Ручная регистрация отключена</h1>
+                <p class="text-muted auth-description">
+                    Создание пользовательских аккаунтов по логину и паролю запрещено.
+                    Вход и регистрация выполняются только через Steam.
+                </p>
+
+                <div class="auth-actions auth-actions--stack">
+                    <a href="{% url 'social:begin' 'steam' %}" class="btn btn-primary btn-block">
+                        Продолжить через Steam
+                    </a>
+                    <a href="{% url 'accounts:login' %}" class="btn btn-secondary btn-block">
+                        На страницу входа
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

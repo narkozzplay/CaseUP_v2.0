@@ -1,0 +1,443 @@
+(function () {
+    const shell = document.querySelector('[data-dashboard-shell]');
+    if (!shell) {
+        return;
+    }
+
+    const contentRoot = document.querySelector('[data-dashboard-content-root]');
+    const sidebar = document.querySelector('[data-dashboard-sidebar]');
+    const partialHeaderName = 'X-Dashboard-Partial';
+    const partialHeaderValue = '1';
+    const currentUrlHeaderName = 'X-Dashboard-Current-Url';
+    const openStateStorageKey = 'caseup.dashboard.sidebar.groups';
+
+    function isModifiedClick(event) {
+        return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
+    }
+
+    function shouldHandleAnchor(anchor) {
+        if (!anchor || !shell.contains(anchor)) {
+            return false;
+        }
+        if (anchor.dataset.dashboardNav === 'false' || anchor.hasAttribute('download')) {
+            return false;
+        }
+        if (anchor.target && anchor.target !== '_self') {
+            return false;
+        }
+        const href = anchor.getAttribute('href') || '';
+        if (!href || href.startsWith('#')) {
+            return false;
+        }
+        const url = new URL(anchor.href, window.location.origin);
+        return url.origin === window.location.origin;
+    }
+
+    function syncSidebarActiveState(activeKey, href) {
+        if (!sidebar) {
+            return;
+        }
+        sidebar.querySelectorAll('[data-menu-key]').forEach((node) => {
+            const isActive = Boolean(activeKey) ? node.dataset.menuKey === activeKey : node.href === href;
+            node.classList.toggle('is-active', isActive);
+            if (isActive) {
+                node.setAttribute('aria-current', 'page');
+                const group = node.closest('[data-dashboard-group]');
+                if (group) {
+                    group.open = true;
+                }
+            } else {
+                node.removeAttribute('aria-current');
+            }
+        });
+    }
+
+    function syncTitleAndActiveStateFromContent() {
+        const frame = contentRoot.querySelector('.dashboard-content-frame');
+        if (!frame) {
+            return;
+        }
+        const pageTitle = frame.dataset.dashboardPageTitle;
+        const activeMenu = frame.dataset.dashboardActiveMenu;
+        if (pageTitle) {
+            document.title = pageTitle;
+        }
+        syncSidebarActiveState(activeMenu, window.location.href);
+        document.dispatchEvent(new CustomEvent('dashboard:content-replaced', { detail: { frame } }));
+    }
+
+    function persistGroupState() {
+        if (!sidebar) {
+            return;
+        }
+        const state = {};
+        sidebar.querySelectorAll('[data-dashboard-group]').forEach((group) => {
+            state[group.dataset.dashboardGroup] = group.open;
+        });
+        window.localStorage.setItem(openStateStorageKey, JSON.stringify(state));
+    }
+
+    function restoreGroupState() {
+        if (!sidebar) {
+            return;
+        }
+        let state = {};
+        try {
+            state = JSON.parse(window.localStorage.getItem(openStateStorageKey) || '{}');
+        } catch (error) {
+            state = {};
+        }
+        sidebar.querySelectorAll('[data-dashboard-group]').forEach((group) => {
+            if (Object.prototype.hasOwnProperty.call(state, group.dataset.dashboardGroup)) {
+                group.open = Boolean(state[group.dataset.dashboardGroup]);
+            }
+        });
+    }
+
+    async function fetchPartial(url, options) {
+        const response = await window.fetch(url, {
+            ...options,
+            headers: {
+                [partialHeaderName]: partialHeaderValue,
+                'X-Requested-With': 'XMLHttpRequest',
+                ...(options && options.headers ? options.headers : {}),
+            },
+            credentials: 'same-origin',
+        });
+        if (!response.ok || response.headers.get(partialHeaderName) !== partialHeaderValue) {
+            throw new Error('Partial request failed');
+        }
+        const html = await response.text();
+        return {
+            html,
+            currentUrl: response.headers.get(currentUrlHeaderName) || '',
+        };
+    }
+
+    async function visit(url, { push = true } = {}) {
+        if (!contentRoot) {
+            window.location.assign(url);
+            return;
+        }
+        shell.classList.add('is-loading');
+        try {
+            const payload = await fetchPartial(url, { method: 'GET' });
+            contentRoot.innerHTML = payload.html;
+            const nextUrl = payload.currentUrl || url;
+            if (push) {
+                window.history.pushState({ dashboardShell: true, url: nextUrl }, '', nextUrl);
+            }
+            syncTitleAndActiveStateFromContent();
+        } catch (error) {
+            window.location.assign(url);
+            return;
+        } finally {
+            shell.classList.remove('is-loading');
+        }
+    }
+
+    async function submitGetForm(form) {
+        const formData = new window.FormData(form);
+        const url = new URL(form.action || window.location.href, window.location.origin);
+        const params = new URLSearchParams();
+        formData.forEach((value, key) => {
+            if (typeof value === 'string' && value !== '') {
+                params.append(key, value);
+            }
+        });
+        const finalUrl = url.pathname + (params.toString() ? `?${params.toString()}` : '');
+        await visit(finalUrl);
+    }
+
+    document.addEventListener('click', (event) => {
+        const anchor = event.target.closest('a[href]');
+        if (!shouldHandleAnchor(anchor) || isModifiedClick(event)) {
+            return;
+        }
+        event.preventDefault();
+        const url = new URL(anchor.href, window.location.origin);
+        visit(url.pathname + url.search + url.hash);
+    });
+
+    async function submitPostForm(form) {
+        const action = new URL(form.action || window.location.href, window.location.origin);
+        const formData = new window.FormData(form);
+        const submitter = submitPostForm.lastSubmitter;
+        if (submitter && submitter.name) {
+            formData.append(submitter.name, submitter.value || '');
+        }
+
+        shell.classList.add('is-loading');
+        try {
+            const payload = await fetchPartial(action.pathname + action.search + action.hash, {
+                method: 'POST',
+                body: formData,
+            });
+            contentRoot.innerHTML = payload.html;
+            const nextUrl = payload.currentUrl || window.location.pathname + window.location.search + window.location.hash;
+            window.history.replaceState({ dashboardShell: true, url: nextUrl }, '', nextUrl);
+            syncTitleAndActiveStateFromContent();
+        } catch (error) {
+            form.submit();
+            return;
+        } finally {
+            shell.classList.remove('is-loading');
+            submitPostForm.lastSubmitter = null;
+        }
+    }
+
+    document.addEventListener('click', (event) => {
+        const submitter = event.target.closest('button[type="submit"], input[type="submit"]');
+        if (!submitter) {
+            return;
+        }
+        submitPostForm.lastSubmitter = submitter;
+    });
+
+    document.addEventListener('submit', (event) => {
+        const form = event.target;
+        if (!form || !shell.contains(form)) {
+            return;
+        }
+        const method = (form.method || 'get').toLowerCase();
+        if (method === 'get') {
+            event.preventDefault();
+            submitGetForm(form);
+            return;
+        }
+        if (method === 'post' && form.matches('[data-dashboard-shell-form]')) {
+            event.preventDefault();
+            submitPostForm(form);
+        }
+    });
+
+    window.addEventListener('popstate', () => {
+        visit(window.location.pathname + window.location.search + window.location.hash, { push: false });
+    });
+
+    if (sidebar) {
+        sidebar.querySelectorAll('[data-dashboard-group]').forEach((group) => {
+            group.addEventListener('toggle', persistGroupState);
+        });
+    }
+
+    function initCeleryTaskScheduleFields(scope) {
+        const root = scope || document;
+        const modeField = root.querySelector('#id_schedule_mode');
+        if (!modeField || modeField.dataset.dashboardInitBound === 'true') {
+            return;
+        }
+
+        function syncScheduleFields() {
+            const isHourly = modeField.value === 'hourly';
+            root.querySelectorAll('.js-schedule-field--hourly').forEach((node) => {
+                node.style.display = isHourly ? '' : 'none';
+            });
+            root.querySelectorAll('.js-schedule-field--interval').forEach((node) => {
+                node.style.display = isHourly ? 'none' : '';
+            });
+        }
+
+        modeField.addEventListener('change', syncScheduleFields);
+        modeField.dataset.dashboardInitBound = 'true';
+        syncScheduleFields();
+    }
+
+    function initSteamCatalogPriceHistory(scope) {
+        const root = scope || document;
+        const detailPage = root.querySelector('[data-steam-catalog-detail-page]');
+        if (!detailPage || detailPage.dataset.dashboardInitBound === 'true') {
+            return;
+        }
+
+        detailPage.dataset.dashboardInitBound = 'true';
+        detailPage.addEventListener('click', async (event) => {
+            const link = event.target.closest('[data-price-range-link]');
+            if (!link) {
+                return;
+            }
+            if (isModifiedClick(event)) {
+                return;
+            }
+
+            const currentSection = detailPage.querySelector('#price-history');
+            if (!currentSection) {
+                return;
+            }
+
+            event.preventDefault();
+            if (detailPage.dataset.priceHistoryLoading === 'true') {
+                return;
+            }
+
+            detailPage.dataset.priceHistoryLoading = 'true';
+            currentSection.classList.add('is-loading');
+            try {
+                const response = await window.fetch(link.href, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to load price history section');
+                }
+
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const nextSection = doc.querySelector('#price-history');
+                if (!nextSection) {
+                    throw new Error('Updated price history section not found');
+                }
+
+                currentSection.replaceWith(nextSection);
+                window.history.replaceState({ dashboardShell: true, url: link.href }, '', link.href);
+                const insertedSection = detailPage.querySelector('#price-history');
+                if (insertedSection) {
+                    insertedSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } catch (error) {
+                window.location.assign(link.href);
+                return;
+            } finally {
+                detailPage.dataset.priceHistoryLoading = 'false';
+                const section = detailPage.querySelector('#price-history');
+                if (section) {
+                    section.classList.remove('is-loading');
+                }
+            }
+        });
+    }
+
+    function initSteamTradingAdd(scope) {
+        const root = scope || document;
+        const form = root.querySelector('#steam-trading-form');
+        if (!form || form.dataset.dashboardInitBound === 'true') {
+            return;
+        }
+
+        const itemField = form.querySelector('#id_item');
+        const quantityField = form.querySelector('#id_quantity');
+        const priceField = form.querySelector('#id_purchase_price_rub');
+        const totalField = form.querySelector('#purchase_total_preview');
+        if (!itemField || !quantityField || !priceField || !totalField) {
+            return;
+        }
+
+        let itemPrices = {};
+        try {
+            itemPrices = JSON.parse(form.dataset.itemPrices || '{}');
+        } catch (error) {
+            itemPrices = {};
+        }
+
+        function parseNumber(value) {
+            const normalized = String(value || '').replace(',', '.');
+            const parsed = Number.parseFloat(normalized);
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function syncPriceFromItem() {
+            const currentValue = (priceField.value || '').trim();
+            if (!currentValue || parseNumber(currentValue) === 0) {
+                const nextPrice = itemPrices[itemField.value];
+                if (nextPrice !== undefined) {
+                    priceField.value = nextPrice;
+                }
+            }
+        }
+
+        function updateTotal() {
+            const total = parseNumber(quantityField.value) * parseNumber(priceField.value);
+            totalField.value = total.toFixed(2);
+        }
+
+        itemField.addEventListener('change', () => {
+            const nextPrice = itemPrices[itemField.value];
+            if (nextPrice !== undefined) {
+                priceField.value = nextPrice;
+            }
+            updateTotal();
+        });
+        quantityField.addEventListener('input', updateTotal);
+        priceField.addEventListener('input', updateTotal);
+
+        form.dataset.dashboardInitBound = 'true';
+        syncPriceFromItem();
+        updateTotal();
+    }
+
+    function initSteamTradingSell(scope) {
+        const root = scope || document;
+        const form = root.querySelector('#steam-trading-sale-form');
+        if (!form || form.dataset.dashboardInitBound === 'true') {
+            return;
+        }
+
+        const quantityField = form.querySelector('#id_quantity');
+        const priceField = form.querySelector('#id_sale_price_rub');
+        const previewGrid = form.querySelector('#sale-preview-grid');
+        if (!quantityField || !priceField || !previewGrid) {
+            return;
+        }
+
+        const totalField = form.querySelector('#sale-total-preview');
+        const costField = form.querySelector('#sale-cost-preview');
+        const profitField = form.querySelector('#sale-profit-preview');
+        const profitPercentField = form.querySelector('#sale-profit-percent-preview');
+        const resultField = form.querySelector('#sale-result-preview');
+        const purchasePrice = Number.parseFloat((previewGrid.dataset.purchasePrice || '0').replace(',', '.')) || 0;
+
+        function parseNumber(value) {
+            const normalized = String(value || '').replace(',', '.');
+            const parsed = Number.parseFloat(normalized);
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function formatSignedMoney(value) {
+            const rounded = value.toFixed(2);
+            return value > 0 ? `+${rounded}` : rounded;
+        }
+
+        function formatSignedPercent(value) {
+            const rounded = value.toFixed(2);
+            return value > 0 ? `+${rounded}%` : `${rounded}%`;
+        }
+
+        function updatePreview() {
+            const quantity = parseNumber(quantityField.value);
+            const salePrice = parseNumber(priceField.value);
+            const totalSale = quantity * salePrice;
+            const costBasis = quantity * purchasePrice;
+            const profit = totalSale - costBasis;
+            const profitPercent = costBasis === 0 ? 0 : (profit / costBasis) * 100;
+            const resultLabel = profit > 0 ? 'Сделка в плюс' : (profit < 0 ? 'Сделка в минус' : 'Сделка в ноль');
+
+            totalField.textContent = totalSale.toFixed(2);
+            costField.textContent = costBasis.toFixed(2);
+            profitField.textContent = formatSignedMoney(profit);
+            profitPercentField.textContent = formatSignedPercent(profitPercent);
+            resultField.textContent = resultLabel;
+        }
+
+        quantityField.addEventListener('input', updatePreview);
+        priceField.addEventListener('input', updatePreview);
+        form.dataset.dashboardInitBound = 'true';
+        updatePreview();
+    }
+
+    function initDashboardPageScripts(scope) {
+        initCeleryTaskScheduleFields(scope);
+        initSteamCatalogPriceHistory(scope);
+        initSteamTradingAdd(scope);
+        initSteamTradingSell(scope);
+    }
+
+    restoreGroupState();
+    syncTitleAndActiveStateFromContent();
+    initDashboardPageScripts(document);
+    document.addEventListener('dashboard:content-replaced', (event) => {
+        initDashboardPageScripts(event.detail && event.detail.frame ? event.detail.frame : document);
+    });
+})();

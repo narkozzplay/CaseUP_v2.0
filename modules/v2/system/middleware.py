@@ -1,0 +1,74 @@
+from __future__ import annotations
+
+from django.http import HttpResponseNotFound
+from django.shortcuts import render
+from django.urls import Resolver404, resolve
+
+from modules.v2.profiles.rbac import get_user_role
+
+from .services import get_site_configuration, is_module_enabled, resolve_module_for_namespace
+
+
+class MaintenanceModeMiddleware:
+    ALLOW_PREFIXES = (
+        "/static/",
+        "/media/",
+        "/health/",
+        "/i18n/",
+        "/admin/",
+        "/auth/login/",
+        "/auth/logout/",
+        "/telegram/",
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        config = get_site_configuration()
+        if not config.maintenance_mode_enabled:
+            return self.get_response(request)
+
+        path = request.path_info or "/"
+        if path.startswith(self.ALLOW_PREFIXES):
+            return self.get_response(request)
+
+        access = get_user_role(request.user)
+        if request.user.is_staff or request.user.is_superuser or access.is_admin_plus:
+            return self.get_response(request)
+
+        context = {
+            "site_settings": config,
+            "maintenance_message": config.maintenance_message,
+        }
+        return render(request, "system/maintenance.html", context, status=503)
+
+
+class ModuleAccessMiddleware:
+    ALWAYS_ALLOWED_NAMESPACES = {
+        "tg_notifier",
+        "tg_notifier_public",
+    }
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        try:
+            match = resolve(request.path_info)
+        except Resolver404:
+            return self.get_response(request)
+
+        if match.namespace in self.ALWAYS_ALLOWED_NAMESPACES:
+            return self.get_response(request)
+
+        module = resolve_module_for_namespace(match.namespace)
+        if module is not None and not is_module_enabled(module.key):
+            access = get_user_role(request.user)
+            if request.path_info.startswith("/control-center/") and access.is_admin_plus:
+                return self.get_response(request)
+            response = HttpResponseNotFound("Module is disabled.")
+            setattr(response, "_caseup_skip_global_404", True)
+            return response
+
+        return self.get_response(request)

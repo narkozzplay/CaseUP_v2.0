@@ -1,0 +1,46 @@
+{% extends "layouts/base_dashboard.html" %}
+{% load static %}
+
+{% block title %}Добавить предмет | Steam Catalog{% endblock %}
+
+
+{% block dashboard_extra_head %}
+    <link rel="stylesheet" href="{% static 'css/modules/steam_catalog.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="container auth-grid auth-grid--single">
+        <div class="auth-card card">
+            <div class="card-body auth-card__body">
+                <span class="eyebrow">Steam Catalog</span>
+                <h1 class="auth-title">Добавить предмет по market_hash_name</h1>
+
+                <p class="text-muted auth-description">
+                    Вводишь только market_hash_name или Steam listing URL.
+                    Система сама подтянет тип предмета, оружие, редкость, rarity key, цену, icon_url
+                    и для скинов создаст все 10 вариантов поношенности + StatTrak™.
+                </p>
+
+                <form method="post" class="form-stack">
+                    {% csrf_token %}
+
+                    <div class="form-field">
+                        <label for="{{ form.value.id_for_label }}">{{ form.value.label }}</label>
+                        {{ form.value }}
+                        {{ form.value.errors }}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.stock.id_for_label }}">{{ form.stock.label }}</label>
+                        {{ form.stock }}
+                        {{ form.stock.errors }}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Добавить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

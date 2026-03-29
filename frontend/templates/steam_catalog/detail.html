@@ -1,0 +1,14 @@
+{% extends "layouts/base_dashboard.html" %}
+{% load static %}
+{% load l10n %}
+
+{% block title %}{{ item.group_name }} | Steam Catalog{% endblock %}
+
+
+{% block dashboard_extra_head %}
+    <link rel="stylesheet" href="{% static 'css/modules/steam_catalog.css' %}">
+{% endblock %}
+
+{% block content %}
+    {% include "steam_catalog/partials/detail_content.html" %}
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "layouts/base_dashboard.html" %}
+
+{% block title %}Trade Bots | CaseUP{% endblock %}
+
+{% block content %}
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">TradeHub</span>
+            <h1 class="page-title page-title--sm">Трейд-боты</h1>
+        </div>
+        <div class="hero-actions dashboard-actions">
+            <a href="{% url 'tradehub:dashboard' %}" class="btn btn-secondary">TradeHub dashboard</a>
+            <a href="{% url 'tradehub:bots_add' %}" class="btn btn-primary">Добавить бота</a>
+        </div>
+    </div>
+
+    <article class="card"><div class="card-body">
+        {% if bots %}
+            <div class="table-wrap"><table class="table table--dark">
+                <thead><tr><th>Bot</th><th>SteamID64</th><th>Status</th><th>Default</th><th>Enabled</th><th>Last offer</th></tr></thead>
+                <tbody>
+                    {% for bot in bots %}
+                        <tr>
+                            <td>{{ bot.title }}</td>
+                            <td class="farm-mono">{{ bot.steam_id64 }}</td>
+                            <td>{{ bot.get_status_display }}</td>
+                            <td>{% if bot.is_default %}Да{% else %}Нет{% endif %}</td>
+                            <td>{% if bot.is_enabled %}Да{% else %}Нет{% endif %}</td>
+                            <td>{{ bot.last_offer_at|date:"d.m.Y H:i"|default:"—" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table></div>
+        {% else %}
+            <p class="text-muted empty-state">Ботов пока нет.</p>
+        {% endif %}
+    </div></article>
+</section>
+{% endblock %}

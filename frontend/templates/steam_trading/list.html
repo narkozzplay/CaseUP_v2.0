@@ -1,0 +1,146 @@
+{% extends "layouts/base_dashboard.html" %}
+{% load static %}
+
+{% block title %}Steam Trading | CaseUP{% endblock %}
+
+
+{% block dashboard_extra_head %}
+    <link rel="stylesheet" href="{% static 'css/modules/steam_trading.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">Farmer zone</span>
+            <h1 class="page-title page-title--sm">Steam Trading</h1>
+            <p class="text-muted">Журнал закупок кейсов под дальнейший трейд. Для farmer отображаются только свои записи, для staff — весь реестр.</p>
+        </div>
+        <a href="{% url 'steam_trading:investments' %}" class="btn btn-secondary">Инвест-портфель</a>
+        <a href="{% url 'steam_trading:add' %}" class="btn btn-primary">Добавить закупку</a>
+    </div>
+
+    <div class="cards-grid farm-mini-stats">
+        <article class="card card--soft">
+            <div class="card-body">
+                <p class="text-muted">Итого вложено</p>
+                <strong>{{ summary.total_spent_sum|floatformat:2 }}</strong>
+            </div>
+        </article>
+        <article class="card card--soft">
+            <div class="card-body">
+                <p class="text-muted">Текущая стоимость</p>
+                <strong>{{ summary.current_total_sum|floatformat:2 }}</strong>
+            </div>
+        </article>
+        <article class="card card--soft">
+            <div class="card-body">
+                <p class="text-muted">PnL ₽</p>
+                <strong>{% if summary.total_profit_sum > 0 %}+{% endif %}{{ summary.total_profit_sum|floatformat:2 }}</strong>
+            </div>
+        </article>
+        <article class="card card--soft">
+            <div class="card-body">
+                <p class="text-muted">PnL %</p>
+                <strong>{% if summary.total_profit_percent > 0 %}+{% endif %}{{ summary.total_profit_percent|floatformat:2 }}%</strong>
+            </div>
+        </article>
+        <article class="card card--soft">
+            <div class="card-body">
+                <p class="text-muted">Реализованный PnL</p>
+                <strong>{% if summary.realized_profit_sum > 0 %}+{% endif %}{{ summary.realized_profit_sum|floatformat:2 }}</strong>
+            </div>
+        </article>
+        <article class="card card--soft">
+            <div class="card-body">
+                <p class="text-muted">Продано / остаток</p>
+                <strong>{{ summary.sold_quantity_sum }} / {{ summary.remaining_quantity_sum }}</strong>
+            </div>
+        </article>
+    </div>
+
+    <article class="card profile-history">
+        <div class="card-body">
+            {% if rows %}
+                <div class="table-wrap">
+                    <table class="table table--dark">
+                        <thead>
+                            <tr>
+                                <th>Предмет</th>
+                                <th>Дата закупки</th>
+                                <th>Разбан</th>
+                                <th>Статус</th>
+                                <th>Продажа</th>
+                                <th>Цена покупки</th>
+                                <th>Количество</th>
+                                <th>Продано</th>
+                                <th>Остаток</th>
+                                <th>Затрачено</th>
+                                <th>Текущая цена</th>
+                                <th>Текущая стоимость</th>
+                                <th>Realized PnL</th>
+                                <th>PnL ₽</th>
+                                <th>PnL %</th>
+                                <th>Действие</th>
+                                {% if steam_trading_access.staff_access %}<th>Уведомлено</th><th>Кто создал</th>{% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rows %}
+                                <tr>
+                                    <td>
+                                        <div class="farm-item-cell">
+                                            {% if row.purchase.item.icon_url %}
+                                                <img src="{{ row.purchase.item.icon_cdn }}" alt="{{ row.purchase.item.group_name }}" class="farm-item-cell__image">
+                                            {% endif %}
+                                            <div class="farm-item-cell__content">
+                                                <strong>{{ row.purchase.item.group_name }}</strong>
+                                                <span class="text-muted">{{ row.purchase.item.market_hash_name }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ row.purchase.purchased_at|date:"d.m.Y H:i" }}</td>
+                                    <td>{{ row.purchase.unlocked_at|date:"d.m.Y H:i" }}</td>
+                                    <td>{{ row.unlock_status_label }}</td>
+                                    <td>{{ row.sale_status_label }}</td>
+                                    <td>{{ row.purchase.purchase_price_rub|floatformat:2 }}</td>
+                                    <td>{{ row.purchase.quantity }}</td>
+                                    <td>{{ row.sold_quantity_total }}</td>
+                                    <td>{{ row.remaining_quantity }}</td>
+                                    <td>{{ row.purchase.total_spent_rub|floatformat:2 }}</td>
+                                    <td>{{ row.current_price_rub|floatformat:2 }}</td>
+                                    <td>
+                                        {{ row.current_total_rub|floatformat:2 }}
+                                        <div class="text-muted">после комиссии: {{ row.current_total_after_fee_rub|floatformat:2 }}</div>
+                                    </td>
+                                    <td>{% if row.realized_profit_rub > 0 %}+{% endif %}{{ row.realized_profit_rub|floatformat:2 }}</td>
+                                    <td>
+                                        {% if row.profit_rub > 0 %}+{% endif %}{{ row.profit_rub|floatformat:2 }}
+                                        <div class="text-muted">после комиссии: {% if row.profit_after_fee_rub > 0 %}+{% endif %}{{ row.profit_after_fee_rub|floatformat:2 }}</div>
+                                    </td>
+                                    <td>{% if row.profit_percent > 0 %}+{% endif %}{{ row.profit_percent|floatformat:2 }}%</td>
+                                    <td>
+                                        {% if row.can_sell %}
+                                            <a href="{% url 'steam_trading:sell' row.purchase.id %}" class="btn btn-secondary">Продать</a>
+                                        {% elif row.remaining_quantity <= 0 %}
+                                            <span class="text-muted">Продано полностью</span>
+                                        {% else %}
+                                            <span class="text-muted">Ждём разбан</span>
+                                        {% endif %}
+                                    </td>
+                                    {% if steam_trading_access.staff_access %}
+                                        <td>{{ row.purchase.unlock_notified_at|date:"d.m.Y H:i"|default:"—" }}</td>
+                                        <td>{{ row.purchase.created_by|default:"—" }}</td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted empty-state">Закупок пока нет.</p>
+            {% endif %}
+        </div>
+    </article>
+</section>
+{% endblock %}

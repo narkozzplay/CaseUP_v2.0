@@ -1,0 +1,54 @@
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">Farmer zone</span>
+            <h1 class="page-title page-title--sm">Farm drops</h1>
+            <p class="text-muted">Единый журнал дропов вместо раздвоения между WeeklyDropLog и сессиями.</p>
+        </div>
+        <a href="{% url 'farm:sessions_add' %}" class="btn btn-primary">Добавить дроп</a>
+    </div>
+
+    <div class="card catalog-toolbar">
+        <div class="card-body">
+            <form method="get" class="toolbar-grid">
+                <div class="form-field">
+                    <label for="account">Аккаунт</label>
+                    <select id="account" name="account" class="form-control">
+                        <option value="">Все</option>
+                        {% for account in accounts %}
+                            <option value="{{ account.id }}" {% if selected_account == account.id|stringformat:"s" %}selected{% endif %}>{{ account.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="q">Поиск</label>
+                    <input id="q" type="text" name="q" value="{{ q }}" class="form-control" placeholder="Аккаунт / предмет / заметка">
+                </div>
+                <div class="toolbar-actions"><button type="submit" class="btn btn-secondary">Фильтровать</button></div>
+            </form>
+        </div>
+    </div>
+
+    <article class="card profile-history">
+        <div class="card-body">
+            {% include "farm/partials/session_rows_table.html" with session_rows=sessions analytics_locked=analytics_locked %}
+        </div>
+    </article>
+
+    {% if analytics_locked %}
+        <div class="farm-section-gap"></div>
+        {% include "farm/partials/analytics_locked_cta.html" %}
+    {% endif %}
+
+    <article class="card card--soft farm-legacy-card">
+        <div class="card-body">
+            <div class="section-head-inline">
+                <div>
+                    <h2 class="section-title">Legacy weekly logs</h2>
+                    <p class="text-muted">Старый WeeklyDropLog сохранён как secondary слой и не является основным UX.</p>
+                </div>
+                <a href="{% url 'farm:drops_list' %}" class="btn btn-secondary btn-sm">Открыть legacy</a>
+            </div>
+        </div>
+    </article>
+</section>

@@ -1,0 +1,24 @@
+{% extends "layouts/base_dashboard.html" %}
+
+{% block title %}Ничего не найдено | CaseUP{% endblock %}
+
+{% block content %}
+<section class="section section--compact">
+    <article class="card">
+        <div class="card-body">
+            <span class="eyebrow">Error 404</span>
+            <h1 class="page-title page-title--sm">{{ search_not_found_title }}</h1>
+            <p class="text-muted">{{ search_not_found_hint }}</p>
+
+            <div class="form-field">
+                <label>Поисковый запрос</label>
+                <input type="text" class="form-control" value="{{ search_query }}" readonly>
+            </div>
+
+            <div class="hero-actions">
+                <a href="{{ search_not_found_reset_url }}" class="btn btn-primary">{{ search_not_found_reset_label }}</a>
+            </div>
+        </div>
+    </article>
+</section>
+{% endblock %}

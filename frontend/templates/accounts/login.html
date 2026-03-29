@@ -1,0 +1,48 @@
+{% extends "layouts/base_public.html" %}
+
+{% block title %}{% if LANGUAGE_CODE == "ru" %}Вход через Steam | CaseUP{% else %}Steam Login | CaseUP{% endif %}{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="container auth-grid auth-grid--single">
+        <div class="auth-card card">
+            <div class="card-body auth-card__body">
+                <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Авторизация{% else %}Authorization{% endif %}</span>
+                <h1 class="auth-title">
+                    {% if LANGUAGE_CODE == "ru" %}
+                        Вход в CaseUP через Steam
+                    {% else %}
+                        Login to CaseUP via Steam
+                    {% endif %}
+                </h1>
+                <p class="text-muted auth-description">
+                    {% if LANGUAGE_CODE == "ru" %}
+                        Публичный вход и создание аккаунта теперь выполняются только через Steam.
+                        После первой авторизации профиль создаётся автоматически, а Steam-данные
+                        синхронизируются в пользовательский профиль.
+                    {% else %}
+                        Public sign-in and account creation are available only through Steam.
+                        After the first authorization the profile is created automatically and Steam data
+                        is synced into the user profile.
+                    {% endif %}
+                </p>
+
+                <div class="auth-actions auth-actions--stack">
+                    <a href="{% url 'social:begin' 'steam' %}" class="btn btn-primary btn-block">
+                        {% if LANGUAGE_CODE == "ru" %}Войти через Steam{% else %}Login via Steam{% endif %}
+                    </a>
+                    <a href="{% url 'admin:index' %}" class="btn btn-secondary btn-block">
+                        Admin / Superuser
+                    </a>
+                </div>
+
+                <div class="auth-links">
+                    <span class="text-muted">
+                        {% if LANGUAGE_CODE == "ru" %}{% if not site_settings.registration_enabled %}Новая регистрация через Steam временно отключена.{% else %}Ручная регистрация отключена.{% endif %}{% else %}{% if not site_settings.registration_enabled %}New Steam registrations are temporarily disabled.{% else %}Manual registration is disabled.{% endif %}{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

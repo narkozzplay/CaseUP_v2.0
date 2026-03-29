@@ -1,0 +1,16 @@
+<div class="card card--soft farm-paywall-card">
+    <div class="card-body">
+        <div class="farm-paywall-card__header">
+            <div>
+                <span class="badge">Base access</span>
+                <h3 class="section-title" style="margin-top: 0.75rem;">Без farmer-подписки farm не пустой</h3>
+                <p class="text-muted">
+                    Доступны dashboard, farm accounts, weekly drops и базовый обзор farmer-контура.
+                    Отдельный farmer-тариф открывает deep analytics, продажи по drop sessions,
+                    TG alerts, reduced commission и bonus program.
+                </p>
+            </div>
+        </div>
+        {% include "subscriptions/partials/upgrade_card.html" with access_state=farmer_features.deep_access_state title="Farmer deep analytics" description="Глубокая аналитика, PnL, продажи по площадкам, TG alerts и bonus program открываются отдельной farmer-line подписок." compact=True plans_url_name='subscriptions:farmer_plans' %}
+    </div>
+</div>

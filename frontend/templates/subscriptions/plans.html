@@ -1,0 +1,178 @@
+{% extends "layouts/base_public.html" %}
+{% load static %}
+
+{% block title %}Тарифы подписки | CaseUP{% endblock %}
+
+{% block extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/modules/subscriptions.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="hero hero--pricing">
+    <div class="container">
+        <div class="pricing-hero card">
+            <div class="card-body pricing-hero__body">
+                <div>
+                    <span class="eyebrow">Subscriptions</span>
+                    <h1 class="page-title">Тарифы подписки</h1>
+                    <p class="hero-text pricing-hero__text">
+                        Site-линейка открывает общие возможности платформы.
+                        Farmer-линейка живет отдельно и может быть активна одновременно с site-планом.
+                    </p>
+                    <div class="pricing-hero__actions">
+                        <a href="{% url 'subscriptions:farmer_plans' %}" class="btn btn-secondary btn-sm">Farmer-планы</a>
+                        {% if request.user.is_authenticated %}
+                            <span class="status-pill status-pill--sm">Баланс: {{ viewer_balance|default:0|floatformat:2 }} ₽</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="pricing-hero__aside">
+                    {% if request.user.is_authenticated and current_subscription.has_active_subscription %}
+                        <div class="pricing-current-plan">
+                            <span class="badge">Текущий тариф</span>
+                            <strong>{{ current_subscription.active_plan.name }}</strong>
+                            <span>Level {{ current_subscription.plan_level }}</span>
+                            {% if current_subscription.active_subscription.expires_at %}
+                                <small>Активен до {{ current_subscription.active_subscription.expires_at|date:"d.m.Y H:i" }}</small>
+                            {% else %}
+                                <small>Без даты окончания</small>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="pricing-current-plan pricing-current-plan--empty">
+                            <span class="badge">Balance purchase</span>
+                            <strong>Покупка идет напрямую с баланса профиля</strong>
+                            <small>Пополняй баланс у администратора и активируй тариф без отдельного платежного слоя.</small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section section--compact">
+    <div class="container">
+        <div class="pricing-stack">
+            {% for plan in plans %}
+                <article class="card pricing-plan-card{% if current_subscription.active_plan and current_subscription.active_plan.id == plan.id %} pricing-plan-card--current{% endif %}">
+                    <div class="card-body pricing-plan-card__body">
+                        <div class="pricing-plan-card__main">
+                            <div class="pricing-plan-card__head">
+                                <div>
+                                    <div class="pricing-plan-card__meta-row">
+                                        <span class="pricing-card__level">Site · Level {{ plan.level }}</span>
+                                        {% if plan.ui_badge %}<span class="badge">{{ plan.ui_badge }}</span>{% endif %}
+                                    </div>
+                                    <h2 class="section-title pricing-card__title">{{ plan.name }}</h2>
+                                </div>
+                                <div class="pricing-price-box">
+                                    <strong>{{ plan.price_rub|floatformat:2 }} ₽</strong>
+                                    <span>/ {{ plan.billing_period_days }} дн.</span>
+                                </div>
+                            </div>
+
+                            <p class="pricing-card__description">{{ plan.description }}</p>
+
+                            <div class="pricing-plan-card__columns">
+                                <div class="pricing-plan-card__section">
+                                    <h3>Что входит</h3>
+                                    <ul class="pricing-benefits">
+                                        {% for item in plan.ui_feature_list %}
+                                            <li>{{ item }}</li>
+                                        {% empty %}
+                                            <li>Описание тарифа будет заполнено в админке.</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                <div class="pricing-plan-card__section">
+                                    <h3>Feature gates</h3>
+                                    <div class="pricing-feature-chips">
+                                        {% for feature in plan.features.all %}
+                                            {% if feature.is_active %}
+                                                <span class="status-pill status-pill--sm">{{ feature.name }}</span>
+                                            {% endif %}
+                                        {% empty %}
+                                            <span class="status-pill status-pill--sm">Нет привязанных feature codes</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pricing-plan-card__aside">
+                            {% if plan.purchase_ui.state == "current" or plan.purchase_ui.state == "blocked_higher" %}
+                                <span class="btn btn-secondary btn-block disabled">{{ plan.purchase_ui.button_label }}</span>
+                            {% elif plan.purchase_ui.state == "login" or plan.purchase_ui.state == "topup" %}
+                                <a href="{{ plan.purchase_ui.href }}" class="btn btn-secondary btn-block">{{ plan.purchase_ui.button_label }}</a>
+                            {% else %}
+                                <form method="post" action="{% url 'subscriptions:purchase_plan' plan.id %}" class="inline-form inline-form--block">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary btn-block">
+                                        {{ plan.purchase_ui.button_label }}
+                                    </button>
+                                </form>
+                            {% endif %}
+                            
+                            {% if plan.purchase_ui.show_amount %}
+                                <p class="pricing-action-hint">
+                                    К списанию: {{ plan.purchase_ui.quote_amount|floatformat:2 }} ₽
+                                </p>
+                            {% endif %}
+                            
+                            <p class="pricing-action-hint">{{ plan.purchase_ui.hint }}</p>
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section section--compact">
+    <div class="container">
+        <article class="card pricing-compare-card">
+            <div class="card-body">
+                <div class="section-heading">
+                    <h2>Матрица возможностей</h2>
+                    <p class="text-muted">Коммерческие подписки отделены от RBAC и глобальных module flags.</p>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="table table--dark pricing-compare-table">
+                        <thead>
+                            <tr>
+                                <th>Возможность</th>
+                                {% for plan in plans %}
+                                    <th>{{ plan.name }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in comparison_features %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ row.feature.name }}</strong>
+                                        <div class="text-muted">{{ row.feature.description }}</div>
+                                    </td>
+                                    {% for plan in plans %}
+                                        <td class="pricing-compare-table__cell">
+                                            {% if plan.id in row.plan_ids %}
+                                                <span class="pricing-check">✓</span>
+                                            {% else %}
+                                                <span class="pricing-check pricing-check--off">—</span>
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </article>
+    </div>
+</section>
+{% endblock %}

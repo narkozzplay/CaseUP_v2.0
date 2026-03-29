@@ -1,0 +1,12 @@
+{% extends "layouts/base_dashboard.html" %}
+{% load static %}
+
+{% block dashboard_extra_head %}
+<link rel="stylesheet" href="{% static 'css/modules/steam_catalog.css' %}">
+{% endblock %}
+
+{% block title %}Steam Catalog | CaseUP{% endblock %}
+
+{% block content %}
+    {% include "steam_catalog/partials/list_content.html" %}
+{% endblock %}

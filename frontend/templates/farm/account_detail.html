@@ -1,0 +1,12 @@
+{% extends "layouts/base_dashboard.html" %}
+{% load static %}
+
+{% block title %}{{ account.title }} | Farm Account | CaseUP{% endblock %}
+
+{% block dashboard_extra_head %}
+    <link rel="stylesheet" href="{% static 'css/modules/farm.css' %}">
+{% endblock %}
+
+{% block content %}
+    {% include "farm/partials/pages/account_detail_content.html" %}
+{% endblock %}

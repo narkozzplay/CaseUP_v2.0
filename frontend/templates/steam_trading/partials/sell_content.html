@@ -1,0 +1,188 @@
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">Farmer zone</span>
+            <h1 class="page-title page-title--sm">Продажа закупки</h1>
+            <p class="text-muted">Продажа идёт от конкретной закупки. Частичные продажи поддерживаются, oversell — нет, потому что backend не спит.</p>
+        </div>
+        <a href="{% url 'steam_trading:investments' %}" class="btn btn-secondary">К журналу</a>
+    </div>
+
+    <div class="profile-grid">
+        <article class="card">
+            <div class="card-body">
+                <div class="farm-item-cell" style="margin-bottom: 20px;">
+                    {% if purchase.item.icon_url %}
+                        <img src="{{ purchase.item.icon_cdn }}" alt="{{ purchase.item.group_name }}" class="farm-item-cell__image">
+                    {% endif %}
+                    <div class="farm-item-cell__content">
+                        <strong>{{ purchase.item.group_name }}</strong>
+                        <span class="text-muted">{{ purchase.item.market_hash_name }}</span>
+                    </div>
+                </div>
+
+                <dl class="details-list">
+                    <div>
+                        <dt>Дата закупки</dt>
+                        <dd>{{ purchase.purchased_at|date:"d.m.Y H:i" }}</dd>
+                    </div>
+                    <div>
+                        <dt>Цена закупки за 1 шт</dt>
+                        <dd>{{ purchase.purchase_price_rub|floatformat:2 }} ₽</dd>
+                    </div>
+                    <div>
+                        <dt>Куплено всего</dt>
+                        <dd>{{ purchase.quantity }}</dd>
+                    </div>
+                    <div>
+                        <dt>Уже продано</dt>
+                        <dd>{{ purchase_row.sold_quantity_total }}</dd>
+                    </div>
+                    <div>
+                        <dt>Осталось</dt>
+                        <dd>{{ purchase_row.remaining_quantity }}</dd>
+                    </div>
+                    <div>
+                        <dt>Дата разблокировки</dt>
+                        <dd>{{ purchase.unlocked_at|date:"d.m.Y H:i" }}</dd>
+                    </div>
+                    <div>
+                        <dt>Статус разблокировки</dt>
+                        <dd>{{ purchase_row.unlock_status_label }}</dd>
+                    </div>
+                    <div>
+                        <dt>Статус продажи</dt>
+                        <dd>{{ purchase_row.sale_status_label }}</dd>
+                    </div>
+                    <div>
+                        <dt>Realized PnL</dt>
+                        <dd>{% if purchase_row.realized_profit_rub > 0 %}+{% endif %}{{ purchase_row.realized_profit_rub|floatformat:2 }} ₽</dd>
+                    </div>
+                </dl>
+            </div>
+        </article>
+
+        <article class="card">
+            <div class="card-body">
+                {% if purchase_row.can_sell %}
+                    <form method="post" class="form-stack" id="steam-trading-sale-form">
+                        {% csrf_token %}
+
+                        <div class="form-field">
+                            <label for="{{ form.sold_at.id_for_label }}">{{ form.sold_at.label }}</label>
+                            {{ form.sold_at }}
+                            {{ form.sold_at.errors }}
+                        </div>
+
+                        <div class="drop-filter-grid">
+                            <div class="form-field">
+                                <label for="{{ form.quantity.id_for_label }}">{{ form.quantity.label }}</label>
+                                {{ form.quantity }}
+                                {{ form.quantity.errors }}
+                            </div>
+                            <div class="form-field">
+                                <label for="{{ form.sale_price_rub.id_for_label }}">{{ form.sale_price_rub.label }}</label>
+                                {{ form.sale_price_rub }}
+                                {{ form.sale_price_rub.errors }}
+                            </div>
+                        </div>
+
+                        {% if form.non_field_errors %}
+                            <div class="faceit-error">{{ form.non_field_errors }}</div>
+                        {% endif %}
+
+                        <div class="cards-grid farm-mini-stats" id="sale-preview-grid" data-purchase-price="{{ purchase.purchase_price_rub|floatformat:2 }}">
+                            <article class="card card--soft">
+                                <div class="card-body">
+                                    <p class="text-muted">Сумма продажи</p>
+                                    <strong id="sale-total-preview">{{ preview.total_sale_rub|floatformat:2 }}</strong>
+                                </div>
+                            </article>
+                            <article class="card card--soft">
+                                <div class="card-body">
+                                    <p class="text-muted">Себестоимость</p>
+                                    <strong id="sale-cost-preview">{{ preview.cost_basis_rub|floatformat:2 }}</strong>
+                                </div>
+                            </article>
+                            <article class="card card--soft">
+                                <div class="card-body">
+                                    <p class="text-muted">PnL ₽</p>
+                                    <strong id="sale-profit-preview">{% if preview.profit_rub > 0 %}+{% endif %}{{ preview.profit_rub|floatformat:2 }}</strong>
+                                </div>
+                            </article>
+                            <article class="card card--soft">
+                                <div class="card-body">
+                                    <p class="text-muted">PnL %</p>
+                                    <strong id="sale-profit-percent-preview">{% if preview.profit_percent > 0 %}+{% endif %}{{ preview.profit_percent|floatformat:2 }}%</strong>
+                                </div>
+                            </article>
+                            <article class="card card--soft">
+                                <div class="card-body">
+                                    <p class="text-muted">Результат</p>
+                                    <strong id="sale-result-preview">{{ preview.result_label }}</strong>
+                                </div>
+                            </article>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">Сохранить продажу</button>
+                    </form>
+                {% else %}
+                    <div class="faceit-error">
+                        {% if purchase_row.remaining_quantity <= 0 %}
+                            Эта закупка уже продана полностью.
+                        {% else %}
+                            Эта закупка ещё в трейд-бане и недоступна для продажи.
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </article>
+    </div>
+
+    <article class="card profile-history">
+        <div class="card-body">
+            <div class="section-head-inline">
+                <h2 class="section-title">История продаж</h2>
+                <span class="text-muted">{{ sales_history|length }} записей</span>
+            </div>
+
+            {% if sales_history %}
+                <div class="table-wrap">
+                    <table class="table table--dark">
+                        <thead>
+                            <tr>
+                                <th>Дата продажи</th>
+                                <th>Количество</th>
+                                <th>Цена продажи</th>
+                                <th>Сумма продажи</th>
+                                <th>Себестоимость</th>
+                                <th>Прибыль / убыток</th>
+                                <th>Прибыль / убыток %</th>
+                                <th>Кто создал</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in sales_history %}
+                                <tr>
+                                    <td>{{ sale.sold_at|date:"d.m.Y H:i" }}</td>
+                                    <td>{{ sale.quantity }}</td>
+                                    <td>{{ sale.sale_price_rub|floatformat:2 }}</td>
+                                    <td>{{ sale.total_sale_rub|floatformat:2 }}</td>
+                                    <td>{{ sale.cost_basis_rub|floatformat:2 }}</td>
+                                    <td>
+                                        {% if sale.profit_rub > 0 %}+{% endif %}{{ sale.profit_rub|floatformat:2 }}
+                                        <div class="text-muted">{{ sale.result_label }}</div>
+                                    </td>
+                                    <td>{% if sale.profit_percent > 0 %}+{% endif %}{{ sale.profit_percent|floatformat:2 }}%</td>
+                                    <td>{{ sale.created_by|default:"—" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted empty-state">Продаж по этой закупке пока нет.</p>
+            {% endif %}
+        </div>
+    </article>
+</section>

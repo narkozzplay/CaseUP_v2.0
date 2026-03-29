@@ -1,0 +1,16 @@
+{% load static i18n %}
+<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'ru' }}">
+<head>
+    {% include "components/head.html" %}
+    <title>{% block title %}{{ site_settings.site_name|default:"CaseUP" }}{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/layout.css' %}">
+    <link rel="stylesheet" href="{% static 'css/components.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    {% block page %}{% endblock %}
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

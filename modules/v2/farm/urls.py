@@ -1,0 +1,21 @@
+from django.urls import path
+
+from . import views
+
+app_name = "farm"
+
+urlpatterns = [
+    path("", views.dashboard, name="dashboard"),
+    path("accounts/", views.accounts_list, name="accounts_list"),
+    path("accounts/add/", views.accounts_add, name="accounts_add"),
+    path("accounts/<int:account_id>/", views.account_detail, name="accounts_detail"),
+    path("accounts/<int:account_id>/sync-inventory/", views.account_inventory_sync, name="account_inventory_sync"),
+    path("drops/", views.drops_list, name="drops_list"),
+    path("drops/add/", views.drops_add, name="drops_add"),
+    path("sessions/", views.sessions_list, name="sessions_list"),
+    path("sessions/add/", views.sessions_add, name="sessions_add"),
+    path("sessions/<int:session_id>/", views.sessions_detail, name="sessions_detail"),
+    path("drop-pool/", views.drop_pool_manage, name="drop_pool"),
+    path("drop-pool/<int:entry_id>/remove/", views.drop_pool_remove, name="drop_pool_remove"),
+    path("settings/", views.settings_page, name="settings"),
+]

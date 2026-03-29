@@ -1,0 +1,45 @@
+import os
+from pathlib import Path
+
+from .base import *
+
+DEBUG = True
+SECRET_KEY = "testing-secret-key"
+ALLOWED_HOSTS = ["*"]
+
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.MD5PasswordHasher",
+]
+
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_BROKER_URL = "memory://"
+CELERY_RESULT_BACKEND = "cache+memory://"
+CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS = 300
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+TEST_DB_ENGINE = os.getenv("TEST_DB_ENGINE", "sqlite").strip().lower()
+
+if TEST_DB_ENGINE == "postgres":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("TEST_POSTGRES_DB", os.getenv("POSTGRES_DB", "caseup_test")),
+            "USER": os.getenv("TEST_POSTGRES_USER", os.getenv("POSTGRES_USER", "caseup")),
+            "PASSWORD": os.getenv("TEST_POSTGRES_PASSWORD", os.getenv("POSTGRES_PASSWORD", "caseup")),
+            "HOST": os.getenv("TEST_POSTGRES_HOST", os.getenv("POSTGRES_HOST", "127.0.0.1")),
+            "PORT": os.getenv("TEST_POSTGRES_PORT", os.getenv("POSTGRES_PORT", "5432")),
+            "CONN_MAX_AGE": 0,
+            "TEST": {
+                "NAME": os.getenv("TEST_POSTGRES_DB", os.getenv("POSTGRES_DB", "caseup_test")),
+            },
+        }
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "test_db.sqlite3",
+        }
+    }

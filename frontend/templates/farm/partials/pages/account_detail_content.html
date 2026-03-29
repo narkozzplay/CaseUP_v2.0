@@ -1,0 +1,136 @@
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">Farmer zone</span>
+            <h1 class="page-title page-title--sm">{{ account.title }}</h1>
+            <p class="text-muted">SteamID64: {{ account.steam_id64|default:"—" }}</p>
+        </div>
+
+        <div class="hero-actions dashboard-actions">
+            <a href="{% url 'farm:accounts_list' %}" class="btn btn-secondary">К списку</a>
+            <a href="{% url 'farm:sessions_add' %}?account={{ account.id }}" class="btn btn-secondary">Добавить дроп</a>
+            <form method="post" action="{% url 'farm:account_inventory_sync' account.id %}" class="inline-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">Синхронизировать inventory</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="profile-grid">
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Overview</h2>
+                <dl class="details-list">
+                    <div><dt>Статус</dt><dd>{{ account.get_status_display }}</dd></div>
+                    <div><dt>Trade URL</dt><dd class="farm-break">{{ account.trade_url|default:"—" }}</dd></div>
+                    <div><dt>Login hint</dt><dd>{{ account.login_hint|default:"—" }}</dd></div>
+                    <div><dt>Owner</dt><dd>{{ account.owner }}</dd></div>
+                    <div><dt>Notes</dt><dd>{{ account.notes|default:"—" }}</dd></div>
+                </dl>
+            </div>
+        </article>
+
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Inventory sync</h2>
+                {% if latest_sync %}
+                    <div class="farm-pill-row">
+                        <span class="status-pill status-pill--sm farm-sync-pill farm-sync-pill--{{ latest_sync.status }}">{{ latest_sync.get_status_display }}</span>
+                    </div>
+                    <dl class="details-list">
+                        <div><dt>Последний запуск</dt><dd>{{ latest_sync.started_at|date:"d.m.Y H:i" }}</dd></div>
+                        <div><dt>Assets</dt><dd>{{ latest_sync.total_assets }}</dd></div>
+                        <div><dt>Sellable</dt><dd>{{ latest_sync.total_sellable }}</dd></div>
+                        {% if latest_sync.error_text %}<div><dt>Ошибка</dt><dd>{{ latest_sync.error_text }}</dd></div>{% endif %}
+                    </dl>
+                {% else %}
+                    <p class="text-muted empty-state">Inventory еще не синхронизировался.</p>
+                {% endif %}
+            </div>
+        </article>
+    </div>
+
+    <article class="card profile-history">
+        <div class="card-body">
+            <div class="farm-tabs">
+                <a href="{% url 'farm:accounts_detail' account.id %}?tab=overview" class="farm-tab {% if active_tab == 'overview' %}is-active{% endif %}">Overview</a>
+                <a href="{% url 'farm:accounts_detail' account.id %}?tab=inventory" class="farm-tab {% if active_tab == 'inventory' %}is-active{% endif %}">Inventory</a>
+                <a href="{% url 'farm:accounts_detail' account.id %}?tab=sessions" class="farm-tab {% if active_tab == 'sessions' %}is-active{% endif %}">Дропы</a>
+            </div>
+
+            {% if active_tab == "overview" %}
+                <div class="cards-grid farm-mini-stats">
+                    <article class="card card--soft"><div class="card-body"><h3>Inventory items</h3><p class="metric">{{ inventory_total }}</p></div></article>
+                    <article class="card card--soft"><div class="card-body"><h3>Sellable</h3><p class="metric">{{ inventory_sellable_total }}</p></div></article>
+                    <article class="card card--soft"><div class="card-body"><h3>Blocked</h3><p class="metric">{{ inventory_blocked_total }}</p></div></article>
+                    <article class="card card--soft"><div class="card-body"><h3>Дропы</h3><p class="metric">{{ session_count }}</p></div></article>
+                </div>
+            {% elif active_tab == "sessions" %}
+                <div class="section-head-inline">
+                    <div>
+                        <h2 class="section-title">Дропы аккаунта</h2>
+                        <p class="text-muted">FarmDropSession — основной журнал дропов для аккаунта.</p>
+                    </div>
+                    <a href="{% url 'farm:sessions_add' %}?account={{ account.id }}" class="btn btn-primary btn-sm">Добавить дроп</a>
+                </div>
+                {% include "farm/partials/session_rows_table.html" with session_rows=session_rows analytics_locked=analytics_locked %}
+                {% if not farmer_features.deep_analytics %}
+                    <div class="farm-section-gap"></div>
+                    {% include "farm/partials/analytics_locked_cta.html" %}
+                {% endif %}
+            {% else %}
+                <div class="section-head-inline">
+                    <div>
+                        <h2 class="section-title">Inventory</h2>
+                        <p class="text-muted">Public inventory sync + матчинг к Steam Catalog.</p>
+                    </div>
+                    <div class="farm-filter-row">
+                        <a href="?tab=inventory&inventory_filter=all" class="price-chart__range-btn {% if inventory_filter == 'all' %}is-active{% endif %}">Все</a>
+                        <a href="?tab=inventory&inventory_filter=sellable" class="price-chart__range-btn {% if inventory_filter == 'sellable' %}is-active{% endif %}">Sellable</a>
+                        <a href="?tab=inventory&inventory_filter=blocked" class="price-chart__range-btn {% if inventory_filter == 'blocked' %}is-active{% endif %}">Blocked</a>
+                    </div>
+                </div>
+                <div class="cards-grid farm-mini-stats">
+                    <article class="card card--soft"><div class="card-body"><h3>Всего</h3><p class="metric">{{ inventory_total }}</p></div></article>
+                    <article class="card card--soft"><div class="card-body"><h3>Sellable</h3><p class="metric">{{ inventory_sellable_total }}</p></div></article>
+                    <article class="card card--soft"><div class="card-body"><h3>Blocked</h3><p class="metric">{{ inventory_blocked_total }}</p></div></article>
+                    <article class="card card--soft"><div class="card-body"><h3>Unmatched</h3><p class="metric">{{ inventory_unmatched_total }}</p></div></article>
+                </div>
+                {% if inventory_items %}
+                    <div class="table-wrap">
+                        <table class="table table--dark">
+                            <thead>
+                                <tr>
+                                    <th>Предмет</th>
+                                    <th>market_hash_name</th>
+                                    <th>Статус</th>
+                                    <th>Цена</th>
+                                    <th>Payout</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in inventory_items %}
+                                    <tr>
+                                        <td>{{ item.matched_item.group_name|default:item.market_hash_name }}</td>
+                                        <td>{{ item.market_hash_name }}</td>
+                                        <td>
+                                            {% if item.is_sellable %}
+                                                <span class="status-pill status-pill--sm farm-sell-pill farm-sell-pill--sellable">Готов к продаже</span>
+                                            {% else %}
+                                                <span class="status-pill status-pill--sm farm-sell-pill farm-sell-pill--blocked">Blocked</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ item.catalog_price_rub_snapshot|default:"—" }}</td>
+                                        <td>{{ item.payout_price_rub_snapshot|default:"—" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted empty-state">Inventory пока пуст.</p>
+                {% endif %}
+            {% endif %}
+        </div>
+    </article>
+</section>

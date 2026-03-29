@@ -1,0 +1,157 @@
+name: ${COMPOSE_PROJECT_NAME:-caseup_dev}
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-caseup_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-caseup}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-caseup}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-caseup} -d ${POSTGRES_DB:-caseup_dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ${APP_ENV_FILE:-.env.dev}
+    environment:
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.dev}
+      DB_ENGINE: postgres
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-caseup_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-caseup}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-caseup}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-1}
+      RUN_COLLECTSTATIC: ${RUN_COLLECTSTATIC:-1}
+    command: ${WEB_COMMAND:-python manage.py runserver 0.0.0.0:8000}
+    ports:
+      - "${DJANGO_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -c "from urllib.request import urlopen; import sys;
+          sys.exit(0 if urlopen('http://127.0.0.1:8000/health/', timeout=5).read().decode().strip() == 'OK' else 1)"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    volumes:
+      - .:/app
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+      - backup_data:/app/backups
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ${APP_ENV_FILE:-.env.dev}
+    environment:
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.dev}
+      DB_ENGINE: postgres
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-caseup_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-caseup}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-caseup}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      RUN_MIGRATIONS: "0"
+      RUN_COLLECTSTATIC: "0"
+    command: celery -A config worker -l info --concurrency=${CELERY_WORKER_CONCURRENCY:-1} --max-tasks-per-child=100
+    volumes:
+      - .:/app
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$HOSTNAME >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ${APP_ENV_FILE:-.env.dev}
+    environment:
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.dev}
+      DB_ENGINE: postgres
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-caseup_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-caseup}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-caseup}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      RUN_MIGRATIONS: "0"
+      RUN_COLLECTSTATIC: "0"
+    command: celery -A config beat -l info --schedule /var/run/celery/celerybeat-schedule
+    volumes:
+      - .:/app
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+      - celerybeat_data:/var/run/celery
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /var/run/celery/celerybeat-schedule || pgrep -f 'celery -A config beat' >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:
+  static_data:
+  celerybeat_data:
+  backup_data:

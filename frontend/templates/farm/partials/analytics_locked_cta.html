@@ -1,0 +1,22 @@
+<div class="card card--soft farm-paywall-card">
+    <div class="card-body">
+        <div class="farm-paywall-card__header">
+            <div>
+                <span class="badge">Analytics locked</span>
+                <h3 class="section-title" style="margin-top: 0.75rem;">Аналитика доступна по farmer-плану</h3>
+                <p class="text-muted">
+                    При покупке тарифа <strong>{{ analytics_plan_name }}</strong> вам будет доступна аналитика,
+                    TG alerts, reduced commission и bonus program.
+                </p>
+            </div>
+            <div class="farm-paywall-card__meta">
+                <span class="status-pill status-pill--sm">CaseUP: {{ default_caseup_fee_percent|floatformat:2 }}%</span>
+                <span class="status-pill status-pill--sm">Farmer: {{ subscribed_caseup_fee_percent|floatformat:2 }}%</span>
+            </div>
+        </div>
+        <div class="hero-actions">
+            <a href="{% url 'subscriptions:farmer_plans' %}" class="btn btn-primary btn-sm">Открыть farmer-тарифы</a>
+            <a href="{% url 'farm:sessions_add' %}" class="btn btn-secondary btn-sm">Добавить дроп</a>
+        </div>
+    </div>
+</div>

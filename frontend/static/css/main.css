@@ -1,0 +1,8 @@
+/*
+ * Compatibility entrypoint.
+ * Common layers are split into dedicated files.
+ * Module styles are loaded from Django templates via extra_head/dashboard_extra_head.
+ */
+@import url("./base.css");
+@import url("./layout.css");
+@import url("./components.css");

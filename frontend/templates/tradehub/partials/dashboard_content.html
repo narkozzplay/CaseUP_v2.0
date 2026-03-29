@@ -1,0 +1,62 @@
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">TradeHub</span>
+            <h1 class="page-title page-title--sm">Контур продаж и трейд-офферов</h1>
+            <p class="text-muted">Покупка предметов с farm inventory, боты, статусы офферов и аудит.</p>
+        </div>
+        <div class="hero-actions dashboard-actions">
+            <a href="{% url 'tradehub:sales_list' %}" class="btn btn-secondary">Все продажи</a>
+            {% if tradehub_access.staff_access %}
+                <a href="{% url 'tradehub:bots_list' %}" class="btn btn-primary">Трейд-боты</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="cards-grid farm-mini-stats">
+        <article class="card card--soft"><div class="card-body"><h3>Активные сделки</h3><p class="metric">{{ active_orders_total }}</p></div></article>
+        <article class="card card--soft"><div class="card-body"><h3>Активные боты</h3><p class="metric">{{ bots_total }}</p></div></article>
+        <article class="card card--soft"><div class="card-body"><h3>Активные санкции</h3><p class="metric">{{ penalties_total }}</p></div></article>
+        <article class="card card--soft"><div class="card-body"><h3>Сделок за всё время</h3><p class="metric">{{ stats.all.orders_count }}</p></div></article>
+    </div>
+
+    <div class="profile-grid">
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Статистика выплат</h2>
+                <dl class="details-list">
+                    <div><dt>Неделя</dt><dd>{{ stats.week.total_payout_rub|floatformat:2 }}</dd></div>
+                    <div><dt>Месяц</dt><dd>{{ stats.month.total_payout_rub|floatformat:2 }}</dd></div>
+                    <div><dt>Год</dt><dd>{{ stats.year.total_payout_rub|floatformat:2 }}</dd></div>
+                    <div><dt>Всё время</dt><dd>{{ stats.all.total_payout_rub|floatformat:2 }}</dd></div>
+                </dl>
+            </div>
+        </article>
+
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Последние завершённые сделки</h2>
+                {% if recent_orders %}
+                    <div class="table-wrap">
+                        <table class="table table--dark">
+                            <thead><tr><th>ID</th><th>Пользователь</th><th>Farm</th><th>Бот</th><th>Сумма</th></tr></thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                    <tr>
+                                        <td><a href="{% url 'tradehub:sale_detail' order.id %}" class="table-link">#{{ order.id }}</a></td>
+                                        <td>{{ order.seller.username }}</td>
+                                        <td>{{ order.farm_account.title }}</td>
+                                        <td>{{ order.bot_account.title|default:"—" }}</td>
+                                        <td>{{ order.total_payout_rub|floatformat:2 }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted empty-state">Завершённых сделок пока нет.</p>
+                {% endif %}
+            </div>
+        </article>
+    </div>
+</section>

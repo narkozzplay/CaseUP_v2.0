@@ -1,0 +1,12 @@
+{% extends "layouts/base_dashboard.html" %}
+{% load static %}
+
+{% block title %}Farmer pricing control center | CaseUP{% endblock %}
+
+{% block dashboard_extra_head %}
+    <link rel="stylesheet" href="{% static 'css/modules/subscriptions.css' %}">
+{% endblock %}
+
+{% block content %}
+    {% include "subscriptions/partials/pricing_dashboard_content.html" %}
+{% endblock %}

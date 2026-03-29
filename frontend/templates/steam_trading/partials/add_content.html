@@ -1,0 +1,57 @@
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">Farmer zone</span>
+            <h1 class="page-title page-title--sm">Добавить закупку</h1>
+            <p class="text-muted">Цена по умолчанию берётся из Steam Catalog. Итог всё равно пересчитывается на backend — фронту доверяем ровно настолько, насколько доверяют лотерейному билету.</p>
+        </div>
+        <a href="{% url 'steam_trading:investments' %}" class="btn btn-secondary">К журналу</a>
+    </div>
+
+    <article class="card">
+        <div class="card-body">
+            <form method="post" class="form-stack" id="steam-trading-form" data-item-prices="{{ item_prices_json|escapejs }}">
+                {% csrf_token %}
+
+                <div class="form-field">
+                    <label for="{{ form.item.id_for_label }}">{{ form.item.label }}</label>
+                    {{ form.item }}
+                    {{ form.item.errors }}
+                </div>
+
+                <div class="drop-filter-grid">
+                    <div class="form-field">
+                        <label for="{{ form.purchased_at.id_for_label }}">{{ form.purchased_at.label }}</label>
+                        {{ form.purchased_at }}
+                        {{ form.purchased_at.errors }}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.quantity.id_for_label }}">{{ form.quantity.label }}</label>
+                        {{ form.quantity }}
+                        {{ form.quantity.errors }}
+                    </div>
+                </div>
+
+                <div class="drop-filter-grid">
+                    <div class="form-field">
+                        <label for="{{ form.purchase_price_rub.id_for_label }}">{{ form.purchase_price_rub.label }}</label>
+                        {{ form.purchase_price_rub }}
+                        {{ form.purchase_price_rub.errors }}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="purchase_total_preview">Затрачено</label>
+                        <input id="purchase_total_preview" type="text" class="form-control" value="0.00" readonly>
+                    </div>
+                </div>
+
+                {% if form.non_field_errors %}
+                    <div class="faceit-error">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-primary btn-block">Сохранить закупку</button>
+            </form>
+        </div>
+    </article>
+</section>

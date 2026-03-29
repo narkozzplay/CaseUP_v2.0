@@ -1,0 +1,55 @@
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">Control</span>
+            <h1 class="page-title page-title--sm">Farm settings</h1>
+            <p class="text-muted">Commission, thresholds, alert dispatch and reward tiers.</p>
+        </div>
+        <div class="hero-actions">
+            <a href="?dispatch=thresholds" class="btn btn-secondary">Dispatch thresholds</a>
+            <a href="?dispatch=advantage" class="btn btn-secondary">Dispatch CaseUP advantage</a>
+        </div>
+    </div>
+
+    <div class="profile-grid">
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Module config</h2>
+                <form method="post" class="form-stack">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="form-field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {{ field.errors }}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary">Сохранить config</button>
+                </form>
+            </div>
+        </article>
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Reward tiers</h2>
+                {% if reward_tiers %}
+                    <div class="farm-list-stack">
+                        {% for tier in reward_tiers %}
+                            <div class="farm-list-row">
+                                <div>
+                                    <strong>{{ tier.title }}</strong>
+                                    <div class="text-muted">{{ tier.reward_title|default:tier.reward_description|default:'—' }}</div>
+                                </div>
+                                <div class="text-right">
+                                    <strong>{{ tier.threshold_turnover_rub|floatformat:2 }} ₽</strong>
+                                    <div class="text-muted">bonus: {{ tier.bonus_value_rub|floatformat:2 }} ₽</div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted empty-state">Reward tiers пока не настроены.</p>
+                {% endif %}
+            </div>
+        </article>
+    </div>
+</section>

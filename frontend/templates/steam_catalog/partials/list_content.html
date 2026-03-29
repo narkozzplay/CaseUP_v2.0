@@ -1,0 +1,120 @@
+<section class="section section--compact">
+    <div class="section-heading">
+        <span class="eyebrow">{% if catalog_can_edit %}Staff tools{% else %}Subscription view{% endif %}</span>
+        <h1>Steam Catalog</h1>
+        <p class="text-muted">
+            {% if catalog_can_edit %}Компактный каталог предметов. Основные данные показываются при наведении на карточку.{% else %}Компактный каталог предметов в режиме просмотра. Редакторские действия доступны только staff/admin.{% endif %}
+        </p>
+    </div>
+
+    <div class="card catalog-toolbar">
+        <div class="card-body">
+            <form method="get" class="toolbar-grid">
+                <div class="form-field">
+                    <label for="q">Поиск</label>
+                    <input id="q" type="text" name="q" value="{{ q }}" class="form-control">
+                </div>
+
+                <div class="form-field">
+                    <label for="type">Тип</label>
+                    <select id="type" name="type" class="form-control">
+                        <option value="">Все</option>
+                        {% for value, label in types %}
+                            <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="review">Review</label>
+                    <select id="review" name="review" class="form-control">
+                        <option value="">Все</option>
+                        <option value="1" {% if selected_review == "1" %}selected{% endif %}>Требует review</option>
+                        <option value="0" {% if selected_review == "0" %}selected{% endif %}>Без review</option>
+                    </select>
+                </div>
+
+                <div class="toolbar-actions">
+                    <button type="submit" class="btn btn-secondary">Фильтровать</button>
+                    {% if catalog_can_edit %}
+                        <a href="{% url 'steam_catalog:add' %}" class="btn btn-primary">Добавить предмет</a>
+                    {% else %}
+                        {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}" class="btn btn-secondary">Тарифы</a>{% endif %}
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div
+        class="cards-grid cards-grid--catalog cards-grid--catalog-compact"
+        style="--catalog-columns: {{ catalog_grid_columns|default:7 }};"
+    >
+        {% for card in cards %}
+            <article class="card catalog-card catalog-card--compact">
+                <a href="{% url 'steam_catalog:detail' card.item.id %}" class="catalog-card__link" aria-label="{{ card.item.group_name }}"></a>
+            
+                <div class="card-body">
+                    <div class="catalog-card__media catalog-card__media--compact">
+                        {% if card.auto_update_enabled %}
+                            <span
+                                class="catalog-card__auto-update-badge"
+                                title="Авто-апдейт цены включён"
+                                aria-label="Авто-апдейт цены включён"
+                            >
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M14.1 4.5c2.85-.58 4.85-.06 5.4.49.55.55 1.07 2.55.49 5.4l-3.21 3.21c-.36 1.59-1.16 3.1-2.43 4.37-.21.21-.51.3-.8.24l-3.39-.77-2.45 2.45a1 1 0 0 1-1.7-.65l-.11-2.6-2.6-.11a1 1 0 0 1-.65-1.7l2.45-2.45-.77-3.39a.91.91 0 0 1 .24-.8c1.27-1.27 2.78-2.07 4.37-2.43zm1.48 2.05-4.84 1.11a6.17 6.17 0 0 0-2.71 1.39l.57 2.51c.07.31-.02.64-.24.87l-1.71 1.71 1.42.06c.52.02.93.43.95.95l.06 1.42 1.71-1.71c.23-.23.56-.32.87-.24l2.51.57a6.17 6.17 0 0 0 1.39-2.71l1.11-4.84c.29-1.29.19-2.13.08-2.57-.44-.11-1.28-.21-2.57.08zm1.17 1.58a1.25 1.25 0 1 1 1.77 1.77 1.25 1.25 0 0 1-1.77-1.77z"/>
+                                </svg>
+                            </span>
+                        {% endif %}
+                        
+                        {% if card.item.icon_url %}
+                            <img src="{{ card.item.icon_cdn }}" alt="{{ card.item.group_name }}" class="catalog-card__image catalog-card__image--compact">
+                        {% else %}
+                            <div class="catalog-card__image-fallback">
+                                <span>{{ card.item.group_name|slice:":1" }}</span>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="catalog-card__overlay">
+                            <div class="catalog-card__overlay-inner">
+                                <h3 class="catalog-card__title">{{ card.item.group_name }}</h3>
+                                <p class="catalog-card__type">{{ card.item.get_item_type_display }}</p>
+                            
+                                <div class="catalog-card__price">
+                                    {% if card.min_price and card.max_price %}
+                                        {% if card.min_price == card.max_price %}
+                                            <span>{{ card.min_price }}</span>
+                                        {% else %}
+                                            <span>{{ card.min_price }} — {{ card.max_price }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span>—</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        {% empty %}
+            <article class="card">
+                <div class="card-body">
+                    <p class="text-muted">Каталог пока пуст.</p>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+        <div class="pagination-wrap">
+            {% if page_obj.has_previous %}
+                <a class="btn btn-secondary" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&type={{ selected_type }}&review={{ selected_review }}">Назад</a>
+            {% endif %}
+            <span class="text-muted">Страница {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a class="btn btn-secondary" href="?page={{ page_obj.next_page_number }}&q={{ q }}&type={{ selected_type }}&review={{ selected_review }}">Вперёд</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</section>

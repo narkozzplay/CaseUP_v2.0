@@ -1,0 +1,168 @@
+<section class="section section--compact">
+    <div class="dashboard-hero card dashboard-hero--admin">
+        <div class="card-body dashboard-hero__body">
+            <div>
+                <span class="eyebrow">Admin+</span>
+                <h1 class="page-title page-title--sm">Control Center</h1>
+                <p class="text-muted dashboard-hero__text">
+                    {% if LANGUAGE_CODE == "ru" %}
+                        Кастомная внутренняя админ-панель для операционных действий и dev-тестов.
+                    {% else %}
+                        Internal custom admin panel for operations and dev testing.
+                    {% endif %}
+                </p>
+            </div>
+
+            <div class="dashboard-hero__meta">
+                <span class="status-pill">Users: {{ total_users }}</span>
+                <span class="status-pill">Catalog: {{ steam_items_total }}</span>
+                <span class="status-pill">Farm: {{ farm_accounts_total }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-grid profile-grid--3">
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Dev topup balance</h2>
+
+                <form method="post" class="form-stack">
+                    {% csrf_token %}
+                    <div class="form-field">
+                        <label for="{{ form.username.id_for_label }}">Username</label>
+                        {{ form.username }}
+                        {{ form.username.errors }}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ form.amount.id_for_label }}">Amount</label>
+                        {{ form.amount }}
+                        {{ form.amount.errors }}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Apply topup</button>
+                </form>
+            </div>
+        </article>
+
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Role distribution</h2>
+
+                <div class="dashboard-list">
+                    {% for row in role_distribution %}
+                        <div class="dashboard-list__row">
+                            <strong>{{ row.role }}</strong>
+                            <span class="status-pill status-pill--sm">{{ row.total }}</span>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">No data.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </article>
+
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Top balances</h2>
+
+                <div class="dashboard-list">
+                    {% for profile in top_profiles %}
+                        <div class="dashboard-list__row">
+                            <div>
+                                <strong>{{ profile.user.username }}</strong>
+                                <div class="text-muted">{{ profile.role }}</div>
+                            </div>
+                            <span class="metric-positive">{{ profile.balance_coins }}</span>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">No data.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </article>
+    </div>
+    
+    <div class="profile-grid profile-grid--3">
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">System Settings</h2>
+                <p class="text-muted">
+                    Управление site config, maintenance mode и feature flags модулей.
+                </p>
+                <div class="auth-card__actions">
+                    <a href="{% url 'system_config:settings' %}" class="btn btn-primary btn-block">
+                        Open System Settings
+                    </a>
+                </div>
+            </div>
+        </article>
+        {% if feature_flags.celery_tasks %}
+            <article class="card">
+                <div class="card-body">
+                    <h2 class="section-title">Celery Tasks</h2>
+                    <p class="text-muted">
+                        Авто-апдейт цен Steam Catalog по категориям через Celery worker + beat.
+                    </p>
+                    <div class="auth-card__actions">
+                        <a href="{% url 'celery_tasks:control_center' %}" class="btn btn-primary btn-block">
+                            Open Celery Tasks
+                        </a>
+                    </div>
+                </div>
+            </article>
+        {% endif %}
+
+        {% if feature_flags.tg_notifier %}<article class="card">
+            <div class="card-body">
+                <h2 class="section-title">TG Notifier</h2>
+                <p class="text-muted">
+                    Управление Telegram-ботом, шаблонами и ручной sync-отправкой уведомлений.
+                </p>
+                <div class="auth-card__actions">
+                    <a href="{% url 'tg_notifier:settings' %}" class="btn btn-primary btn-block">
+                        Open TG Notifier
+                    </a>
+                </div>
+            </div>
+        </article>{% endif %}
+    </div>
+
+    <article class="card dashboard-panel">
+        <div class="card-body">
+            <div class="section-head-inline">
+                <h2 class="section-title">Recent admin adjustments</h2>
+                <span class="text-muted">{{ recent_admin_adjustments|length }}</span>
+            </div>
+
+            <div class="table-wrap">
+                <table class="table table--dark">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>User</th>
+                            <th>Reason</th>
+                            <th>Delta</th>
+                            <th>Balance after</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in recent_admin_adjustments %}
+                            <tr>
+                                <td>{{ entry.created_at|date:"d.m.Y H:i" }}</td>
+                                <td>{{ entry.user.username }}</td>
+                                <td>{{ entry.reason }}</td>
+                                <td>{{ entry.delta }}</td>
+                                <td>{{ entry.balance_after }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-muted">No admin adjustments yet.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </article>
+</section>

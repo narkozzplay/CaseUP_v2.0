@@ -1,0 +1,78 @@
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">Farmer legacy</span>
+            <h1 class="page-title page-title--sm">Legacy weekly logs</h1>
+            <p class="text-muted">Secondary-слой для старых weekly drop записей. Основной UX теперь идёт через FarmDropSession.</p>
+        </div>
+        <div class="hero-actions">
+            <a href="{% url 'farm:sessions_list' %}" class="btn btn-secondary">Открыть дропы</a>
+            <a href="{% url 'farm:drops_add' %}" class="btn btn-primary">Добавить legacy-log</a>
+        </div>
+    </div>
+
+    <div class="card catalog-toolbar">
+        <div class="card-body">
+            <form method="get" class="toolbar-grid">
+                <div class="form-field">
+                    <label for="account">Аккаунт</label>
+                    <select id="account" name="account" class="form-control">
+                        <option value="">Все</option>
+                        {% for account in accounts %}
+                            <option value="{{ account.id }}" {% if selected_account == account.id|stringformat:"s" %}selected{% endif %}>{{ account.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="week">Неделя</label>
+                    <input id="week" type="text" name="week" value="{{ selected_week }}" class="form-control" placeholder="Например: 10">
+                </div>
+
+                <div class="form-field">
+                    <label for="q">Поиск</label>
+                    <input id="q" type="text" name="q" value="{{ q }}" class="form-control" placeholder="Аккаунт или предмет">
+                </div>
+
+                <div class="toolbar-actions">
+                    <button type="submit" class="btn btn-secondary">Фильтровать</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <article class="card profile-history">
+        <div class="card-body">
+            {% if drops %}
+                <div class="table-wrap">
+                    <table class="table table--dark">
+                        <thead>
+                            <tr>
+                                <th>Аккаунт</th>
+                                <th>Неделя</th>
+                                <th>Предмет 1</th>
+                                <th>Предмет 2</th>
+                                <th>Комментарий</th>
+                                <th>Кто добавил</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for drop in drops %}
+                                <tr>
+                                    <td>{{ drop.account.title }}</td>
+                                    <td><div class="week-meta"><strong>Неделя #{{ drop.week_index|stringformat:"02d" }} — {{ drop.week_month_label }}</strong><span class="text-muted">{{ drop.week_range_label }}</span></div></td>
+                                    <td>{{ drop.item_1.group_name|default:"—" }}</td>
+                                    <td>{{ drop.item_2.group_name|default:"—" }}</td>
+                                    <td>{{ drop.notes|default:"—" }}</td>
+                                    <td>{{ drop.created_by|default:"—" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted empty-state">Записей weekly drop пока нет.</p>
+            {% endif %}
+        </div>
+    </article>
+</section>

@@ -1,0 +1,36 @@
+name: ${COMPOSE_PROJECT_NAME:-caseup_prod}
+
+services:
+  web:
+    env_file:
+      - ${APP_ENV_FILE:-.env.prod}
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-1}
+      RUN_COLLECTSTATIC: ${RUN_COLLECTSTATIC:-1}
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers ${WEB_CONCURRENCY:-2} --timeout ${GUNICORN_TIMEOUT:-120}
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+      - backup_data:/app/backups
+    ports:
+      - "127.0.0.1:18001:8000"
+
+  celery_worker:
+    env_file:
+      - ${APP_ENV_FILE:-.env.prod}
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+
+  celery_beat:
+    env_file:
+      - ${APP_ENV_FILE:-.env.prod}
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+      - celerybeat_data:/var/run/celery

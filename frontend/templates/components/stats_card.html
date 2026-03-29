@@ -1,0 +1,9 @@
+<article class="card stats-card">
+    <div class="card-body">
+        <p class="stats-card__label">{{ label }}</p>
+        <p class="stats-card__value">{{ value }}</p>
+        {% if meta %}
+            <p class="stats-card__meta text-muted">{{ meta }}</p>
+        {% endif %}
+    </div>
+</article>

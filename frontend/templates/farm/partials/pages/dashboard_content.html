@@ -1,0 +1,210 @@
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">Farmer zone</span>
+            <h1 class="page-title page-title--sm">Farm dashboard</h1>
+            <p class="text-muted">Единый контур farm: аккаунты, дропы, продажи и CaseUP как площадка продажи.</p>
+        </div>
+        <div class="hero-actions">
+            <a href="{% url 'farm:accounts_add' %}" class="btn btn-secondary">Добавить аккаунт</a>
+            <a href="{% url 'farm:sessions_add' %}" class="btn btn-primary">Добавить дроп</a>
+        </div>
+    </div>
+
+    <div class="farm-feature-strip">
+        <span class="status-pill status-pill--sm">Дропы: доступны</span>
+        <span class="status-pill status-pill--sm">Продажи: доступны</span>
+        <span class="status-pill status-pill--sm">CaseUP fee: {{ current_caseup_fee_percent|floatformat:2 }}%</span>
+        <span class="status-pill status-pill--sm {% if farmer_features.tg_alerts %}farm-flag-pill--on{% else %}farm-flag-pill--off{% endif %}">
+            TG alerts: {% if farmer_features.tg_alerts %}on{% else %}по farmer-плану{% endif %}
+        </span>
+        <span class="status-pill status-pill--sm {% if farmer_features.reduced_commission %}farm-flag-pill--on{% else %}farm-flag-pill--off{% endif %}">
+            Reduced commission: {% if farmer_features.reduced_commission %}on{% else %}locked{% endif %}
+        </span>
+        <span class="status-pill status-pill--sm {% if farmer_features.bonus_program %}farm-flag-pill--on{% else %}farm-flag-pill--off{% endif %}">
+            Bonus program: {% if farmer_features.bonus_program %}on{% else %}locked{% endif %}
+        </span>
+    </div>
+
+    <div class="cards-grid farm-overview-grid">
+        <article class="card card--soft"><div class="card-body"><h3>Farm accounts</h3><p class="metric">{{ accounts_total }}</p><p class="text-muted">active: {{ accounts_active }} · review: {{ accounts_review }}</p></div></article>
+        <article class="card card--soft"><div class="card-body"><h3>Farm drops</h3><p class="metric">{{ drop_sessions_total }}</p><p class="text-muted">основная сущность дропа на аккаунтах</p></div></article>
+        <article class="card card--soft"><div class="card-body"><h3>Продажи</h3><p class="metric">{{ sales_total }}</p><p class="text-muted">CaseUP: {{ caseup_sales_total }}</p></div></article>
+        <article class="card card--soft"><div class="card-body"><h3>CaseUP commission</h3><p class="metric">{{ current_caseup_fee_percent|floatformat:2 }}%</p><p class="text-muted">базовая: {{ default_caseup_fee_percent|floatformat:2 }}% · по плану: {{ subscribed_caseup_fee_percent|floatformat:2 }}%</p></div></article>
+    </div>
+
+    <div class="farm-locked-stack">
+        {% include "farm/partials/analytics_summary.html" with analytics=dashboard_analytics analytics_locked=analytics_locked analytics_plan_name=analytics_plan_name %}
+
+        {% if analytics_locked %}
+            <div class="profile-grid farm-dashboard-grid">
+                <article class="card">
+                    <div class="card-body">
+                        <div class="section-head-inline">
+                            <h2 class="section-title">Лучшие позиции</h2>
+                            <a href="{% url 'farm:sessions_list' %}" class="btn btn-secondary btn-sm">Все дропы</a>
+                        </div>
+                        <p class="text-muted empty-state">Рейтинг позиций доступен только с deep analytics.</p>
+                    </div>
+                </article>
+
+                <article class="card">
+                    <div class="card-body">
+                        <h2 class="section-title">Худшие позиции</h2>
+                        <p class="text-muted empty-state">Антирейтинг и сравнение PnL открываются после апгрейда.</p>
+                    </div>
+                </article>
+            </div>
+
+            <div class="profile-grid farm-dashboard-grid">
+                <article class="card">
+                    <div class="card-body">
+                        <h2 class="section-title">Продажи по площадкам</h2>
+                        <p class="text-muted empty-state">Breakdown по площадкам скрыт на текущем плане.</p>
+                    </div>
+                </article>
+
+                <article class="card">
+                    <div class="card-body">
+                        <h2 class="section-title">Farmer bonus progress</h2>
+                        <p class="text-muted empty-state">Прогресс бонусной программы и экономия комиссии доступны по farmer-плану.</p>
+                    </div>
+                </article>
+            </div>
+
+            {% include "farm/partials/analytics_locked_cta.html" %}
+        {% else %}
+            <div class="profile-grid farm-dashboard-grid">
+                <article class="card">
+                    <div class="card-body">
+                        <div class="section-head-inline">
+                            <h2 class="section-title">Лучшие позиции</h2>
+                            <a href="{% url 'farm:sessions_list' %}" class="btn btn-secondary btn-sm">Все дропы</a>
+                        </div>
+                        {% if dashboard_analytics.best_positions %}
+                            <div class="farm-ranking-list">
+                                {% for row in dashboard_analytics.best_positions %}
+                                    <div class="farm-ranking-item">
+                                        <div>
+                                            <strong>{{ row.item.market_hash_name_snapshot }}</strong>
+                                            <div class="text-muted">{{ row.item.session.account.title }} · осталось {{ row.remaining_quantity }}</div>
+                                        </div>
+                                        <div class="farm-ranking-item__value farm-value-up">{{ row.total_pnl_rub|floatformat:2 }} ₽</div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted empty-state">Позиции для рейтинга пока не накоплены.</p>
+                        {% endif %}
+                    </div>
+                </article>
+
+                <article class="card">
+                    <div class="card-body">
+                        <h2 class="section-title">Худшие позиции</h2>
+                        {% if dashboard_analytics.worst_positions %}
+                            <div class="farm-ranking-list">
+                                {% for row in dashboard_analytics.worst_positions %}
+                                    <div class="farm-ranking-item">
+                                        <div>
+                                            <strong>{{ row.item.market_hash_name_snapshot }}</strong>
+                                            <div class="text-muted">{{ row.item.session.account.title }} · осталось {{ row.remaining_quantity }}</div>
+                                        </div>
+                                        <div class="farm-ranking-item__value {% if row.total_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{{ row.total_pnl_rub|floatformat:2 }} ₽</div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted empty-state">Недостаточно данных для ranking.</p>
+                        {% endif %}
+                    </div>
+                </article>
+            </div>
+
+            <div class="profile-grid farm-dashboard-grid">
+                <article class="card">
+                    <div class="card-body">
+                        <h2 class="section-title">Продажи по площадкам</h2>
+                        {% if dashboard_analytics.platform_breakdown %}
+                            <div class="table-wrap">
+                                <table class="table table--dark">
+                                    <thead>
+                                        <tr>
+                                            <th>Площадка</th>
+                                            <th>Сделки</th>
+                                            <th>Оборот</th>
+                                            <th>PnL</th>
+                                            <th>Экономия комиссии</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in dashboard_analytics.platform_breakdown %}
+                                            <tr>
+                                                <td>{{ row.platform_label }}</td>
+                                                <td>{{ row.sales_count }}</td>
+                                                <td>{{ row.net_sale_rub|floatformat:2 }} ₽</td>
+                                                <td class="{% if row.profit_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{{ row.profit_rub|floatformat:2 }} ₽</td>
+                                                <td>{{ row.commission_saved_rub|floatformat:2 }} ₽</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="text-muted empty-state">Продаж по farm пока нет.</p>
+                        {% endif %}
+                    </div>
+                </article>
+
+                <article class="card">
+                    <div class="card-body">
+                        <h2 class="section-title">Farmer bonus progress</h2>
+                        <div class="farm-bonus-stack">
+                            <div class="farm-bonus-row"><span>CaseUP turnover</span><strong>{{ dashboard_analytics.reward_progress.turnover_rub|floatformat:2 }} ₽</strong></div>
+                            <div class="farm-bonus-row"><span>Current tier</span><strong>{{ dashboard_analytics.reward_progress.current_tier.title|default:'—' }}</strong></div>
+                            <div class="farm-bonus-row"><span>Next tier</span><strong>{{ dashboard_analytics.reward_progress.next_tier.title|default:'—' }}</strong></div>
+                            <div class="farm-bonus-row"><span>До следующего бонуса</span><strong>{{ dashboard_analytics.reward_progress.remaining_to_next_rub|floatformat:2 }} ₽</strong></div>
+                            <div class="farm-bonus-row"><span>Saved on commission</span><strong>{{ dashboard_analytics.commission_saved_rub|floatformat:2 }} ₽</strong></div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="profile-grid farm-dashboard-grid">
+        <article class="card">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">Последние дропы</h2>
+                    <a href="{% url 'farm:sessions_list' %}" class="btn btn-secondary btn-sm">Открыть</a>
+                </div>
+                {% include "farm/partials/session_rows_table.html" with session_rows=recent_session_rows analytics_locked=analytics_locked %}
+            </div>
+        </article>
+
+        <article class="card">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">Legacy weekly logs</h2>
+                    <a href="{% url 'farm:drops_list' %}" class="btn btn-secondary btn-sm">Открыть</a>
+                </div>
+                {% if recent_drops %}
+                    <div class="farm-list-stack">
+                        {% for drop in recent_drops %}
+                            <div class="farm-list-row">
+                                <div>
+                                    <strong>#{{ drop.week_index|stringformat:"02d" }} · {{ drop.account.title }}</strong>
+                                    <div class="text-muted">{{ drop.week_range_label }}</div>
+                                </div>
+                                <div class="text-right text-muted">{{ drop.item_1.group_name|default:'—' }} / {{ drop.item_2.group_name|default:'—' }}</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted empty-state">Legacy weekly logs пока нет.</p>
+                {% endif %}
+            </div>
+        </article>
+    </div>
+</section>
