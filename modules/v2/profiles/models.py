@@ -134,6 +134,7 @@ class LedgerReason(models.TextChoices):
     WITHDRAW_LOCK = "withdraw_lock", "Withdraw lock"
     WITHDRAW_CANCEL = "withdraw_cancel", "Withdraw cancel"
     ADMIN_ADJUST = "admin_adjust", "Admin adjust"
+    SUBSCRIPTION_PURCHASE = "subscription_purchase", "Subscription purchase"
 
 
 class LedgerEntry(models.Model):
@@ -161,13 +162,18 @@ class LedgerEntry(models.Model):
         max_length=128,
         null=True,
         blank=True,
-        unique=True,
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "Ledger entry"
         verbose_name_plural = "Ledger entries"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "idempotency_key"],
+                name="profiles_ledger_user_idempotency_uniq",
+            ),
+        ]
         indexes = [
             models.Index(fields=["user", "created_at"]),
             models.Index(fields=["reason", "created_at"]),

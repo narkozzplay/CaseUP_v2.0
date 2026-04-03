@@ -105,9 +105,7 @@ def purchase_sell(request, purchase_id: int):
     access = get_farm_access(request.user)
     purchase_qs = with_purchase_sales_annotations(
         SteamPurchase.objects.select_related("item", "created_by").prefetch_related("sales__created_by")
-    )
-    if not access.staff_access:
-        purchase_qs = purchase_qs.filter(created_by=request.user)
+    ).filter(created_by=request.user)
 
     purchase = get_object_or_404(purchase_qs, pk=purchase_id)
     purchase_row = build_purchase_row(purchase)
@@ -180,7 +178,6 @@ def investments_dashboard(request):
     purchases = list(
         get_investment_purchase_queryset(
             user=request.user,
-            staff_access=access.staff_access,
         )[:300]
     )
 
@@ -250,7 +247,6 @@ def purchase_send_telegram(request, purchase_id: int):
     access = get_farm_access(request.user)
     purchase_qs = get_investment_purchase_queryset(
         user=request.user,
-        staff_access=access.staff_access,
     )
     purchase = get_object_or_404(purchase_qs, pk=purchase_id)
 

@@ -1,6 +1,6 @@
 {% extends "layouts/base_dashboard.html" %}
 
-{% block title %}TradeHub Sales | CaseUP{% endblock %}
+{% block title %}TradeHub Sales | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 
 {% block content %}
     {% include "tradehub/partials/sales_list_content.html" %}

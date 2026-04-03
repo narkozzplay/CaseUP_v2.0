@@ -1,7 +1,7 @@
 {% extends "layouts/base_public.html" %}
 {% load static %}
 
-{% block title %}Farmer plans | CaseUP{% endblock %}
+{% block title %}Farmer plans | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 
 {% block extra_head %}
     {{ block.super }}
@@ -17,7 +17,7 @@
                     <span class="eyebrow">Farmer line</span>
                     <h1 class="page-title">Farmer-подписки</h1>
                     <p class="hero-text pricing-hero__text">
-                        Коммерческий слой для farm-аналитики, TG-уведомлений, сниженной комиссии CaseUP и бонусной программы.
+                        Коммерческий слой для farm-аналитики, TG-уведомлений, сниженной комиссии {{ site_settings.site_name|default:"CaseUP" }} и бонусной программы.
                     </p>
                     <div class="pricing-hero__actions">
                         <a href="{% url 'subscriptions:plans' %}" class="btn btn-secondary btn-sm">Site-планы</a>

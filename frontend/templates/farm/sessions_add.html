@@ -1,7 +1,7 @@
 {% extends "layouts/base_dashboard.html" %}
 {% load static %}
 
-{% block title %}Добавить farm drop | CaseUP{% endblock %}
+{% block title %}Добавить farm drop | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 
 {% block dashboard_extra_head %}
     <link rel="stylesheet" href="{% static 'css/modules/farm.css' %}">
@@ -82,7 +82,7 @@
 
                 <div class="farm-drop-form__footer">
                     <button type="submit" class="btn btn-primary">Сохранить дроп</button>
-                    <p class="text-muted">После сохранения откроется карточка дропа, где можно вести продажи через CaseUP и другие площадки.</p>
+                    <p class="text-muted">После сохранения откроется карточка дропа, где можно вести продажи через {{ site_settings.site_name|default:"CaseUP" }} и другие площадки.</p>
                 </div>
             </form>
         </div>

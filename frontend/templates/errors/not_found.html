@@ -1,6 +1,6 @@
 {% extends error_layout_template %}
 
-{% block title %}{{ error_title }} | CaseUP{% endblock %}
+{% block title %}{{ error_title }} | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 
 {% block content %}
     {% if error_is_dashboard %}

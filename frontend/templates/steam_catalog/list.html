@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="{% static 'css/modules/steam_catalog.css' %}">
 {% endblock %}
 
-{% block title %}Steam Catalog | CaseUP{% endblock %}
+{% block title %}Steam Catalog | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 
 {% block content %}
     {% include "steam_catalog/partials/list_content.html" %}

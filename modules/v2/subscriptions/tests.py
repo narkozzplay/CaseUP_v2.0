@@ -3,9 +3,11 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 from django.urls import reverse
 
 from modules.v2.system.services import update_module_states
+from modules.v2.profiles.models import LedgerReason
 from modules.v2.profiles.services.balance import adjust_balance
 
 from .feature_codes import (
@@ -18,11 +20,13 @@ from .models import SubscriptionFeature, SubscriptionFeaturePricingRule, Subscri
 from .pricing import STATUS_REASONABLE, evaluate_plan_pricing
 from .services import (
     FEATURE_ACCESS_SUBSCRIPTIONS_DISABLED,
+    SubscriptionInvariantError,
     assign_user_subscription_plan,
     get_feature_access_state,
     get_subscription_context,
     user_has_feature,
     get_subscription_purchase_quote,
+    purchase_subscription_with_balance,
     sync_feature_rules_to_plans,
 )
 
@@ -142,6 +146,19 @@ class SubscriptionServicesTests(TestCase):
         self.assertTrue(quote.blocked_by_higher_level)
         self.assertEqual(quote.charge_amount, Decimal("0.00"))
 
+    def test_purchase_plan_with_balance_writes_subscription_purchase_reason(self):
+        user = User.objects.create_user(username="buyer_reason", password="StrongPass123")
+        plan = SubscriptionPlan.objects.get(level=2)
+        adjust_balance(user=user, delta=Decimal("500.00"), reason="topup", amount_snapshot=Decimal("500.00"))
+
+        purchase_subscription_with_balance(user=user, plan=plan)
+
+        debit_entry = user.ledger_entries.order_by("-id").first()
+        self.assertIsNotNone(debit_entry)
+        self.assertEqual(debit_entry.reason, LedgerReason.SUBSCRIPTION_PURCHASE)
+        self.assertEqual(debit_entry.delta, -plan.price_rub)
+        self.assertEqual(debit_entry.amount_snapshot, plan.price_rub)
+
 
     def test_sync_feature_rules_to_plans_assigns_features_from_required_plan(self):
         feature = SubscriptionFeature.objects.get(code=TG_NOTIFIER_USER)
@@ -157,6 +174,46 @@ class SubscriptionServicesTests(TestCase):
         self.assertFalse(level_1.features.filter(code=TG_NOTIFIER_USER).exists())
         self.assertTrue(level_2.features.filter(code=TG_NOTIFIER_USER).exists())
         self.assertTrue(level_5.features.filter(code=TG_NOTIFIER_USER).exists())
+
+
+class SubscriptionInvariantTests(TestCase):
+    def test_assign_user_subscription_plan_rejects_duplicate_active_family_state(self):
+        user = User.objects.create_user(username="dup_sub_user", password="StrongPass123")
+        first_plan = SubscriptionPlan.objects.get(level=1)
+        second_plan = SubscriptionPlan.objects.get(level=2)
+        now = timezone.now()
+        expires_at = now + timedelta(days=30)
+
+        UserSubscription.objects.bulk_create([
+            UserSubscription(
+                user=user,
+                plan=first_plan,
+                status=UserSubscription.Status.ACTIVE,
+                starts_at=now,
+                expires_at=expires_at,
+                notes="seed-1",
+            ),
+            UserSubscription(
+                user=user,
+                plan=second_plan,
+                status=UserSubscription.Status.ACTIVE,
+                starts_at=now,
+                expires_at=expires_at,
+                notes="seed-2",
+            ),
+        ])
+
+        with self.assertRaises(SubscriptionInvariantError):
+            assign_user_subscription_plan(user=user, plan=second_plan)
+
+        self.assertEqual(
+            UserSubscription.objects.filter(
+                user=user,
+                status=UserSubscription.Status.ACTIVE,
+                plan__family=first_plan.family,
+            ).count(),
+            2,
+        )
 
 
 class SubscriptionViewsTests(TestCase):

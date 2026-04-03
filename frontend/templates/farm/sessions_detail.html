@@ -1,7 +1,7 @@
 {% extends "layouts/base_dashboard.html" %}
 {% load static %}
 
-{% block title %}{{ session.title|default:'Farm drop' }} | CaseUP{% endblock %}
+{% block title %}{{ session.title|default:'Farm drop' }} | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 
 {% block dashboard_extra_head %}
     <link rel="stylesheet" href="{% static 'css/modules/farm.css' %}">
@@ -23,8 +23,8 @@
     <div class="cards-grid farm-overview-grid">
         <article class="card card--soft"><div class="card-body"><h3>Аккаунт</h3><p class="metric">{{ session.account.title }}</p><p class="text-muted">{{ session.get_source_type_display }}</p></div></article>
         <article class="card card--soft"><div class="card-body"><h3>Позиции</h3><p class="metric">{{ item_rows_count }}</p><p class="text-muted">Открытых: {{ remaining_quantity }}</p></div></article>
-        <article class="card card--soft"><div class="card-body"><h3>CaseUP commission</h3><p class="metric">{{ current_caseup_fee_percent|floatformat:2 }}%</p><p class="text-muted">базовая: {{ default_caseup_fee_percent|floatformat:2 }}% · по плану: {{ subscribed_caseup_fee_percent|floatformat:2 }}%</p></div></article>
-        <article class="card card--soft"><div class="card-body"><h3>Продажи</h3><p class="metric">{{ sales|length }}</p><p class="text-muted">CaseUP — основная площадка продажи внутри CaseUP</p></div></article>
+        <article class="card card--soft"><div class="card-body"><h3>{{ site_settings.site_name|default:"CaseUP" }} commission</h3><p class="metric">{{ current_caseup_fee_percent|floatformat:2 }}%</p><p class="text-muted">базовая: {{ default_caseup_fee_percent|floatformat:2 }}% · по плану: {{ subscribed_caseup_fee_percent|floatformat:2 }}%</p></div></article>
+        <article class="card card--soft"><div class="card-body"><h3>Продажи</h3><p class="metric">{{ sales|length }}</p><p class="text-muted">{{ site_settings.site_name|default:"CaseUP" }} — основная площадка продажи внутри CaseUP</p></div></article>
     </div>
 
     <div class="profile-grid farm-dashboard-grid">
@@ -98,13 +98,13 @@
                         <h2 class="section-title">Продать дроп</h2>
                         <p class="text-muted">Продажи доступны без farmer-подписки. Комиссия считается централизованно через FarmModuleConfig.</p>
                     </div>
-                    <span class="status-pill status-pill--sm">CaseUP {{ current_caseup_fee_percent|floatformat:2 }}%</span>
+                    <span class="status-pill status-pill--sm">{{ site_settings.site_name|default:"CaseUP" }} {{ current_caseup_fee_percent|floatformat:2 }}%</span>
                 </div>
 
                 <div class="farm-sale-note card card--soft">
                     <div class="card-body">
-                        <strong>CaseUP как площадка продажи</strong>
-                        <p class="text-muted">По умолчанию комиссия CaseUP берётся из конфигурации и сейчас равна {{ default_caseup_fee_percent|floatformat:2 }}%. Для farmer-плана действует reduced commission {{ subscribed_caseup_fee_percent|floatformat:2 }}%.</p>
+                        <strong>{{ site_settings.site_name|default:"CaseUP" }} как площадка продажи</strong>
+                        <p class="text-muted">По умолчанию комиссия {{ site_settings.site_name|default:"CaseUP" }} берётся из конфигурации и сейчас равна {{ default_caseup_fee_percent|floatformat:2 }}%. Для farmer-плана действует reduced commission {{ subscribed_caseup_fee_percent|floatformat:2 }}%.</p>
                     </div>
                 </div>
 

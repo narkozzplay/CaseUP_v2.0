@@ -1,7 +1,7 @@
 {% extends "layouts/base_dashboard.html" %}
 {% load static %}
 
-{% block title %}Добавить legacy weekly log | CaseUP{% endblock %}
+{% block title %}Добавить legacy weekly log | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 
 {% block dashboard_extra_head %}
     <link rel="stylesheet" href="{% static 'css/modules/farm.css' %}">

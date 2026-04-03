@@ -19,7 +19,7 @@ class SiteConfigurationForm(forms.ModelForm):
         fields = [
             "site_name",
             "site_currency_code",
-            "site_currency_symbol",
+            "site_currency_rate",
             "support_email",
             "public_base_url",
             "maintenance_mode_enabled",
@@ -28,17 +28,22 @@ class SiteConfigurationForm(forms.ModelForm):
         ]
         widgets = {
             "site_name": forms.TextInput(attrs={"class": "form-control"}),
-            "site_currency_code": forms.TextInput(attrs={"class": "form-control"}),
-            "site_currency_symbol": forms.TextInput(attrs={"class": "form-control"}),
+            "site_currency_code": forms.Select(attrs={"class": "form-control"}),
+            "site_currency_rate": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.000001", "min": "0.000001"}
+            ),
             "support_email": forms.EmailInput(attrs={"class": "form-control"}),
             "public_base_url": forms.URLInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "https://caseup.example.com",
-                }
+                attrs={"class": "form-control", "placeholder": "https://caseup.example.com"}
             ),
             "maintenance_message": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
         }
+
+    def clean_site_currency_rate(self):
+        value = self.cleaned_data["site_currency_rate"]
+        if value <= 0:
+            raise ValidationError("Курс должен быть больше нуля.")
+        return value
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

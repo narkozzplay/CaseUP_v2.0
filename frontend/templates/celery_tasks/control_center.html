@@ -1,6 +1,6 @@
 {% extends "layouts/base_dashboard.html" %}
 
-{% block title %}Celery Tasks | CaseUP{% endblock %}
+{% block title %}Celery Tasks | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 
 {% block content %}
     {% include "celery_tasks/partials/control_center_content.html" %}

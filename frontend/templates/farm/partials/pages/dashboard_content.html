@@ -14,7 +14,7 @@
     <div class="farm-feature-strip">
         <span class="status-pill status-pill--sm">Дропы: доступны</span>
         <span class="status-pill status-pill--sm">Продажи: доступны</span>
-        <span class="status-pill status-pill--sm">CaseUP fee: {{ current_caseup_fee_percent|floatformat:2 }}%</span>
+        <span class="status-pill status-pill--sm">{{ site_settings.site_name|default:"CaseUP" }} fee: {{ current_caseup_fee_percent|floatformat:2 }}%</span>
         <span class="status-pill status-pill--sm {% if farmer_features.tg_alerts %}farm-flag-pill--on{% else %}farm-flag-pill--off{% endif %}">
             TG alerts: {% if farmer_features.tg_alerts %}on{% else %}по farmer-плану{% endif %}
         </span>
@@ -29,8 +29,8 @@
     <div class="cards-grid farm-overview-grid">
         <article class="card card--soft"><div class="card-body"><h3>Farm accounts</h3><p class="metric">{{ accounts_total }}</p><p class="text-muted">active: {{ accounts_active }} · review: {{ accounts_review }}</p></div></article>
         <article class="card card--soft"><div class="card-body"><h3>Farm drops</h3><p class="metric">{{ drop_sessions_total }}</p><p class="text-muted">основная сущность дропа на аккаунтах</p></div></article>
-        <article class="card card--soft"><div class="card-body"><h3>Продажи</h3><p class="metric">{{ sales_total }}</p><p class="text-muted">CaseUP: {{ caseup_sales_total }}</p></div></article>
-        <article class="card card--soft"><div class="card-body"><h3>CaseUP commission</h3><p class="metric">{{ current_caseup_fee_percent|floatformat:2 }}%</p><p class="text-muted">базовая: {{ default_caseup_fee_percent|floatformat:2 }}% · по плану: {{ subscribed_caseup_fee_percent|floatformat:2 }}%</p></div></article>
+        <article class="card card--soft"><div class="card-body"><h3>Продажи</h3><p class="metric">{{ sales_total }}</p><p class="text-muted">{{ site_settings.site_name|default:"CaseUP" }}: {{ caseup_sales_total }}</p></div></article>
+        <article class="card card--soft"><div class="card-body"><h3>{{ site_settings.site_name|default:"CaseUP" }} commission</h3><p class="metric">{{ current_caseup_fee_percent|floatformat:2 }}%</p><p class="text-muted">базовая: {{ default_caseup_fee_percent|floatformat:2 }}% · по плану: {{ subscribed_caseup_fee_percent|floatformat:2 }}%</p></div></article>
     </div>
 
     <div class="farm-locked-stack">
@@ -160,7 +160,7 @@
                     <div class="card-body">
                         <h2 class="section-title">Farmer bonus progress</h2>
                         <div class="farm-bonus-stack">
-                            <div class="farm-bonus-row"><span>CaseUP turnover</span><strong>{{ dashboard_analytics.reward_progress.turnover_rub|floatformat:2 }} ₽</strong></div>
+                            <div class="farm-bonus-row"><span>{{ site_settings.site_name|default:"CaseUP" }} turnover</span><strong>{{ dashboard_analytics.reward_progress.turnover_rub|floatformat:2 }} ₽</strong></div>
                             <div class="farm-bonus-row"><span>Current tier</span><strong>{{ dashboard_analytics.reward_progress.current_tier.title|default:'—' }}</strong></div>
                             <div class="farm-bonus-row"><span>Next tier</span><strong>{{ dashboard_analytics.reward_progress.next_tier.title|default:'—' }}</strong></div>
                             <div class="farm-bonus-row"><span>До следующего бонуса</span><strong>{{ dashboard_analytics.reward_progress.remaining_to_next_rub|floatformat:2 }} ₽</strong></div>

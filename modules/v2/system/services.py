@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal, ROUND_HALF_UP
+
 from dataclasses import dataclass
 
 from django.conf import settings
@@ -10,6 +12,9 @@ from modules.v2.tg_notifier.models import TelegramNotifierConfig
 
 from .module_registry import MODULE_REGISTRY, NAMESPACE_TO_MODULE_KEY, ModuleDefinition
 from .models import ModuleState, SiteConfiguration
+
+ZERO = Decimal("0.00")
+MONEY_Q = Decimal("0.01")
 
 
 @dataclass(frozen=True)
@@ -398,3 +403,42 @@ def get_currency_symbol() -> str:
 
 def is_registration_enabled() -> bool:
     return bool(get_site_configuration().registration_enabled)
+
+def quantize_money(value) -> Decimal:
+    if value in (None, ""):
+        return ZERO
+    if isinstance(value, Decimal):
+        raw = value
+    else:
+        raw = Decimal(str(value))
+    return raw.quantize(MONEY_Q, rounding=ROUND_HALF_UP)
+
+def get_site_currency_code() -> str:
+    return get_site_configuration().site_currency_code or "RUB"
+
+def get_site_currency_symbol() -> str:
+    return get_site_configuration().site_currency_symbol or "₽"
+
+def get_site_currency_rate() -> Decimal:
+    config = get_site_configuration()
+    return Decimal(config.site_currency_rate or "1.000000")
+
+def convert_rub_to_site_currency(value) -> Decimal:
+    rub_value = quantize_money(value)
+    rate = get_site_currency_rate()
+    if rate <= 0:
+        rate = Decimal("1.000000")
+    return (rub_value / rate).quantize(MONEY_Q, rounding=ROUND_HALF_UP)
+
+def format_site_money(value, *, signed: bool = False) -> str:
+    amount = convert_rub_to_site_currency(value)
+    symbol = get_site_currency_symbol()
+    if signed and amount > 0:
+        return f"+{amount:.2f} {symbol}"
+    return f"{amount:.2f} {symbol}"
+
+def build_page_title(*parts: object) -> str:
+    site_name = get_site_name()
+    chunks = [str(part).strip() for part in parts if str(part).strip()]
+    chunks.append(site_name)
+    return " | ".join(chunks)

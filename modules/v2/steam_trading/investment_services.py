@@ -122,12 +122,12 @@ SORT_OPTIONS = (
 )
 
 
-def get_investment_purchase_queryset(*, user=None, staff_access: bool = False) -> QuerySet[SteamPurchase]:
+def get_investment_purchase_queryset(*, user=None) -> QuerySet[SteamPurchase]:
     qs = with_purchase_sales_annotations(
         SteamPurchase.objects.select_related("item", "created_by")
     ).order_by("-purchased_at", "-id")
 
-    if user is not None and not staff_access:
+    if user is not None:
         qs = qs.filter(created_by=user)
 
     return qs

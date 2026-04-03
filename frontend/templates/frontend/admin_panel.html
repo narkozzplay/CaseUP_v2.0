@@ -1,6 +1,6 @@
 {% extends "layouts/base_dashboard.html" %}
 
-{% block title %}Control Center | CaseUP{% endblock %}
+{% block title %}Control Center | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 
 {% block content %}
     {% include "frontend/partials/admin_panel_content.html" %}

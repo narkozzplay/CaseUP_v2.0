@@ -6,12 +6,51 @@ from django.db import models
 
 from .module_registry import MODULE_REGISTRY
 
+from decimal import Decimal
+from django.core.exceptions import ValidationError
+
 
 class SiteConfiguration(models.Model):
+
+    CURRENCY_RUB = "RUB"
+    CURRENCY_USD = "USD"
+    CURRENCY_EUR = "EUR"
+    CURRENCY_GBP = "GBP"
+    CURRENCY_KZT = "KZT"
+    CURRENCY_BYN = "BYN"
+
+    CURRENCY_CHOICES = (
+        (CURRENCY_RUB, "Российский рубль (RUB)"),
+        (CURRENCY_USD, "Доллар США (USD)"),
+        (CURRENCY_EUR, "Евро (EUR)"),
+        (CURRENCY_GBP, "Фунт стерлингов (GBP)"),
+        (CURRENCY_KZT, "Казахстанский тенге (KZT)"),
+        (CURRENCY_BYN, "Белорусский рубль (BYN)"),
+    )
+
+    CURRENCY_SYMBOLS = {
+        CURRENCY_RUB: "₽",
+        CURRENCY_USD: "$",
+        CURRENCY_EUR: "€",
+        CURRENCY_GBP: "£",
+        CURRENCY_KZT: "₸",
+        CURRENCY_BYN: "Br",
+    }
+
     singleton_key = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
     site_name = models.CharField(max_length=120, default="CaseUP")
-    site_currency_code = models.CharField(max_length=16, default="RUB")
+    site_currency_code = models.CharField(
+        max_length=8,
+        choices=CURRENCY_CHOICES,
+        default=CURRENCY_RUB,
+    )
     site_currency_symbol = models.CharField(max_length=8, default="₽")
+    site_currency_rate = models.DecimalField(
+        max_digits=12,
+        decimal_places=6,
+        default=Decimal("1.000000"),
+        help_text="Сколько RUB стоит 1 единица выбранной валюты.",
+    )
     support_email = models.EmailField(blank=True, default="")
     public_base_url = models.URLField(max_length=255, blank=True, default="")
     maintenance_mode_enabled = models.BooleanField(default=False)
@@ -19,6 +58,52 @@ class SiteConfiguration(models.Model):
     registration_enabled = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        self.site_currency_code = (self.site_currency_code or self.CURRENCY_RUB).strip().upper()
+
+        if self.site_currency_code not in dict(self.CURRENCY_CHOICES):
+            raise ValidationError({"site_currency_code": "Недопустимый код валюты."})
+
+        if self.site_currency_rate is None or self.site_currency_rate <= 0:
+            raise ValidationError({"site_currency_rate": "Курс должен быть больше нуля."})
+
+        if self.site_currency_code == self.CURRENCY_RUB:
+            self.site_currency_rate = Decimal("1.000000")
+
+    def save(self, *args, **kwargs):
+        self.singleton_key = 1
+        self.public_base_url = (self.public_base_url or "").strip().rstrip("/")
+        self.site_name = (self.site_name or "CaseUP").strip()
+        self.site_currency_code = (self.site_currency_code or self.CURRENCY_RUB).strip().upper()
+
+        self.full_clean()
+
+        self.site_currency_symbol = self.CURRENCY_SYMBOLS.get(
+            self.site_currency_code,
+            "₽",
+        )
+
+        if not self.maintenance_message.strip():
+            self.maintenance_message = (
+                "На сайте проводятся технические работы. Попробуйте зайти позже."
+            )
+
+        return super().save(*args, **kwargs)
+
+    @classmethod
+    def bootstrap_defaults(cls) -> dict[str, object]:
+        return {
+            "site_name": "CaseUP",
+            "site_currency_code": cls.CURRENCY_RUB,
+            "site_currency_symbol": "₽",
+            "site_currency_rate": Decimal("1.000000"),
+            "support_email": getattr(settings, "DEFAULT_FROM_EMAIL", "") or "",
+            "public_base_url": getattr(settings, "SITE_BASE_URL", "") or "",
+            "maintenance_mode_enabled": False,
+            "maintenance_message": "На сайте проводятся технические работы. Попробуйте зайти позже.",
+            "registration_enabled": True,
+        }
 
     class Meta:
         verbose_name = "Site configuration"

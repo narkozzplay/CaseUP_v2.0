@@ -1,7 +1,7 @@
 {% extends "layouts/base_public.html" %}
 {% load static %}
 
-{% block title %}Тарифы подписки | CaseUP{% endblock %}
+{% block title %}Тарифы подписки | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 
 {% block extra_head %}
     {{ block.super }}

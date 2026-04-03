@@ -170,7 +170,7 @@ class SteamTradingTests(TestCase):
         self.assertContains(response, "Steam Investments")
         self.assertContains(response, "Hold")
 
-    def test_staff_access_sees_other_users_purchases(self):
+    def test_admin_cannot_see_other_users_purchases_in_personal_portfolio(self):
         owner = self._make_farmer("farmer_owner")
         self._make_admin("admin_viewer")
         item = self._make_case()
@@ -185,7 +185,16 @@ class SteamTradingTests(TestCase):
         self.client.login(username="admin_viewer", password="StrongPass123")
         response = self.client.get(reverse("steam_trading:investments"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Recoil Case")
+        self.assertNotContains(response, "Recoil Case")
+
+    def test_admin_cannot_open_sell_page_for_other_users_purchase(self):
+        owner = self._make_farmer("farmer_sell_owner")
+        self._make_admin("admin_sell_viewer")
+        purchase = self._make_purchase(user=owner)
+    
+        self.client.login(username="admin_sell_viewer", password="StrongPass123")
+        response = self.client.get(reverse("steam_trading:sell", args=[purchase.id]))
+        self.assertEqual(response.status_code, 404)
 
     def test_summary_handles_zero_spent(self):
         summary = build_purchase_summary([])

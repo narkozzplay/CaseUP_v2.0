@@ -16,7 +16,7 @@
                 <div>
                     <span class="eyebrow">Counter-Strike 2</span>
                     <h1 class="page-title page-title--sm">
-                        {% if LANGUAGE_CODE == "ru" %}Сервера CaseUP / CS2{% else %}CaseUP / CS2 servers{% endif %}
+                        {% if LANGUAGE_CODE == "ru" %}Сервера {{ site_settings.site_name|default:"CaseUP" }} / CS2{% else %}{{ site_settings.site_name|default:"CaseUP" }} / CS2 servers{% endif %}
                     </h1>
                     <p class="text-muted game-servers-hero__text">
                         {% if LANGUAGE_CODE == "ru" %}

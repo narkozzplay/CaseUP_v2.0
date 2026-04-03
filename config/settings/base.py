@@ -40,7 +40,6 @@ def get_env_list(name: str, default: str = "") -> list[str]:
     raw = os.getenv(name, default)
     return [item.strip() for item in raw.split(",") if item.strip()]
 
-
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "").strip()
 DEBUG = False
 ALLOWED_HOSTS = get_env_list("DJANGO_ALLOWED_HOSTS", "")
@@ -117,6 +116,9 @@ TEMPLATES = [
                 "modules.v2.profiles.context_processors.user_balance",
                 "modules.v2.system.context_processors.system_settings",
                 "modules.v2.subscriptions.context_processors.subscription_context",
+            ],
+            "builtins": [
+                "frontend.templatetags.site_formatters",
             ],
         },
     },
@@ -243,3 +245,4 @@ CELERY_BEAT_PENDING_ALERT_DISPATCHER_SECONDS = int(
 CELERY_BEAT_STEAM_TRADING_UNLOCK_NOTIFIER_SECONDS = int(
     os.getenv("CELERY_BEAT_STEAM_TRADING_UNLOCK_NOTIFIER_SECONDS", "120")
 )
+

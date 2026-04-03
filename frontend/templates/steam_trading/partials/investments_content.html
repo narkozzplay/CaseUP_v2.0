@@ -18,7 +18,7 @@
                     <span class="investment-kpi__label">Общая сумма закупок</span>
                     <span class="investment-kpi__badge">Всего</span>
                 </div>
-                <div class="investment-kpi__value">{{ analytics.kpi.total_spent_sum|floatformat:2 }} ₽</div>
+                <div class="investment-kpi__value">{{ money analytics.kpi.total_spent_sum }}</div>
                 <div class="investment-kpi__meta">Сумма всех закупок из Steam Trading.</div>
             </div>
         </article>
@@ -29,7 +29,7 @@
                     <span class="investment-kpi__label">Текущая стоимость активных позиций</span>
                     <span class="investment-kpi__badge">Активы</span>
                 </div>
-                <div class="investment-kpi__value">{{ analytics.kpi.current_active_value_sum|floatformat:2 }} ₽</div>
+                <div class="investment-kpi__value">{{ money analytics.kpi.current_active_value_sum }}</div>
                 <div class="investment-kpi__meta">Оценка только по remaining quantity.</div>
             </div>
         </article>
@@ -41,7 +41,7 @@
                     <span class="investment-kpi__badge">Open</span>
                 </div>
                 <div class="investment-kpi__value">
-                    {% if analytics.kpi.unrealized_pnl_sum > 0 %}+{% endif %}{{ analytics.kpi.unrealized_pnl_sum|floatformat:2 }} ₽
+                    {% if analytics.kpi.unrealized_pnl_sum > 0 %}+{% endif %}{{ money analytics.kpi.unrealized_pnl_sum }}
                 </div>
                 <div class="investment-kpi__meta">По активным позициям, которые ещё не закрыты.</div>
             </div>
@@ -54,7 +54,7 @@
                     <span class="investment-kpi__badge">Closed</span>
                 </div>
                 <div class="investment-kpi__value">
-                    {% if analytics.kpi.realized_pnl_sum > 0 %}+{% endif %}{{ analytics.kpi.realized_pnl_sum|floatformat:2 }} ₽
+                    {% if analytics.kpi.realized_pnl_sum > 0 %}+{% endif %}{{ money analytics.kpi.realized_pnl_sum }}
                 </div>
                 <div class="investment-kpi__meta">Только по уже оформленным продажам.</div>
             </div>
@@ -243,7 +243,7 @@
                                 
                                     <td>
                                         <div class="investment-cell">
-                                            <div class="investment-main-value">{{ row.purchase.purchase_price_rub|floatformat:2 }} ₽</div>
+                                            <div class="investment-main-value">{{ money row.purchase.purchase_price_rub }}</div>
                                             <div class="investment-sub-value">
                                                 {{ row.purchase.purchased_at|date:"d.m.Y" }} · {{ row.purchase.purchased_at|date:"H:i" }}
                                             </div>
@@ -262,7 +262,7 @@
                                     <td>
                                         <div class="investment-cell">
                                             {% if investment_can_view_advanced_analytics %}
-                                                <div class="investment-main-value">{{ row.invested_active_rub|floatformat:2 }} ₽</div>
+                                                <div class="investment-main-value">{{ money row.invested_active_rub }}</div>
                                                 <div class="investment-sub-value">активный cost basis</div>
                                             {% else %}
                                                 <div class="investment-lock-inline">
@@ -276,9 +276,9 @@
                                     <td>
                                         <div class="investment-cell">
                                             {% if investment_can_view_advanced_analytics %}
-                                                <div class="investment-main-value">{{ row.current_value_rub|floatformat:2 }} ₽</div>
+                                                <div class="investment-main-value">{{ money row.current_value_rub }}</div>
                                                 <div class="investment-sub-value">
-                                                    текущая цена: {{ row.current_price_rub|floatformat:2 }} ₽
+                                                    текущая цена: {{ money row.current_price_rub }}
                                                 </div>
                                             {% else %}
                                                 <div class="investment-lock-inline">
@@ -293,10 +293,10 @@
                                         <div class="investment-cell {% if investment_can_view_advanced_analytics %}investment-pnl {% if row.unrealized_pnl_rub > 0 %}investment-pnl--positive{% elif row.unrealized_pnl_rub < 0 %}investment-pnl--negative{% endif %}{% endif %}">
                                             {% if investment_can_view_advanced_analytics %}
                                                 <div class="investment-main-value">
-                                                    {% if row.unrealized_pnl_rub > 0 %}+{% endif %}{{ row.unrealized_pnl_rub|floatformat:2 }} ₽
+                                                    {% if row.unrealized_pnl_rub > 0 %}+{% endif %}{{ money row.unrealized_pnl_rub }} 
                                                 </div>
                                                 <div class="investment-sub-value">
-                                                    {% if row.unrealized_pnl_percent > 0 %}+{% endif %}{{ row.unrealized_pnl_percent|floatformat:2 }}%
+                                                    {% if row.unrealized_pnl_percent > 0 %}+{% endif %}{{ money row.unrealized_pnl_percent }}%
                                                 </div>
                                             {% else %}
                                                 <div class="investment-lock-inline">
@@ -417,16 +417,16 @@
                                     </div>
                                     <div class="investment-ready-metric">
                                         <span class="investment-ready-metric__label">Закупка</span>
-                                        <strong class="investment-ready-metric__value">{{ row.purchase.purchase_price_rub|floatformat:2 }} ₽</strong>
+                                        <strong class="investment-ready-metric__value">{{ money row.purchase.purchase_price_rub }}</strong>
                                     </div>
                                     <div class="investment-ready-metric">
                                         <span class="investment-ready-metric__label">Текущая цена</span>
-                                        <strong class="investment-ready-metric__value">{{ row.current_price_rub|floatformat:2 }} ₽</strong>
+                                        <strong class="investment-ready-metric__value">{{ money row.current_price_rub }}</strong>
                                     </div>
                                     <div class="investment-ready-metric">
                                         <span class="investment-ready-metric__label">PnL</span>
                                         <strong class="investment-ready-metric__value {% if row.unrealized_pnl_rub > 0 %}value-positive{% elif row.unrealized_pnl_rub < 0 %}value-negative{% endif %}">
-                                            {% if row.unrealized_pnl_rub > 0 %}+{% endif %}{{ row.unrealized_pnl_rub|floatformat:2 }} ₽
+                                            {% if row.unrealized_pnl_rub > 0 %}+{% endif %}{{ money row.unrealized_pnl_rub }}
                                         </strong>
                                     </div>
                                 </div>
@@ -610,7 +610,7 @@
                             </div>
                             <div class="investment-ranking__right">
                                 <strong class="{% if row.unrealized_pnl_rub < 0 %}value-negative{% elif row.unrealized_pnl_rub > 0 %}value-positive{% endif %}">
-                                    {% if row.unrealized_pnl_rub > 0 %}+{% endif %}{{ row.unrealized_pnl_rub|floatformat:2 }} ₽
+                                    {% if row.unrealized_pnl_rub > 0 %}+{% endif %}{{ money row.unrealized_pnl_rub }}
                                 </strong>
                                 <span class="{% if row.unrealized_pnl_percent < 0 %}value-negative{% elif row.unrealized_pnl_percent > 0 %}value-positive{% endif %}">
                                     {% if row.unrealized_pnl_percent > 0 %}+{% endif %}{{ row.unrealized_pnl_percent|floatformat:2 }}%

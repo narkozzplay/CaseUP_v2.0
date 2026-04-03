@@ -1,6 +1,6 @@
 {% extends "layouts/base_dashboard.html" %}
 
-{% block title %}TradeHub | CaseUP{% endblock %}
+{% block title %}TradeHub | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 
 {% block content %}
     {% include "tradehub/partials/dashboard_content.html" %}

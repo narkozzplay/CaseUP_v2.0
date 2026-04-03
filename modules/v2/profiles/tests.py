@@ -7,7 +7,7 @@ from django.test import Client, TestCase, TransactionTestCase
 from django.urls import reverse
 
 from modules.v2.profiles.services.balance import BalanceError, adjust_balance
-from modules.v2.profiles.services.ledger import LedgerError, apply_ledger_delta
+from modules.v2.profiles.services.ledger import LedgerError, LedgerIdempotencyConflictError, apply_ledger_delta
 from modules.v2.profiles.services.faceit import build_faceit_level_image_url, sync_faceit_profile
 from modules.v2.profiles.models import UserProfile, UserRole
 from modules.v2.subscriptions.models import SubscriptionPlan, UserSubscription
@@ -413,6 +413,54 @@ class ProfileTests(TestCase):
         user.profile_v2.refresh_from_db()
         self.assertEqual(first.entry.id, second.entry.id)
         self.assertEqual(user.profile_v2.balance_coins, Decimal("50.00"))
+
+    def test_apply_ledger_delta_same_key_for_different_user_creates_separate_entry(self):
+        first_user = User.objects.create_user(username="ledger_scope_user_1", password="StrongPass123")
+        second_user = User.objects.create_user(username="ledger_scope_user_2", password="StrongPass123")
+
+        first_entry = apply_ledger_delta(
+            user=first_user,
+            delta=Decimal("10.00"),
+            reason="topup",
+            amount_snapshot=Decimal("10.00"),
+            idempotency_key="shared-scope-key",
+        )
+        second_entry = apply_ledger_delta(
+            user=second_user,
+            delta=Decimal("15.00"),
+            reason="topup",
+            amount_snapshot=Decimal("15.00"),
+            idempotency_key="shared-scope-key",
+        )
+
+        first_user.profile_v2.refresh_from_db()
+        second_user.profile_v2.refresh_from_db()
+        self.assertNotEqual(first_entry.entry.id, second_entry.entry.id)
+        self.assertEqual(first_user.profile_v2.balance_coins, Decimal("10.00"))
+        self.assertEqual(second_user.profile_v2.balance_coins, Decimal("15.00"))
+
+    def test_apply_ledger_delta_rejects_conflicting_reuse_of_same_idempotency_key(self):
+        user = User.objects.create_user(username="ledger_conflict_user", password="StrongPass123")
+        apply_ledger_delta(
+            user=user,
+            delta=Decimal("20.00"),
+            reason="topup",
+            amount_snapshot=Decimal("20.00"),
+            idempotency_key="ledger-conflict-key",
+        )
+
+        with self.assertRaises(LedgerIdempotencyConflictError):
+            apply_ledger_delta(
+                user=user,
+                delta=Decimal("25.00"),
+                reason="topup",
+                amount_snapshot=Decimal("25.00"),
+                idempotency_key="ledger-conflict-key",
+            )
+
+        user.profile_v2.refresh_from_db()
+        self.assertEqual(user.profile_v2.balance_coins, Decimal("20.00"))
+        self.assertEqual(user.ledger_entries.filter(idempotency_key="ledger-conflict-key").count(), 1)
 
     def test_apply_ledger_delta_cannot_go_negative(self):
         user = User.objects.create_user(username="ledger_user_negative", password="StrongPass123")

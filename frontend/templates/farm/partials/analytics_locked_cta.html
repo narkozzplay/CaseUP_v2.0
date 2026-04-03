@@ -10,7 +10,7 @@
                 </p>
             </div>
             <div class="farm-paywall-card__meta">
-                <span class="status-pill status-pill--sm">CaseUP: {{ default_caseup_fee_percent|floatformat:2 }}%</span>
+                <span class="status-pill status-pill--sm">{{ site_settings.site_name|default:"CaseUP" }}: {{ default_caseup_fee_percent|floatformat:2 }}%</span>
                 <span class="status-pill status-pill--sm">Farmer: {{ subscribed_caseup_fee_percent|floatformat:2 }}%</span>
             </div>
         </div>

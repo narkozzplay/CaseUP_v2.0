@@ -56,7 +56,7 @@
                     </div>
                     <div>
                         <dt>Realized PnL</dt>
-                        <dd>{% if purchase_row.realized_profit_rub > 0 %}+{% endif %}{{ purchase_row.realized_profit_rub|floatformat:2 }} ₽</dd>
+                        <dd>{% if purchase_row.realized_profit_rub > 0 %}+{% endif %}{{ money purchase_row.realized_profit_rub }}</dd>
                     </div>
                 </dl>
             </div>

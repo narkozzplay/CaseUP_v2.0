@@ -1,6 +1,6 @@
 {% extends "layouts/base_public.html" %}
 
-{% block title %}{% if LANGUAGE_CODE == "ru" %}Вход через Steam | CaseUP{% else %}Steam Login | CaseUP{% endif %}{% endblock %}
+{% block title %}{% if LANGUAGE_CODE == "ru" %}Вход через Steam | {{ site_settings.site_name|default:"CaseUP" }}{% else %}Steam Login | {{ site_settings.site_name|default:"CaseUP" }}{% endif %}{% endblock %}
 
 {% block content %}
 <section class="auth-section">
@@ -10,9 +10,9 @@
                 <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Авторизация{% else %}Authorization{% endif %}</span>
                 <h1 class="auth-title">
                     {% if LANGUAGE_CODE == "ru" %}
-                        Вход в CaseUP через Steam
+                        Вход в {{ site_settings.site_name|default:"CaseUP" }} через Steam
                     {% else %}
-                        Login to CaseUP via Steam
+                        Login to {{ site_settings.site_name|default:"CaseUP" }} via Steam
                     {% endif %}
                 </h1>
                 <p class="text-muted auth-description">

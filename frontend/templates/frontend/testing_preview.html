@@ -1,6 +1,6 @@
 {% extends "layouts/base_testing.html" %}
 
-{% block title %}CaseUP — Testing Preview{% endblock %}
+{% block title %}{{ site_settings.site_name|default:"CaseUP" }} — Testing Preview{% endblock %}
 
 {% block content %}
     {% include "components/page_header.html" with eyebrow="Testing Environment" title="Testing Preview" description="Зона проверки шаблонов, Steam-auth сценария и новых модулей Steam Catalog / Farm." %}

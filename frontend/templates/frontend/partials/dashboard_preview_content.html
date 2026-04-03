@@ -5,9 +5,9 @@
                 <span class="eyebrow">Dashboard</span>
                 <h1 class="page-title page-title--sm">
                     {% if LANGUAGE_CODE == "ru" %}
-                        Операционный центр CaseUP
+                        Операционный центр {{ site_settings.site_name|default:"CaseUP" }}
                     {% else %}
-                        CaseUP operations center
+                        {{ site_settings.site_name|default:"CaseUP" }} operations center
                     {% endif %}
                 </h1>
                 <p class="text-muted dashboard-hero__text">

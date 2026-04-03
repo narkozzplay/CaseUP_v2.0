@@ -5,6 +5,7 @@ from decimal import Decimal
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Prefetch, Q
 from django.utils import timezone
@@ -74,8 +75,38 @@ FEATURES_PREFETCH = Prefetch(
     queryset=SubscriptionFeature.objects.order_by("sort_order", "name", "id"),
 )
 
+UserModel = get_user_model()
+
+
 class SubscriptionPurchaseError(ValueError):
     pass
+
+
+class SubscriptionInvariantError(ValueError):
+    pass
+
+
+def _lock_subscription_owner(user) -> None:
+    UserModel.objects.select_for_update().only("pk").get(pk=user.pk)
+
+
+def _get_locked_active_subscriptions(*, user, family: str) -> list[UserSubscription]:
+    now = timezone.now()
+    return list(
+        UserSubscription.objects
+        .select_for_update()
+        .select_related("plan")
+        .filter(
+            user=user,
+            status=UserSubscription.Status.ACTIVE,
+            plan__family=family,
+            plan__is_active=True,
+        )
+        .filter(Q(starts_at__isnull=True) | Q(starts_at__lte=now))
+        .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+        .order_by("-starts_at", "-id")
+    )
+
 
 def get_available_plans(*, family: str | None = DEFAULT_SUBSCRIPTION_FAMILY) -> list[SubscriptionPlan]:
     queryset = SubscriptionPlan.objects.filter(is_active=True)
@@ -345,7 +376,14 @@ def assign_user_subscription_plan(
     notes: str = "",
 ) -> UserSubscription | None:
     target_family = family or (plan.family if plan is not None else DEFAULT_SUBSCRIPTION_FAMILY)
-    current = get_active_subscription(user, family=target_family)
+    _lock_subscription_owner(user)
+    active_subscriptions = _get_locked_active_subscriptions(user=user, family=target_family)
+    if len(active_subscriptions) > 1:
+        raise SubscriptionInvariantError(
+            "Multiple active subscriptions detected for the same user and family."
+        )
+
+    current = active_subscriptions[0] if active_subscriptions else None
     starts_at = starts_at or timezone.now()
     notes = (notes or "").strip()
     now = timezone.now()
@@ -375,6 +413,7 @@ def assign_user_subscription_plan(
         expires_at=expires_at,
         notes=notes,
     )
+
 
 def get_subscription_purchase_quote(*, user, plan: SubscriptionPlan) -> SubscriptionPurchaseQuote:
     current_subscription = None
@@ -452,6 +491,7 @@ def purchase_subscription_with_balance(*, user, plan: SubscriptionPlan):
     if plan.price_rub is None or plan.price_rub < 0:
         raise SubscriptionPurchaseError("У тарифа не настроена валидная цена для покупки.")
 
+    _lock_subscription_owner(user)
     UserProfile.objects.select_for_update().get_or_create(user=user)
 
     quote = get_subscription_purchase_quote(user=user, plan=plan)
@@ -473,7 +513,7 @@ def purchase_subscription_with_balance(*, user, plan: SubscriptionPlan):
         adjust_balance(
             user=user,
             delta=-charge_amount,
-            reason=LedgerReason.ADMIN_ADJUST,
+            reason=LedgerReason.SUBSCRIPTION_PURCHASE,
             amount_snapshot=charge_amount,
         )
     except BalanceError as exc:

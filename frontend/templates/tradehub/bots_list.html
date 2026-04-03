@@ -1,6 +1,6 @@
 {% extends "layouts/base_dashboard.html" %}
 
-{% block title %}Trade Bots | CaseUP{% endblock %}
+{% block title %}Trade Bots | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 
 {% block content %}
 <section class="section section--compact">

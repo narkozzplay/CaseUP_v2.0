@@ -29,10 +29,10 @@
             <section class="game-server-main">
                 <article class="card game-server-banner">
                     <div class="card-body game-server-banner__body">
-                        <div>
+                        <div class="game-server-banner__content">
                             <span class="eyebrow">MVP</span>
                             <h2>
-                                {% if LANGUAGE_CODE == "ru" %}Локальная интеграция CS2 ↔ CaseUP{% else %}Local CS2 ↔ CaseUP integration{% endif %}
+                                {% if LANGUAGE_CODE == "ru" %}Локальная интеграция CS2 ↔ {{ site_settings.site_name|default:"CaseUP" }}{% else %}Local CS2 ↔ {{ site_settings.site_name|default:"CaseUP" }} integration{% endif %}
                             </h2>
                             <p class="text-muted">{{ server.description|default:server.sync_notes }}</p>
                             <div class="game-server-banner__meta">
@@ -50,6 +50,37 @@
                         </div>
                     </div>
                 </article>
+
+                <section class="game-server-overview-grid">
+                    <article class="card game-server-kpi-card">
+                        <div class="card-body">
+                            <p class="game-server-kpi-card__label">Host</p>
+                            <p class="game-server-kpi-card__value">{{ server.host }}</p>
+                            <p class="game-server-kpi-card__meta text-muted">Endpoint</p>
+                        </div>
+                    </article>
+                    <article class="card game-server-kpi-card">
+                        <div class="card-body">
+                            <p class="game-server-kpi-card__label">Port</p>
+                            <p class="game-server-kpi-card__value">{{ server.port }}</p>
+                            <p class="game-server-kpi-card__meta text-muted">Game port</p>
+                        </div>
+                    </article>
+                    <article class="card game-server-kpi-card">
+                        <div class="card-body">
+                            <p class="game-server-kpi-card__label">Status</p>
+                            <p class="game-server-kpi-card__value">{{ server.get_status_display }}</p>
+                            <p class="game-server-kpi-card__meta text-muted">Current probe</p>
+                        </div>
+                    </article>
+                    <article class="card game-server-kpi-card">
+                        <div class="card-body">
+                            <p class="game-server-kpi-card__label">Privileges</p>
+                            <p class="game-server-kpi-card__value">{{ server.privileges.count }}</p>
+                            <p class="game-server-kpi-card__meta text-muted">Seeded placeholders</p>
+                        </div>
+                    </article>
+                </section>
 
                 <div class="game-server-sections">
                     <article class="card dashboard-panel">
@@ -176,17 +207,6 @@
                 </article>
             </aside>
         </div>
-
-        <section class="section section--compact">
-            <div class="stats-grid stats-grid--dashboard game-server-info-bar">
-                {% include "components/stats_card.html" with label="Host" value=server.host meta="Endpoint" %}
-                {% include "components/stats_card.html" with label="Port" value=server.port meta="Game port" %}
-                {% include "components/stats_card.html" with label="Status" value=server.get_status_display meta="Current probe" %}
-                {% include "components/stats_card.html" with label="Last seen" value=server.last_seen_online_at|date:"d.m H:i"|default:"—" meta="Online marker" %}
-                {% include "components/stats_card.html" with label="Latency" value=server.last_latency_ms|default:"—" meta="ms" %}
-                {% include "components/stats_card.html" with label="Privileges" value=server.privileges.count meta="Seeded placeholders" %}
-            </div>
-        </section>
     </div>
 </section>
 {% endblock %}

@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="{% static 'css/modules/profiles.css' %}">
 {% endblock %}
 
-{% block title %}CaseUP | {{ profile.steam_personaname|default:profile_user.username }}{% endblock %}
+{% block title %}{{ site_settings.site_name|default:"CaseUP" }} | {{ profile.steam_personaname|default:profile_user.username }}{% endblock %}
 
 {% block content %}
     {% include "profiles/partials/profile_content.html" %}

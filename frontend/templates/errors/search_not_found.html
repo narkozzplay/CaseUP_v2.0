@@ -1,6 +1,6 @@
 {% extends "layouts/base_dashboard.html" %}
 
-{% block title %}Ничего не найдено | CaseUP{% endblock %}
+{% block title %}Ничего не найдено | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 
 {% block content %}
 <section class="section section--compact">
