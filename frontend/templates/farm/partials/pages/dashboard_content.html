@@ -89,7 +89,7 @@
                                             <strong>{{ row.item.market_hash_name_snapshot }}</strong>
                                             <div class="text-muted">{{ row.item.session.account.title }} · осталось {{ row.remaining_quantity }}</div>
                                         </div>
-                                        <div class="farm-ranking-item__value farm-value-up">{{ row.total_pnl_rub|floatformat:2 }} ₽</div>
+                                        <div class="farm-ranking-item__value farm-value-up">{% money row.total_pnl_rub %}</div>
                                     </div>
                                 {% endfor %}
                             </div>
@@ -110,7 +110,7 @@
                                             <strong>{{ row.item.market_hash_name_snapshot }}</strong>
                                             <div class="text-muted">{{ row.item.session.account.title }} · осталось {{ row.remaining_quantity }}</div>
                                         </div>
-                                        <div class="farm-ranking-item__value {% if row.total_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{{ row.total_pnl_rub|floatformat:2 }} ₽</div>
+                                        <div class="farm-ranking-item__value {% if row.total_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{% money row.total_pnl_rub %}</div>
                                     </div>
                                 {% endfor %}
                             </div>
@@ -142,9 +142,9 @@
                                             <tr>
                                                 <td>{{ row.platform_label }}</td>
                                                 <td>{{ row.sales_count }}</td>
-                                                <td>{{ row.net_sale_rub|floatformat:2 }} ₽</td>
-                                                <td class="{% if row.profit_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{{ row.profit_rub|floatformat:2 }} ₽</td>
-                                                <td>{{ row.commission_saved_rub|floatformat:2 }} ₽</td>
+                                                <td>{% money row.net_sale_rub %}</td>
+                                                <td class="{% if row.profit_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{% money row.profit_rub %}</td>
+                                                <td>{% money row.commission_saved_rub %}</td>
                                             </tr>
                                         {% endfor %}
                                     </tbody>
@@ -160,11 +160,11 @@
                     <div class="card-body">
                         <h2 class="section-title">Farmer bonus progress</h2>
                         <div class="farm-bonus-stack">
-                            <div class="farm-bonus-row"><span>{{ site_settings.site_name|default:"CaseUP" }} turnover</span><strong>{{ dashboard_analytics.reward_progress.turnover_rub|floatformat:2 }} ₽</strong></div>
+                            <div class="farm-bonus-row"><span>{{ site_settings.site_name|default:"CaseUP" }} turnover</span><strong>{% money dashboard_analytics.reward_progress.turnover_rub %}</strong></div>
                             <div class="farm-bonus-row"><span>Current tier</span><strong>{{ dashboard_analytics.reward_progress.current_tier.title|default:'—' }}</strong></div>
                             <div class="farm-bonus-row"><span>Next tier</span><strong>{{ dashboard_analytics.reward_progress.next_tier.title|default:'—' }}</strong></div>
-                            <div class="farm-bonus-row"><span>До следующего бонуса</span><strong>{{ dashboard_analytics.reward_progress.remaining_to_next_rub|floatformat:2 }} ₽</strong></div>
-                            <div class="farm-bonus-row"><span>Saved on commission</span><strong>{{ dashboard_analytics.commission_saved_rub|floatformat:2 }} ₽</strong></div>
+                            <div class="farm-bonus-row"><span>До следующего бонуса</span><strong>{% money dashboard_analytics.reward_progress.remaining_to_next_rub %}</strong></div>
+                            <div class="farm-bonus-row"><span>Saved on commission</span><strong>{% money dashboard_analytics.commission_saved_rub %}</strong></div>
                         </div>
                     </div>
                 </article>

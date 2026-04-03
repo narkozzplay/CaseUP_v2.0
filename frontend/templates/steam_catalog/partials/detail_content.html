@@ -265,7 +265,7 @@
                                             cx="{{ point.x_svg }}"
                                             cy="{{ point.y_svg }}"
                                             r="4">
-                                            <title>{{ point.value_label }} ₽ · {{ point.label }} · {{ point.created_label }}</title>
+                                            <title>{{ point.value_label }} {{ site_settings.site_currency_symbol|default:'₽' }} · {{ point.label }} · {{ point.created_label }}</title>
                                         </circle>
                                     </g>
                                 {% endfor %}

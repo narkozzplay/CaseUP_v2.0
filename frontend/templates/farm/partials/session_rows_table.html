@@ -26,13 +26,13 @@
                             <td><span class="text-muted">Locked</span></td>
                             <td><span class="text-muted">Locked</span></td>
                         {% else %}
-                            <td>{{ row.collected_value_rub|floatformat:2 }} ₽</td>
-                            <td>{{ row.current_value_rub|floatformat:2 }} ₽</td>
+                            <td>{% money row.collected_value_rub %}</td>
+                            <td>{% money row.current_value_rub %}</td>
                             <td class="{% if row.delta_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">
-                                {{ row.delta_rub|floatformat:2 }} ₽ / {{ row.delta_percent|floatformat:2 }}%
+                                {% money row.delta_rub %} / {{ row.delta_percent|floatformat:2 }}%
                             </td>
                             <td class="{% if row.total_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">
-                                {{ row.total_pnl_rub|floatformat:2 }} ₽
+                                {% money row.total_pnl_rub %}
                             </td>
                         {% endif %}
                         <td>

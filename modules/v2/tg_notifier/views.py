@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from modules.v2.profiles.models import UserProfile
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.system.dashboard_shell import render_dashboard_page
+from modules.v2.system.services import build_page_title
 from modules.v2.steam_catalog.models import PriceDropAlertEvent, PriceDropAlertRule, UserPriceAlertEvent, UserPriceAlertRule
 from modules.v2.system.services import get_module_state_map
 from modules.v2.subscriptions.feature_codes import TG_NOTIFIER_USER
@@ -126,7 +127,7 @@ def settings_page(request):
                         full_template="tg_notifier/settings.html",
                         partial_template="tg_notifier/partials/settings_content.html",
                         context=context,
-                        page_title="TG Notifier | CaseUP",
+                        page_title=build_page_title("TG Notifier"),
                         active_menu_key="tg_settings",
                         current_url=request.path,
                     )
@@ -164,7 +165,7 @@ def settings_page(request):
                             full_template="tg_notifier/settings.html",
                             partial_template="tg_notifier/partials/settings_content.html",
                             context=context,
-                            page_title="TG Notifier | CaseUP",
+                            page_title=build_page_title("TG Notifier"),
                             active_menu_key="tg_settings",
                             current_url=request.path,
                         )
@@ -200,7 +201,7 @@ def settings_page(request):
                         full_template="tg_notifier/settings.html",
                         partial_template="tg_notifier/partials/settings_content.html",
                         context=context,
-                        page_title="TG Notifier | CaseUP",
+                        page_title=build_page_title("TG Notifier"),
                         active_menu_key="tg_settings",
                         current_url=request.path,
                     )
@@ -249,7 +250,7 @@ def settings_page(request):
         full_template="tg_notifier/settings.html",
         partial_template="tg_notifier/partials/settings_content.html",
         context=context,
-        page_title="TG Notifier | CaseUP",
+        page_title=build_page_title("TG Notifier"),
         active_menu_key="tg_settings",
     )
 
@@ -306,7 +307,7 @@ def notification_center_page(request):
         full_template="tg_notifier/notification_center.html",
         partial_template="tg_notifier/partials/notification_center_content.html",
         context=context,
-        page_title="Notification Center | CaseUP",
+        page_title=build_page_title("Notification Center"),
         active_menu_key="notification_center",
     )
 

@@ -8,6 +8,7 @@ from django.urls import reverse
 
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.system.dashboard_shell import render_dashboard_page
+from modules.v2.system.services import build_page_title
 
 from .forms import (
     FarmerFeaturePricingRuleFormSet,
@@ -331,6 +332,6 @@ def pricing_dashboard_page(request):
         full_template="subscriptions/pricing_dashboard.html",
         partial_template="subscriptions/partials/pricing_dashboard_content.html",
         context=context,
-        page_title="Pricing Dashboard | CaseUP",
+        page_title=build_page_title("Pricing Dashboard"),
         active_menu_key="pricing_dashboard",
     )

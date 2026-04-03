@@ -40,8 +40,8 @@
                                     <div class="text-muted">{{ tier.reward_title|default:tier.reward_description|default:'—' }}</div>
                                 </div>
                                 <div class="text-right">
-                                    <strong>{{ tier.threshold_turnover_rub|floatformat:2 }} ₽</strong>
-                                    <div class="text-muted">bonus: {{ tier.bonus_value_rub|floatformat:2 }} ₽</div>
+                                    <strong>{% money tier.threshold_turnover_rub %}</strong>
+                                    <div class="text-muted">bonus: {% money tier.bonus_value_rub %}</div>
                                 </div>
                             </div>
                         {% endfor %}

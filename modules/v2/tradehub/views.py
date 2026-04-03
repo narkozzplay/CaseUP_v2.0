@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from modules.v2.farm.auth import get_farm_access
 from modules.v2.farm.decorators import farm_required
 from modules.v2.system.dashboard_shell import render_dashboard_page
+from modules.v2.system.services import build_page_title
 
 from .forms import TradeBotAccountForm
 from .models import SaleOrder, SaleOrderItem, TradeBotAccount, TradeUserPenalty
@@ -40,7 +41,7 @@ def dashboard(request):
         full_template="tradehub/dashboard.html",
         partial_template="tradehub/partials/dashboard_content.html",
         context=context,
-        page_title="TradeHub | CaseUP",
+        page_title=build_page_title("TradeHub"),
         active_menu_key="tradehub_dashboard",
     )
 
@@ -66,7 +67,7 @@ def sales_list(request):
         full_template="tradehub/sales_list.html",
         partial_template="tradehub/partials/sales_list_content.html",
         context=context,
-        page_title="TradeHub Sales | CaseUP",
+        page_title=build_page_title("TradeHub Sales"),
         active_menu_key="tradehub_dashboard",
     )
 
@@ -91,7 +92,7 @@ def sale_detail(request, order_id: int):
             "order": order,
             "offer": getattr(order, "offer", None),
         },
-        page_title=f"Sale #{order.id} | TradeHub | CaseUP",
+        page_title=build_page_title(f"Sale #{order.id}", "TradeHub"),
         active_menu_key="tradehub_dashboard",
     )
 

@@ -18,7 +18,7 @@
             <div class="card-body">
                 <h3>Изменение</h3>
                 <p class="metric">—</p>
-                <p class="text-muted">Δ ₽ и Δ % скрыты</p>
+                <p class="text-muted">Δ {{ site_settings.site_currency_symbol|default:"₽" }} и Δ % скрыты</p>
             </div>
         </article>
         <article class="card card--soft">
@@ -46,20 +46,20 @@
         <article class="card card--soft">
             <div class="card-body">
                 <h3>Стоимость на сборе</h3>
-                <p class="metric">{{ analytics.collected_value_rub|floatformat:2 }} ₽</p>
+                <p class="metric">{% money analytics.collected_value_rub %}</p>
             </div>
         </article>
         <article class="card card--soft">
             <div class="card-body">
                 <h3>Текущая оценка</h3>
-                <p class="metric">{{ analytics.current_value_rub|floatformat:2 }} ₽</p>
+                <p class="metric">{% money analytics.current_value_rub %}</p>
             </div>
         </article>
         <article class="card card--soft">
             <div class="card-body">
                 <h3>Изменение</h3>
                 <p class="metric {% if analytics.delta_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">
-                    {{ analytics.delta_rub|floatformat:2 }} ₽
+                    {% money analytics.delta_rub %}
                 </p>
                 <p class="text-muted">{{ analytics.delta_percent|floatformat:2 }}%</p>
             </div>
@@ -68,7 +68,7 @@
             <div class="card-body">
                 <h3>Total PnL</h3>
                 <p class="metric {% if analytics.total_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">
-                    {{ analytics.total_pnl_rub|floatformat:2 }} ₽
+                    {% money analytics.total_pnl_rub %}
                 </p>
             </div>
         </article>
@@ -76,7 +76,7 @@
             <div class="card-body">
                 <h3>Realized</h3>
                 <p class="metric {% if analytics.realized_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">
-                    {{ analytics.realized_pnl_rub|floatformat:2 }} ₽
+                    {% money analytics.realized_pnl_rub %}
                 </p>
             </div>
         </article>
@@ -84,7 +84,7 @@
             <div class="card-body">
                 <h3>Unrealized</h3>
                 <p class="metric {% if analytics.unrealized_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">
-                    {{ analytics.unrealized_pnl_rub|floatformat:2 }} ₽
+                    {% money analytics.unrealized_pnl_rub %}
                 </p>
             </div>
         </article>

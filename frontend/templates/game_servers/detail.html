@@ -137,7 +137,7 @@
                                     <div class="quick-action-card">
                                         <strong>{{ privilege.name }}</strong>
                                         <span>{{ privilege.get_privilege_type_display }} · {{ privilege.duration_days }} {% if LANGUAGE_CODE == "ru" %}дн.{% else %}days{% endif %}</span>
-                                        <span>{{ privilege.price }} {{ site_settings.site_currency_symbol|default:"₽" }}</span>
+                                        <span>{% money privilege.price %}</span>
                                     </div>
                                 {% empty %}
                                     <div class="quick-action-card">
@@ -150,7 +150,7 @@
                                     <div class="quick-action-card">
                                         <strong>{{ privilege.name }}</strong>
                                         <span>{{ privilege.get_privilege_type_display }} · {{ privilege.duration_days }} {% if LANGUAGE_CODE == "ru" %}дн.{% else %}days{% endif %}</span>
-                                        <span>{{ privilege.price }} {{ site_settings.site_currency_symbol|default:"₽" }}</span>
+                                        <span>{% money privilege.price %}</span>
                                     </div>
                                 {% empty %}
                                     <div class="quick-action-card">
@@ -163,7 +163,7 @@
                                     <div class="quick-action-card">
                                         <strong>{{ privilege.name }}</strong>
                                         <span>{{ privilege.get_privilege_type_display }} · {{ privilege.duration_days }} {% if LANGUAGE_CODE == "ru" %}дн.{% else %}days{% endif %}</span>
-                                        <span>{{ privilege.price }} {{ site_settings.site_currency_symbol|default:"₽" }}</span>
+                                        <span>{% money privilege.price %}</span>
                                     </div>
                                 {% empty %}
                                     <div class="quick-action-card">

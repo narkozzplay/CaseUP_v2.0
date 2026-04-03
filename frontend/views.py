@@ -20,6 +20,7 @@ from modules.v2.profiles.rbac import get_user_role
 from modules.v2.profiles.services.balance import BalanceError, adjust_balance
 from modules.v2.steam_catalog.models import SteamItem
 from modules.v2.system.dashboard_shell import render_dashboard_page
+from modules.v2.system.services import build_page_title
 
 User = get_user_model()
 ONLINE_WINDOW_MINUTES = 5
@@ -119,7 +120,7 @@ def dashboard_preview(request):
         full_template="frontend/dashboard_preview.html",
         partial_template="frontend/partials/dashboard_preview_content.html",
         context=context,
-        page_title="CaseUP — Dashboard",
+        page_title=build_page_title("Dashboard"),
         active_menu_key="dashboard_preview",
     )
 
@@ -188,7 +189,7 @@ def admin_panel(request):
         full_template="frontend/admin_panel.html",
         partial_template="frontend/partials/admin_panel_content.html",
         context=context,
-        page_title="Control Center | CaseUP",
+        page_title=build_page_title("Control Center"),
         active_menu_key="control_center",
     )
 

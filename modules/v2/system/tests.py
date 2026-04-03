@@ -99,7 +99,7 @@ class SystemConfigurationTests(TestCase):
             {
                 "site_name": "CaseUP Prod",
                 "site_currency_code": "RUB",
-                "site_currency_symbol": "₽",
+                "site_currency_rate": "1.000000",
                 "support_email": "support@example.com",
                 "public_base_url": "https://caseup.example.com",
                 "maintenance_mode_enabled": "on",
@@ -119,6 +119,7 @@ class SystemConfigurationTests(TestCase):
         config = SiteConfiguration.objects.get(singleton_key=1)
         self.assertEqual(config.site_name, "CaseUP Prod")
         self.assertTrue(config.maintenance_mode_enabled)
+        self.assertEqual(str(config.site_currency_rate), "1.000000")
         self.assertTrue(get_module_state_map()["tg_notifier"])
 
     def test_invalid_dependency_post_shows_error_and_does_not_save_conflict(self):
@@ -141,7 +142,7 @@ class SystemConfigurationTests(TestCase):
             {
                 "site_name": "CaseUP Prod",
                 "site_currency_code": "RUB",
-                "site_currency_symbol": "₽",
+                "site_currency_rate": "1.000000",
                 "support_email": "support@example.com",
                 "public_base_url": "https://caseup.example.com",
                 "maintenance_message": "Maint",
@@ -180,7 +181,7 @@ class SystemConfigurationTests(TestCase):
             {
                 "site_name": "CaseUP",
                 "site_currency_code": "RUB",
-                "site_currency_symbol": "₽",
+                "site_currency_rate": "1.000000",
                 "support_email": "support@example.com",
                 "public_base_url": "https://caseup.example.com",
                 "maintenance_message": "Maint",

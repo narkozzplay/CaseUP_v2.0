@@ -19,6 +19,7 @@ from modules.v2.profiles.services.steam_profile import sync_profile_steam_meta_i
 from modules.v2.subscriptions.services import assign_user_subscription_plan, get_active_subscription, get_subscription_context
 from modules.v2.subscriptions.models import SubscriptionPlan
 from modules.v2.system.dashboard_shell import render_dashboard_page
+from modules.v2.system.services import build_page_title
 from modules.v2.tg_notifier.services import (
     TelegramNotifierError,
     build_connect_url_for_user,
@@ -128,7 +129,7 @@ def profile_view(request):
         full_template="profiles/profile.html",
         partial_template="profiles/partials/profile_content.html",
         context=context,
-        page_title=f"CaseUP | {context['profile'].steam_personaname or context['profile_user'].username}",
+        page_title=build_page_title(context["profile"].steam_personaname or context["profile_user"].username),
         active_menu_key="profile",
     )
 
@@ -145,7 +146,7 @@ def profile_detail_view(request, user_id: int):
         full_template="profiles/profile.html",
         partial_template="profiles/partials/profile_content.html",
         context=context,
-        page_title=f"CaseUP | {context['profile'].steam_personaname or context['profile_user'].username}",
+        page_title=build_page_title(context["profile"].steam_personaname or context["profile_user"].username),
         active_menu_key="profile",
     )
 

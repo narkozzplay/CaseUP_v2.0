@@ -26,14 +26,14 @@
 
                 {% if request.user.is_authenticated %}
                     {% if LANGUAGE_CODE == "ru" %}
-                        <span class="status-pill status-pill--sm">Баланс: {{ coins }} {{ site_settings.site_currency_symbol|default:"₽" }}</span>
+                        <span class="status-pill status-pill--sm">Баланс: {% money coins %}</span>
                         <a href="{% url 'profiles:profile' %}" class="btn btn-secondary btn-sm">Профиль</a>
                         <form method="post" action="{% url 'accounts:logout' %}" class="inline-form">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-primary btn-sm">Выйти</button>
                         </form>
                     {% else %}
-                        <span class="status-pill status-pill--sm">Balance: {{ coins }} {{ site_settings.site_currency_symbol|default:"₽" }}</span>
+                        <span class="status-pill status-pill--sm">Balance: {% money coins %}</span>
                         <a href="{% url 'profiles:profile' %}" class="btn btn-secondary btn-sm">Profile</a>
                         <form method="post" action="{% url 'accounts:logout' %}" class="inline-form">
                             {% csrf_token %}

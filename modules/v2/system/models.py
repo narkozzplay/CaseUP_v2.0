@@ -1,17 +1,15 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
 from .module_registry import MODULE_REGISTRY
 
-from decimal import Decimal
-from django.core.exceptions import ValidationError
-
 
 class SiteConfiguration(models.Model):
-
     CURRENCY_RUB = "RUB"
     CURRENCY_USD = "USD"
     CURRENCY_EUR = "EUR"
@@ -59,6 +57,10 @@ class SiteConfiguration(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        verbose_name = "Site configuration"
+        verbose_name_plural = "Site configuration"
+
     def clean(self):
         self.site_currency_code = (self.site_currency_code or self.CURRENCY_RUB).strip().upper()
 
@@ -79,46 +81,11 @@ class SiteConfiguration(models.Model):
 
         self.full_clean()
 
-        self.site_currency_symbol = self.CURRENCY_SYMBOLS.get(
-            self.site_currency_code,
-            "₽",
-        )
+        self.site_currency_symbol = self.CURRENCY_SYMBOLS.get(self.site_currency_code, "₽")
 
-        if not self.maintenance_message.strip():
-            self.maintenance_message = (
-                "На сайте проводятся технические работы. Попробуйте зайти позже."
-            )
+        if not (self.maintenance_message or '').strip():
+            self.maintenance_message = "На сайте проводятся технические работы. Попробуйте зайти позже."
 
-        return super().save(*args, **kwargs)
-
-    @classmethod
-    def bootstrap_defaults(cls) -> dict[str, object]:
-        return {
-            "site_name": "CaseUP",
-            "site_currency_code": cls.CURRENCY_RUB,
-            "site_currency_symbol": "₽",
-            "site_currency_rate": Decimal("1.000000"),
-            "support_email": getattr(settings, "DEFAULT_FROM_EMAIL", "") or "",
-            "public_base_url": getattr(settings, "SITE_BASE_URL", "") or "",
-            "maintenance_mode_enabled": False,
-            "maintenance_message": "На сайте проводятся технические работы. Попробуйте зайти позже.",
-            "registration_enabled": True,
-        }
-
-    class Meta:
-        verbose_name = "Site configuration"
-        verbose_name_plural = "Site configuration"
-
-    def save(self, *args, **kwargs):
-        self.singleton_key = 1
-        self.public_base_url = (self.public_base_url or "").strip().rstrip("/")
-        self.site_currency_code = (self.site_currency_code or "RUB").strip().upper()
-        self.site_currency_symbol = (self.site_currency_symbol or "₽").strip()
-        self.site_name = (self.site_name or "CaseUP").strip()
-        if not self.maintenance_message.strip():
-            self.maintenance_message = (
-                "На сайте проводятся технические работы. Попробуйте зайти позже."
-            )
         return super().save(*args, **kwargs)
 
     def __str__(self) -> str:
@@ -128,8 +95,9 @@ class SiteConfiguration(models.Model):
     def bootstrap_defaults(cls) -> dict[str, object]:
         return {
             "site_name": "CaseUP",
-            "site_currency_code": "RUB",
+            "site_currency_code": cls.CURRENCY_RUB,
             "site_currency_symbol": "₽",
+            "site_currency_rate": Decimal("1.000000"),
             "support_email": getattr(settings, "DEFAULT_FROM_EMAIL", "") or "",
             "public_base_url": getattr(settings, "SITE_BASE_URL", "") or "",
             "maintenance_mode_enabled": False,
@@ -148,7 +116,6 @@ class SiteConfiguration(models.Model):
         from .services import is_module_enabled
 
         return is_module_enabled("steam_catalog")
-
 
 class ModuleState(models.Model):
     key = models.CharField(max_length=64, unique=True)

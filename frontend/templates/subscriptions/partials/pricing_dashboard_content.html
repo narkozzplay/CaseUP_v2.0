@@ -66,8 +66,8 @@
                                     <span class="text-muted">Level {{ row.plan.level }} · {{ row.plan.billing_period_days }} дн.</span>
                                 </div>
                                 <div class="pricing-health-card__metrics">
-                                    <span class="status-pill status-pill--sm">{{ row.current_price_rub|floatformat:2 }} ₽</span>
-                                    <span class="status-pill status-pill--sm">rec {{ row.recommended_price_rub|floatformat:2 }} ₽</span>
+                                    <span class="status-pill status-pill--sm">{% money row.current_price_rub %}</span>
+                                    <span class="status-pill status-pill--sm">rec {% money row.recommended_price_rub %}</span>
                                     <span class="pricing-status-chip pricing-status-chip--{{ row.price_status }}">{{ row.price_status_label }}</span>
                                 </div>
                             </summary>
@@ -75,7 +75,7 @@
                                 <div class="pricing-health-card__topline">
                                     <div>
                                         <div class="text-muted">Отклонение</div>
-                                        <strong>{{ row.delta_rub|floatformat:2 }} ₽ / {{ row.delta_percent|floatformat:2 }}%</strong>
+                                        <strong>{% money row.delta_rub %} / {{ row.delta_percent|floatformat:2 }}%</strong>
                                     </div>
                                     <div>
                                         <div class="text-muted">Модули</div>
@@ -97,7 +97,7 @@
                                                 <strong>{{ factor.label }}</strong>
                                                 <div class="text-muted">{{ factor.explanation }}</div>
                                             </div>
-                                            <span>{{ factor.value_rub|floatformat:2 }} ₽</span>
+                                            <span>{% money factor.value_rub %}</span>
                                         </div>
                                     {% endfor %}
                                 </div>
@@ -125,8 +125,8 @@
                                     <span class="text-muted">Level {{ row.plan.level }} · {{ row.plan.billing_period_days }} дн.</span>
                                 </div>
                                 <div class="pricing-health-card__metrics">
-                                    <span class="status-pill status-pill--sm">{{ row.current_price_rub|floatformat:2 }} ₽</span>
-                                    <span class="status-pill status-pill--sm">rec {{ row.recommended_price_rub|floatformat:2 }} ₽</span>
+                                    <span class="status-pill status-pill--sm">{% money row.current_price_rub %}</span>
+                                    <span class="status-pill status-pill--sm">rec {% money row.recommended_price_rub %}</span>
                                     <span class="pricing-status-chip pricing-status-chip--{{ row.price_status }}">{{ row.price_status_label }}</span>
                                 </div>
                             </summary>
@@ -134,7 +134,7 @@
                                 <div class="pricing-health-card__topline">
                                     <div>
                                         <div class="text-muted">Отклонение</div>
-                                        <strong>{{ row.delta_rub|floatformat:2 }} ₽ / {{ row.delta_percent|floatformat:2 }}%</strong>
+                                        <strong>{% money row.delta_rub %} / {{ row.delta_percent|floatformat:2 }}%</strong>
                                     </div>
                                     <div>
                                         <div class="text-muted">Модули</div>
@@ -156,7 +156,7 @@
                                                 <strong>{{ factor.label }}</strong>
                                                 <div class="text-muted">{{ factor.explanation }}</div>
                                             </div>
-                                            <span>{{ factor.value_rub|floatformat:2 }} ₽</span>
+                                            <span>{% money factor.value_rub %}</span>
                                         </div>
                                     {% endfor %}
                                 </div>
@@ -189,7 +189,7 @@
                                     <span class="text-muted">{{ form.instance.code|default:"new_site_plan" }} · Level {{ form.instance.level|default:"—" }}</span>
                                 </div>
                                 <div class="pricing-config-card__meta">
-                                    <span class="status-pill status-pill--sm">{{ form.instance.price_rub|default_if_none:"0.00"|floatformat:2 }} ₽</span>
+                                    <span class="status-pill status-pill--sm">{% money form.instance.price_rub|default_if_none:"0.00" %}</span>
                                     {% if form.instance.ui_badge %}
                                         <span class="status-pill status-pill--sm">{{ form.instance.ui_badge }}</span>
                                     {% endif %}
@@ -238,7 +238,7 @@
                             <tr>
                                 <th>Feature</th>
                                 <th>Открывается с плана</th>
-                                <th>Value ₽</th>
+                                <th>Value {{ site_settings.site_currency_symbol|default:"₽" }}</th>
                                 <th>Sort</th>
                                 <th>Активна</th>
                             </tr>
@@ -283,7 +283,7 @@
                                     <span class="text-muted">{{ form.instance.code|default:"new_farmer_plan" }} · Level {{ form.instance.level|default:"—" }}</span>
                                 </div>
                                 <div class="pricing-config-card__meta">
-                                    <span class="status-pill status-pill--sm">{{ form.instance.price_rub|default_if_none:"0.00"|floatformat:2 }} ₽</span>
+                                    <span class="status-pill status-pill--sm">{% money form.instance.price_rub|default_if_none:"0.00" %}</span>
                                     {% if form.instance.ui_badge %}
                                         <span class="status-pill status-pill--sm">{{ form.instance.ui_badge }}</span>
                                     {% endif %}
@@ -332,7 +332,7 @@
                             <tr>
                                 <th>Feature</th>
                                 <th>Открывается с плана</th>
-                                <th>Value ₽</th>
+                                <th>Value {{ site_settings.site_currency_symbol|default:"₽" }}</th>
                                 <th>Sort</th>
                                 <th>Активна</th>
                             </tr>

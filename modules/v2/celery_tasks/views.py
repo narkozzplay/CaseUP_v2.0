@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, redirect
 
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.system.dashboard_shell import render_dashboard_page
+from modules.v2.system.services import build_page_title
 
 from .forms import PriceAutoUpdateRuleForm
 from .models import PriceAutoUpdateRule, PriceAutoUpdateRunLog
@@ -41,7 +42,7 @@ def _render_control_center(request, *, role_access, form, edit_rule=None, curren
         full_template="celery_tasks/control_center.html",
         partial_template="celery_tasks/partials/control_center_content.html",
         context=_build_control_center_context(role_access=role_access, form=form, edit_rule=edit_rule),
-        page_title="Celery Tasks | CaseUP",
+        page_title=build_page_title("Celery Tasks"),
         active_menu_key="celery_tasks",
         current_url=current_url,
     )

@@ -26,6 +26,7 @@ from modules.v2.subscriptions.feature_codes import (
 from modules.v2.subscriptions.responses import render_feature_locked_response
 from modules.v2.subscriptions.services import get_feature_access_state, user_has_feature
 from modules.v2.system.dashboard_shell import render_dashboard_page
+from modules.v2.system.services import build_page_title
 
 from .forms import AddSteamItemForm, SteamItemNameRuForm, StockMovementCreateForm, UserPriceAlertRuleForm
 from .models import SteamItem, UserPriceAlertEvent, UserPriceAlertRule
@@ -475,7 +476,7 @@ def catalog_list(request):
             "catalog_can_edit": _catalog_staff_access(request.user),
             "catalog_view_access_state": get_feature_access_state(request.user, STEAM_CATALOG_VIEW),
         },
-        page_title="Steam Catalog | CaseUP",
+        page_title=build_page_title("Steam Catalog"),
         active_menu_key="steam_catalog",
     )
 

@@ -11,6 +11,7 @@ from modules.v2.profiles.rbac import get_user_role
 from .dashboard_shell import render_dashboard_page
 from .forms import SiteConfigurationForm
 from .services import (
+    build_page_title,
     get_control_center_summary,
     get_module_state_map,
     get_module_state_views,
@@ -87,7 +88,7 @@ def settings_page(request):
                     full_template="system/settings.html",
                     partial_template="system/partials/settings_content.html",
                     context=context,
-                    page_title="System Settings | CaseUP",
+                    page_title=build_page_title("System Settings"),
                     active_menu_key="system_settings",
                     current_url=request.path,
                 )
@@ -110,6 +111,6 @@ def settings_page(request):
         full_template="system/settings.html",
         partial_template="system/partials/settings_content.html",
         context=context,
-        page_title="System Settings | CaseUP",
+        page_title=build_page_title("System Settings"),
         active_menu_key="system_settings",
     )

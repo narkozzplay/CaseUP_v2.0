@@ -16,6 +16,7 @@ from modules.v2.farm.auth import get_farm_access
 from modules.v2.farm.decorators import farm_required
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.system.dashboard_shell import render_dashboard_page
+from modules.v2.system.services import build_page_title
 from modules.v2.tg_notifier.services import TelegramNotifierError, send_investment_purchase_notification
 from modules.v2.subscriptions.feature_codes import STEAM_TRADING_ADVANCED_ANALYTICS, TG_NOTIFIER_USER
 from modules.v2.subscriptions.responses import render_feature_locked_response
@@ -225,7 +226,7 @@ def investments_dashboard(request):
             "investment_can_send_tg": tg_feature_access.is_available,
             "investment_tg_access_state": tg_feature_access,
         },
-        page_title="Steam Investments | CaseUP",
+        page_title=build_page_title("Steam Investments"),
         active_menu_key="steam_investments",
     )
 

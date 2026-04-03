@@ -22,7 +22,7 @@
                     <div class="pricing-hero__actions">
                         <a href="{% url 'subscriptions:plans' %}" class="btn btn-secondary btn-sm">Site-планы</a>
                         {% if request.user.is_authenticated %}
-                            <span class="status-pill status-pill--sm">Баланс: {{ viewer_balance|default:0|floatformat:2 }} ₽</span>
+                            <span class="status-pill status-pill--sm">Баланс: {% money viewer_balance|default:0 %}</span>
                         {% endif %}
                     </div>
                 </div>
@@ -32,7 +32,7 @@
                             <span class="badge">Текущий farmer plan</span>
                             <strong>{{ current_subscription.active_plan.name }}</strong>
                             <span>{{ current_subscription.active_plan.get_family_display }}</span>
-                            <small>{{ current_subscription.active_plan.price_rub|floatformat:2 }} ₽ / {{ current_subscription.active_plan.billing_period_days }} дн.</small>
+                            <small>{% money current_subscription.active_plan.price_rub %} / {{ current_subscription.active_plan.billing_period_days }} дн.</small>
                         </div>
                     {% else %}
                         <div class="pricing-current-plan pricing-current-plan--empty">
@@ -65,7 +65,7 @@
                                             <h2 class="section-title pricing-card__title">{{ plan.name }}</h2>
                                         </div>
                                         <div class="pricing-price-box">
-                                            <strong>{{ plan.price_rub|floatformat:2 }} ₽</strong>
+                                            <strong>{% money plan.price_rub %}</strong>
                                             <span>/ {{ plan.billing_period_days }} дн.</span>
                                         </div>
                                     </div>
@@ -74,10 +74,10 @@
 
                                     <div class="pricing-feature-chips pricing-feature-chips--metrics">
                                         {% if show_pricing_meta %}
-                                            <span class="status-pill status-pill--sm">Рекомендация: {{ row.recommended_price_rub|floatformat:2 }} ₽</span>
+                                            <span class="status-pill status-pill--sm">Рекомендация: {% money row.recommended_price_rub %}</span>
                                             <span class="status-pill status-pill--sm">{{ row.price_status_label }}</span>
                                         {% endif %}
-                                        <span class="status-pill status-pill--sm">Факт: {{ plan.price_rub|floatformat:2 }} ₽</span>
+                                        <span class="status-pill status-pill--sm">Факт: {% money plan.price_rub %}</span>
                                     </div>
 
                                     <div class="pricing-plan-card__columns">
@@ -122,7 +122,7 @@
                                     
                                     {% if plan.purchase_ui.show_amount %}
                                         <p class="pricing-action-hint">
-                                            К списанию: {{ plan.purchase_ui.quote_amount|floatformat:2 }} ₽
+                                            К списанию: {% money plan.purchase_ui.quote_amount %}
                                         </p>
                                     {% endif %}
                                     

@@ -35,7 +35,7 @@
         </article>
         <article class="card card--soft">
             <div class="card-body">
-                <p class="text-muted">PnL ₽</p>
+                <p class="text-muted">PnL {{ site_settings.site_currency_symbol|default:"₽" }}</p>
                 <strong>{% if summary.total_profit_sum > 0 %}+{% endif %}{{ summary.total_profit_sum|floatformat:2 }}</strong>
             </div>
         </article>
@@ -79,7 +79,7 @@
                                 <th>Текущая цена</th>
                                 <th>Текущая стоимость</th>
                                 <th>Realized PnL</th>
-                                <th>PnL ₽</th>
+                                <th>PnL {{ site_settings.site_currency_symbol|default:"₽" }}</th>
                                 <th>PnL %</th>
                                 <th>Действие</th>
                                 {% if steam_trading_access.staff_access %}<th>Уведомлено</th><th>Кто создал</th>{% endif %}

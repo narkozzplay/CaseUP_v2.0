@@ -23,7 +23,7 @@
                     <div class="pricing-hero__actions">
                         <a href="{% url 'subscriptions:farmer_plans' %}" class="btn btn-secondary btn-sm">Farmer-планы</a>
                         {% if request.user.is_authenticated %}
-                            <span class="status-pill status-pill--sm">Баланс: {{ viewer_balance|default:0|floatformat:2 }} ₽</span>
+                            <span class="status-pill status-pill--sm">Баланс: {% money viewer_balance|default:0 %}</span>
                         {% endif %}
                     </div>
                 </div>
@@ -69,7 +69,7 @@
                                     <h2 class="section-title pricing-card__title">{{ plan.name }}</h2>
                                 </div>
                                 <div class="pricing-price-box">
-                                    <strong>{{ plan.price_rub|floatformat:2 }} ₽</strong>
+                                    <strong>{% money plan.price_rub %}</strong>
                                     <span>/ {{ plan.billing_period_days }} дн.</span>
                                 </div>
                             </div>
@@ -118,7 +118,7 @@
                             
                             {% if plan.purchase_ui.show_amount %}
                                 <p class="pricing-action-hint">
-                                    К списанию: {{ plan.purchase_ui.quote_amount|floatformat:2 }} ₽
+                                    К списанию: {% money plan.purchase_ui.quote_amount %}
                                 </p>
                             {% endif %}
                             

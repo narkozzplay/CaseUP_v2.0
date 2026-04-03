@@ -8,13 +8,13 @@
         <div class="hero-copy">
             <span class="eyebrow">Modular gaming platform</span>
             {% if LANGUAGE_CODE == "ru" %}
-                <h1>Новая архитектурная база для CaseUP</h1>
+                <h1>Новая архитектурная база для {{ site_settings.site_name|default:"CaseUP" }}</h1>
                 <p class="hero-text">
                     Платформа с разделением на core, legacy и плагины.
                     Новый frontend shell уже поднят и готов к переносу доменных модулей.
                 </p>
             {% else %}
-                <h1>New architectural base for CaseUP</h1>
+                <h1>New architectural base for {{ site_settings.site_name|default:"CaseUP" }}</h1>
                 <p class="hero-text">
                     Platform with separation into core, legacy and plugins.
                     The new frontend shell is already up and ready for migration of domain modules.

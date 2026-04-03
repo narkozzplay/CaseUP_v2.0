@@ -28,7 +28,7 @@
                 <div class="pricing-hero__aside">
                     <div class="pricing-current-plan">
                         <span class="badge">Current balance</span>
-                        <strong>{{ viewer_balance|default:0|floatformat:2 }} ₽</strong>
+                        <strong>{% money viewer_balance|default:0 %}</strong>
                         <small>После появления реального topup-flow здесь можно будет запускать оплату и затем возвращать пользователя к покупке тарифа.</small>
                     </div>
                 </div>

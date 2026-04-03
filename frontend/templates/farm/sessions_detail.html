@@ -64,15 +64,15 @@
                                                 <td><span class="text-muted">Locked</span></td>
                                                 <td><span class="text-muted">Locked</span></td>
                                             {% else %}
-                                                <td>{{ row.collected_unit_price_rub|floatformat:2 }} ₽</td>
+                                                <td>{% money row.collected_unit_price_rub %}</td>
                                                 <td>
-                                                    {{ row.current_unit_price_rub|floatformat:2 }} ₽
-                                                    <div class="text-muted">{{ row.unit_delta_rub|floatformat:2 }} ₽ / {{ row.unit_delta_percent|floatformat:2 }}%</div>
+                                                    {% money row.current_unit_price_rub %}
+                                                    <div class="text-muted">{% money row.unit_delta_rub %} / {{ row.unit_delta_percent|floatformat:2 }}%</div>
                                                 </td>
                                                 <td>{{ row.sold_quantity }} / {{ row.remaining_quantity }}</td>
-                                                <td class="{% if row.realized_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{{ row.realized_pnl_rub|floatformat:2 }} ₽</td>
-                                                <td class="{% if row.unrealized_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{{ row.unrealized_pnl_rub|floatformat:2 }} ₽</td>
-                                                <td class="{% if row.total_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{{ row.total_pnl_rub|floatformat:2 }} ₽</td>
+                                                <td class="{% if row.realized_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{% money row.realized_pnl_rub %}</td>
+                                                <td class="{% if row.unrealized_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{% money row.unrealized_pnl_rub %}</td>
+                                                <td class="{% if row.total_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{% money row.total_pnl_rub %}</td>
                                             {% endif %}
                                         </tr>
                                     {% endfor %}
@@ -149,10 +149,10 @@
                                     <td>{{ sale.item.market_hash_name_snapshot }}</td>
                                     <td>{{ sale.get_platform_display }}</td>
                                     <td>{{ sale.quantity }}</td>
-                                    <td>{{ sale.gross_sale_rub|floatformat:2 }} ₽</td>
-                                    <td>{{ sale.fee_rub|floatformat:2 }} ₽ <div class="text-muted">{{ sale.fee_percent_snapshot|floatformat:2 }}%</div></td>
-                                    <td>{{ sale.net_sale_rub|floatformat:2 }} ₽</td>
-                                    <td class="{% if sale.profit_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{{ sale.profit_rub|floatformat:2 }} ₽</td>
+                                    <td>{% money sale.gross_sale_rub %}</td>
+                                    <td>{% money sale.fee_rub %} <div class="text-muted">{{ sale.fee_percent_snapshot|floatformat:2 }}%</div></td>
+                                    <td>{% money sale.net_sale_rub %}</td>
+                                    <td class="{% if sale.profit_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{% money sale.profit_rub %}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>

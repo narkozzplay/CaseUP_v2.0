@@ -13,6 +13,7 @@ from common.search import render_search_not_found
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.steam_catalog.models import SteamItem
 from modules.v2.system.dashboard_shell import render_dashboard_page
+from modules.v2.system.services import build_page_title
 
 from .auth import get_farm_access
 from .decorators import farm_required, farm_staff_required
@@ -148,7 +149,7 @@ def dashboard(request):
         full_template="farm/dashboard.html",
         partial_template="farm/partials/pages/dashboard_content.html",
         context=context,
-        page_title="Farm Dashboard | CaseUP",
+        page_title=build_page_title("Farm Dashboard"),
         active_menu_key="farm_dashboard",
     )
 
@@ -182,7 +183,7 @@ def accounts_list(request):
             "selected_status": status,
             "statuses": FarmAccount.Status.choices,
         },
-        page_title="Farm Accounts | CaseUP",
+        page_title=build_page_title("Farm Accounts"),
         active_menu_key="farm_accounts",
     )
 
@@ -276,7 +277,7 @@ def account_detail(request, account_id: int):
             "default_caseup_fee_percent": config.default_caseup_fee_percent,
             "subscribed_caseup_fee_percent": config.subscribed_caseup_fee_percent,
         },
-        page_title=f"{account.title} | Farm Account | CaseUP",
+        page_title=build_page_title(account.title, "Farm Account"),
         active_menu_key="farm_accounts",
     )
 
@@ -369,7 +370,7 @@ def drops_list(request):
             "selected_week": week_index,
             "q": q,
         },
-        page_title="Farm Legacy Drops | CaseUP",
+        page_title=build_page_title("Farm Legacy Drops"),
         active_menu_key="farm_legacy_logs",
     )
 
@@ -505,7 +506,7 @@ def sessions_list(request):
             "default_caseup_fee_percent": config.default_caseup_fee_percent,
             "subscribed_caseup_fee_percent": config.subscribed_caseup_fee_percent,
         },
-        page_title="Farm Sessions | CaseUP",
+        page_title=build_page_title("Farm Sessions"),
         active_menu_key="farm_drops",
     )
 
@@ -691,6 +692,6 @@ def settings_page(request):
             "reward_tiers": FarmerRewardTier.objects.order_by("sort_order", "threshold_turnover_rub", "id"),
             "config": config,
         },
-        page_title="Farm Settings | CaseUP",
+        page_title=build_page_title("Farm Settings"),
         active_menu_key="farm_settings",
     )

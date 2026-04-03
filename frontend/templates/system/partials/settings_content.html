@@ -113,9 +113,10 @@
                     </div>
 
                     <div class="form-field">
-                        <label for="{{ form.site_currency_symbol.id_for_label }}">Currency symbol</label>
-                        {{ form.site_currency_symbol }}
-                        {{ form.site_currency_symbol.errors }}
+                        <label for="{{ form.site_currency_rate.id_for_label }}">Currency rate</label>
+                        {{ form.site_currency_rate }}
+                        <p class="text-muted">1 {{ form.site_currency_code.value|default:site_settings.site_currency_code|default:"RUB" }} = {{ form.site_currency_rate.value|default:site_settings.site_currency_rate|default:"1.000000" }} RUB. Баланс и списания хранятся в RUB, валюта меняет только отображение.</p>
+                        {{ form.site_currency_rate.errors }}
                     </div>
 
                     <div class="form-field">
