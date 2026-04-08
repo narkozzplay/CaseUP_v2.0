@@ -1,0 +1,6 @@
+<div class="wc-banner" {% if block.data.background_asset_url or block.data.background_image_url %}style="background-image: url('{{ block.data.background_asset_url|default:block.data.background_image_url }}');"{% endif %}>
+    {% if block.data.label %}<span class="status-pill">{{ block.data.label }}</span>{% endif %}
+    <h2 class="wc-block-title">{{ block.data.title }}</h2>
+    {% if block.data.text %}<p class="wc-block-text">{{ block.data.text|linebreaksbr }}</p>{% endif %}
+    {% if block.data.button_label and block.data.button_url %}<a href="{{ block.data.button_url }}" class="btn btn-primary">{{ block.data.button_label }}</a>{% endif %}
+</div>

@@ -1,0 +1,120 @@
+<section class="section section--compact wc-editor-page" data-wc-editor data-template-uuid="{{ template_obj.template_uuid }}" data-preview-url="{% url 'web_constructor:preview_fragment' template_obj.template_uuid %}">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">Live editor</span>
+            <h1 class="page-title page-title--sm">{{ template_obj.title }}</h1>
+            <p class="text-muted">Draft v{{ editable_version.version_number }} · current moderation status: {{ editable_version.get_moderation_status_display }}</p>
+        </div>
+        <div class="wc-inline-actions">
+            <a href="{{ public_render_url }}" class="btn btn-secondary" target="_blank" rel="noopener">Открыть render</a>
+            <a href="{% url 'web_constructor:detail' template_obj.template_uuid %}" class="btn btn-secondary" data-dashboard-nav="true">Карточка шаблона</a>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="card wc-editor-save-form" id="wc-save-form">
+        <div class="card-body">
+            {% csrf_token %}
+            {{ form.schema_json }}
+            <div class="wc-form-grid-3">
+                <div class="form-field"><label for="{{ form.title.id_for_label }}">Название</label>{{ form.title }}{{ form.title.errors }}</div>
+                <div class="form-field"><label for="{{ form.slug.id_for_label }}">Slug</label>{{ form.slug }}{{ form.slug.errors }}</div>
+                <div class="form-field"><label for="{{ form.page_type.id_for_label }}">Тип страницы</label>{{ form.page_type }}{{ form.page_type.errors }}</div>
+                <div class="form-field"><label for="{{ form.visibility.id_for_label }}">Visibility</label>{{ form.visibility }}{{ form.visibility.errors }}</div>
+                <div class="form-field"><label for="{{ form.access_mode.id_for_label }}">Access mode</label>{{ form.access_mode }}{{ form.access_mode.errors }}</div>
+                <div class="form-field"><label for="{{ form.currency.id_for_label }}">Валюта</label>{{ form.currency }}{{ form.currency.errors }}</div>
+                <div class="form-field"><label for="{{ form.price.id_for_label }}">Цена</label>{{ form.price }}{{ form.price.errors }}</div>
+                <div class="form-field"><label for="{{ form.cover_image.id_for_label }}">Cover image</label>{{ form.cover_image }}{{ form.cover_image.errors }}</div>
+                <div class="form-field"><label for="{{ form.changelog.id_for_label }}">Changelog</label>{{ form.changelog }}{{ form.changelog.errors }}</div>
+            </div>
+            <div class="form-field"><label for="{{ form.description.id_for_label }}">Описание</label>{{ form.description }}{{ form.description.errors }}</div>
+            <label class="toggle-control">
+                {{ form.is_free }}
+                <span>Бесплатный шаблон</span>
+            </label>
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+            <div class="wc-inline-actions">
+                <button type="submit" name="editor_action" value="save" class="btn btn-secondary">Сохранить draft</button>
+                <button type="submit" name="editor_action" value="submit" class="btn btn-primary">Submit to moderation</button>
+                <span class="text-muted" data-wc-local-state>Локальный draft не сохранён</span>
+            </div>
+        </div>
+    </form>
+
+    <div class="wc-editor-layout">
+        <aside class="wc-editor-sidebar card">
+            <div class="card-body">
+                <h2 class="section-title">Block library</h2>
+                <div class="wc-block-library">
+                    {% for key, spec in editor_manifest.blocks.items %}
+                        <button type="button" class="btn btn-secondary btn-block" data-wc-add-block="{{ key }}">+ {{ spec.label }}</button>
+                    {% endfor %}
+                </div>
+                <hr>
+                <h3 class="section-title">Page style</h3>
+                <div data-wc-page-style-root></div>
+                <hr>
+                <h3 class="section-title">Blocks</h3>
+                <div data-wc-block-list class="wc-block-list"></div>
+            </div>
+        </aside>
+
+        <section class="wc-editor-main">
+            <article class="card">
+                <div class="card-body">
+                    <div class="section-head-inline">
+                        <h2 class="section-title">Properties</h2>
+                        <div class="wc-inline-actions">
+                            <button type="button" class="btn btn-secondary btn-sm" data-wc-restore-local>Restore local draft</button>
+                        </div>
+                    </div>
+                    <div data-wc-property-root class="wc-property-root"></div>
+                </div>
+            </article>
+
+            <article class="card">
+                <div class="card-body">
+                    <div class="section-head-inline">
+                        <h2 class="section-title">Preview</h2>
+                        <div class="wc-inline-actions">
+                            <span class="status-pill" data-wc-preview-state>Preview synced</span>
+                            <span class="status-pill" data-wc-external-links>External links: 0</span>
+                        </div>
+                    </div>
+                    <div class="wc-preview-surface" data-wc-preview-root>
+                        {{ preview_html|safe }}
+                    </div>
+                </div>
+            </article>
+        </section>
+
+        <aside class="wc-editor-assets card">
+            <div class="card-body">
+                <h2 class="section-title">Asset library</h2>
+                <form method="post" action="{% url 'web_constructor:upload_asset' template_obj.template_uuid %}" enctype="multipart/form-data" class="form-stack">
+                    {% csrf_token %}
+                    <div class="form-field"><label for="{{ asset_form.title.id_for_label }}">Title</label>{{ asset_form.title }}</div>
+                    <div class="form-field"><label for="{{ asset_form.alt_text.id_for_label }}">Alt text</label>{{ asset_form.alt_text }}</div>
+                    <div class="form-field"><label for="{{ asset_form.asset_type.id_for_label }}">Type</label>{{ asset_form.asset_type }}</div>
+                    <div class="form-field"><label for="{{ asset_form.file.id_for_label }}">File</label>{{ asset_form.file }}</div>
+                    <button type="submit" class="btn btn-primary btn-block">Upload asset</button>
+                </form>
+                <hr>
+                <div class="wc-asset-grid">
+                    {% for asset in assets %}
+                        <article class="wc-asset-card" data-asset-id="{{ asset.id }}">
+                            {% if asset.file %}<img src="{{ asset.file.url }}" alt="{{ asset.alt_text|default:asset.title }}">{% endif %}
+                            <strong>{{ asset.title|default:asset.file.name }}</strong>
+                            <span class="text-muted">{{ asset.get_asset_type_display }}</span>
+                        </article>
+                    {% empty %}
+                        <p class="text-muted">Пока нет assets. Загрузи изображения для hero/banner/profile card.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    {{ editor_manifest|json_script:"wc-editor-manifest" }}
+    {{ asset_payload|json_script:"wc-editor-assets" }}
+    {{ editable_version.schema_json|json_script:"wc-editor-schema" }}
+</section>

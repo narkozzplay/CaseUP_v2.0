@@ -1,0 +1,33 @@
+{% extends "layouts/base_public.html" %}
+{% load static %}
+
+{% block title %}{{ template_obj.title }}{% endblock %}
+
+{% block extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/modules/web_constructor.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="section section--compact wc-render-shell">
+    <div class="container">
+        {% if is_owner_or_admin %}
+            <div class="card wc-render-meta-card">
+                <div class="card-body">
+                    <div class="section-head-inline">
+                        <div>
+                            <span class="eyebrow">Preview context</span>
+                            <h1 class="page-title page-title--sm">{{ template_obj.title }}</h1>
+                            <p class="text-muted">Owner/admin preview. Visible version: v{{ version.version_number }} / {{ version.get_moderation_status_display }}</p>
+                        </div>
+                        <div class="wc-inline-actions">
+                            <a href="{% url 'web_constructor:editor' template_obj.template_uuid %}" class="btn btn-secondary">Back to editor</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        {% include "web_constructor/render/page_body.html" %}
+    </div>
+</section>
+{% endblock %}

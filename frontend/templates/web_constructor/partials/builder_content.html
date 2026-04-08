@@ -1,0 +1,168 @@
+<section class="wc-builder-shell"
+         data-wc-builder
+         data-state-url="{% url 'web_constructor:builder_state' selected_page.id %}"
+         data-save-url="{% url 'web_constructor:builder_save_draft' selected_page.id %}"
+         data-reset-url="{% url 'web_constructor:builder_reset' selected_page.id %}"
+         data-variables-url="{% url 'web_constructor:builder_variables' %}"
+         data-preview-url="{{ preview_url }}"
+         data-preview-open-url="{{ preview_open_url }}"
+         data-page-title="{{ selected_page.title }}">
+    <header class="wc-lab-topbar card">
+        <div class="card-body wc-lab-topbar__body">
+            <div>
+                <div class="wc-inline-actions">
+                    <span class="eyebrow">CaseUP Lab</span>
+                    <span class="status-pill">Builder v2</span>
+                    <span class="status-pill">{{ request.get_host }}</span>
+                </div>
+                <h1 class="page-title page-title--sm">{{ selected_page.title }}</h1>
+                <p class="text-muted">Standalone laboratory shell без dashboard-sidebar. Список страниц, preview и inspector теперь работают на полном полотне builder-а.</p>
+            </div>
+            <div class="wc-inline-actions">
+                <a href="{{ site_dashboard_url }}" class="btn btn-secondary">Dashboard</a>
+                <a href="{{ legacy_constructor_url }}" class="btn btn-secondary">Legacy constructor</a>
+                {% if preview_url %}<a href="{{ preview_open_url }}" class="btn btn-primary" target="_blank" rel="noopener">Открыть live page</a>{% else %}<button type="button" class="btn btn-primary" disabled>Нужен sample route</button>{% endif %}
+            </div>
+        </div>
+    </header>
+
+    <div class="wc-builder-grid">
+        <aside class="card wc-builder-sidebar">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <div>
+                        <h2 class="section-title">Project pages</h2>
+                        <p class="text-muted">Реестр реальных routes проекта без маршрутов самого конструктора.</p>
+                    </div>
+                    <span class="status-pill">{{ builder_pages|length }}</span>
+                </div>
+                <div class="wc-builder-pages">
+                    {% for page in builder_pages %}
+                        <a href="{% url 'web_constructor:builder_editor' page.id %}"
+                           class="wc-builder-page-link{% if page.id == selected_page.id %} is-active{% endif %}">
+                            <strong>{{ page.title }}</strong>
+                            <span>{{ page.route_path }}</span>
+                            <small>{% if page.requires_auth %}auth{% else %}public{% endif %} · {% if page.is_dynamic %}dynamic{% else %}static{% endif %}</small>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </aside>
+
+        <section class="wc-builder-preview-column">
+            <article class="card">
+                <div class="card-body">
+                    <div class="section-head-inline">
+                        <div>
+                            <h2 class="section-title">Sandbox preview</h2>
+                            <p class="text-muted" data-builder-preview-message>
+                                {% if preview_url %}
+                                    Preview загружается через fetch + iframe.srcdoc, поэтому не упирается в X-Frame-Options у live страницы.
+                                {% else %}
+                                    Для dynamic route нужен sample entity/id. На Phase 1 показываем shell без live-preview для этого маршрута.
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="wc-inline-actions">
+                            <span class="status-pill" data-builder-save-state>Draft unsaved</span>
+                            <span class="status-pill" data-builder-preview-status>{% if preview_url %}Loading live preview{% else %}Preview unavailable{% endif %}</span>
+                            <span class="status-pill">{{ selected_page.route_path }}</span>
+                        </div>
+                    </div>
+                    <div class="wc-builder-preview-frame-wrap">
+                        <iframe class="wc-builder-preview-frame" data-builder-preview-frame title="Sandbox preview" loading="lazy"></iframe>
+                    </div>
+                </div>
+            </article>
+
+            <article class="card">
+                <div class="card-body">
+                    <div class="section-head-inline">
+                        <h2 class="section-title">Editable areas</h2>
+                        <span class="status-pill" data-builder-areas-count>{{ builder_state.areas|length }}</span>
+                    </div>
+                    <div class="wc-builder-area-list" data-builder-area-list>
+                        {% for area in builder_state.areas %}
+                            <button type="button" class="wc-builder-area-item" data-area-key="{{ area.area_key }}">
+                                <strong>{{ area.label }}</strong>
+                                <span>{{ area.area_key }}</span>
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </article>
+        </section>
+
+        <aside class="card wc-builder-inspector">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">Inspector</h2>
+                    <span class="status-pill">foundation</span>
+                </div>
+                <form class="form-stack" data-builder-form>
+                    <div class="form-field">
+                        <label for="builder-block-title">Block label</label>
+                        <input id="builder-block-title" class="form-control" type="text" name="label" placeholder="Например: Hero title">
+                    </div>
+                    <div class="form-field">
+                        <label for="builder-block-content">Content / text</label>
+                        <textarea id="builder-block-content" class="form-control" rows="4" name="content" placeholder="Draft content for selected area"></textarea>
+                    </div>
+                    <div class="wc-form-grid-2">
+                        <div class="form-field">
+                            <label for="builder-width">Width</label>
+                            <input id="builder-width" class="form-control" type="text" name="width" placeholder="100%, 640px, minmax(...)">
+                        </div>
+                        <div class="form-field">
+                            <label for="builder-height">Height</label>
+                            <input id="builder-height" class="form-control" type="text" name="height" placeholder="auto, 320px">
+                        </div>
+                        <div class="form-field">
+                            <label for="builder-bg">Background</label>
+                            <input id="builder-bg" class="form-control" type="text" name="background" placeholder="#111827 / rgb(...) / url(...)">
+                        </div>
+                        <div class="form-field">
+                            <label for="builder-color">Text color</label>
+                            <input id="builder-color" class="form-control" type="text" name="color" placeholder="#ffffff / black / gray">
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label for="builder-style-preset">Style preset</label>
+                        <select id="builder-style-preset" class="form-control" name="style_preset">
+                            <option value="">—</option>
+                            {% for preset in builder_state.style_presets %}
+                                <option value="{{ preset.key }}">{{ preset.label }} ({{ preset.scope }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label class="toggle-control"><input class="toggle-control__input" type="checkbox" name="is_visible" checked> <span>Block visible</span></label>
+                    </div>
+                </form>
+
+                <hr>
+                <div class="section-head-inline">
+                    <h3 class="section-title">Variables</h3>
+                    <span class="status-pill">{{ variables_total }}</span>
+                </div>
+                <div class="form-field">
+                    <input type="search" class="form-control" data-builder-variable-search placeholder="Search variable: balance, user, theme">
+                </div>
+                <div class="wc-builder-variable-list" data-builder-variable-list></div>
+            </div>
+        </aside>
+    </div>
+
+    <div class="wc-builder-action-bar">
+        <button type="button" class="btn btn-primary" data-builder-save>Save draft</button>
+        <button type="button" class="btn btn-secondary" data-builder-publish disabled>Publish</button>
+        <button type="button" class="btn btn-secondary" data-builder-reset>Reset</button>
+        <button type="button" class="btn btn-secondary" data-builder-undo disabled>Undo</button>
+        <button type="button" class="btn btn-secondary" data-builder-redo disabled>Redo</button>
+        <button type="button" class="btn btn-secondary" data-builder-focus-variables>Variables</button>
+        <button type="button" class="btn btn-secondary" data-builder-focus-assets disabled>Assets</button>
+        <button type="button" class="btn btn-secondary" data-builder-focus-styles>Styles</button>
+    </div>
+
+    {{ builder_state|json_script:"wc-builder-state" }}
+</section>

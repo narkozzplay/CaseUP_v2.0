@@ -6,27 +6,41 @@
         <article class="card"><div class="card-body"><div class="text-muted">Active theme</div><strong>{% if summary.active_theme %}{{ summary.active_theme.name }}{% else %}—{% endif %}</strong></div></article>
     </div>
 
-    <article class="card">
+    <form method="post" action="{% url 'system_config:activate_theme' %}" class="card">
+        {% csrf_token %}
+        <input type="hidden" name="next_url" value="{{ request.get_full_path }}">
         <div class="card-body">
-            <div class="section-head-inline"><h2 class="section-title">Themes</h2><span class="text-muted">Default / active / test-only статус и диапазон поддержки.</span></div>
+            <div class="section-head-inline"><h2 class="section-title">Themes</h2><span class="text-muted">Default / active / test-only статус и диапазон поддержки. Для структурной темы нужен один серверный перерендер после переключения.</span></div>
             <div class="dashboard-list">
                 {% for theme in themes %}
-                    <div class="dashboard-list__row">
+                    <label class="dashboard-list__row dashboard-list__row--theme-picker" style="align-items:flex-start; cursor:pointer;">
                         <div>
                             <strong>{{ theme.name }}</strong>
                             <div class="text-muted">{{ theme.description|default:"—" }}</div>
-                            <div class="text-muted">Key: {{ theme.key }} · CSS: {{ theme.css_file|default:"—" }}</div>
+                            <div class="text-muted">Key: {{ theme.key }} · Template base: {{ theme.template_base_path|default:"—" }} · CSS: {{ theme.css_file|default:"—" }}</div>
                         </div>
-                        <div>
+                        <div class="theme-picker__controls">
+                            <input type="radio" name="theme" value="{{ theme.id }}" {% if config.active_theme_id == theme.id %}checked{% endif %}>
                             {% if theme.is_default %}<span class="status-pill status-pill--sm">Default</span>{% endif %}
                             {% if config.active_theme_id == theme.id %}<span class="status-pill status-pill--sm">Active</span>{% endif %}
                             {% if theme.is_test_only %}<span class="status-pill status-pill--sm">Test only</span>{% endif %}
                         </div>
-                    </div>
+                    </label>
                 {% empty %}
                     <p class="text-muted">Themes not configured.</p>
                 {% endfor %}
             </div>
+            <div style="margin-top: 16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                <button type="submit" class="btn btn-primary">Apply theme</button>
+                <span class="text-muted">Для полной смены layout/sidebar/top-nav страница будет перерендерена сервером автоматически.</span>
+            </div>
+        </div>
+    </form>
+
+    <article class="card card--soft">
+        <div class="card-body">
+            <div class="section-head-inline"><h2 class="section-title">Theme integration</h2><span class="text-muted">ThemeProfile → template_base_path → fallback на стандартные components.</span></div>
+            <p class="text-muted" style="margin:0;">Для plugin-based тем достаточно поставить app в INSTALLED_APPS, отдать templates/themes/&lt;key&gt;/components/* и static/css/themes/&lt;key&gt;.css, затем зарегистрировать ThemeProfile в БД.</p>
         </div>
     </article>
 

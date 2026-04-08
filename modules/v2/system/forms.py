@@ -126,3 +126,21 @@ class SiteConfigurationForm(forms.ModelForm):
         if not commit:
             return instance
         return save_site_configuration(config=instance, module_states=module_states)
+
+
+
+class ThemeActivateForm(forms.Form):
+    theme = forms.ModelChoiceField(
+        queryset=ThemeProfile.objects.none(),
+        required=True,
+        widget=forms.RadioSelect,
+        empty_label=None,
+    )
+    next_url = forms.CharField(required=False, widget=forms.HiddenInput)
+
+    def __init__(self, *args, **kwargs):
+        current_version = kwargs.pop("current_version", None)
+        super().__init__(*args, **kwargs)
+        self.fields["theme"].queryset = ThemeProfile.objects.filter(
+            pk__in=[theme.pk for theme in get_available_themes(project_version=current_version or get_current_project_version())]
+        ).order_by("-is_default", "name")

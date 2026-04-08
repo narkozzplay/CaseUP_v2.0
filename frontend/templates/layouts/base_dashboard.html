@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="{% static 'css/modules/steam_catalog.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/steam_trading.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/subscriptions.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modules/web_constructor.css' %}">
     {% block dashboard_extra_head %}{% endblock %}
 {% endblock %}
 
@@ -31,4 +32,5 @@
 {% block extra_js %}
     {{ block.super }}
     <script src="{% static 'js/dashboard_shell.js' %}"></script>
+    <script src="{% static 'js/web_constructor_editor.js' %}"></script>
 {% endblock %}

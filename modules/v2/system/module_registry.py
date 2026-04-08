@@ -76,6 +76,14 @@ MODULE_REGISTRY: dict[str, ModuleDefinition] = {
         addon_targets=("subscriptions",),
         default_enabled=True,
     ),
+    "web_constructor": ModuleDefinition(
+        key="web_constructor",
+        label="Web Constructor",
+        description="JS-driven конструктор страниц с live preview, версионированием и модерацией.",
+        namespaces=("web_constructor",),
+        addon_targets=("subscriptions",),
+        default_enabled=True,
+    ),
 }
 
 NAMESPACE_TO_MODULE_KEY = {

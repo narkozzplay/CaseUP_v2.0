@@ -74,6 +74,7 @@ PROJECT_APPS = [
     "modules.v2.celery_tasks.apps.CeleryTasksConfig",
     "modules.v2.tg_notifier.apps.TgNotifierConfig",
     "modules.v2.game_servers.apps.GameServersConfig",
+    "modules.v2.web_constructor.apps.WebConstructorConfig",
 ]
 
 PLUGIN_APPS = []
@@ -238,6 +239,7 @@ TELEGRAM_NOTIFICATIONS_ENABLED = os.getenv("TELEGRAM_NOTIFICATIONS_ENABLED", "0"
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 SITE_BASE_URL = os.getenv("SITE_BASE_URL", "http://127.0.0.1:8000").strip().rstrip("/")
+CASEUP_LAB_BASE_URL = os.getenv("CASEUP_LAB_BASE_URL", "").strip().rstrip("/")
 
 CELERY_BEAT_PENDING_ALERT_DISPATCHER_SECONDS = int(
     os.getenv("CELERY_BEAT_PENDING_ALERT_DISPATCHER_SECONDS", "120")

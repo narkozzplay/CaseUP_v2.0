@@ -244,6 +244,16 @@
                                 {% if card.row.blocked_reason %}
                                     <div class="text-muted">{{ card.row.blocked_reason }}</div>
                                 {% endif %}
+
+                                <div class="text-muted">
+                                    <strong>Current release:</strong> {{ card.release.active_release_version }}
+                                    · <strong>Channel:</strong> {{ card.release.active_release_channel }}
+                                </div>
+                                <div class="text-muted">
+                                    <strong>{{ card.release.runtime_environment_label }} runtime release:</strong> {{ card.release.runtime_release_version }}
+                                    · <strong>Channel:</strong> {{ card.release.runtime_release_channel }}
+                                    {% if card.release.runtime_is_test_mode %}· <strong>Mode:</strong> test-mode{% endif %}
+                                </div>
                             </div>
 
                             <div>

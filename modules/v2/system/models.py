@@ -492,6 +492,15 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 35,
             },
             {
+                "key": "web_constructor",
+                "label_ru": "Web-конструктор",
+                "label_en": "Web Constructor",
+                "url_name": "web_constructor:builder",
+                "group": cls.Group.OVERVIEW,
+                "visibility_condition": cls.Visibility.AUTHENTICATED,
+                "sort_order": 37,
+            },
+            {
                 "key": "testing_preview",
                 "label_ru": "Testing Preview",
                 "label_en": "Testing Preview",
@@ -652,6 +661,15 @@ class DashboardMenuItem(models.Model):
                 "group": cls.Group.ADMIN,
                 "visibility_condition": cls.Visibility.ADMIN_PLUS,
                 "sort_order": 60,
+            },
+            {
+                "key": "web_constructor_moderation",
+                "label_ru": "Модерация конструктора",
+                "label_en": "Constructor moderation",
+                "url_name": "web_constructor:moderation",
+                "group": cls.Group.ADMIN,
+                "visibility_condition": cls.Visibility.ADMIN_PLUS,
+                "sort_order": 65,
             },
             {
                 "key": "django_admin",

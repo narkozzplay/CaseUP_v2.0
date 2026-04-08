@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -57,6 +58,19 @@ class ModuleUpdatePreview:
     cascaded_disabled_labels: tuple[str, ...]
     changed_keys: tuple[str, ...]
     changed_labels: tuple[str, ...]
+
+@dataclass(frozen=True)
+class ModuleFlagReleaseInfo:
+    module_key: str
+    active_release_version: str
+    active_release_channel: str
+    runtime_release_version: str
+    runtime_release_channel: str
+    runtime_environment_label: str
+    runtime_is_test_mode: bool
+
+
+
 
 
 def get_runtime_environment() -> str:
@@ -162,50 +176,91 @@ def ensure_project_versions() -> None:
 
 @transaction.atomic
 def ensure_themes() -> None:
-    if ThemeProfile.objects.exists():
-        return
     version = get_current_project_version()
-    theme = ThemeProfile.objects.create(
-        key="default",
-        name="Default CaseUP",
-        code="default",
-        description="Текущий основной стиль проекта.",
-        template_base_path="themes/default",
-        css_file="css/themes/default.css",
-        is_default=True,
-        is_active=True,
-        is_test_only=False,
-        project_version_from=version,
-        project_version_to=version,
-    )
+    theme_specs = [
+        {
+            "key": "default",
+            "defaults": {
+                "name": "Default CaseUP",
+                "code": "default",
+                "description": "Текущий основной стиль проекта.",
+                "template_base_path": "themes/default",
+                "css_file": "css/themes/default.css",
+                "is_default": True,
+                "is_active": True,
+                "is_test_only": False,
+                "project_version_from": version,
+                "project_version_to": version,
+            },
+        },
+        {
+            "key": "midnight",
+            "defaults": {
+                "name": "Midnight Neon",
+                "code": "midnight",
+                "description": "Альтернативная тёмная тема для dev/test и plugin-поставок.",
+                "template_base_path": "themes/midnight",
+                "css_file": "css/themes/midnight.css",
+                "is_default": False,
+                "is_active": True,
+                "is_test_only": True,
+                "project_version_from": version,
+                "project_version_to": version,
+            },
+        },
+    ]
+
+    created_by_key: dict[str, ThemeProfile] = {}
+    for spec in theme_specs:
+        theme, _created = ThemeProfile.objects.update_or_create(key=spec["key"], defaults=spec["defaults"])
+        created_by_key[spec["key"]] = theme
+
     config = get_site_configuration()
-    config.active_theme = theme
-    config.save(update_fields=["active_theme", "updated_at"])
+    if not config.active_theme_id:
+        config.active_theme = created_by_key["default"]
+        config.save(update_fields=["active_theme", "updated_at"])
 
 
 @transaction.atomic
 def ensure_module_releases() -> None:
-    if ModuleRelease.objects.exists():
-        return
     version = get_current_project_version()
-    for order, (key, definition) in enumerate(MODULE_REGISTRY.items(), start=1):
-        release = ModuleRelease.objects.create(
+    seeded_version = version.version if version else "0.1.38"
+    seeded_order = version.version_order if version else 138
+    for key, definition in MODULE_REGISTRY.items():
+        release, _created = ModuleRelease.objects.get_or_create(
             module_key=key,
-            version="0.1.38",
-            version_order=138,
-            channel=ModuleRelease.Channel.STABLE,
-            title=f"{definition.label} 0.1.38",
-            description=definition.description,
-            is_default=True,
-            is_active=True,
+            version=seeded_version,
+            defaults={
+                "version_order": seeded_order,
+                "channel": ModuleRelease.Channel.STABLE,
+                "title": f"{definition.label} {seeded_version}",
+                "description": definition.description,
+                "is_default": True,
+                "is_active": True,
+            },
         )
-        if version:
+        changed = False
+        if not release.is_active:
+            release.is_active = True
+            changed = True
+        if not release.is_default:
+            has_default = ModuleRelease.objects.exclude(pk=release.pk).filter(module_key=key, is_default=True).exists()
+            if not has_default:
+                release.is_default = True
+                changed = True
+        if changed:
+            release.save(update_fields=["is_active", "is_default", "updated_at"])
+        if version and not ModuleCompatibility.objects.filter(
+            module_release=release,
+            project_version_from=version,
+            project_version_to=version,
+        ).exists():
             ModuleCompatibility.objects.create(
                 module_release=release,
                 project_version_from=version,
                 project_version_to=version,
                 compatibility_status=ModuleCompatibility.CompatibilityStatus.SUPPORTED,
-                notes="Seeded from existing module registry.",
+                notes="Seeded from current module registry.",
             )
 
 
@@ -366,6 +421,58 @@ def get_compatible_module_release(module_key: str, *, project_version: ProjectVe
             continue
         return compat.module_release
     return releases.first()
+
+
+def get_module_flag_release_map(*, project_version: ProjectVersion | None = None, environment: str | None = None) -> dict[str, ModuleFlagReleaseInfo]:
+    project_version = project_version or get_current_project_version()
+    environment = environment or get_runtime_environment()
+    env_states = {
+        state.module_key: state
+        for state in EnvironmentModuleState.objects.filter(environment=environment).select_related("module_release")
+    }
+    result: dict[str, ModuleFlagReleaseInfo] = {}
+    for key in MODULE_REGISTRY:
+        active_release = get_compatible_module_release(key, project_version=project_version, environment=environment)
+        runtime_state = env_states.get(key)
+        runtime_release = runtime_state.module_release if runtime_state and runtime_state.module_release_id else None
+        result[key] = ModuleFlagReleaseInfo(
+            module_key=key,
+            active_release_version=active_release.version if active_release else "—",
+            active_release_channel=active_release.channel if active_release else "—",
+            runtime_release_version=runtime_release.version if runtime_release else "—",
+            runtime_release_channel=runtime_release.channel if runtime_release else "—",
+            runtime_environment_label=environment.upper(),
+            runtime_is_test_mode=bool(runtime_state.is_test_mode) if runtime_state else False,
+        )
+    return result
+
+
+def _theme_shell_template_signature(theme: ThemeProfile | None) -> tuple[bool, ...]:
+    if not theme or not theme.template_base_path:
+        return (False, False, False)
+    return tuple(
+        _template_exists(f"{theme.template_base_path}/{relative_path}")
+        for relative_path in (
+            "layouts/base_dashboard.html",
+            "components/sidebar_dashboard.html",
+            "components/dashboard_content_frame.html",
+        )
+    )
+
+
+def build_theme_update_headers(*, previous_theme: ThemeProfile | None, next_theme: ThemeProfile | None) -> dict[str, str]:
+    from django.templatetags.static import static
+
+    next_css_url = static(next_theme.css_file) if next_theme and next_theme.css_file else ""
+    theme_mode = "css"
+    if _theme_shell_template_signature(previous_theme) != _theme_shell_template_signature(next_theme):
+        theme_mode = "reload"
+
+    return {
+        "X-Dashboard-Theme-Mode": theme_mode,
+        "X-Dashboard-Theme-Css-Url": next_css_url,
+        "X-Dashboard-Theme-Key": next_theme.key if next_theme else "",
+    }
 
 
 def get_module_release_matrix(*, project_version: ProjectVersion | None = None) -> list[dict[str, object]]:
@@ -579,6 +686,60 @@ def resolve_module_for_namespace(namespace: str | None) -> ModuleDefinition | No
 def get_public_base_url() -> str:
     config = get_site_configuration()
     return (config.public_base_url or getattr(settings, "SITE_BASE_URL", "") or "").strip().rstrip("/")
+
+
+def get_site_base_url() -> str:
+    return get_public_base_url()
+
+
+def get_lab_base_url() -> str:
+    return (getattr(settings, "CASEUP_LAB_BASE_URL", "") or "").strip().rstrip("/")
+
+
+def build_absolute_url(path_or_url: str, *, base_url: str = "") -> str:
+    raw = (path_or_url or "").strip()
+    if not raw:
+        return (base_url or "").strip().rstrip("/")
+    if "://" in raw:
+        return raw
+    normalized_base = (base_url or "").strip().rstrip("/")
+    if not normalized_base:
+        return raw
+    normalized_path = raw if raw.startswith("/") else f"/{raw}"
+    return f"{normalized_base}{normalized_path}"
+
+
+def build_site_url(path_or_url: str) -> str:
+    return build_absolute_url(path_or_url, base_url=get_site_base_url())
+
+
+def build_lab_url(path_or_url: str) -> str:
+    return build_absolute_url(path_or_url, base_url=get_lab_base_url())
+
+
+def _normalized_host(value: str) -> str:
+    raw = (value or "").strip()
+    if not raw:
+        return ""
+    if "://" not in raw:
+        raw = f"http://{raw}"
+    parsed = urlparse(raw)
+    host = (parsed.hostname or "").strip().lower()
+    return host.lstrip(".")
+
+
+def request_is_lab_host(request) -> bool:
+    lab_base_url = get_lab_base_url()
+    if not lab_base_url:
+        return False
+    return _normalized_host(request.get_host()) == _normalized_host(lab_base_url)
+
+
+def request_is_site_host(request) -> bool:
+    site_base_url = get_site_base_url()
+    if not site_base_url:
+        return False
+    return _normalized_host(request.get_host()) == _normalized_host(site_base_url)
 
 
 def get_site_name() -> str:

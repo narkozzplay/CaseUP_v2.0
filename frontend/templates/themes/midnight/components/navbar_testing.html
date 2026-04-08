@@ -1,0 +1,13 @@
+{% load i18n %}
+<header class="site-header site-header--testing">
+    <div class="container navbar">
+        <a class="brand" href="/testing-preview/">{{ site_settings.site_name|default:"CaseUP" }} · Midnight Lab</a>
+        <nav class="nav-links">
+            <a href="/testing-preview/">{% trans "Testing Preview" %}</a>
+            <a href="/dashboard-preview/">{% trans "Dashboard" %}</a>
+        </nav>
+        <div class="nav-links nav-links--auth">
+            <span class="badge">Theme sandbox</span>
+        </div>
+    </div>
+</header>

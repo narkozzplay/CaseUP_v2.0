@@ -1,0 +1,22 @@
+{% extends "layouts/base.html" %}
+{% load static %}
+
+{% block extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/modules/web_constructor.css' %}">
+    {% block builder_extra_head %}{% endblock %}
+{% endblock %}
+
+{% block body_class %}theme-dashboard theme-builder-lab{% block builder_body_class %}{% endblock %}{% endblock %}
+
+{% block page %}
+    <main class="wc-lab-shell">
+        {% include "components/messages.html" %}
+        {% block content %}{% endblock %}
+    </main>
+{% endblock %}
+
+{% block extra_js %}
+    {{ block.super }}
+    {% block builder_extra_js %}{% endblock %}
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "layouts/base_dashboard.html" %}
+{% load static %}
+
+{% block title %}{{ template_obj.title }} · Versions{% endblock %}
+
+
+{% block content %}
+    {% include "web_constructor/partials/version_history_content.html" %}
+{% endblock %}

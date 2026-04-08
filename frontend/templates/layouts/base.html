@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
     <link rel="stylesheet" href="{% static 'css/layout.css' %}">
     <link rel="stylesheet" href="{% static 'css/components.css' %}">
-    {% if active_theme_css_file %}<link rel="stylesheet" href="{% static active_theme_css_file %}">{% endif %}
+    {% if active_theme_css_file %}<link rel="stylesheet" href="{% static active_theme_css_file %}" id="active-theme-css" data-theme-key="{{ active_theme.key|default:'' }}">{% endif %}
     {% block extra_head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">

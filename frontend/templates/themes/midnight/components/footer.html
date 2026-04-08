@@ -1,0 +1,12 @@
+<footer class="site-footer">
+    <div class="container footer-inner">
+        <div>
+            <strong>{{ site_settings.site_name|default:"CaseUP" }} · Midnight</strong>
+            <div class="text-muted">Альтернативная тема для тестирования и plugin-provided overrides.</div>
+        </div>
+        <div class="footer-links">
+            <span>theme={{ active_theme.key|default:"default" }}</span>
+            <span>runtime={{ runtime_environment|default:"dev" }}</span>
+        </div>
+    </div>
+</footer>

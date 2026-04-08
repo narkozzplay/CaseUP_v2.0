@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+from django.http import HttpResponse
 from django.shortcuts import render
 
 DASHBOARD_PARTIAL_HEADER = "X-Dashboard-Partial"
 DASHBOARD_PARTIAL_VALUE = "1"
 DASHBOARD_CURRENT_URL_HEADER = "X-Dashboard-Current-Url"
+DASHBOARD_THEME_MODE_HEADER = "X-Dashboard-Theme-Mode"
+DASHBOARD_THEME_CSS_URL_HEADER = "X-Dashboard-Theme-Css-Url"
+DASHBOARD_THEME_KEY_HEADER = "X-Dashboard-Theme-Key"
+DASHBOARD_RELOAD_URL_HEADER = "X-Dashboard-Reload-Url"
 
 
 def is_dashboard_partial_request(request) -> bool:
@@ -20,6 +25,7 @@ def render_dashboard_page(
     page_title: str = "",
     active_menu_key: str = "",
     current_url: str = "",
+    response_headers: dict[str, str] | None = None,
 ):
     payload = dict(context or {})
     payload.update(
@@ -38,5 +44,12 @@ def render_dashboard_page(
         if active_menu_key:
             response["X-Dashboard-Active-Menu"] = active_menu_key
         response[DASHBOARD_CURRENT_URL_HEADER] = payload["dashboard_current_url"]
+        for header_name, header_value in (response_headers or {}).items():
+            if header_value:
+                response[header_name] = header_value
         return response
-    return render(request, full_template, payload)
+    response = render(request, full_template, payload)
+    for header_name, header_value in (response_headers or {}).items():
+        if header_value:
+            response[header_name] = header_value
+    return response

@@ -9,6 +9,10 @@
     const partialHeaderName = 'X-Dashboard-Partial';
     const partialHeaderValue = '1';
     const currentUrlHeaderName = 'X-Dashboard-Current-Url';
+    const themeModeHeaderName = 'X-Dashboard-Theme-Mode';
+    const themeCssUrlHeaderName = 'X-Dashboard-Theme-Css-Url';
+    const themeKeyHeaderName = 'X-Dashboard-Theme-Key';
+    const reloadUrlHeaderName = 'X-Dashboard-Reload-Url';
     const openStateStorageKey = 'caseup.dashboard.sidebar.groups';
 
     function isModifiedClick(event) {
@@ -111,7 +115,52 @@
         return {
             html,
             currentUrl: response.headers.get(currentUrlHeaderName) || '',
+            themeMode: response.headers.get(themeModeHeaderName) || '',
+            themeCssUrl: response.headers.get(themeCssUrlHeaderName) || '',
+            themeKey: response.headers.get(themeKeyHeaderName) || '',
+            reloadUrl: response.headers.get(reloadUrlHeaderName) || '',
         };
+    }
+
+
+    function applyThemePayload(payload) {
+        if (!payload) {
+            return false;
+        }
+        if (payload.themeMode === 'reload') {
+            window.location.assign(payload.reloadUrl || payload.currentUrl || window.location.href);
+            return true;
+        }
+        if (payload.themeMode !== 'css') {
+            return false;
+        }
+        const nextCssUrl = payload.themeCssUrl || '';
+        const themeLink = document.getElementById('active-theme-css');
+        if (nextCssUrl) {
+            if (themeLink) {
+                if (themeLink.getAttribute('href') !== nextCssUrl) {
+                    themeLink.setAttribute('href', nextCssUrl);
+                }
+                if (payload.themeKey) {
+                    themeLink.dataset.themeKey = payload.themeKey;
+                }
+            } else {
+                const link = document.createElement('link');
+                link.id = 'active-theme-css';
+                link.rel = 'stylesheet';
+                link.href = nextCssUrl;
+                if (payload.themeKey) {
+                    link.dataset.themeKey = payload.themeKey;
+                }
+                document.head.appendChild(link);
+            }
+            return false;
+        }
+        if (themeLink) {
+            themeLink.remove();
+            return false;
+        }
+        return false;
     }
 
     async function visit(url, { push = true } = {}) {
@@ -124,6 +173,10 @@
             const payload = await fetchPartial(url, { method: 'GET' });
             contentRoot.innerHTML = payload.html;
             const nextUrl = payload.currentUrl || url;
+            const didTriggerReload = applyThemePayload(payload);
+            if (didTriggerReload) {
+                return;
+            }
             if (push) {
                 window.history.pushState({ dashboardShell: true, url: nextUrl }, '', nextUrl);
             }
@@ -175,6 +228,10 @@
             });
             contentRoot.innerHTML = payload.html;
             const nextUrl = payload.currentUrl || window.location.pathname + window.location.search + window.location.hash;
+            const didTriggerReload = applyThemePayload(payload);
+            if (didTriggerReload) {
+                return;
+            }
             window.history.replaceState({ dashboardShell: true, url: nextUrl }, '', nextUrl);
             syncTitleAndActiveStateFromContent();
         } catch (error) {

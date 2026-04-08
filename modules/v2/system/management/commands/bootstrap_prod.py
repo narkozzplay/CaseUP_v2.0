@@ -17,7 +17,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--skip-env-check", action="store_true", help="Skip critical production env validation.")
         parser.add_argument("--no-sync-defaults", action="store_true", help="Do not fill blank SiteConfiguration defaults.")
-        parser.add_argument("--username", help="Existing username to grant a role to during bootstrap.")
+        parser.add_argument("--username", help="Existing internal Django username to grant a role to during bootstrap. For Steam accounts use steam_<steam_id>.")
         parser.add_argument(
             "--role",
             choices=[choice for choice, _label in UserRole.choices],

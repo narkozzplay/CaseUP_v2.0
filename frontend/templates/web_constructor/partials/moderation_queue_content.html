@@ -1,0 +1,45 @@
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">Moderation queue</span>
+            <h1 class="page-title page-title--sm">Web Constructor moderation</h1>
+            <p class="text-muted">Approve/reject pending versions. Approved live version stays immutable until a new version passes moderation.</p>
+        </div>
+    </div>
+
+    <div class="wc-template-grid">
+        {% for version in pending_versions %}
+            <article class="card">
+                <div class="card-body">
+                    <div class="section-head-inline">
+                        <div>
+                            <span class="status-pill">v{{ version.version_number }}</span>
+                            <h2 class="section-title">{{ version.template.title }}</h2>
+                            <p class="text-muted">Owner: {{ version.template.owner.username }} · submitted {{ version.submitted_at|date:"d.m.Y H:i"|default:"—" }}</p>
+                        </div>
+                        <a href="{% url 'web_constructor:render' version.template.template_uuid %}" class="btn btn-secondary" target="_blank" rel="noopener">Open render</a>
+                    </div>
+                    <dl class="details-list details-list--compact">
+                        <div><dt>Visibility</dt><dd>{{ version.template.get_visibility_display }}</dd></div>
+                        <div><dt>Access mode</dt><dd>{{ version.template.get_access_mode_display }}</dd></div>
+                        <div><dt>External links</dt><dd>{% if version.contains_external_links %}{{ version.external_links_snapshot|join:", " }}{% else %}—{% endif %}</dd></div>
+                    </dl>
+                    <form method="post" action="{% url 'web_constructor:moderate_version' version.id %}" class="form-stack">
+                        {% csrf_token %}
+                        <div class="form-field">
+                            <label>Комментарий модератора</label>
+                            <textarea name="moderation_comment" rows="3" class="form-control"></textarea>
+                        </div>
+                        <div class="wc-inline-actions">
+                            <button type="submit" name="moderation_action" value="approve" class="btn btn-primary">Approve</button>
+                            <button type="submit" name="moderation_action" value="reject" class="btn btn-secondary">Reject</button>
+                            <a href="{% url 'web_constructor:detail' version.template.template_uuid %}" class="btn btn-secondary" data-dashboard-nav="true">Открыть карточку</a>
+                        </div>
+                    </form>
+                </div>
+            </article>
+        {% empty %}
+            <article class="card"><div class="card-body"><p class="text-muted">Очередь пуста.</p></div></article>
+        {% endfor %}
+    </div>
+</section>

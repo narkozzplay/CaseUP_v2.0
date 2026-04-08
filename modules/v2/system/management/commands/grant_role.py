@@ -7,10 +7,16 @@ from modules.v2.system.ops import grant_role
 
 
 class Command(BaseCommand):
-    help = "Grant an application role and synchronized Django staff/superuser flags to an existing user."
+    help = (
+        "Grant an application role and synchronized Django staff/superuser flags to an existing user. "
+        "Use the internal Django username (for Steam accounts it is usually steam_<steam_id>)."
+    )
 
     def add_arguments(self, parser):
-        parser.add_argument("username")
+        parser.add_argument(
+            "username",
+            help="Internal Django username. For Steam-auth users this is usually steam_<steam_id>.",
+        )
         parser.add_argument("role", choices=[choice for choice, _label in UserRole.choices])
 
     def handle(self, *args, **options):

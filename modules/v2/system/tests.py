@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from modules.v2.profiles.models import UserProfile, UserRole
@@ -9,7 +9,7 @@ from modules.v2.subscriptions.models import SubscriptionPlan
 from modules.v2.subscriptions.services import assign_user_subscription_plan
 
 from .dashboard_menu import build_dashboard_menu, ensure_dashboard_menu_items
-from .models import DashboardMenuItem, SiteConfiguration, ThemeProfile, ProjectVersion, EnvironmentModuleState
+from .models import DashboardMenuItem, SiteConfiguration, ThemeProfile, ProjectVersion, EnvironmentModuleState, ModuleRelease
 from .services import get_active_theme, get_current_project_version, bootstrap_versioning
 from .module_registry import MODULE_REGISTRY
 from .services import get_module_state_map, get_site_configuration, update_module_states
@@ -65,6 +65,19 @@ class SystemConfigurationTests(TestCase):
 
         self.assertContains(response, "Commercial access for")
         self.assertContains(response, "Subscriptions")
+
+    def test_system_settings_shows_module_release_metadata(self):
+        admin = self._make_admin("admin_settings_release_meta")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.get(reverse("system_config:settings"))
+
+        stable_release = ModuleRelease.objects.filter(module_key="steam_catalog").first()
+        self.assertIsNotNone(stable_release)
+        self.assertContains(response, "Current release:")
+        self.assertContains(response, stable_release.version)
+        self.assertContains(response, stable_release.channel)
+        self.assertContains(response, "DEV runtime release:")
 
     def test_cannot_enable_dependent_module_without_dependency(self):
         update_module_states({"steam_catalog": False, "steam_trading": False})
@@ -122,6 +135,44 @@ class SystemConfigurationTests(TestCase):
         self.assertTrue(config.maintenance_mode_enabled)
         self.assertEqual(str(config.site_currency_rate), "1.000000")
         self.assertTrue(get_module_state_map()["tg_notifier"])
+
+    def test_partial_save_returns_theme_headers_for_css_hot_swap(self):
+        admin = self._make_admin("admin_partial_theme_swap")
+        bootstrap_versioning()
+        default_theme = ThemeProfile.objects.get(key="default")
+        midnight_theme = ThemeProfile.objects.get(key="midnight")
+        config = get_site_configuration()
+        config.active_theme = default_theme
+        config.save(update_fields=["active_theme", "updated_at"])
+
+        self.client.login(username=admin.username, password="StrongPass123")
+        response = self.client.post(
+            reverse("system_config:settings"),
+            {
+                "site_name": "CaseUP",
+                "site_currency_code": "RUB",
+                "site_currency_rate": "1.000000",
+                "support_email": "support@example.com",
+                "public_base_url": "https://caseup.example.com",
+                "maintenance_message": "Maint",
+                "registration_enabled": "on",
+                "current_project_version": str(config.current_project_version_id or ""),
+                "active_theme": str(midnight_theme.id),
+                "module__steam_catalog": "on",
+                "module__farm": "on",
+                "module__tradehub": "on",
+                "module__steam_trading": "on",
+                "module__celery_tasks": "on",
+                "module__subscriptions": "on",
+            },
+            HTTP_X_DASHBOARD_PARTIAL="1",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["X-Dashboard-Partial"], "1")
+        self.assertEqual(response["X-Dashboard-Theme-Mode"], "css")
+        self.assertIn("css/themes/midnight.css", response["X-Dashboard-Theme-Css-Url"])
 
     def test_invalid_dependency_post_shows_error_and_does_not_save_conflict(self):
         admin = self._make_admin("admin_invalid_dependency")
@@ -228,6 +279,48 @@ class SystemConfigurationTests(TestCase):
         self.assertEqual(response.status_code, 503)
         self.assertContains(response, "технические работы", status_code=503)
 
+
+    def test_admin_can_activate_theme_with_redirect(self):
+        admin = self._make_admin("admin_activate_theme")
+        bootstrap_versioning()
+        midnight = ThemeProfile.objects.get(key="midnight")
+
+        self.client.login(username=admin.username, password="StrongPass123")
+        response = self.client.post(
+            reverse("system_config:activate_theme"),
+            {"theme": midnight.id, "next_url": reverse("system_config:versioning")},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Тема 'Midnight Neon' активирована.")
+        self.assertEqual(get_site_configuration().active_theme_id, midnight.id)
+
+
+
+class ThemeVersioningTests(TestCase):
+    def test_bootstrap_versioning_seeds_default_and_midnight_themes(self):
+        bootstrap_versioning()
+
+        themes = set(ThemeProfile.objects.values_list("key", flat=True))
+
+        self.assertIn("default", themes)
+        self.assertIn("midnight", themes)
+
+    def test_midnight_theme_is_visible_in_dev_versioning_page(self):
+        user = User.objects.create_user(username="theme_admin", password="StrongPass123")
+        profile = UserProfile.objects.get(user=user)
+        profile.role = UserRole.ADMIN
+        profile.save(update_fields=["role"])
+
+        self.client.login(username=user.username, password="StrongPass123")
+        response = self.client.get(reverse("system_config:versioning"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Midnight Neon")
+        self.assertContains(response, "themes/midnight")
+
+
 class DashboardMenuBuilderTests(TestCase):
     def _make_user(self, username="plain_dashboard", role=UserRole.USER):
         user = User.objects.create_user(username=username, password="StrongPass123")
@@ -240,6 +333,7 @@ class DashboardMenuBuilderTests(TestCase):
         ensure_dashboard_menu_items()
         self.assertTrue(DashboardMenuItem.objects.filter(key="farm_drops").exists())
         self.assertTrue(DashboardMenuItem.objects.filter(key="steam_catalog").exists())
+        self.assertEqual(DashboardMenuItem.objects.get(key="web_constructor").url_name, "web_constructor:builder")
 
     def test_disabled_menu_item_is_hidden(self):
         ensure_dashboard_menu_items()
@@ -274,6 +368,24 @@ class DashboardMenuBuilderTests(TestCase):
         self.assertTrue(any(group["key"] == DashboardMenuItem.Group.INVESTMENTS for group in menu_groups))
         self.assertFalse(any(group["key"] == DashboardMenuItem.Group.FARM for group in menu_groups))
         self.assertFalse(any(group["key"] == DashboardMenuItem.Group.STEAM for group in menu_groups))
+
+    @override_settings(CASEUP_LAB_BASE_URL="http://lib.caseup.localhost:8000", ALLOWED_HOSTS=["testserver", "caseup.localhost", "lib.caseup.localhost"])
+    def test_web_constructor_menu_item_points_to_lab_host(self):
+        ensure_dashboard_menu_items()
+        user = self._make_user(username="menu_lab_link", role=UserRole.ADMIN)
+        self.client.login(username=user.username, password="StrongPass123")
+
+        response = self.client.get(reverse("frontend:dashboard_preview"), HTTP_HOST="caseup.localhost:8000")
+
+        self.assertEqual(response.status_code, 200)
+        menu_groups = build_dashboard_menu(response.wsgi_request)
+        web_constructor_item = next(
+            item
+            for group in menu_groups
+            for item in group["items"]
+            if item.key == "web_constructor"
+        )
+        self.assertEqual(web_constructor_item.url, "http://lib.caseup.localhost:8000/constructor/builder/")
 
 
 class SystemVersioningTests(TestCase):

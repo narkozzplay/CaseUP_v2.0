@@ -1,0 +1,56 @@
+<section class="section section--compact">
+    <div class="section-head-inline">
+        <div>
+            <span class="eyebrow">Version history</span>
+            <h1 class="page-title page-title--sm">{{ template_obj.title }}</h1>
+        </div>
+        <div class="wc-inline-actions">
+            <a href="{% url 'web_constructor:editor' template_obj.template_uuid %}" class="btn btn-primary" data-dashboard-nav="true">Редактор</a>
+            <a href="{% url 'web_constructor:detail' template_obj.template_uuid %}" class="btn btn-secondary" data-dashboard-nav="true">Карточка</a>
+        </div>
+    </div>
+    <article class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table--compact">
+                    <thead>
+                        <tr>
+                            <th>Version</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th>Approved</th>
+                            <th>External links</th>
+                            <th>Changelog</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for version in versions %}
+                            <tr>
+                                <td>v{{ version.version_number }}</td>
+                                <td>{{ version.get_moderation_status_display }}</td>
+                                <td>{{ version.submitted_at|date:"d.m.Y H:i"|default:"—" }}</td>
+                                <td>{% if version.approved_at %}{{ version.approved_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}</td>
+                                <td>{% if version.contains_external_links %}{{ version.external_links_snapshot|length }}{% else %}0{% endif %}</td>
+                                <td>{{ version.changelog|default:"—" }}</td>
+                                <td>
+                                    {% if version.moderation_status == 'approved' %}
+                                        <form method="post" action="{% url 'web_constructor:rollback' template_obj.template_uuid version.id %}" class="inline-form">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-secondary btn-sm">Rollback live</button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% if version.moderation_comment %}
+                                <tr class="wc-version-comment-row"><td colspan="7"><strong>Moderation comment:</strong> {{ version.moderation_comment }}</td></tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </article>
+</section>

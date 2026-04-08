@@ -1,0 +1,10 @@
+<div class="wc-profile-card">
+    {% if block.data.avatar_asset_url or block.data.avatar_url %}<img src="{{ block.data.avatar_asset_url|default:block.data.avatar_url }}" alt="{{ block.data.name }}" class="wc-profile-avatar">{% endif %}
+    <div>
+        {% if block.data.title %}<span class="eyebrow">{{ block.data.title }}</span>{% endif %}
+        <h2 class="wc-block-title">{{ block.data.name }}</h2>
+        {% if block.data.subtitle %}<p class="text-muted">{{ block.data.subtitle }}</p>{% endif %}
+        {% if block.data.bio %}<p class="wc-block-text">{{ block.data.bio|linebreaksbr }}</p>{% endif %}
+        {% if block.data.profile_url %}<a href="{{ block.data.profile_url }}" class="btn btn-secondary">Open profile</a>{% endif %}
+    </div>
+</div>

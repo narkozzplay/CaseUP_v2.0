@@ -1,0 +1,10 @@
+{% extends "layouts/base_dashboard.html" %}
+{% load static %}
+
+{% block title %}{{ template_obj.title }} · Editor{% endblock %}
+
+
+{% block content %}
+    {% include "web_constructor/partials/editor_content.html" %}
+{% endblock %}
+
