@@ -17,10 +17,10 @@ class DevSettingsGuardTests(TestCase):
             {
                 "DJANGO_SETTINGS_MODULE": "config.settings.dev",
                 "DJANGO_ALLOWED_HOSTS": "127.0.0.1,localhost,.ngrok-free.dev",
+                "DJANGO_SECRET_KEY": "",
             },
             clear=False,
         ):
-            os.environ.pop("DJANGO_SECRET_KEY", None)
             module = self._import_dev_settings()
 
         self.assertEqual(module.SECRET_KEY, "dev-secret-key-not-for-production")
@@ -31,9 +31,9 @@ class DevSettingsGuardTests(TestCase):
             {
                 "DJANGO_SETTINGS_MODULE": "config.settings.dev",
                 "DJANGO_ALLOWED_HOSTS": "example.com,127.0.0.1",
+                "DJANGO_SECRET_KEY": "",
             },
             clear=False,
         ):
-            os.environ.pop("DJANGO_SECRET_KEY", None)
             with self.assertRaises(RuntimeError):
                 self._import_dev_settings()

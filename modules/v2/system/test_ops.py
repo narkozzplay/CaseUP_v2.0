@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+import shutil
+import uuid
+from contextlib import contextmanager
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -22,6 +24,18 @@ from modules.v2.system.ops import (
 )
 
 User = get_user_model()
+
+
+@contextmanager
+def workspace_temp_dir():
+    root = Path.cwd() / ".tmp_test_ops"
+    root.mkdir(parents=True, exist_ok=True)
+    temp_dir = root / f"caseup_{uuid.uuid4().hex}"
+    temp_dir.mkdir(parents=True, exist_ok=False)
+    try:
+        yield temp_dir
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 class BootstrapOpsTests(TestCase):
@@ -127,20 +141,20 @@ class ValidationOpsTests(TestCase):
 
 class BackupOpsTests(TestCase):
     def test_create_backup_paths_uses_configured_root(self):
-        with TemporaryDirectory() as tmp_dir:
-            with override_settings(BACKUP_ROOT=Path(tmp_dir)):
+        with workspace_temp_dir() as tmp_dir:
+            with override_settings(BACKUP_ROOT=tmp_dir):
                 artifacts = create_backup_paths(output_dir_name="unit_case", include_db=True, include_media=False)
 
-            self.assertEqual(artifacts.backup_dir, Path(tmp_dir) / "unit_case")
+            self.assertEqual(artifacts.backup_dir, tmp_dir / "unit_case")
             self.assertIsNotNone(artifacts.db_dump_path)
             self.assertIsNone(artifacts.media_archive_path)
 
     def test_backup_media_directory_creates_tarball(self):
-        with TemporaryDirectory() as tmp_dir:
-            media_root = Path(tmp_dir) / "media"
+        with workspace_temp_dir() as tmp_dir:
+            media_root = tmp_dir / "media"
             media_root.mkdir(parents=True)
             (media_root / "example.txt").write_text("hello", encoding="utf-8")
-            archive_path = Path(tmp_dir) / "media.tar.gz"
+            archive_path = tmp_dir / "media.tar.gz"
 
             with override_settings(MEDIA_ROOT=media_root):
                 backup_media_directory(destination=archive_path)
@@ -149,8 +163,7 @@ class BackupOpsTests(TestCase):
             self.assertGreater(archive_path.stat().st_size, 0)
 
     def test_resolve_restore_artifacts_from_backup_dir(self):
-        with TemporaryDirectory() as tmp_dir:
-            backup_root = Path(tmp_dir)
+        with workspace_temp_dir() as backup_root:
             backup_dir = backup_root / "snapshot"
             backup_dir.mkdir()
             (backup_dir / "database.sqlc").write_text("db", encoding="utf-8")

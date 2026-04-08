@@ -10,7 +10,13 @@ from modules.v2.subscriptions.services import assign_user_subscription_plan
 
 from .dashboard_menu import build_dashboard_menu, ensure_dashboard_menu_items
 from .models import DashboardMenuItem, SiteConfiguration, ThemeProfile, ProjectVersion, EnvironmentModuleState, ModuleRelease, ExternalServiceIntegration
-from .services import get_active_theme, get_current_project_version, bootstrap_versioning, get_external_service_health
+from .services import (
+    bootstrap_versioning,
+    get_active_theme,
+    get_current_project_version,
+    get_external_service_health,
+    get_runtime_environment,
+)
 from .module_registry import MODULE_REGISTRY
 from .services import get_module_state_map, get_site_configuration, update_module_states
 
@@ -93,7 +99,7 @@ class SystemConfigurationTests(TestCase):
         self.assertContains(response, "Current release:")
         self.assertContains(response, stable_release.version)
         self.assertContains(response, stable_release.channel)
-        self.assertContains(response, "DEV runtime release:")
+        self.assertContains(response, f"{get_runtime_environment().upper()} runtime release:")
 
     def test_cannot_enable_dependent_module_without_dependency(self):
         update_module_states({"steam_catalog": False, "steam_trading": False})
