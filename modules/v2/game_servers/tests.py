@@ -13,7 +13,7 @@ from .services import ServerProbeResult, refresh_game_server_status
 class GameServerServiceTests(TestCase):
     def setUp(self):
         self.server = GameServer.objects.create(
-            slug="public",
+            slug="public-service-test",
             name="CS2 Public",
             host="127.0.0.1",
             port=27015,
@@ -60,7 +60,7 @@ class GameServerViewsTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.server = GameServer.objects.create(
-            slug="public",
+            slug="public-views-test",
             name="CS2AGE Public",
             host="127.0.0.1",
             port=27015,
@@ -95,5 +95,5 @@ class GameServerViewsTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "VIP Start")
-        self.assertContains(response, "CaseUP Store")
+        self.assertContains(response, "Будущий магазин привилегий")
         self.assertContains(response, self.server.server_path)

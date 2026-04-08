@@ -1,0 +1,36 @@
+{% load i18n %}
+<section class="section section--compact">
+    <article class="card dashboard-hero">
+        <div class="card-body dashboard-hero__body">
+            <div>
+                <span class="eyebrow">Midnight</span>
+                <h1 class="page-title page-title--sm">{% trans "Operational dashboard" %}</h1>
+                <p class="text-muted dashboard-hero__text">{% trans "Role-aware entry point with actionable sections for enabled modules." %}</p>
+            </div>
+            <div class="dashboard-hero__meta">
+                <span class="status-pill">{% trans "Role" %}: {{ role_access.code }}</span>
+                <span class="status-pill">{% trans "Online users" %}: {{ online_total }}</span>
+                <span class="status-pill">{% trans "Steam items" %}: {{ steam_items_total }}</span>
+            </div>
+        </div>
+    </article>
+
+    <div class="stats-grid stats-grid--dashboard">
+        {% include "components/stats_card.html" with label="Users" value=total_users meta="Profiles: "|add:total_profiles %}
+        {% include "components/stats_card.html" with label="Steam" value=steam_items_total meta="Review: "|add:steam_items_review %}
+        {% include "components/stats_card.html" with label="Farm" value=farm_accounts_total meta="Active: "|add:farm_accounts_active %}
+    </div>
+
+    <article class="card">
+        <div class="card-body">
+            <h2 class="section-title">{% trans "Quick actions" %}</h2>
+            <div class="quick-actions-grid">
+                <a href="{% url 'profiles:profile' %}" class="quick-action-card"><strong>{% trans "Profile" %}</strong></a>
+                {% if feature_flags.steam_catalog %}<a href="{% url 'steam_catalog:list' %}" class="quick-action-card"><strong>Steam Catalog</strong></a>{% endif %}
+                {% if feature_flags.farm %}<a href="{% url 'farm:dashboard' %}" class="quick-action-card"><strong>Farm</strong></a>{% endif %}
+                {% if feature_flags.store %}<a href="{% url 'store:storefront' %}" class="quick-action-card"><strong>{% trans "Store" %}</strong></a>{% endif %}
+                {% if role_access.is_admin_plus %}<a href="{% url 'frontend:admin_panel' %}" class="quick-action-card"><strong>Control Center</strong></a>{% endif %}
+            </div>
+        </div>
+    </article>
+</section>

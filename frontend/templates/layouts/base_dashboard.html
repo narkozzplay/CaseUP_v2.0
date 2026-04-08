@@ -9,24 +9,30 @@
     <link rel="stylesheet" href="{% static 'css/modules/steam_trading.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/subscriptions.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/web_constructor.css' %}">
+    {% if active_theme and active_theme.key == "midnight" and feature_flags.midnight_theme %}
+        <link rel="stylesheet" href="{% static 'css/themes/midnight_dashboard.css' %}">
+    {% endif %}
     {% block dashboard_extra_head %}{% endblock %}
 {% endblock %}
 
 {% block body_class %}theme-dashboard{% endblock %}
 
 {% block page %}
-    <div class="dashboard-shell" data-dashboard-shell>
-        {% include "components/sidebar_dashboard.html" %}
-
-        <section class="dashboard-content">
+    <div class="dashboard-shell {% if active_theme and active_theme.key == 'midnight' and feature_flags.midnight_theme %}dashboard-shell--midnight{% endif %}" data-dashboard-shell>
+        {% if active_theme and active_theme.key == "midnight" and feature_flags.midnight_theme %}
+            {% include "themes/midnight/components/dashboard_topnav.html" %}
+        {% else %}
+            {% include "components/sidebar_dashboard.html" %}
+        {% endif %}
+        <section class="dashboard-content {% if active_theme and active_theme.key == 'midnight' and feature_flags.midnight_theme %}dashboard-content--midnight{% endif %}">
             <div class="container container--dashboard" id="dashboard-content-root" data-dashboard-content-root>
                 {% include "components/messages.html" %}
-                <div class="dashboard-content-frame" data-dashboard-page-title="{{ dashboard_page_title|default:site_settings.site_name|default:'CaseUP' }}" data-dashboard-active-menu="{{ dashboard_active_menu_key|default:'' }}">
+                <div class="dashboard-content-frame {% if active_theme and active_theme.key == 'midnight' and feature_flags.midnight_theme %}dashboard-content-frame--midnight{% endif %}" data-dashboard-page-title="{{ dashboard_page_title|default:site_settings.site_name|default:'CaseUP' }}" data-dashboard-active-menu="{{ dashboard_active_menu_key|default:'' }}">
                     {% block content %}{% endblock %}
                 </div>
             </div>
         </section>
-    </div>
+        </div>
 {% endblock %}
 
 {% block extra_js %}

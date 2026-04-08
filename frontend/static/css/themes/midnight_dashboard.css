@@ -1,0 +1,65 @@
+.dashboard-shell--midnight {
+    display: block;
+    background: radial-gradient(circle at top, rgba(88, 28, 135, .25), rgba(2, 6, 23, 0) 50%), #020617;
+    min-height: 100vh;
+}
+
+.midnight-topnav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    backdrop-filter: blur(8px);
+    background: rgba(2, 6, 23, .88);
+    border-bottom: 1px solid rgba(148, 163, 184, .18);
+}
+
+.midnight-topnav__bar,
+.midnight-topnav__subnav {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: .75rem 1.5rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.midnight-topnav__main,
+.midnight-subnav-group__links {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+
+.midnight-topnav__brand {
+    font-weight: 700;
+    color: #e2e8f0;
+    text-decoration: none;
+}
+
+.midnight-topnav__link,
+.midnight-subnav-group__links a {
+    color: #cbd5e1;
+    text-decoration: none;
+    border: 1px solid rgba(148, 163, 184, .2);
+    padding: .35rem .65rem;
+    border-radius: .55rem;
+    font-size: .875rem;
+}
+
+.midnight-topnav__link.is-active,
+.midnight-subnav-group__links a.is-active {
+    color: #fff;
+    border-color: rgba(99, 102, 241, .7);
+    background: rgba(99, 102, 241, .25);
+}
+
+.dashboard-content--midnight .container--dashboard {
+    padding-top: 1.25rem;
+    padding-bottom: 2rem;
+}
+
+.dashboard-content-frame--midnight .card {
+    border-color: rgba(99, 102, 241, .2);
+    box-shadow: 0 8px 30px rgba(15, 23, 42, .45);
+}

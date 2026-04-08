@@ -1,0 +1,29 @@
+{% load i18n %}
+<section class="section section--compact">
+    <article class="card dashboard-hero">
+        <div class="card-body dashboard-hero__body">
+            <div>
+                <span class="eyebrow">Store</span>
+                <h1 class="page-title page-title--sm">{% trans "Store module" %}</h1>
+                <p class="text-muted dashboard-hero__text">
+                    {% trans "This is a production-ready placeholder for the future CaseUP storefront domain." %}
+                </p>
+            </div>
+            <div class="dashboard-hero__meta">
+                <span class="status-pill">{% trans "Status" %}: {% trans "Enabled" %}</span>
+                <span class="status-pill">{% trans "Mode" %}: placeholder</span>
+            </div>
+        </div>
+    </article>
+
+    <div class="profile-grid profile-grid--3">
+        {% for section in quick_sections %}
+            <article class="card">
+                <div class="card-body">
+                    <h2 class="section-title">{{ section.title }}</h2>
+                    <p class="text-muted">{{ section.description }}</p>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+</section>

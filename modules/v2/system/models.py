@@ -175,6 +175,42 @@ class SiteConfiguration(models.Model):
         return is_module_enabled("steam_catalog")
 
 
+class ExternalServiceIntegration(models.Model):
+    class HealthMode(models.TextChoices):
+        AUTO = "auto", "Auto (live check)"
+        FORCE_UP = "force_up", "Force UP"
+        FORCE_DEGRADED = "force_degraded", "Force degraded"
+        FORCE_DOWN = "force_down", "Force DOWN"
+
+    singleton_key = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+    steam_api_key = models.CharField(max_length=255, blank=True, default="")
+    faceit_api_key = models.CharField(max_length=255, blank=True, default="")
+    telegram_bot_token = models.CharField(max_length=255, blank=True, default="")
+    steam_health_mode = models.CharField(max_length=24, choices=HealthMode.choices, default=HealthMode.AUTO)
+    faceit_health_mode = models.CharField(max_length=24, choices=HealthMode.choices, default=HealthMode.AUTO)
+    telegram_health_mode = models.CharField(max_length=24, choices=HealthMode.choices, default=HealthMode.AUTO)
+    degraded_stub_message = models.CharField(max_length=255, blank=True, default="Сервис временно работает с ограничениями.")
+    down_stub_message = models.CharField(max_length=255, blank=True, default="Сервис временно недоступен.")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "External service integration"
+        verbose_name_plural = "External service integrations"
+
+    def save(self, *args, **kwargs):
+        self.singleton_key = 1
+        self.steam_api_key = (self.steam_api_key or "").strip()
+        self.faceit_api_key = (self.faceit_api_key or "").strip()
+        self.telegram_bot_token = (self.telegram_bot_token or "").strip()
+        self.degraded_stub_message = (self.degraded_stub_message or "").strip() or "Сервис временно работает с ограничениями."
+        self.down_stub_message = (self.down_stub_message or "").strip() or "Сервис временно недоступен."
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return "External service integration"
+
 class ModuleState(models.Model):
     key = models.CharField(max_length=64, unique=True)
     is_enabled = models.BooleanField(default=True, db_index=True)
@@ -420,6 +456,7 @@ class DashboardMenuItem(models.Model):
         TG_USER_ACCESS = "tg_user_access", "TG user access"
         ADMIN_PLUS = "admin_plus", "Admin+"
         SUBSCRIPTIONS_ENABLED = "subscriptions_enabled", "Subscriptions enabled"
+        STORE_ENABLED = "store_enabled", "Store enabled"
 
     key = models.CharField(max_length=64, unique=True)
     label_ru = models.CharField(max_length=120)
@@ -490,6 +527,15 @@ class DashboardMenuItem(models.Model):
                 "group": cls.Group.OVERVIEW,
                 "visibility_condition": cls.Visibility.ALWAYS,
                 "sort_order": 35,
+            },
+            {
+                "key": "store",
+                "label_ru": "Магазин",
+                "label_en": "Store",
+                "url_name": "store:storefront",
+                "group": cls.Group.OVERVIEW,
+                "visibility_condition": cls.Visibility.STORE_ENABLED,
+                "sort_order": 36,
             },
             {
                 "key": "web_constructor",
