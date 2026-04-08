@@ -49,9 +49,19 @@ class SystemConfigurationTests(TestCase):
 
         response = self.client.get(reverse("system_config:settings"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "System Settings")
+        self.assertContains(response, "System settings")
         self.assertContains(response, "Site configuration")
         self.assertContains(response, "Module flags")
+
+    def test_system_settings_includes_external_integrations_section(self):
+        admin = self._make_admin("admin_settings_integrations")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.get(reverse("system_config:settings"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "External API integrations")
+        self.assertContains(response, "Steam API key")
+        self.assertContains(response, "Telegram bot token")
 
     def test_system_settings_template_renders_all_registered_modules(self):
         admin = self._make_admin("admin_settings_modules")
@@ -267,6 +277,20 @@ class SystemConfigurationTests(TestCase):
             },
         )
         self.assertTrue(get_module_state_map()["store"])
+
+    def test_midnight_live_toggle_warning_and_confirm_hook_present_when_active(self):
+        admin = self._make_admin("admin_midnight_warning_hook")
+        bootstrap_versioning()
+        update_module_states({"midnight_theme": True})
+        config = get_site_configuration()
+        config.active_theme = ThemeProfile.objects.get(key="midnight")
+        config.save(update_fields=["active_theme", "updated_at"])
+
+        self.client.login(username=admin.username, password="StrongPass123")
+        response = self.client.get(reverse("system_config:settings"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Disable Midnight Theme Plugin? Active theme will switch to default.")
+        self.assertContains(response, "data-module-live-toggle")
 
     def test_midnight_theme_uses_topnav_shell_layout(self):
         admin = self._make_admin("admin_midnight_shell")
