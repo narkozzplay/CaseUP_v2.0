@@ -203,6 +203,7 @@ class SystemConfigurationTests(TestCase):
         bootstrap_versioning()
         default_theme = ThemeProfile.objects.get(key="default")
         midnight_theme = ThemeProfile.objects.get(key="midnight")
+        update_module_states({"midnight_theme": True})
         config = get_site_configuration()
         config.active_theme = default_theme
         config.save(update_fields=["active_theme", "updated_at"])
@@ -226,6 +227,7 @@ class SystemConfigurationTests(TestCase):
                 "module__steam_trading": "on",
                 "module__celery_tasks": "on",
                 "module__subscriptions": "on",
+                "module__midnight_theme": "on",
             },
             HTTP_X_DASHBOARD_PARTIAL="1",
             HTTP_X_REQUESTED_WITH="XMLHttpRequest",
@@ -401,6 +403,7 @@ class SystemConfigurationTests(TestCase):
         admin = self._make_admin("admin_activate_theme")
         bootstrap_versioning()
         midnight = ThemeProfile.objects.get(key="midnight")
+        update_module_states({"midnight_theme": True})
 
         self.client.login(username=admin.username, password="StrongPass123")
         response = self.client.post(
@@ -430,6 +433,7 @@ class ThemeVersioningTests(TestCase):
         profile = UserProfile.objects.get(user=user)
         profile.role = UserRole.ADMIN
         profile.save(update_fields=["role"])
+        update_module_states({"midnight_theme": True})
 
         self.client.login(username=user.username, password="StrongPass123")
         response = self.client.get(reverse("system_config:versioning"))
