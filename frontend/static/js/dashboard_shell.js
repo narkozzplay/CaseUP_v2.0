@@ -484,11 +484,101 @@
         updatePreview();
     }
 
+    function getCsrfToken() {
+        const tokenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        if (tokenInput && tokenInput.value) {
+            return tokenInput.value;
+        }
+        const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    }
+
+    function showDashboardToast(message, level = 'info') {
+        if (!message) {
+            return;
+        }
+        let stack = document.querySelector('[data-dashboard-toast-stack]');
+        if (!stack) {
+            stack = document.createElement('div');
+            stack.setAttribute('data-dashboard-toast-stack', '1');
+            stack.style.position = 'fixed';
+            stack.style.right = '1rem';
+            stack.style.bottom = '1rem';
+            stack.style.zIndex = '9999';
+            stack.style.display = 'grid';
+            stack.style.gap = '.5rem';
+            document.body.appendChild(stack);
+        }
+        const toast = document.createElement('div');
+        toast.textContent = message;
+        toast.style.padding = '.55rem .8rem';
+        toast.style.borderRadius = '.5rem';
+        toast.style.boxShadow = '0 6px 20px rgba(0,0,0,.2)';
+        toast.style.background = level === 'error' ? '#7f1d1d' : '#0f766e';
+        toast.style.color = '#fff';
+        toast.style.fontSize = '.875rem';
+        stack.appendChild(toast);
+        window.setTimeout(() => {
+            toast.remove();
+            if (stack && stack.childElementCount === 0) {
+                stack.remove();
+            }
+        }, 2800);
+    }
+
+    function initLiveModuleToggle(scope) {
+        const root = scope || document;
+        root.querySelectorAll('[data-module-live-toggle]').forEach((button) => {
+            if (button.dataset.dashboardInitBound === 'true') {
+                return;
+            }
+            button.dataset.dashboardInitBound = 'true';
+            button.addEventListener('click', async () => {
+                const moduleKey = button.dataset.moduleKey;
+                const url = button.dataset.moduleToggleUrl;
+                if (!moduleKey || !url) {
+                    return;
+                }
+                const checkbox = root.querySelector(`#id_module__${moduleKey}`);
+                if (!checkbox) {
+                    return;
+                }
+                button.disabled = true;
+                try {
+                    const payload = new URLSearchParams();
+                    payload.append('enabled', checkbox.checked ? '1' : '0');
+                    const response = await window.fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': getCsrfToken(),
+                            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                        },
+                        body: payload.toString(),
+                        credentials: 'same-origin',
+                    });
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok || !data.ok) {
+                        showDashboardToast(data.error || 'Live module update failed.', 'error');
+                        return;
+                    }
+                    checkbox.checked = Boolean(data.enabled);
+                    showDashboardToast(data.message || 'Module state updated.');
+                } catch (_error) {
+                    showDashboardToast('Live module update failed.', 'error');
+                } finally {
+                    button.disabled = false;
+                }
+            });
+        });
+    }
+
     function initDashboardPageScripts(scope) {
         initCeleryTaskScheduleFields(scope);
         initSteamCatalogPriceHistory(scope);
         initSteamTradingAdd(scope);
         initSteamTradingSell(scope);
+        initLiveModuleToggle(scope);
     }
 
     restoreGroupState();

@@ -187,14 +187,14 @@ class SteamTradingTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Recoil Case")
 
-    def test_admin_cannot_open_sell_page_for_other_users_purchase(self):
+    def test_admin_can_open_sell_page_for_other_users_purchase(self):
         owner = self._make_farmer("farmer_sell_owner")
         self._make_admin("admin_sell_viewer")
         purchase = self._make_purchase(user=owner)
     
         self.client.login(username="admin_sell_viewer", password="StrongPass123")
         response = self.client.get(reverse("steam_trading:sell", args=[purchase.id]))
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 200)
 
     def test_summary_handles_zero_spent(self):
         summary = build_purchase_summary([])

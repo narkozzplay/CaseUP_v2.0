@@ -9,8 +9,8 @@ from modules.v2.subscriptions.models import SubscriptionPlan
 from modules.v2.subscriptions.services import assign_user_subscription_plan
 
 from .dashboard_menu import build_dashboard_menu, ensure_dashboard_menu_items
-from .models import DashboardMenuItem, SiteConfiguration, ThemeProfile, ProjectVersion, EnvironmentModuleState, ModuleRelease
-from .services import get_active_theme, get_current_project_version, bootstrap_versioning
+from .models import DashboardMenuItem, SiteConfiguration, ThemeProfile, ProjectVersion, EnvironmentModuleState, ModuleRelease, ExternalServiceIntegration
+from .services import get_active_theme, get_current_project_version, bootstrap_versioning, get_external_service_health
 from .module_registry import MODULE_REGISTRY
 from .services import get_module_state_map, get_site_configuration, update_module_states
 
@@ -66,6 +66,12 @@ class SystemConfigurationTests(TestCase):
         self.assertContains(response, "Commercial access for")
         self.assertContains(response, "Subscriptions")
 
+    def test_store_module_is_registered_and_disabled_by_default(self):
+        bootstrap_versioning()
+        state_map = get_module_state_map()
+        self.assertIn("store", state_map)
+        self.assertFalse(state_map["store"])
+
     def test_system_settings_shows_module_release_metadata(self):
         admin = self._make_admin("admin_settings_release_meta")
         self.client.login(username=admin.username, password="StrongPass123")
@@ -119,6 +125,9 @@ class SystemConfigurationTests(TestCase):
                 "maintenance_mode_enabled": "on",
                 "maintenance_message": "Maint",
                 "registration_enabled": "on",
+                "steam_health_mode": "auto",
+                "faceit_health_mode": "auto",
+                "telegram_health_mode": "auto",
                 "module__steam_catalog": "on",
                 "module__farm": "on",
                 "module__tradehub": "on",
@@ -135,6 +144,59 @@ class SystemConfigurationTests(TestCase):
         self.assertTrue(config.maintenance_mode_enabled)
         self.assertEqual(str(config.site_currency_rate), "1.000000")
         self.assertTrue(get_module_state_map()["tg_notifier"])
+
+    def test_admin_can_save_external_api_integrations(self):
+        admin = self._make_admin("admin_integrations_save")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.post(
+            reverse("system_config:settings"),
+            {
+                "site_name": "CaseUP",
+                "site_currency_code": "RUB",
+                "site_currency_rate": "1.000000",
+                "support_email": "support@example.com",
+                "public_base_url": "https://caseup.example.com",
+                "maintenance_message": "Maint",
+                "registration_enabled": "on",
+                "steam_api_key": "steam-key-123",
+                "faceit_api_key": "faceit-key-123",
+                "telegram_bot_token": "bot-token-123",
+                "steam_health_mode": "force_up",
+                "faceit_health_mode": "force_degraded",
+                "telegram_health_mode": "force_down",
+                "degraded_stub_message": "Degraded stub",
+                "down_stub_message": "Down stub",
+                "module__steam_catalog": "on",
+                "module__farm": "on",
+                "module__tradehub": "on",
+                "module__steam_trading": "on",
+                "module__celery_tasks": "on",
+                "module__tg_notifier": "on",
+                "module__subscriptions": "on",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        integration = ExternalServiceIntegration.objects.get(singleton_key=1)
+        self.assertEqual(integration.steam_api_key, "steam-key-123")
+        self.assertEqual(integration.faceit_health_mode, "force_degraded")
+        self.assertEqual(integration.telegram_health_mode, "force_down")
+
+    def test_external_service_health_respects_force_modes(self):
+        integration = ExternalServiceIntegration.objects.create(
+            steam_api_key="steam-key",
+            faceit_api_key="faceit-key",
+            telegram_bot_token="telegram-key",
+            steam_health_mode="force_up",
+            faceit_health_mode="force_degraded",
+            telegram_health_mode="force_down",
+            degraded_stub_message="Degraded",
+            down_stub_message="Down",
+        )
+        health = {item.key: item for item in get_external_service_health()}
+        self.assertEqual(health["steam"].status, "up")
+        self.assertEqual(health["faceit"].message, "Degraded")
+        self.assertEqual(health["telegram"].message, "Down")
 
     def test_partial_save_returns_theme_headers_for_css_hot_swap(self):
         admin = self._make_admin("admin_partial_theme_swap")
@@ -173,6 +235,36 @@ class SystemConfigurationTests(TestCase):
         self.assertEqual(response["X-Dashboard-Partial"], "1")
         self.assertEqual(response["X-Dashboard-Theme-Mode"], "css")
         self.assertIn("css/themes/midnight.css", response["X-Dashboard-Theme-Css-Url"])
+
+    def test_midnight_theme_falls_back_to_default_when_plugin_disabled(self):
+        bootstrap_versioning()
+        midnight_theme = ThemeProfile.objects.get(key="midnight")
+        default_theme = ThemeProfile.objects.get(key="default")
+        config = get_site_configuration()
+        config.active_theme = midnight_theme
+        config.save(update_fields=["active_theme", "updated_at"])
+
+        update_module_states({"midnight_theme": False})
+        active_theme = get_active_theme()
+        self.assertIsNotNone(active_theme)
+        self.assertEqual(active_theme.key, default_theme.key)
+
+    def test_admin_can_toggle_module_live_endpoint(self):
+        admin = self._make_admin("admin_toggle_module_live")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.post(reverse("system_config:toggle_module_state", kwargs={"module_key": "store"}), {"enabled": "1"})
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            response.content,
+            {
+                "ok": True,
+                "module_key": "store",
+                "enabled": True,
+                "message": "Module 'Store' enabled.",
+            },
+        )
+        self.assertTrue(get_module_state_map()["store"])
 
     def test_invalid_dependency_post_shows_error_and_does_not_save_conflict(self):
         admin = self._make_admin("admin_invalid_dependency")
@@ -293,7 +385,8 @@ class SystemConfigurationTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Тема 'Midnight Neon' активирована.")
+        self.assertContains(response, "Midnight Neon")
+        self.assertContains(response, "активирована")
         self.assertEqual(get_site_configuration().active_theme_id, midnight.id)
 
 

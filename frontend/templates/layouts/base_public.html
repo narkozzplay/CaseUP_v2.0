@@ -6,6 +6,7 @@
     {% include theme_navbar_public_template|default:"components/navbar_public.html" %}
 
     <main class="site-main">
+        {% include "components/messages.html" %}
         {% block content %}{% endblock %}
     </main>
 

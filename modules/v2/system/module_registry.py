@@ -15,6 +15,13 @@ class ModuleDefinition:
 
 
 MODULE_REGISTRY: dict[str, ModuleDefinition] = {
+    "midnight_theme": ModuleDefinition(
+        key="midnight_theme",
+        label="Midnight Theme Plugin",
+        description="Плагин-поставка альтернативной темы Midnight Neon.",
+        namespaces=(),
+        default_enabled=False,
+    ),
     "steam_catalog": ModuleDefinition(
         key="steam_catalog",
         label="Steam Catalog",
@@ -83,6 +90,14 @@ MODULE_REGISTRY: dict[str, ModuleDefinition] = {
         namespaces=("web_constructor",),
         addon_targets=("subscriptions",),
         default_enabled=True,
+    ),
+    "store": ModuleDefinition(
+        key="store",
+        label="Store",
+        description="Foundation-модуль storefront/витрины (пока выключен по умолчанию).",
+        namespaces=("store",),
+        addon_targets=("subscriptions",),
+        default_enabled=False,
     ),
 }
 
