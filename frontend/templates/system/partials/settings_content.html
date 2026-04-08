@@ -181,6 +181,9 @@
                 <div class="section-head-inline">
                     <h2 class="section-title">{% trans "External API integrations" %}</h2>
                     <span class="text-muted">{% trans "Steam / FaceIT / Telegram keys, health mode and service stubs." %}</span>
+                    <h2 class="section-title">External API integrations</h2>
+                    <span class="text-muted">Steam / FaceIT / Telegram keys + health mode + заглушки.</span>
+
                 </div>
 
                 <div class="profile-grid profile-grid--3">
@@ -220,6 +223,41 @@
                     </div>
                     <div class="form-field">
                         <label for="{{ form.down_stub_message.id_for_label }}">{% trans "Stub for down service" %}</label>
+                        <label for="{{ form.steam_api_key.id_for_label }}">Steam API key</label>
+                        {{ form.steam_api_key }}
+                        {% if masked_integration_secrets.steam_api_key %}<p class="text-muted">Текущий ключ: {{ masked_integration_secrets.steam_api_key }}</p>{% endif %}
+                        {{ form.steam_api_key.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.faceit_api_key.id_for_label }}">FaceIT API key</label>
+                        {{ form.faceit_api_key }}
+                        {% if masked_integration_secrets.faceit_api_key %}<p class="text-muted">Текущий ключ: {{ masked_integration_secrets.faceit_api_key }}</p>{% endif %}
+                        {{ form.faceit_api_key.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.telegram_bot_token.id_for_label }}">Telegram bot token</label>
+                        {{ form.telegram_bot_token }}
+                        {% if masked_integration_secrets.telegram_bot_token %}<p class="text-muted">Текущий ключ: {{ masked_integration_secrets.telegram_bot_token }}</p>{% endif %}
+                        {{ form.telegram_bot_token.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.steam_health_mode.id_for_label }}">Steam health mode</label>
+                        {{ form.steam_health_mode }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.faceit_health_mode.id_for_label }}">FaceIT health mode</label>
+                        {{ form.faceit_health_mode }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.telegram_health_mode.id_for_label }}">Telegram health mode</label>
+                        {{ form.telegram_health_mode }}
+                    </div>
+                    <div class="form-field" style="grid-column: span 2;">
+                        <label for="{{ form.degraded_stub_message.id_for_label }}">Stub for degraded service</label>
+                        {{ form.degraded_stub_message }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.down_stub_message.id_for_label }}">Stub for down service</label>
                         {{ form.down_stub_message }}
                     </div>
                 </div>
@@ -232,6 +270,7 @@
                                 <div class="text-muted">{{ item.message }}</div>
                             </div>
                             <span class="status-pill status-pill--sm">{{ item.status }} · {% trans "mode" %}: {{ item.mode }}</span>
+                            <span class="status-pill status-pill--sm">{{ item.status }} · mode: {{ item.mode }}</span>
                         </div>
                     {% endfor %}
                 </div>
@@ -243,6 +282,8 @@
                 <div class="section-head-inline">
                     <h2 class="section-title">{% trans "Module flags" %}</h2>
                     <span class="text-muted">{% trans "Module dependencies are validated before saving." %}</span>
+                    <h2 class="section-title">Module flags</h2>
+                    <span class="text-muted">Зависимости модулей валидируются до сохранения.</span>
                 </div>
 
                 {% if module_preview and module_preview.cascaded_disabled_labels %}
@@ -308,6 +349,7 @@
                                 {% if card.row.key == "midnight_theme" and summary.active_theme and summary.active_theme.key == "midnight" %}
                                     <div class="text-muted">
                                         <strong>{% trans "Warning:" %}</strong> {% trans "disabling Midnight plugin will fallback to the default theme." %}
+                                        <strong>Warning:</strong> отключение плагина Midnight приведёт к fallback на Default theme.
                                     </div>
                                 {% endif %}
 
@@ -339,6 +381,10 @@
                                         {% endif %}
                                     >
                                         {% trans "Apply live" %}
+                                            data-module-toggle-confirm="Отключить Midnight Theme Plugin? Активная тема переключится на default."
+                                        {% endif %}
+                                    >
+                                        Apply live
                                     </button>
                                 </div>
                                 {{ card.field.errors }}

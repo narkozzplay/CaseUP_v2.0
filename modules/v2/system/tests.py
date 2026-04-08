@@ -316,7 +316,7 @@ class SystemConfigurationTests(TestCase):
         update_module_states({"store": True})
         response = self.client.get(reverse("frontend:dashboard_preview"))
         self.assertContains(response, reverse("store:storefront"))
-
+        
     def test_invalid_dependency_post_shows_error_and_does_not_save_conflict(self):
         admin = self._make_admin("admin_invalid_dependency")
         self.client.login(username=admin.username, password="StrongPass123")
