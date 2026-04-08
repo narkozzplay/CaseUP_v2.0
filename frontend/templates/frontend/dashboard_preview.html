@@ -3,5 +3,9 @@
 {% block title %}{{ site_settings.site_name|default:"CaseUP" }} — Dashboard{% endblock %}
 
 {% block content %}
-    {% include "frontend/partials/dashboard_preview_content.html" %}
+    {% if active_theme and active_theme.key == "midnight" and feature_flags.midnight_theme %}
+        {% include "themes/midnight/pages/dashboard_preview_content.html" %}
+    {% else %}
+        {% include "frontend/partials/dashboard_preview_content.html" %}
+    {% endif %}
 {% endblock %}

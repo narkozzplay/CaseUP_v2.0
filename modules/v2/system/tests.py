@@ -49,9 +49,19 @@ class SystemConfigurationTests(TestCase):
 
         response = self.client.get(reverse("system_config:settings"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "System Settings")
+        self.assertContains(response, "System settings")
         self.assertContains(response, "Site configuration")
         self.assertContains(response, "Module flags")
+
+    def test_system_settings_includes_external_integrations_section(self):
+        admin = self._make_admin("admin_settings_integrations")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.get(reverse("system_config:settings"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "External API integrations")
+        self.assertContains(response, "Steam API key")
+        self.assertContains(response, "Telegram bot token")
 
     def test_system_settings_template_renders_all_registered_modules(self):
         admin = self._make_admin("admin_settings_modules")
@@ -203,6 +213,7 @@ class SystemConfigurationTests(TestCase):
         bootstrap_versioning()
         default_theme = ThemeProfile.objects.get(key="default")
         midnight_theme = ThemeProfile.objects.get(key="midnight")
+        update_module_states({"midnight_theme": True})
         config = get_site_configuration()
         config.active_theme = default_theme
         config.save(update_fields=["active_theme", "updated_at"])
@@ -226,6 +237,7 @@ class SystemConfigurationTests(TestCase):
                 "module__steam_trading": "on",
                 "module__celery_tasks": "on",
                 "module__subscriptions": "on",
+                "module__midnight_theme": "on",
             },
             HTTP_X_DASHBOARD_PARTIAL="1",
             HTTP_X_REQUESTED_WITH="XMLHttpRequest",
@@ -266,6 +278,45 @@ class SystemConfigurationTests(TestCase):
         )
         self.assertTrue(get_module_state_map()["store"])
 
+    def test_midnight_live_toggle_warning_and_confirm_hook_present_when_active(self):
+        admin = self._make_admin("admin_midnight_warning_hook")
+        bootstrap_versioning()
+        update_module_states({"midnight_theme": True})
+        config = get_site_configuration()
+        config.active_theme = ThemeProfile.objects.get(key="midnight")
+        config.save(update_fields=["active_theme", "updated_at"])
+
+        self.client.login(username=admin.username, password="StrongPass123")
+        response = self.client.get(reverse("system_config:settings"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Disable Midnight Theme Plugin? Active theme will switch to default.")
+        self.assertContains(response, "data-module-live-toggle")
+
+    def test_midnight_theme_uses_topnav_shell_layout(self):
+        admin = self._make_admin("admin_midnight_shell")
+        self.client.login(username=admin.username, password="StrongPass123")
+        bootstrap_versioning()
+        midnight = ThemeProfile.objects.get(key="midnight")
+        config = get_site_configuration()
+        config.active_theme = midnight
+        config.save(update_fields=["active_theme", "updated_at"])
+        update_module_states({"midnight_theme": True})
+
+        response = self.client.get(reverse("system_config:settings"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "midnight-topnav")
+
+    def test_store_menu_item_visible_only_when_store_enabled(self):
+        user = self._make_user("menu_store_user")
+        self.client.login(username=user.username, password="StrongPass123")
+        update_module_states({"store": False})
+        response = self.client.get(reverse("frontend:dashboard_preview"))
+        self.assertNotContains(response, reverse("store:storefront"))
+
+        update_module_states({"store": True})
+        response = self.client.get(reverse("frontend:dashboard_preview"))
+        self.assertContains(response, reverse("store:storefront"))
+        
     def test_invalid_dependency_post_shows_error_and_does_not_save_conflict(self):
         admin = self._make_admin("admin_invalid_dependency")
         self.client.login(username=admin.username, password="StrongPass123")
@@ -376,6 +427,7 @@ class SystemConfigurationTests(TestCase):
         admin = self._make_admin("admin_activate_theme")
         bootstrap_versioning()
         midnight = ThemeProfile.objects.get(key="midnight")
+        update_module_states({"midnight_theme": True})
 
         self.client.login(username=admin.username, password="StrongPass123")
         response = self.client.post(
@@ -405,6 +457,7 @@ class ThemeVersioningTests(TestCase):
         profile = UserProfile.objects.get(user=user)
         profile.role = UserRole.ADMIN
         profile.save(update_fields=["role"])
+        update_module_states({"midnight_theme": True})
 
         self.client.login(username=user.username, password="StrongPass123")
         response = self.client.get(reverse("system_config:versioning"))

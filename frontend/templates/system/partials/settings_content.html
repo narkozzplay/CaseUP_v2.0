@@ -1,18 +1,19 @@
+{% load i18n %}
 <section class="section section--compact">
     <div class="dashboard-hero card dashboard-hero--admin">
         <div class="card-body dashboard-hero__body">
             <div>
                 <span class="eyebrow">Admin+</span>
-                <h1 class="page-title page-title--sm">System Settings</h1>
+                <h1 class="page-title page-title--sm">{% trans "System settings" %}</h1>
                 <p class="text-muted dashboard-hero__text">
-                    Централизованное управление site configuration, maintenance mode и feature flags модулей без runtime-изменения INSTALLED_APPS.
+                    {% trans "Centralized control for site configuration, maintenance mode, and module feature flags without runtime INSTALLED_APPS mutations." %}
                 </p>
             </div>
 
             <div class="dashboard-hero__meta">
-                <span class="status-pill">Public URL: {{ summary.public_base_url }}</span>
-                <span class="status-pill">Maintenance: {{ summary.maintenance_label }}</span>
-                <span class="status-pill">Modules: {{ summary.enabled_count }}/{{ summary.total_count }}</span>
+                <span class="status-pill">{% trans "Public URL" %}: {{ summary.public_base_url }}</span>
+                <span class="status-pill">{% trans "Maintenance" %}: {{ summary.maintenance_label }}</span>
+                <span class="status-pill">{% trans "Modules" %}: {{ summary.enabled_count }}/{{ summary.total_count }}</span>
             </div>
         </div>
     </div>
@@ -20,14 +21,14 @@
     <div class="profile-grid profile-grid--3">
         <article class="card">
             <div class="card-body">
-                <h2 class="section-title">Public runtime</h2>
+                <h2 class="section-title">{% trans "Public runtime" %}</h2>
                 <div class="dashboard-list">
                     <div class="dashboard-list__row">
-                        <strong>Public base URL</strong>
+                        <strong>{% trans "Public base URL" %}</strong>
                         <span class="status-pill status-pill--sm">{{ summary.public_base_url }}</span>
                     </div>
                     <div class="dashboard-list__row">
-                        <strong>Support email</strong>
+                        <strong>{% trans "Support email" %}</strong>
                         <span class="status-pill status-pill--sm">{{ summary.support_email }}</span>
                     </div>
                 </div>
@@ -36,14 +37,14 @@
 
         <article class="card">
             <div class="card-body">
-                <h2 class="section-title">Site access</h2>
+                <h2 class="section-title">{% trans "Site access" %}</h2>
                 <div class="dashboard-list">
                     <div class="dashboard-list__row">
-                        <strong>Maintenance</strong>
+                        <strong>{% trans "Maintenance" %}</strong>
                         <span class="status-pill status-pill--sm">{{ summary.maintenance_label }}</span>
                     </div>
                     <div class="dashboard-list__row">
-                        <strong>Registration</strong>
+                        <strong>{% trans "Registration" %}</strong>
                         <span class="status-pill status-pill--sm">{{ summary.registration_label }}</span>
                     </div>
                 </div>
@@ -52,26 +53,26 @@
 
         <article class="card">
             <div class="card-body">
-                <h2 class="section-title">Feature flags</h2>
+                <h2 class="section-title">{% trans "Feature flags" %}</h2>
                 <div class="dashboard-list">
                     <div class="dashboard-list__row">
-                        <strong>TG Notifier</strong>
+                        <strong>{% trans "TG Notifier" %}</strong>
                         <span class="status-pill status-pill--sm">
                             {% if summary.tg_notifier_enabled %}Enabled{% else %}Disabled{% endif %}
                         </span>
                     </div>
                     <div class="dashboard-list__row">
-                        <strong>Steam Catalog</strong>
+                        <strong>{% trans "Steam Catalog" %}</strong>
                         <span class="status-pill status-pill--sm">
                             {% if summary.steam_catalog_enabled %}Enabled{% else %}Disabled{% endif %}
                         </span>
                     </div>
                     <div class="dashboard-list__row">
-                        <strong>Active modules</strong>
+                        <strong>{% trans "Active modules" %}</strong>
                         <span class="status-pill status-pill--sm">{{ summary.enabled_count }}/{{ summary.total_count }}</span>
                     </div>
                     <div class="dashboard-list__row">
-                        <strong>Subscriptions</strong>
+                        <strong>{% trans "Subscriptions" %}</strong>
                         <span class="status-pill status-pill--sm">
                             {% if summary.subscriptions_enabled %}Enabled{% else %}Disabled{% endif %}
                         </span>
@@ -88,7 +89,7 @@
             <div class="card-body">
                 <div class="section-head-inline">
                     <h2 class="section-title">Site configuration</h2>
-                    <span class="text-muted">Singleton configuration used by middleware and template context.</span>
+                    <span class="text-muted">{% trans "Singleton configuration used by middleware and template context." %}</span>
                 </div>
 
                 {% if form.non_field_errors %}
@@ -101,48 +102,46 @@
 
                 <div class="profile-grid profile-grid--3">
                     <div class="form-field">
-                        <label for="{{ form.site_name.id_for_label }}">Site name</label>
+                        <label for="{{ form.site_name.id_for_label }}">{% trans "Site name" %}</label>
                         {{ form.site_name }}
                         {{ form.site_name.errors }}
                     </div>
 
                     <div class="form-field">
-                        <label for="{{ form.site_currency_code.id_for_label }}">Currency code</label>
+                        <label for="{{ form.site_currency_code.id_for_label }}">{% trans "Currency code" %}</label>
                         {{ form.site_currency_code }}
                         {{ form.site_currency_code.errors }}
                     </div>
 
                     <div class="form-field">
-                        <label for="{{ form.site_currency_rate.id_for_label }}">Currency rate</label>
+                        <label for="{{ form.site_currency_rate.id_for_label }}">{% trans "Currency rate" %}</label>
                         {{ form.site_currency_rate }}
-                        <p class="text-muted">1 {{ form.site_currency_code.value|default:site_settings.site_currency_code|default:"RUB" }} = {{ form.site_currency_rate.value|default:site_settings.site_currency_rate|default:"1.000000" }} RUB. Баланс и списания хранятся в RUB, валюта меняет только отображение.</p>
+                        <p class="text-muted">{% blocktrans with currency=form.site_currency_code.value|default:site_settings.site_currency_code|default:"RUB" rate=form.site_currency_rate.value|default:site_settings.site_currency_rate|default:"1.000000" %}1 {{ currency }} = {{ rate }} RUB. Balances and charges are stored in RUB; currency only affects display.{% endblocktrans %}</p>
                         {{ form.site_currency_rate.errors }}
                     </div>
 
                     <div class="form-field">
-                        <label for="{{ form.support_email.id_for_label }}">Support email</label>
+                        <label for="{{ form.support_email.id_for_label }}">{% trans "Support email" %}</label>
                         {{ form.support_email }}
                         {{ form.support_email.errors }}
                     </div>
 
                     <div class="form-field">
-                        <label for="{{ form.current_project_version.id_for_label }}">Current project version</label>
+                        <label for="{{ form.current_project_version.id_for_label }}">{% trans "Current project version" %}</label>
                         {{ form.current_project_version }}
                         {{ form.current_project_version.errors }}
                     </div>
 
                     <div class="form-field">
-                        <label for="{{ form.active_theme.id_for_label }}">Active theme</label>
+                        <label for="{{ form.active_theme.id_for_label }}">{% trans "Active theme" %}</label>
                         {{ form.active_theme }}
                         {{ form.active_theme.errors }}
                     </div>
 
                     <div class="form-field" style="grid-column: span 2;">
-                        <label for="{{ form.public_base_url.id_for_label }}">Public base URL</label>
+                        <label for="{{ form.public_base_url.id_for_label }}">{% trans "Public base URL" %}</label>
                         {{ form.public_base_url }}
-                        <p class="text-muted">
-                            Используется публичными интеграциями и ссылками, в том числе для внешних callback/webhook сценариев.
-                        </p>
+                        <p class="text-muted">{% trans "Used by public integrations and links, including external callback/webhook scenarios." %}</p>
                         {{ form.public_base_url.errors }}
                     </div>
                 </div>
@@ -152,9 +151,9 @@
                         <label class="toggle-control" for="{{ form.registration_enabled.id_for_label }}">
                             {{ form.registration_enabled }}
                             <span class="toggle-control__track" aria-hidden="true"></span>
-                            <span class="toggle-control__text">Registration enabled</span>
+                            <span class="toggle-control__text">{% trans "Registration enabled" %}</span>
                         </label>
-                        <p class="text-muted">Управляет доступностью пользовательской регистрации.</p>
+                        <p class="text-muted">{% trans "Controls whether user registration is available." %}</p>
                         {{ form.registration_enabled.errors }}
                     </div>
                 
@@ -162,15 +161,15 @@
                         <label class="toggle-control" for="{{ form.maintenance_mode_enabled.id_for_label }}">
                             {{ form.maintenance_mode_enabled }}
                             <span class="toggle-control__track" aria-hidden="true"></span>
-                            <span class="toggle-control__text">Maintenance mode</span>
+                            <span class="toggle-control__text">{% trans "Maintenance mode" %}</span>
                         </label>
-                        <p class="text-muted">Обычные пользователи получат maintenance page, admin+ сохраняет доступ.</p>
+                        <p class="text-muted">{% trans "Regular users receive the maintenance page while admin+ users keep access." %}</p>
                         {{ form.maintenance_mode_enabled.errors }}
                     </div>
                 </div>
 
                 <div class="form-field">
-                    <label for="{{ form.maintenance_message.id_for_label }}">Maintenance message</label>
+                    <label for="{{ form.maintenance_message.id_for_label }}">{% trans "Maintenance message" %}</label>
                     {{ form.maintenance_message }}
                     {{ form.maintenance_message.errors }}
                 </div>
@@ -180,12 +179,50 @@
         <article class="card">
             <div class="card-body">
                 <div class="section-head-inline">
+                    <h2 class="section-title">{% trans "External API integrations" %}</h2>
+                    <span class="text-muted">{% trans "Steam / FaceIT / Telegram keys, health mode and service stubs." %}</span>
                     <h2 class="section-title">External API integrations</h2>
                     <span class="text-muted">Steam / FaceIT / Telegram keys + health mode + заглушки.</span>
+
                 </div>
 
                 <div class="profile-grid profile-grid--3">
                     <div class="form-field">
+                        <label for="{{ form.steam_api_key.id_for_label }}">{% trans "Steam API key" %}</label>
+                        {{ form.steam_api_key }}
+                        {% if masked_integration_secrets.steam_api_key %}<p class="text-muted">{% trans "Current key" %}: {{ masked_integration_secrets.steam_api_key }}</p>{% endif %}
+                        {{ form.steam_api_key.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.faceit_api_key.id_for_label }}">{% trans "FaceIT API key" %}</label>
+                        {{ form.faceit_api_key }}
+                        {% if masked_integration_secrets.faceit_api_key %}<p class="text-muted">{% trans "Current key" %}: {{ masked_integration_secrets.faceit_api_key }}</p>{% endif %}
+                        {{ form.faceit_api_key.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.telegram_bot_token.id_for_label }}">{% trans "Telegram bot token" %}</label>
+                        {{ form.telegram_bot_token }}
+                        {% if masked_integration_secrets.telegram_bot_token %}<p class="text-muted">{% trans "Current key" %}: {{ masked_integration_secrets.telegram_bot_token }}</p>{% endif %}
+                        {{ form.telegram_bot_token.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.steam_health_mode.id_for_label }}">{% trans "Steam health mode" %}</label>
+                        {{ form.steam_health_mode }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.faceit_health_mode.id_for_label }}">{% trans "FaceIT health mode" %}</label>
+                        {{ form.faceit_health_mode }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.telegram_health_mode.id_for_label }}">{% trans "Telegram health mode" %}</label>
+                        {{ form.telegram_health_mode }}
+                    </div>
+                    <div class="form-field" style="grid-column: span 2;">
+                        <label for="{{ form.degraded_stub_message.id_for_label }}">{% trans "Stub for degraded service" %}</label>
+                        {{ form.degraded_stub_message }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.down_stub_message.id_for_label }}">{% trans "Stub for down service" %}</label>
                         <label for="{{ form.steam_api_key.id_for_label }}">Steam API key</label>
                         {{ form.steam_api_key }}
                         {% if masked_integration_secrets.steam_api_key %}<p class="text-muted">Текущий ключ: {{ masked_integration_secrets.steam_api_key }}</p>{% endif %}
@@ -232,6 +269,7 @@
                                 <strong>{{ item.label }}</strong>
                                 <div class="text-muted">{{ item.message }}</div>
                             </div>
+                            <span class="status-pill status-pill--sm">{{ item.status }} · {% trans "mode" %}: {{ item.mode }}</span>
                             <span class="status-pill status-pill--sm">{{ item.status }} · mode: {{ item.mode }}</span>
                         </div>
                     {% endfor %}
@@ -242,6 +280,8 @@
         <article class="card">
             <div class="card-body">
                 <div class="section-head-inline">
+                    <h2 class="section-title">{% trans "Module flags" %}</h2>
+                    <span class="text-muted">{% trans "Module dependencies are validated before saving." %}</span>
                     <h2 class="section-title">Module flags</h2>
                     <span class="text-muted">Зависимости модулей валидируются до сохранения.</span>
                 </div>
@@ -249,8 +289,8 @@
                 {% if module_preview and module_preview.cascaded_disabled_labels %}
                     <div class="card card--soft">
                         <div class="card-body">
-                            <strong>Cascade preview:</strong>
-                            при сохранении также будут выключены зависимые модули:
+                            <strong>{% trans "Cascade preview:" %}</strong>
+                            {% trans "saving will also disable dependent modules" %}:
                             {{ module_preview.cascaded_disabled_labels|join:", " }}.
                         </div>
                     </div>
@@ -308,6 +348,7 @@
                                 {% endif %}
                                 {% if card.row.key == "midnight_theme" and summary.active_theme and summary.active_theme.key == "midnight" %}
                                     <div class="text-muted">
+                                        <strong>{% trans "Warning:" %}</strong> {% trans "disabling Midnight plugin will fallback to the default theme." %}
                                         <strong>Warning:</strong> отключение плагина Midnight приведёт к fallback на Default theme.
                                     </div>
                                 {% endif %}
@@ -336,6 +377,10 @@
                                         data-module-key="{{ card.row.key }}"
                                         data-module-toggle-url="{% url 'system_config:toggle_module_state' module_key=card.row.key %}"
                                         {% if card.row.key == "midnight_theme" and summary.active_theme and summary.active_theme.key == "midnight" %}
+                                            data-module-toggle-confirm="{% trans 'Disable Midnight Theme Plugin? Active theme will switch to default.' %}"
+                                        {% endif %}
+                                    >
+                                        {% trans "Apply live" %}
                                             data-module-toggle-confirm="Отключить Midnight Theme Plugin? Активная тема переключится на default."
                                         {% endif %}
                                     >
@@ -346,12 +391,12 @@
                             </div>
                         </div>
                     {% empty %}
-                        <p class="text-muted">No modules registered.</p>
+                        <p class="text-muted">{% trans "No modules registered." %}</p>
                     {% endfor %}
                 </div>
 
                 <div class="auth-card__actions">
-                    <button type="submit" class="btn btn-primary">Save configuration</button>
+                    <button type="submit" class="btn btn-primary">{% trans "Save configuration" %}</button>
                 </div>
             </div>
         </article>

@@ -456,6 +456,7 @@ class DashboardMenuItem(models.Model):
         TG_USER_ACCESS = "tg_user_access", "TG user access"
         ADMIN_PLUS = "admin_plus", "Admin+"
         SUBSCRIPTIONS_ENABLED = "subscriptions_enabled", "Subscriptions enabled"
+        STORE_ENABLED = "store_enabled", "Store enabled"
 
     key = models.CharField(max_length=64, unique=True)
     label_ru = models.CharField(max_length=120)
@@ -526,6 +527,15 @@ class DashboardMenuItem(models.Model):
                 "group": cls.Group.OVERVIEW,
                 "visibility_condition": cls.Visibility.ALWAYS,
                 "sort_order": 35,
+            },
+            {
+                "key": "store",
+                "label_ru": "Магазин",
+                "label_en": "Store",
+                "url_name": "store:storefront",
+                "group": cls.Group.OVERVIEW,
+                "visibility_condition": cls.Visibility.STORE_ENABLED,
+                "sort_order": 36,
             },
             {
                 "key": "web_constructor",
