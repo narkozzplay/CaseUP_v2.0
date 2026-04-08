@@ -81,7 +81,7 @@
         </article>
     </div>
 
-    <form method="post" class="form-stack" data-dashboard-shell-form>
+    <form method="post" class="form-stack" data-dashboard-shell-form data-active-theme-key="{{ summary.active_theme.key|default:'' }}">
         {% csrf_token %}
 
         <article class="card">
@@ -227,7 +227,7 @@
 
                 <div class="dashboard-list">
                     {% for item in integration_health %}
-                        <div class="dashboard-list__row" data-module-row data-module-key="{{ card.row.key }}">
+                        <div class="dashboard-list__row">
                             <div>
                                 <strong>{{ item.label }}</strong>
                                 <div class="text-muted">{{ item.message }}</div>
@@ -258,7 +258,7 @@
 
                 <div class="dashboard-list">
                     {% for card in module_cards %}
-                        <div class="dashboard-list__row">
+                        <div class="dashboard-list__row" data-module-row data-module-key="{{ card.row.key }}">
                             <div>
                                 <div class="section-head-inline">
                                     <strong>{{ card.row.label }}</strong>
@@ -306,6 +306,11 @@
                                 {% if card.row.blocked_reason %}
                                     <div class="text-muted">{{ card.row.blocked_reason }}</div>
                                 {% endif %}
+                                {% if card.row.key == "midnight_theme" and summary.active_theme and summary.active_theme.key == "midnight" %}
+                                    <div class="text-muted">
+                                        <strong>Warning:</strong> отключение плагина Midnight приведёт к fallback на Default theme.
+                                    </div>
+                                {% endif %}
 
                                 <div class="text-muted">
                                     <strong>Current release:</strong> {{ card.release.active_release_version }}
@@ -330,6 +335,9 @@
                                         data-module-live-toggle
                                         data-module-key="{{ card.row.key }}"
                                         data-module-toggle-url="{% url 'system_config:toggle_module_state' module_key=card.row.key %}"
+                                        {% if card.row.key == "midnight_theme" and summary.active_theme and summary.active_theme.key == "midnight" %}
+                                            data-module-toggle-confirm="Отключить Midnight Theme Plugin? Активная тема переключится на default."
+                                        {% endif %}
                                     >
                                         Apply live
                                     </button>

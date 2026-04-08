@@ -536,11 +536,15 @@
             button.addEventListener('click', async () => {
                 const moduleKey = button.dataset.moduleKey;
                 const url = button.dataset.moduleToggleUrl;
+                const confirmMessage = button.dataset.moduleToggleConfirm || '';
                 if (!moduleKey || !url) {
                     return;
                 }
                 const checkbox = root.querySelector(`#id_module__${moduleKey}`);
                 if (!checkbox) {
+                    return;
+                }
+                if (confirmMessage && !checkbox.checked && !window.confirm(confirmMessage)) {
                     return;
                 }
                 button.disabled = true;
