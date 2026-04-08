@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpResponseForbidden
+from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -23,11 +24,14 @@ from .services import (
     get_module_release_matrix,
     get_module_state_map,
     get_module_state_views,
+    get_external_service_health,
     get_runtime_environment,
     get_site_configuration,
+    update_module_states,
     preview_module_update,
     set_active_theme,
 )
+from .module_registry import MODULE_REGISTRY
 
 
 def _build_settings_context(*, role_access, config, form, current_state_map, preview=None, preview_state_map=None):
@@ -47,6 +51,8 @@ def _build_settings_context(*, role_access, config, form, current_state_map, pre
         "runtime_environment": runtime_environment,
         "current_project_version": current_project_version,
         "module_preview": preview,
+        "integration_health": get_external_service_health(),
+        "masked_integration_secrets": getattr(form, "masked_integration_secrets", {}),
     }
 
 
@@ -175,3 +181,32 @@ def activate_theme_page(request):
             response_headers=response_headers,
         )
     return redirect(next_url)
+
+
+@login_required
+@require_POST
+def toggle_module_state_page(request, module_key: str):
+    bootstrap_versioning()
+    role_access = get_user_role(request.user)
+    if not role_access.is_admin_plus:
+        return JsonResponse({"ok": False, "error": "forbidden"}, status=403)
+    if module_key not in MODULE_REGISTRY:
+        return JsonResponse({"ok": False, "error": "unknown_module"}, status=404)
+
+    submitted = str(request.POST.get("enabled", "")).strip().lower()
+    enabled = submitted in {"1", "true", "on", "yes"}
+    try:
+        update_module_states({module_key: enabled})
+    except ValidationError as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=400)
+
+    state_map = get_module_state_map()
+    final_enabled = bool(state_map.get(module_key, MODULE_REGISTRY[module_key].default_enabled))
+    return JsonResponse(
+        {
+            "ok": True,
+            "module_key": module_key,
+            "enabled": final_enabled,
+            "message": f"Module '{MODULE_REGISTRY[module_key].label}' {'enabled' if final_enabled else 'disabled'}.",
+        }
+    )

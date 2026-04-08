@@ -266,7 +266,7 @@ class SubscriptionViewsTests(TestCase):
         self.assertEqual(user.profile_v2.balance_coins, Decimal("500.00") - plan.price_rub)
         active = UserSubscription.objects.get(user=user, status=UserSubscription.Status.ACTIVE, plan__family=plan.family)
         self.assertEqual(active.plan_id, plan.id)
-        self.assertContains(response, "успешно куплен")
+        self.assertContains(response, "успешно активирован")
 
     def test_purchase_plan_with_balance_rejects_when_insufficient_funds(self):
         user = User.objects.create_user(username="poor_buyer", password="StrongPass123")
@@ -293,6 +293,8 @@ class SubscriptionViewsTests(TestCase):
         plan = SubscriptionPlan.objects.get(level=1)
         adjust_balance(user=user, delta=Decimal("500.00"), reason="topup", amount_snapshot=Decimal("500.00"))
         assign_user_subscription_plan(user=user, plan=plan)
+        user.refresh_from_db()
+        user.profile_v2.refresh_from_db()
         starting_balance = user.profile_v2.balance_coins
         self.client.login(username="duplicate_buyer", password="StrongPass123")
 
@@ -309,6 +311,8 @@ class SubscriptionViewsTests(TestCase):
         lower_plan = SubscriptionPlan.objects.get(level=4)
         adjust_balance(user=user, delta=Decimal("1000.00"), reason="topup", amount_snapshot=Decimal("1000.00"))
         assign_user_subscription_plan(user=user, plan=higher_plan)
+        user.refresh_from_db()
+        user.profile_v2.refresh_from_db()
         starting_balance = user.profile_v2.balance_coins
         self.client.login(username="high_level_user", password="StrongPass123")
 

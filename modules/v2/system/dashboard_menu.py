@@ -63,6 +63,7 @@ ACTIVE_VIEW_ALIASES = {
     "subscription_pricing": {"subscriptions:pricing_dashboard"},
     "farm_settings": {"farm:settings"},
     "web_constructor": {"web_constructor:builder", "web_constructor:builder_editor", "web_constructor:dashboard", "web_constructor:create", "web_constructor:detail", "web_constructor:editor", "web_constructor:versions"},
+    "store": {"store:storefront"},
     "web_constructor_moderation": {"web_constructor:moderation", "web_constructor:moderate_version"},
     "django_admin": {"admin:index"},
 }
@@ -121,6 +122,7 @@ def _visibility_map(request) -> dict[str, bool]:
         DashboardMenuItem.Visibility.TG_USER_ACCESS: tg_allowed,
         DashboardMenuItem.Visibility.ADMIN_PLUS: bool(getattr(user, "is_authenticated", False) and role_access.is_admin_plus),
         DashboardMenuItem.Visibility.SUBSCRIPTIONS_ENABLED: bool(feature_flags.get("subscriptions", False)),
+        DashboardMenuItem.Visibility.STORE_ENABLED: bool(feature_flags.get("store", False)),
     }
 
 

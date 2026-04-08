@@ -121,11 +121,19 @@ class ProfileTests(TestCase):
         response = self.client.post(
             reverse("profiles:profile_admin_update", args=[target.id]),
             {
+                "admin_section": "identity",
                 "username": "target_manage_profile_updated",
                 "balance_coins": "150.00",
-                "subscription_plan": str(plan.id),
-                "subscription_expires_at": "",
-                "subscription_notes": "manual issue",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        response = self.client.post(
+            reverse("profiles:profile_admin_update", args=[target.id]),
+            {
+                "admin_section": "site_subscription",
+                "site_subscription_plan": str(plan.id),
+                "site_subscription_expires_at": "",
+                "site_subscription_notes": "manual issue",
             },
             follow=True,
         )
@@ -135,7 +143,7 @@ class ProfileTests(TestCase):
         target.profile_v2.refresh_from_db()
         self.assertEqual(target.username, "target_manage_profile_updated")
         self.assertEqual(target.profile_v2.balance_coins, Decimal("150.00"))
-        self.assertContains(response, "Профиль пользователя обновлён.")
+        self.assertContains(response, "Site-подписка обновлена.")
 
         active_subscription = UserSubscription.objects.get(user=target, status=UserSubscription.Status.ACTIVE)
         self.assertEqual(active_subscription.plan_id, plan.id)
