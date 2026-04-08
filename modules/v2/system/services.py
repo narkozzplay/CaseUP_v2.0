@@ -654,19 +654,27 @@ def is_theme_compatible(theme: ThemeProfile, project_version: ProjectVersion | N
 def get_available_themes(*, project_version: ProjectVersion | None = None, environment: str | None = None):
     project_version = project_version or get_current_project_version()
     environment = environment or get_runtime_environment()
-    return [theme for theme in ThemeProfile.objects.order_by("-is_default", "name") if is_theme_compatible(theme, project_version, environment)]
+    module_state_map = get_module_state_map(environment=environment)
+    themes = [theme for theme in ThemeProfile.objects.order_by("-is_default", "name") if is_theme_compatible(theme, project_version, environment)]
+    if not module_state_map.get("midnight_theme", MODULE_REGISTRY["midnight_theme"].default_enabled):
+        return [theme for theme in themes if theme.key != "midnight"]
+    return themes
 
 
 def get_active_theme(*, project_version: ProjectVersion | None = None, environment: str | None = None) -> ThemeProfile | None:
     project_version = project_version or get_current_project_version()
     environment = environment or get_runtime_environment()
     config = get_site_configuration()
+    available_themes = get_available_themes(project_version=project_version, environment=environment)
+    available_theme_keys = {theme.key for theme in available_themes}
     if config.active_theme and is_theme_compatible(config.active_theme, project_version, environment):
-        return config.active_theme
+        if config.active_theme.key in available_theme_keys:
+            return config.active_theme
     theme = ThemeProfile.objects.filter(is_default=True).first()
     if theme and is_theme_compatible(theme, project_version, environment):
-        return theme
-    return next(iter(get_available_themes(project_version=project_version, environment=environment)), None)
+        if theme.key in available_theme_keys:
+            return theme
+    return next(iter(available_themes), None)
 
 
 def _template_exists(name: str) -> bool:

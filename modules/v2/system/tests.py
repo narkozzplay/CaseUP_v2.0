@@ -66,6 +66,12 @@ class SystemConfigurationTests(TestCase):
         self.assertContains(response, "Commercial access for")
         self.assertContains(response, "Subscriptions")
 
+    def test_store_module_is_registered_and_disabled_by_default(self):
+        bootstrap_versioning()
+        state_map = get_module_state_map()
+        self.assertIn("store", state_map)
+        self.assertFalse(state_map["store"])
+
     def test_system_settings_shows_module_release_metadata(self):
         admin = self._make_admin("admin_settings_release_meta")
         self.client.login(username=admin.username, password="StrongPass123")
@@ -229,6 +235,36 @@ class SystemConfigurationTests(TestCase):
         self.assertEqual(response["X-Dashboard-Partial"], "1")
         self.assertEqual(response["X-Dashboard-Theme-Mode"], "css")
         self.assertIn("css/themes/midnight.css", response["X-Dashboard-Theme-Css-Url"])
+
+    def test_midnight_theme_falls_back_to_default_when_plugin_disabled(self):
+        bootstrap_versioning()
+        midnight_theme = ThemeProfile.objects.get(key="midnight")
+        default_theme = ThemeProfile.objects.get(key="default")
+        config = get_site_configuration()
+        config.active_theme = midnight_theme
+        config.save(update_fields=["active_theme", "updated_at"])
+
+        update_module_states({"midnight_theme": False})
+        active_theme = get_active_theme()
+        self.assertIsNotNone(active_theme)
+        self.assertEqual(active_theme.key, default_theme.key)
+
+    def test_admin_can_toggle_module_live_endpoint(self):
+        admin = self._make_admin("admin_toggle_module_live")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.post(reverse("system_config:toggle_module_state", kwargs={"module_key": "store"}), {"enabled": "1"})
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            response.content,
+            {
+                "ok": True,
+                "module_key": "store",
+                "enabled": True,
+                "message": "Module 'Store' enabled.",
+            },
+        )
+        self.assertTrue(get_module_state_map()["store"])
 
     def test_invalid_dependency_post_shows_error_and_does_not_save_conflict(self):
         admin = self._make_admin("admin_invalid_dependency")
