@@ -291,6 +291,7 @@ class SystemConfigurationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Disable Midnight Theme Plugin? Active theme will switch to default.")
         self.assertContains(response, "data-module-live-toggle")
+        self.assertContains(response, 'data-module-toggle-confirm="Disable Midnight Theme Plugin? Active theme will switch to default."', count=1)
 
     def test_midnight_theme_uses_topnav_shell_layout(self):
         admin = self._make_admin("admin_midnight_shell")
