@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import logging
+
 from celery import shared_task
+from django.db import OperationalError, ProgrammingError
 
 from modules.v2.steam_catalog.services import dispatch_pending_price_drop_alerts
 from modules.v2.steam_trading.services import dispatch_due_unlock_notifications
 
 from .services import run_due_rules, run_price_auto_update_rule
+
+
+logger = logging.getLogger(__name__)
 
 
 @shared_task(name="celery_tasks.run_price_auto_update_rule")
@@ -41,11 +47,25 @@ def run_due_price_auto_updates_task() -> list[dict]:
 
 @shared_task(name="celery_tasks.dispatch_pending_price_drop_alerts")
 def dispatch_pending_price_drop_alerts_task(limit: int = 20) -> dict:
-    sent_count = dispatch_pending_price_drop_alerts(limit=limit)
+    try:
+        sent_count = dispatch_pending_price_drop_alerts(limit=limit)
+    except (ProgrammingError, OperationalError) as exc:
+        logger.warning(
+            "Skipping dispatch_pending_price_drop_alerts_task because database schema is not ready: %s",
+            exc,
+        )
+        return {
+            "sent_count": 0,
+            "limit": limit,
+            "skipped": True,
+            "reason": "database_schema_not_ready",
+        }
+
     return {
         "sent_count": sent_count,
         "limit": limit,
     }
+
 
 @shared_task(name="celery_tasks.dispatch_due_steam_trade_unlocks")
 def dispatch_due_steam_trade_unlocks_task(limit: int = 20) -> dict:

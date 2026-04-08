@@ -6,6 +6,7 @@ import fnmatch
 import re
 import sys
 import zipfile
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -17,6 +18,10 @@ DEFAULT_IGNORE_PATTERNS = [
     # Env / secrets
     ".env",
     ".env.*",
+    "!.env.example",
+    "!.env.dev.example",
+    "!.env.prod.example",
+    "!.env.test.example",
 
     # Python cache / tooling
     "__pycache__/",
@@ -60,6 +65,12 @@ DEFAULT_IGNORE_PATTERNS = [
 ]
 
 
+@dataclass(frozen=True)
+class IgnoreRule:
+    pattern: str
+    negated: bool = False
+
+
 def read_text_file(path: Path) -> str:
     return path.read_text(encoding="utf-8").strip()
 
@@ -86,63 +97,79 @@ def build_archive_name(version: str) -> str:
     return f"CaseUP_ver_{version}.zip"
 
 
-def load_ignore_patterns(ignore_file: Path) -> list[str]:
-    patterns: list[str] = []
+def normalize_rule(line: str) -> IgnoreRule:
+    negated = line.startswith("!")
+    pattern = line[1:] if negated else line
+    return IgnoreRule(pattern=pattern.strip(), negated=negated)
+
+
+def load_ignore_rules(ignore_file: Path) -> list[IgnoreRule]:
+    raw_patterns: list[str] = []
 
     if ignore_file.exists():
         for line in ignore_file.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            patterns.append(line)
+            raw_patterns.append(line)
 
     for pattern in DEFAULT_IGNORE_PATTERNS:
-        if pattern not in patterns:
-            patterns.append(pattern)
+        if pattern not in raw_patterns:
+            raw_patterns.append(pattern)
 
-    return patterns
-
-
-def matches_pattern(rel_path: str, is_dir: bool, patterns: list[str]) -> bool:
-    check_value = rel_path + ("/" if is_dir and not rel_path.endswith("/") else "")
-
-    for pattern in patterns:
-        if fnmatch.fnmatch(rel_path, pattern) or fnmatch.fnmatch(check_value, pattern):
-            return True
-
-        if pattern.endswith("/"):
-            if rel_path.startswith(pattern) or check_value.startswith(pattern):
-                return True
-
-    return False
+    return [normalize_rule(pattern) for pattern in raw_patterns]
 
 
-def should_skip(path: Path, root: Path, patterns: list[str]) -> bool:
+def rule_matches_path(rel_path: str, is_dir: bool, pattern: str) -> bool:
+    rel_path = rel_path.strip("/")
+    check_value = rel_path + ("/" if is_dir else "")
+
+    if pattern.endswith("/"):
+        prefix = pattern.rstrip("/")
+        return rel_path == prefix or rel_path.startswith(prefix + "/")
+
+    return (
+        fnmatch.fnmatch(rel_path, pattern)
+        or fnmatch.fnmatch(check_value, pattern)
+    )
+
+
+def is_included_by_rules(path: Path, root: Path, rules: list[IgnoreRule]) -> bool:
+    rel_path = path.relative_to(root).as_posix()
+    is_dir = path.is_dir()
+
+    included = True
+
+    for rule in rules:
+        if rule_matches_path(rel_path, is_dir, rule.pattern):
+            included = rule.negated
+
+    return included
+
+
+def should_skip(path: Path, root: Path, rules: list[IgnoreRule]) -> bool:
     rel_path = path.relative_to(root).as_posix()
 
-    # Проверяем сам объект
-    if matches_pattern(rel_path, path.is_dir(), patterns):
-        return True
-
-    # Проверяем родителей, чтобы не заходить в игнорируемые каталоги
+    # Сначала проверяем родителей: если каталог исключён и не переоткрыт,
+    # внутрь заходить не надо.
     current = path.parent
     while current != root and current != current.parent:
-        parent_rel = current.relative_to(root).as_posix()
-        if matches_pattern(parent_rel, True, patterns):
+        if not is_included_by_rules(current, root, rules):
             return True
         current = current.parent
 
-    return False
+    # Теперь сам файл / каталог
+    return not is_included_by_rules(path, root, rules)
 
 
-def collect_files(root: Path, patterns: list[str]) -> list[tuple[Path, str]]:
+def collect_files(root: Path, rules: list[IgnoreRule]) -> list[tuple[Path, str]]:
     result: list[tuple[Path, str]] = []
 
     for path in root.rglob("*"):
         if path.is_dir():
             continue
 
-        if should_skip(path, root, patterns):
+        if should_skip(path, root, rules):
             continue
 
         rel_path = path.relative_to(root).as_posix()
@@ -152,8 +179,8 @@ def collect_files(root: Path, patterns: list[str]) -> list[tuple[Path, str]]:
     return result
 
 
-def make_zip(root: Path, archive_path: Path, patterns: list[str]) -> int:
-    files = collect_files(root, patterns)
+def make_zip(root: Path, archive_path: Path, rules: list[IgnoreRule]) -> int:
+    files = collect_files(root, rules)
 
     with zipfile.ZipFile(
         archive_path,
@@ -204,10 +231,10 @@ def main() -> int:
     archive_name = build_archive_name(version)
     archive_path = output_dir / archive_name
 
-    patterns = load_ignore_patterns(ignore_file)
+    rules = load_ignore_rules(ignore_file)
 
     try:
-        file_count = make_zip(root, archive_path, patterns)
+        file_count = make_zip(root, archive_path, rules)
     except Exception as exc:
         print(f"[ERROR] Failed to build archive: {exc}")
         return 1

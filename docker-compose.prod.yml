@@ -17,6 +17,9 @@ services:
       - "127.0.0.1:18001:8000"
 
   celery_worker:
+    depends_on:
+      web:
+        condition: service_healthy
     env_file:
       - ${APP_ENV_FILE:-.env.prod}
     environment:
@@ -26,6 +29,9 @@ services:
       - static_data:/app/staticfiles
 
   celery_beat:
+    depends_on:
+      web:
+        condition: service_healthy
     env_file:
       - ${APP_ENV_FILE:-.env.prod}
     environment:

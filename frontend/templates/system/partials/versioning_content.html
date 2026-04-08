@@ -1,0 +1,61 @@
+<section class="page-section page-section--stacked">
+    {% include "components/page_header.html" with eyebrow="Control Center" title="Versions & Themes" description="Матрица совместимости модулей, проектных версий и тем оформления." %}
+    <div class="cards-grid cards-grid--three">
+        <article class="card"><div class="card-body"><div class="text-muted">Runtime</div><strong>{{ runtime_environment|upper }}</strong></div></article>
+        <article class="card"><div class="card-body"><div class="text-muted">Current project version</div><strong>{% if current_project_version %}{{ current_project_version.version }}{% else %}—{% endif %}</strong></div></article>
+        <article class="card"><div class="card-body"><div class="text-muted">Active theme</div><strong>{% if summary.active_theme %}{{ summary.active_theme.name }}{% else %}—{% endif %}</strong></div></article>
+    </div>
+
+    <article class="card">
+        <div class="card-body">
+            <div class="section-head-inline"><h2 class="section-title">Themes</h2><span class="text-muted">Default / active / test-only статус и диапазон поддержки.</span></div>
+            <div class="dashboard-list">
+                {% for theme in themes %}
+                    <div class="dashboard-list__row">
+                        <div>
+                            <strong>{{ theme.name }}</strong>
+                            <div class="text-muted">{{ theme.description|default:"—" }}</div>
+                            <div class="text-muted">Key: {{ theme.key }} · CSS: {{ theme.css_file|default:"—" }}</div>
+                        </div>
+                        <div>
+                            {% if theme.is_default %}<span class="status-pill status-pill--sm">Default</span>{% endif %}
+                            {% if config.active_theme_id == theme.id %}<span class="status-pill status-pill--sm">Active</span>{% endif %}
+                            {% if theme.is_test_only %}<span class="status-pill status-pill--sm">Test only</span>{% endif %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-muted">Themes not configured.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </article>
+
+    <article class="card">
+        <div class="card-body">
+            <div class="section-head-inline"><h2 class="section-title">Module release matrix</h2><span class="text-muted">Для prod test-only релизы не считаются рабочими.</span></div>
+            <div class="dashboard-list">
+                {% for row in module_release_rows %}
+                    <div class="dashboard-list__row" style="align-items:flex-start;">
+                        <div>
+                            <strong>{{ row.label }}</strong>
+                            <div class="text-muted">{{ row.description }}</div>
+                            <div class="text-muted">Active release: {% if row.active_release %}{{ row.active_release.version }} ({{ row.active_release.channel }}){% else %}—{% endif %}</div>
+                            <div class="text-muted">
+                                {% for env, state in row.env_states.items %}
+                                    {{ env|upper }}: {% if state.module_release %}{{ state.module_release.version }}{% else %}—{% endif %} {% if state.is_test_mode %}(test-mode){% endif %}{% if not forloop.last %} · {% endif %}
+                                {% empty %}No environment states.{% endfor %}
+                            </div>
+                            <div class="text-muted">
+                                {% for compatibility in row.compatibilities %}
+                                    {{ compatibility.module_release.version }} → {{ compatibility.project_version_from.version }}-{{ compatibility.project_version_to.version }} [{{ compatibility.compatibility_status }}]{% if not forloop.last %}<br>{% endif %}
+                                {% empty %}No compatibility rules.{% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-muted">No module releases registered.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </article>
+</section>

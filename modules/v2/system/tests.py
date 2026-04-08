@@ -9,7 +9,8 @@ from modules.v2.subscriptions.models import SubscriptionPlan
 from modules.v2.subscriptions.services import assign_user_subscription_plan
 
 from .dashboard_menu import build_dashboard_menu, ensure_dashboard_menu_items
-from .models import DashboardMenuItem, SiteConfiguration
+from .models import DashboardMenuItem, SiteConfiguration, ThemeProfile, ProjectVersion, EnvironmentModuleState
+from .services import get_active_theme, get_current_project_version, bootstrap_versioning
 from .module_registry import MODULE_REGISTRY
 from .services import get_module_state_map, get_site_configuration, update_module_states
 
@@ -273,3 +274,33 @@ class DashboardMenuBuilderTests(TestCase):
         self.assertTrue(any(group["key"] == DashboardMenuItem.Group.INVESTMENTS for group in menu_groups))
         self.assertFalse(any(group["key"] == DashboardMenuItem.Group.FARM for group in menu_groups))
         self.assertFalse(any(group["key"] == DashboardMenuItem.Group.STEAM for group in menu_groups))
+
+
+class SystemVersioningTests(TestCase):
+    def setUp(self):
+        bootstrap_versioning()
+
+    def test_versioning_bootstrap_creates_current_project_version_and_theme(self):
+        config = get_site_configuration()
+        self.assertIsNotNone(get_current_project_version())
+        self.assertIsNotNone(get_active_theme())
+        self.assertTrue(ThemeProfile.objects.filter(is_default=True).exists())
+        self.assertIsNotNone(config.current_project_version)
+
+    def test_admin_can_open_versioning_page(self):
+        user = User.objects.create_user(username="admin_versioning", password="StrongPass123")
+        profile = UserProfile.objects.get(user=user)
+        profile.role = UserRole.ADMIN
+        profile.save(update_fields=["role"])
+        self.client.login(username=user.username, password="StrongPass123")
+        response = self.client.get(reverse("system_config:versioning"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Versions & Themes")
+        self.assertContains(response, "Module release matrix")
+
+    def test_environment_module_states_seeded_for_all_environments(self):
+        states = EnvironmentModuleState.objects.filter(module_key="steam_catalog")
+        self.assertEqual(states.count(), 3)
+        self.assertTrue(states.filter(environment="dev").exists())
+        self.assertTrue(states.filter(environment="prod").exists())
+        self.assertTrue(states.filter(environment="test").exists())

@@ -9,6 +9,49 @@ from django.db import models
 from .module_registry import MODULE_REGISTRY
 
 
+class ProjectVersion(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        ACTIVE = "active", "Active"
+        SUPPORTED = "supported", "Supported"
+        DEPRECATED = "deprecated", "Deprecated"
+        ARCHIVED = "archived", "Archived"
+
+    version = models.CharField(max_length=32, unique=True)
+    version_order = models.PositiveIntegerField(unique=True, db_index=True)
+    title = models.CharField(max_length=120, blank=True, default="")
+    status = models.CharField(max_length=24, choices=Status.choices, default=Status.ACTIVE, db_index=True)
+    is_current = models.BooleanField(default=False, db_index=True)
+    is_default_for_dev = models.BooleanField(default=False, db_index=True)
+    is_default_for_prod = models.BooleanField(default=False, db_index=True)
+    release_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("version_order", "version")
+        verbose_name = "Project version"
+        verbose_name_plural = "Project versions"
+
+    def clean(self):
+        duplicates = ProjectVersion.objects.exclude(pk=self.pk)
+        if self.is_current and duplicates.filter(is_current=True).exists():
+            raise ValidationError({"is_current": "Текущая версия проекта уже выбрана."})
+        if self.is_default_for_dev and duplicates.filter(is_default_for_dev=True).exists():
+            raise ValidationError({"is_default_for_dev": "Default dev-версия уже выбрана."})
+        if self.is_default_for_prod and duplicates.filter(is_default_for_prod=True).exists():
+            raise ValidationError({"is_default_for_prod": "Default prod-версия уже выбрана."})
+
+    def save(self, *args, **kwargs):
+        self.version = (self.version or "").strip()
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return self.title or self.version
+
+
 class SiteConfiguration(models.Model):
     CURRENCY_RUB = "RUB"
     CURRENCY_USD = "USD"
@@ -54,6 +97,20 @@ class SiteConfiguration(models.Model):
     maintenance_mode_enabled = models.BooleanField(default=False)
     maintenance_message = models.TextField(blank=True, default="")
     registration_enabled = models.BooleanField(default=True)
+    current_project_version = models.ForeignKey(
+        "ProjectVersion",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="site_configurations",
+    )
+    active_theme = models.ForeignKey(
+        "ThemeProfile",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="site_configurations",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -117,6 +174,7 @@ class SiteConfiguration(models.Model):
 
         return is_module_enabled("steam_catalog")
 
+
 class ModuleState(models.Model):
     key = models.CharField(max_length=64, unique=True)
     is_enabled = models.BooleanField(default=True, db_index=True)
@@ -142,6 +200,206 @@ class ModuleState(models.Model):
     def label(self) -> str:
         definition = MODULE_REGISTRY.get(self.key)
         return definition.label if definition else self.key
+
+
+class ModuleRelease(models.Model):
+    class Channel(models.TextChoices):
+        STABLE = "stable", "Stable"
+        TEST = "test", "Test"
+        DEPRECATED = "deprecated", "Deprecated"
+
+    module_key = models.CharField(max_length=64, db_index=True)
+    version = models.CharField(max_length=32)
+    version_order = models.PositiveIntegerField(default=1, db_index=True)
+    channel = models.CharField(max_length=16, choices=Channel.choices, default=Channel.STABLE, db_index=True)
+    title = models.CharField(max_length=120, blank=True, default="")
+    description = models.TextField(blank=True, default="")
+    is_default = models.BooleanField(default=False, db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Module release"
+        verbose_name_plural = "Module releases"
+        ordering = ("module_key", "version_order", "version")
+        constraints = [
+            models.UniqueConstraint(fields=("module_key", "version"), name="uniq_module_release_version"),
+        ]
+
+    def clean(self):
+        if self.module_key not in MODULE_REGISTRY:
+            raise ValidationError({"module_key": "Неизвестный ключ модуля."})
+        duplicates = ModuleRelease.objects.exclude(pk=self.pk).filter(module_key=self.module_key)
+        if self.is_default and duplicates.filter(is_default=True).exists():
+            raise ValidationError({"is_default": "Для модуля уже задан default-релиз."})
+
+    def save(self, *args, **kwargs):
+        self.module_key = (self.module_key or "").strip()
+        self.version = (self.version or "").strip()
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.module_key}@{self.version}"
+
+    @property
+    def label(self) -> str:
+        definition = MODULE_REGISTRY.get(self.module_key)
+        return definition.label if definition else self.module_key
+
+
+class ModuleCompatibility(models.Model):
+    class CompatibilityStatus(models.TextChoices):
+        SUPPORTED = "supported", "Supported"
+        PARTIAL = "partial", "Partial"
+        UNSUPPORTED = "unsupported", "Unsupported"
+        TEST_ONLY = "test_only", "Test only"
+
+    module_release = models.ForeignKey(ModuleRelease, on_delete=models.CASCADE, related_name="compatibilities")
+    project_version_from = models.ForeignKey(
+        ProjectVersion,
+        on_delete=models.CASCADE,
+        related_name="module_compat_from",
+    )
+    project_version_to = models.ForeignKey(
+        ProjectVersion,
+        on_delete=models.CASCADE,
+        related_name="module_compat_to",
+    )
+    compatibility_status = models.CharField(
+        max_length=16,
+        choices=CompatibilityStatus.choices,
+        default=CompatibilityStatus.SUPPORTED,
+        db_index=True,
+    )
+    notes = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Module compatibility"
+        verbose_name_plural = "Module compatibilities"
+        constraints = [
+            models.UniqueConstraint(
+                fields=("module_release", "project_version_from", "project_version_to"),
+                name="uniq_module_release_project_range",
+            )
+        ]
+
+    def clean(self):
+        if (
+            self.project_version_from_id
+            and self.project_version_to_id
+            and self.project_version_from.version_order > self.project_version_to.version_order
+        ):
+            raise ValidationError({"project_version_to": "Конечная версия должна быть не ниже начальной."})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.module_release} [{self.project_version_from.version} - {self.project_version_to.version}]"
+
+
+class EnvironmentModuleState(models.Model):
+    class Environment(models.TextChoices):
+        DEV = "dev", "Dev"
+        PROD = "prod", "Prod"
+        TEST = "test", "Test"
+
+    environment = models.CharField(max_length=12, choices=Environment.choices, db_index=True)
+    module_key = models.CharField(max_length=64, db_index=True)
+    module_release = models.ForeignKey(
+        ModuleRelease,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="environment_states",
+    )
+    is_enabled = models.BooleanField(default=True, db_index=True)
+    is_test_mode = models.BooleanField(default=False, db_index=True)
+    notes = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Environment module state"
+        verbose_name_plural = "Environment module states"
+        ordering = ("environment", "module_key")
+        constraints = [
+            models.UniqueConstraint(fields=("environment", "module_key"), name="uniq_environment_module_state"),
+        ]
+
+    def clean(self):
+        if self.module_key not in MODULE_REGISTRY:
+            raise ValidationError({"module_key": "Неизвестный ключ модуля."})
+        if self.module_release and self.module_release.module_key != self.module_key:
+            raise ValidationError({"module_release": "Релиз не соответствует ключу модуля."})
+        if self.environment == self.Environment.PROD and self.is_test_mode:
+            raise ValidationError({"is_test_mode": "Prod-среда не может быть test-mode."})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.environment}:{self.module_key}"
+
+
+class ThemeProfile(models.Model):
+    key = models.SlugField(max_length=64, unique=True)
+    name = models.CharField(max_length=120)
+    code = models.CharField(max_length=64, blank=True, default="")
+    description = models.TextField(blank=True, default="")
+    template_base_path = models.CharField(max_length=255, blank=True, default="")
+    css_file = models.CharField(max_length=255, blank=True, default="")
+    preview_image = models.ImageField(upload_to="themes/previews/", null=True, blank=True)
+    is_default = models.BooleanField(default=False, db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    is_test_only = models.BooleanField(default=False, db_index=True)
+    project_version_from = models.ForeignKey(
+        ProjectVersion,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="themes_from",
+    )
+    project_version_to = models.ForeignKey(
+        ProjectVersion,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="themes_to",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Theme profile"
+        verbose_name_plural = "Theme profiles"
+        ordering = ("name", "key")
+
+    def clean(self):
+        duplicates = ThemeProfile.objects.exclude(pk=self.pk)
+        if self.is_default and duplicates.filter(is_default=True).exists():
+            raise ValidationError({"is_default": "Default theme уже задан."})
+        if (
+            self.project_version_from_id
+            and self.project_version_to_id
+            and self.project_version_from.version_order > self.project_version_to.version_order
+        ):
+            raise ValidationError({"project_version_to": "Конечная версия темы должна быть не ниже начальной."})
+
+    def save(self, *args, **kwargs):
+        self.template_base_path = (self.template_base_path or "").strip().strip("/")
+        self.css_file = (self.css_file or "").strip()
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class DashboardMenuItem(models.Model):
@@ -349,6 +607,15 @@ class DashboardMenuItem(models.Model):
                 "group": cls.Group.ADMIN,
                 "visibility_condition": cls.Visibility.ADMIN_PLUS,
                 "sort_order": 20,
+            },
+            {
+                "key": "system_versioning",
+                "label_ru": "Версии и темы",
+                "label_en": "Versions & Themes",
+                "url_name": "system_config:versioning",
+                "group": cls.Group.ADMIN,
+                "visibility_condition": cls.Visibility.ADMIN_PLUS,
+                "sort_order": 25,
             },
             {
                 "key": "celery_tasks",

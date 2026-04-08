@@ -1,17 +1,26 @@
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_HALF_UP
-
 from dataclasses import dataclass
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.template.loader import get_template
+from django.template import TemplateDoesNotExist
 
 from modules.v2.tg_notifier.models import TelegramNotifierConfig
 
 from .module_registry import MODULE_REGISTRY, NAMESPACE_TO_MODULE_KEY, ModuleDefinition
-from .models import ModuleState, SiteConfiguration
+from .models import (
+    EnvironmentModuleState,
+    ModuleCompatibility,
+    ModuleRelease,
+    ModuleState,
+    ProjectVersion,
+    SiteConfiguration,
+    ThemeProfile,
+)
 
 ZERO = Decimal("0.00")
 MONEY_Q = Decimal("0.01")
@@ -50,6 +59,19 @@ class ModuleUpdatePreview:
     changed_labels: tuple[str, ...]
 
 
+def get_runtime_environment() -> str:
+    explicit = getattr(settings, "CASEUP_RUNTIME_ENV", "").strip().lower()
+    if explicit in {"dev", "prod", "test"}:
+        return explicit
+    module = getattr(settings, "SETTINGS_MODULE", "") or getattr(settings, "DJANGO_SETTINGS_MODULE", "")
+    module = str(module).lower()
+    if module.endswith(".prod"):
+        return EnvironmentModuleState.Environment.PROD
+    if module.endswith(".testing"):
+        return EnvironmentModuleState.Environment.TEST
+    return EnvironmentModuleState.Environment.DEV
+
+
 def get_site_configuration() -> SiteConfiguration:
     config = SiteConfiguration.objects.filter(singleton_key=1).first()
     if config is not None:
@@ -59,6 +81,22 @@ def get_site_configuration() -> SiteConfiguration:
         defaults=SiteConfiguration.bootstrap_defaults(),
     )
     return config
+
+
+def get_current_project_version() -> ProjectVersion | None:
+    config = get_site_configuration()
+    if config.current_project_version_id:
+        return config.current_project_version
+    runtime_env = get_runtime_environment()
+    if runtime_env == EnvironmentModuleState.Environment.PROD:
+        current = ProjectVersion.objects.filter(is_default_for_prod=True).first()
+        if current:
+            return current
+    if runtime_env == EnvironmentModuleState.Environment.DEV:
+        current = ProjectVersion.objects.filter(is_default_for_dev=True).first()
+        if current:
+            return current
+    return ProjectVersion.objects.filter(is_current=True).first() or ProjectVersion.objects.order_by("version_order").last()
 
 
 @transaction.atomic
@@ -80,16 +118,116 @@ def ensure_module_states() -> dict[str, ModuleState]:
     return existing
 
 
-def get_module_state_map() -> dict[str, bool]:
-    state_map = {
-        key: definition.default_enabled
-        for key, definition in MODULE_REGISTRY.items()
+@transaction.atomic
+def ensure_environment_module_states() -> None:
+    releases_by_key = {
+        row.module_key: row
+        for row in ModuleRelease.objects.filter(is_active=True).order_by("module_key", "-is_default", "-version_order")
     }
+    for environment in EnvironmentModuleState.Environment.values:
+        for key, definition in MODULE_REGISTRY.items():
+            state, created = EnvironmentModuleState.objects.get_or_create(
+                environment=environment,
+                module_key=key,
+                defaults={
+                    "is_enabled": definition.default_enabled,
+                    "module_release": releases_by_key.get(key),
+                    "is_test_mode": environment == EnvironmentModuleState.Environment.TEST,
+                },
+            )
+            if created:
+                continue
+            if state.module_release_id is None and releases_by_key.get(key):
+                state.module_release = releases_by_key[key]
+                state.save(update_fields=["module_release", "updated_at"])
+
+
+@transaction.atomic
+def ensure_project_versions() -> None:
+    if ProjectVersion.objects.exists():
+        return
+    version = ProjectVersion.objects.create(
+        version="0.1.38",
+        version_order=138,
+        title="CaseUP 0.1.38",
+        status=ProjectVersion.Status.ACTIVE,
+        is_current=True,
+        is_default_for_dev=True,
+        is_default_for_prod=True,
+    )
+    config = get_site_configuration()
+    config.current_project_version = version
+    config.save(update_fields=["current_project_version", "updated_at"])
+
+
+@transaction.atomic
+def ensure_themes() -> None:
+    if ThemeProfile.objects.exists():
+        return
+    version = get_current_project_version()
+    theme = ThemeProfile.objects.create(
+        key="default",
+        name="Default CaseUP",
+        code="default",
+        description="Текущий основной стиль проекта.",
+        template_base_path="themes/default",
+        css_file="css/themes/default.css",
+        is_default=True,
+        is_active=True,
+        is_test_only=False,
+        project_version_from=version,
+        project_version_to=version,
+    )
+    config = get_site_configuration()
+    config.active_theme = theme
+    config.save(update_fields=["active_theme", "updated_at"])
+
+
+@transaction.atomic
+def ensure_module_releases() -> None:
+    if ModuleRelease.objects.exists():
+        return
+    version = get_current_project_version()
+    for order, (key, definition) in enumerate(MODULE_REGISTRY.items(), start=1):
+        release = ModuleRelease.objects.create(
+            module_key=key,
+            version="0.1.38",
+            version_order=138,
+            channel=ModuleRelease.Channel.STABLE,
+            title=f"{definition.label} 0.1.38",
+            description=definition.description,
+            is_default=True,
+            is_active=True,
+        )
+        if version:
+            ModuleCompatibility.objects.create(
+                module_release=release,
+                project_version_from=version,
+                project_version_to=version,
+                compatibility_status=ModuleCompatibility.CompatibilityStatus.SUPPORTED,
+                notes="Seeded from existing module registry.",
+            )
+
+
+def bootstrap_versioning() -> None:
+    ensure_project_versions()
+    ensure_module_releases()
+    ensure_themes()
+    ensure_environment_module_states()
+
+
+def get_module_state_map(environment: str | None = None) -> dict[str, bool]:
+    environment = environment or get_runtime_environment()
+    if EnvironmentModuleState.objects.exists():
+        state_map = {key: definition.default_enabled for key, definition in MODULE_REGISTRY.items()}
+        persisted = EnvironmentModuleState.objects.filter(environment=environment).values_list("module_key", "is_enabled")
+        for key, is_enabled in persisted:
+            state_map[key] = is_enabled
+        return state_map
+    state_map = {key: definition.default_enabled for key, definition in MODULE_REGISTRY.items()}
     persisted = ModuleState.objects.filter(key__in=MODULE_REGISTRY).values_list("key", "is_enabled")
     for key, is_enabled in persisted:
         state_map[key] = is_enabled
-    if "tg_notifier" in state_map and not ModuleState.objects.filter(key="tg_notifier").exists():
-        state_map["tg_notifier"] = bool(getattr(settings, "TELEGRAM_NOTIFICATIONS_ENABLED", False))
     return state_map
 
 
@@ -98,99 +236,54 @@ def _get_dependents_map() -> dict[str, tuple[str, ...]]:
     for key, definition in MODULE_REGISTRY.items():
         for dependency_key in definition.dependencies:
             mapping.setdefault(dependency_key, []).append(key)
-    return {
-        key: tuple(values)
-        for key, values in mapping.items()
-    }
+    return {key: tuple(values) for key, values in mapping.items()}
 
 
 def _get_addon_maps() -> tuple[dict[str, tuple[str, ...]], dict[str, tuple[str, ...]]]:
     source_to_targets: dict[str, list[str]] = {key: [] for key in MODULE_REGISTRY}
     target_to_sources: dict[str, list[str]] = {key: [] for key in MODULE_REGISTRY}
-
     for key, definition in MODULE_REGISTRY.items():
         for target_key in definition.addon_targets:
             if target_key not in MODULE_REGISTRY:
                 continue
             source_to_targets.setdefault(key, []).append(target_key)
             target_to_sources.setdefault(target_key, []).append(key)
-
-    return (
-        {key: tuple(values) for key, values in source_to_targets.items()},
-        {key: tuple(values) for key, values in target_to_sources.items()},
-    )
+    return ({key: tuple(values) for key, values in source_to_targets.items()}, {key: tuple(values) for key, values in target_to_sources.items()})
 
 
 def get_module_state_views(state_map: dict[str, bool] | None = None) -> list[ModuleStateView]:
     state_map = state_map or get_module_state_map()
     dependents_map = _get_dependents_map()
     addon_targets_map, addon_sources_map = _get_addon_maps()
-
     rows: list[ModuleStateView] = []
     for key, definition in MODULE_REGISTRY.items():
         is_enabled = state_map.get(key, definition.default_enabled)
-        missing_dependencies = tuple(
-            dependency_key
-            for dependency_key in definition.dependencies
-            if not state_map.get(dependency_key, False)
-        )
+        missing_dependencies = tuple(dep for dep in definition.dependencies if not state_map.get(dep, False))
         dependent_keys = dependents_map.get(key, ())
-        cascade_disable_labels = tuple(
-            MODULE_REGISTRY[dependent_key].label
-            for dependent_key in dependent_keys
-            if state_map.get(dependent_key, MODULE_REGISTRY[dependent_key].default_enabled)
-        )
-
-        if is_enabled:
-            if missing_dependencies:
-                status_label = "Conflict"
-            else:
-                status_label = "Enabled"
-        else:
-            if missing_dependencies:
-                status_label = "Blocked"
-            else:
-                status_label = "Disabled"
-
-        if missing_dependencies:
-            missing_dependency_labels = tuple(
-                MODULE_REGISTRY[item].label for item in missing_dependencies
-            )
-            blocked_reason = (
-                "Нельзя включить, пока выключены зависимости: "
-                + ", ".join(missing_dependency_labels)
-                + "."
-            )
-        else:
-            missing_dependency_labels = ()
-            blocked_reason = ""
-
-        rows.append(
-            ModuleStateView(
-                key=key,
-                label=definition.label,
-                description=definition.description,
-                is_enabled=is_enabled,
-                dependencies=definition.dependencies,
-                dependency_labels=tuple(MODULE_REGISTRY[item].label for item in definition.dependencies),
-                missing_dependencies=missing_dependencies,
-                missing_dependency_labels=missing_dependency_labels,
-                dependent_keys=dependent_keys,
-                dependent_labels=tuple(MODULE_REGISTRY[item].label for item in dependent_keys),
-                cascade_disable_labels=cascade_disable_labels,
-                addon_target_keys=addon_targets_map.get(key, ()),
-                addon_target_labels=tuple(
-                    MODULE_REGISTRY[item].label for item in addon_targets_map.get(key, ())
-                ),
-                addon_source_keys=addon_sources_map.get(key, ()),
-                addon_source_labels=tuple(
-                    MODULE_REGISTRY[item].label for item in addon_sources_map.get(key, ())
-                ),
-                can_enable=not bool(missing_dependencies),
-                blocked_reason=blocked_reason,
-                status_label=status_label,
-            )
-        )
+        cascade_disable_labels = tuple(MODULE_REGISTRY[dep].label for dep in dependent_keys if state_map.get(dep, MODULE_REGISTRY[dep].default_enabled))
+        status_label = "Enabled" if is_enabled and not missing_dependencies else "Conflict" if is_enabled else "Blocked" if missing_dependencies else "Disabled"
+        missing_dependency_labels = tuple(MODULE_REGISTRY[item].label for item in missing_dependencies)
+        blocked_reason = "Нельзя включить, пока выключены зависимости: " + ", ".join(missing_dependency_labels) + "." if missing_dependency_labels else ""
+        rows.append(ModuleStateView(
+            key=key,
+            label=definition.label,
+            description=definition.description,
+            is_enabled=is_enabled,
+            dependencies=definition.dependencies,
+            dependency_labels=tuple(MODULE_REGISTRY[item].label for item in definition.dependencies),
+            missing_dependencies=missing_dependencies,
+            missing_dependency_labels=missing_dependency_labels,
+            dependent_keys=dependent_keys,
+            dependent_labels=tuple(MODULE_REGISTRY[item].label for item in dependent_keys),
+            cascade_disable_labels=cascade_disable_labels,
+            addon_target_keys=addon_targets_map.get(key, ()),
+            addon_target_labels=tuple(MODULE_REGISTRY[item].label for item in addon_targets_map.get(key, ())),
+            addon_source_keys=addon_sources_map.get(key, ()),
+            addon_source_labels=tuple(MODULE_REGISTRY[item].label for item in addon_sources_map.get(key, ())),
+            can_enable=not bool(missing_dependencies),
+            blocked_reason=blocked_reason,
+            status_label=status_label,
+        ))
     return rows
 
 
@@ -198,86 +291,44 @@ def validate_module_state_map(proposed: dict[str, bool]) -> None:
     unknown = set(proposed) - set(MODULE_REGISTRY)
     if unknown:
         raise ValidationError(f"Неизвестные ключи модулей: {', '.join(sorted(unknown))}")
-
     for key, definition in MODULE_REGISTRY.items():
         if not proposed.get(key, definition.default_enabled):
             continue
-
         missing = [dep for dep in definition.dependencies if not proposed.get(dep, False)]
         if missing:
             dep_labels = ", ".join(MODULE_REGISTRY[item].label for item in missing)
-            raise ValidationError(
-                f"Нельзя включить модуль '{definition.label}', пока выключены зависимости: {dep_labels}."
-            )
+            raise ValidationError(f"Нельзя включить модуль '{definition.label}', пока выключены зависимости: {dep_labels}.")
 
 
-def build_effective_module_state_map(
-    current_state_map: dict[str, bool],
-    proposed: dict[str, bool],
-) -> dict[str, bool]:
+def build_effective_module_state_map(current_state_map: dict[str, bool], proposed: dict[str, bool]) -> dict[str, bool]:
     normalized_proposed = {key: bool(value) for key, value in proposed.items()}
-    merged = {
-        key: current_state_map.get(key, definition.default_enabled)
-        for key, definition in MODULE_REGISTRY.items()
-    }
+    merged = {key: current_state_map.get(key, definition.default_enabled) for key, definition in MODULE_REGISTRY.items()}
     merged.update(normalized_proposed)
-
     changed = True
     while changed:
         changed = False
         for key, definition in MODULE_REGISTRY.items():
             if not merged.get(key, definition.default_enabled):
                 continue
-
             missing = [dep for dep in definition.dependencies if not merged.get(dep, False)]
             if not missing:
                 continue
-
             was_enabled_before = current_state_map.get(key, definition.default_enabled)
             explicitly_enabled_now = bool(normalized_proposed.get(key, was_enabled_before))
-
-            # Если модуль раньше был выключен, а сейчас его пытаются включить
-            # при выключенной зависимости — это ошибка.
             if not was_enabled_before and explicitly_enabled_now:
                 dep_labels = ", ".join(MODULE_REGISTRY[item].label for item in missing)
-                raise ValidationError(
-                    f"Нельзя включить модуль '{definition.label}', пока выключены зависимости: {dep_labels}."
-                )
-
-            # Если модуль раньше уже был включён, но его зависимость выключили
-            # в этом же запросе — выключаем каскадно.
+                raise ValidationError(f"Нельзя включить модуль '{definition.label}', пока выключены зависимости: {dep_labels}.")
             merged[key] = False
             changed = True
-
     validate_module_state_map(merged)
     return merged
 
 
-def preview_module_update(
-    current_state_map: dict[str, bool],
-    proposed: dict[str, bool],
-) -> ModuleUpdatePreview:
+def preview_module_update(current_state_map: dict[str, bool], proposed: dict[str, bool]) -> ModuleUpdatePreview:
     merged = build_effective_module_state_map(current_state_map, proposed)
-
-    direct_disabled_keys = tuple(
-        key
-        for key, value in proposed.items()
-        if not bool(value) and current_state_map.get(key, MODULE_REGISTRY[key].default_enabled)
-    )
-    cascaded_disabled_keys = tuple(
-        key
-        for key in MODULE_REGISTRY
-        if current_state_map.get(key, MODULE_REGISTRY[key].default_enabled)
-        and not merged.get(key, MODULE_REGISTRY[key].default_enabled)
-        and key not in direct_disabled_keys
-    )
-    changed_keys = tuple(
-        key
-        for key in MODULE_REGISTRY
-        if current_state_map.get(key, MODULE_REGISTRY[key].default_enabled)
-        != merged.get(key, MODULE_REGISTRY[key].default_enabled)
-    )
-
+    direct_disabled_keys = tuple(key for key, value in proposed.items() if not bool(value) and current_state_map.get(key, MODULE_REGISTRY[key].default_enabled))
+    cascaded_disabled_keys = tuple(key for key in MODULE_REGISTRY if current_state_map.get(key, MODULE_REGISTRY[key].default_enabled) and not merged.get(key, MODULE_REGISTRY[key].default_enabled) and key not in direct_disabled_keys)
+    changed_keys = tuple(key for key in MODULE_REGISTRY if current_state_map.get(key, MODULE_REGISTRY[key].default_enabled) != merged.get(key, MODULE_REGISTRY[key].default_enabled))
     return ModuleUpdatePreview(
         merged_state_map=merged,
         direct_disabled_keys=direct_disabled_keys,
@@ -289,17 +340,126 @@ def preview_module_update(
     )
 
 
-def get_control_center_summary(
-    *,
-    config: SiteConfiguration | None = None,
-    state_map: dict[str, bool] | None = None,
-) -> dict[str, object]:
+def get_compatible_module_release(module_key: str, *, project_version: ProjectVersion | None = None, environment: str | None = None) -> ModuleRelease | None:
+    project_version = project_version or get_current_project_version()
+    environment = environment or get_runtime_environment()
+    state = EnvironmentModuleState.objects.filter(environment=environment, module_key=module_key).select_related("module_release").first()
+    if state and state.module_release_id:
+        release = state.module_release
+        if release.channel == ModuleRelease.Channel.TEST and environment == EnvironmentModuleState.Environment.PROD:
+            return None
+        return release
+    releases = ModuleRelease.objects.filter(module_key=module_key, is_active=True).order_by("-is_default", "-version_order")
+    if project_version is None:
+        return releases.first()
+    compat_qs = ModuleCompatibility.objects.filter(
+        module_release__module_key=module_key,
+        project_version_from__version_order__lte=project_version.version_order,
+        project_version_to__version_order__gte=project_version.version_order,
+    ).select_related("module_release", "project_version_from", "project_version_to").order_by("-module_release__is_default", "-module_release__version_order")
+    for compat in compat_qs:
+        if compat.compatibility_status == ModuleCompatibility.CompatibilityStatus.UNSUPPORTED:
+            continue
+        if compat.compatibility_status == ModuleCompatibility.CompatibilityStatus.TEST_ONLY and environment == EnvironmentModuleState.Environment.PROD:
+            continue
+        if compat.module_release.channel == ModuleRelease.Channel.TEST and environment == EnvironmentModuleState.Environment.PROD:
+            continue
+        return compat.module_release
+    return releases.first()
+
+
+def get_module_release_matrix(*, project_version: ProjectVersion | None = None) -> list[dict[str, object]]:
+    project_version = project_version or get_current_project_version()
+    rows: list[dict[str, object]] = []
+    for key, definition in MODULE_REGISTRY.items():
+        compatibilities = list(
+            ModuleCompatibility.objects.filter(module_release__module_key=key).select_related(
+                "module_release", "project_version_from", "project_version_to"
+            ).order_by("-module_release__version_order", "project_version_from__version_order")
+        )
+        env_states = {
+            state.environment: state
+            for state in EnvironmentModuleState.objects.filter(module_key=key).select_related("module_release")
+        }
+        active_release = get_compatible_module_release(key, project_version=project_version)
+        rows.append({
+            "key": key,
+            "label": definition.label,
+            "description": definition.description,
+            "active_release": active_release,
+            "compatibilities": compatibilities,
+            "env_states": env_states,
+        })
+    return rows
+
+
+def is_theme_compatible(theme: ThemeProfile, project_version: ProjectVersion | None = None, environment: str | None = None) -> bool:
+    if not theme.is_active:
+        return False
+    environment = environment or get_runtime_environment()
+    if theme.is_test_only and environment == EnvironmentModuleState.Environment.PROD:
+        return False
+    if project_version is None:
+        return True
+    if theme.project_version_from and theme.project_version_from.version_order > project_version.version_order:
+        return False
+    if theme.project_version_to and theme.project_version_to.version_order < project_version.version_order:
+        return False
+    return True
+
+
+def get_available_themes(*, project_version: ProjectVersion | None = None, environment: str | None = None):
+    project_version = project_version or get_current_project_version()
+    environment = environment or get_runtime_environment()
+    return [theme for theme in ThemeProfile.objects.order_by("-is_default", "name") if is_theme_compatible(theme, project_version, environment)]
+
+
+def get_active_theme(*, project_version: ProjectVersion | None = None, environment: str | None = None) -> ThemeProfile | None:
+    project_version = project_version or get_current_project_version()
+    environment = environment or get_runtime_environment()
+    config = get_site_configuration()
+    if config.active_theme and is_theme_compatible(config.active_theme, project_version, environment):
+        return config.active_theme
+    theme = ThemeProfile.objects.filter(is_default=True).first()
+    if theme and is_theme_compatible(theme, project_version, environment):
+        return theme
+    return next(iter(get_available_themes(project_version=project_version, environment=environment)), None)
+
+
+def _template_exists(name: str) -> bool:
+    try:
+        get_template(name)
+        return True
+    except TemplateDoesNotExist:
+        return False
+
+
+def resolve_theme_template(relative_path: str, fallback: str) -> str:
+    theme = get_active_theme()
+    if theme and theme.template_base_path:
+        candidate = f"{theme.template_base_path}/{relative_path}"
+        if _template_exists(candidate):
+            return candidate
+    return fallback
+
+
+def get_theme_template_map() -> dict[str, str]:
+    return {
+        "theme_head_template": resolve_theme_template("components/head.html", "components/head.html"),
+        "theme_navbar_public_template": resolve_theme_template("components/navbar_public.html", "components/navbar_public.html"),
+        "theme_navbar_testing_template": resolve_theme_template("components/navbar_testing.html", "components/navbar_testing.html"),
+        "theme_footer_template": resolve_theme_template("components/footer.html", "components/footer.html"),
+    }
+
+
+def get_control_center_summary(*, config: SiteConfiguration | None = None, state_map: dict[str, bool] | None = None) -> dict[str, object]:
+    bootstrap_versioning()
     config = config or get_site_configuration()
     state_map = state_map or get_module_state_map()
-
     enabled_count = sum(1 for enabled in state_map.values() if enabled)
     total_count = len(MODULE_REGISTRY)
-
+    current_project_version = get_current_project_version()
+    active_theme = get_active_theme(project_version=current_project_version)
     return {
         "public_base_url": (config.public_base_url or "—"),
         "maintenance_label": "Enabled" if config.maintenance_mode_enabled else "Disabled",
@@ -312,41 +472,44 @@ def get_control_center_summary(
         "maintenance_mode_enabled": bool(config.maintenance_mode_enabled),
         "registration_enabled": bool(config.registration_enabled),
         "support_email": config.support_email or "—",
+        "runtime_environment": get_runtime_environment(),
+        "current_project_version": current_project_version,
+        "active_theme": active_theme,
     }
 
 
 @transaction.atomic
-def update_module_states(proposed: dict[str, bool]) -> dict[str, ModuleState]:
+def update_module_states(proposed: dict[str, bool], *, environment: str | None = None) -> dict[str, ModuleState]:
+    environment = environment or get_runtime_environment()
     states = ensure_module_states()
-    current_state_map = {
-        key: states[key].is_enabled
-        for key in MODULE_REGISTRY
-    }
+    current_state_map = {key: states[key].is_enabled for key in MODULE_REGISTRY}
     merged = build_effective_module_state_map(current_state_map, proposed)
-
     for key, enabled in merged.items():
         state = states[key]
         if state.is_enabled != enabled:
             state.is_enabled = enabled
             state.save(update_fields=["is_enabled", "updated_at"])
-
+        env_state, _created = EnvironmentModuleState.objects.get_or_create(environment=environment, module_key=key, defaults={"is_enabled": enabled})
+        if env_state.is_enabled != enabled:
+            env_state.is_enabled = enabled
+            env_state.save(update_fields=["is_enabled", "updated_at"])
     _sync_compatibility_flags(merged)
     return states
 
 
 @transaction.atomic
 def save_site_configuration(*, config: SiteConfiguration, module_states: dict[str, bool]) -> SiteConfiguration:
+    bootstrap_versioning()
+    if config.current_project_version_id is None:
+        config.current_project_version = get_current_project_version()
+    if config.active_theme_id is None:
+        config.active_theme = get_active_theme(project_version=config.current_project_version)
     config.save()
     effective_states = build_effective_module_state_map(get_module_state_map(), module_states)
     update_module_states(effective_states)
-
-    tg_config, _created = TelegramNotifierConfig.objects.get_or_create(
-        singleton_key=1,
-        defaults=TelegramNotifierConfig.bootstrap_defaults(),
-    )
+    tg_config, _created = TelegramNotifierConfig.objects.get_or_create(singleton_key=1, defaults=TelegramNotifierConfig.bootstrap_defaults())
     desired_public_base_url = config.public_base_url
     desired_enabled = effective_states.get("tg_notifier", False)
-
     changed_fields: list[str] = []
     if tg_config.public_base_url != desired_public_base_url:
         tg_config.public_base_url = desired_public_base_url
@@ -357,26 +520,51 @@ def save_site_configuration(*, config: SiteConfiguration, module_states: dict[st
     if changed_fields:
         changed_fields.append("updated_at")
         tg_config.save(update_fields=changed_fields)
+    return config
 
+
+@transaction.atomic
+def set_active_theme(theme: ThemeProfile) -> SiteConfiguration:
+    config = get_site_configuration()
+    if not is_theme_compatible(theme, config.current_project_version, get_runtime_environment()):
+        raise ValidationError("Тема несовместима с текущей версией проекта или окружением.")
+    config.active_theme = theme
+    config.save(update_fields=["active_theme", "updated_at"])
+    return config
+
+
+@transaction.atomic
+def set_current_project_version(project_version: ProjectVersion) -> SiteConfiguration:
+    config = get_site_configuration()
+    config.current_project_version = project_version
+    active_theme = get_active_theme(project_version=project_version)
+    if active_theme:
+        config.active_theme = active_theme
+    config.save(update_fields=["current_project_version", "active_theme", "updated_at"])
     return config
 
 
 def _sync_compatibility_flags(module_state_map: dict[str, bool]) -> None:
     tg_enabled = bool(module_state_map.get("tg_notifier", False))
-    tg_config, _created = TelegramNotifierConfig.objects.get_or_create(
-        singleton_key=1,
-        defaults=TelegramNotifierConfig.bootstrap_defaults(),
-    )
+    tg_config, _created = TelegramNotifierConfig.objects.get_or_create(singleton_key=1, defaults=TelegramNotifierConfig.bootstrap_defaults())
     if tg_config.is_enabled != tg_enabled:
         tg_config.is_enabled = tg_enabled
         tg_config.save(update_fields=["is_enabled", "updated_at"])
 
 
-def is_module_enabled(key: str) -> bool:
+def is_module_enabled(key: str, environment: str | None = None) -> bool:
     definition = MODULE_REGISTRY.get(key)
     if definition is None:
         return False
-    return get_module_state_map().get(key, definition.default_enabled)
+    environment = environment or get_runtime_environment()
+    env_state = EnvironmentModuleState.objects.filter(environment=environment, module_key=key).select_related("module_release").first()
+    if env_state is not None:
+        if not env_state.is_enabled:
+            return False
+        if env_state.module_release and env_state.module_release.channel == ModuleRelease.Channel.TEST and environment == EnvironmentModuleState.Environment.PROD:
+            return False
+        return True
+    return get_module_state_map(environment=environment).get(key, definition.default_enabled)
 
 
 def resolve_module_for_namespace(namespace: str | None) -> ModuleDefinition | None:
@@ -404,6 +592,7 @@ def get_currency_symbol() -> str:
 def is_registration_enabled() -> bool:
     return bool(get_site_configuration().registration_enabled)
 
+
 def quantize_money(value) -> Decimal:
     if value in (None, ""):
         return ZERO
@@ -413,15 +602,19 @@ def quantize_money(value) -> Decimal:
         raw = Decimal(str(value))
     return raw.quantize(MONEY_Q, rounding=ROUND_HALF_UP)
 
+
 def get_site_currency_code() -> str:
     return get_site_configuration().site_currency_code or "RUB"
+
 
 def get_site_currency_symbol() -> str:
     return get_site_configuration().site_currency_symbol or "₽"
 
+
 def get_site_currency_rate() -> Decimal:
     config = get_site_configuration()
     return Decimal(config.site_currency_rate or "1.000000")
+
 
 def convert_rub_to_site_currency(value) -> Decimal:
     rub_value = quantize_money(value)
@@ -430,12 +623,14 @@ def convert_rub_to_site_currency(value) -> Decimal:
         rate = Decimal("1.000000")
     return (rub_value / rate).quantize(MONEY_Q, rounding=ROUND_HALF_UP)
 
+
 def format_site_money(value, *, signed: bool = False) -> str:
     amount = convert_rub_to_site_currency(value)
     symbol = get_site_currency_symbol()
     if signed and amount > 0:
         return f"+{amount:.2f} {symbol}"
     return f"{amount:.2f} {symbol}"
+
 
 def build_page_title(*parts: object) -> str:
     site_name = get_site_name()

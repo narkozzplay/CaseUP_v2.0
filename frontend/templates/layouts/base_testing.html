@@ -3,7 +3,7 @@
 {% block body_class %}theme-testing{% endblock %}
 
 {% block page %}
-    {% include "components/navbar_testing.html" %}
+    {% include theme_navbar_testing_template|default:"components/navbar_testing.html" %}
 
     <main class="site-main">
         <section class="section">

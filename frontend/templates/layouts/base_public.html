@@ -3,11 +3,11 @@
 {% block body_class %}theme-public{% endblock %}
 
 {% block page %}
-    {% include "components/navbar_public.html" %}
+    {% include theme_navbar_public_template|default:"components/navbar_public.html" %}
 
     <main class="site-main">
         {% block content %}{% endblock %}
     </main>
 
-    {% include "components/footer.html" %}
+    {% include theme_footer_template|default:"components/footer.html" %}
 {% endblock %}

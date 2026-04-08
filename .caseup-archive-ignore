@@ -1,7 +1,15 @@
-# Secrets
+# Env / secrets
 .env
+.env.dev
+.env.prod
+.env.local
+.env.test
 .env.*
+
 !.env.example
+!.env.dev.example
+!.env.prod.example
+!.env.test.example
 
 # Git
 .git/

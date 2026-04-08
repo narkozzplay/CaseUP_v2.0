@@ -4,9 +4,16 @@
 
 # Env / secrets
 .env
+.env.dev
+.env.prod
+.env.local
+.env.test
 .env.*
-*.env
-*.example
+
+!.env.example
+!.env.dev.example
+!.env.prod.example
+!.env.test.example
 
 # Python cache / tooling
 __pycache__/

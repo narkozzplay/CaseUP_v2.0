@@ -85,6 +85,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      web:
+        condition: service_healthy
     env_file:
       - ${APP_ENV_FILE:-.env.dev}
     environment:
@@ -120,6 +122,8 @@ services:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      web:
         condition: service_healthy
     env_file:
       - ${APP_ENV_FILE:-.env.dev}

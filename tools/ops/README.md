@@ -23,7 +23,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.
 
 ```powershell
 docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod exec web python manage.py bootstrap_prod
-docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod exec web python manage.py bootstrap_prod --username _NaRkOzZ_ --role super_admin
+docker compose exec web python manage.py grant_role "внутренний юзернейм" super_admin
 docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod exec web python manage.py bootstrap_prod --create-superuser-from-env
 ```
 
