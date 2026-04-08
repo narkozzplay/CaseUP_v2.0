@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 from urllib.parse import urlparse
 
+import requests
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -15,6 +16,7 @@ from modules.v2.tg_notifier.models import TelegramNotifierConfig
 from .module_registry import MODULE_REGISTRY, NAMESPACE_TO_MODULE_KEY, ModuleDefinition
 from .models import (
     EnvironmentModuleState,
+    ExternalServiceIntegration,
     ModuleCompatibility,
     ModuleRelease,
     ModuleState,
@@ -70,6 +72,15 @@ class ModuleFlagReleaseInfo:
     runtime_is_test_mode: bool
 
 
+@dataclass(frozen=True)
+class ExternalServiceHealth:
+    key: str
+    label: str
+    status: str
+    mode: str
+    has_key: bool
+    message: str
+
 
 
 
@@ -95,6 +106,122 @@ def get_site_configuration() -> SiteConfiguration:
         defaults=SiteConfiguration.bootstrap_defaults(),
     )
     return config
+
+
+def get_external_service_integration() -> ExternalServiceIntegration:
+    integration = ExternalServiceIntegration.objects.filter(singleton_key=1).first()
+    if integration is not None:
+        return integration
+    integration, _created = ExternalServiceIntegration.objects.get_or_create(singleton_key=1)
+    return integration
+
+
+def save_external_service_integration(*, payload: dict[str, object]) -> ExternalServiceIntegration:
+    integration = get_external_service_integration()
+    health_fields = {"steam_health_mode", "faceit_health_mode", "telegram_health_mode"}
+    for field in (
+        "steam_api_key",
+        "faceit_api_key",
+        "telegram_bot_token",
+        "steam_health_mode",
+        "faceit_health_mode",
+        "telegram_health_mode",
+        "degraded_stub_message",
+        "down_stub_message",
+    ):
+        if field in payload:
+            if field in health_fields and not payload[field]:
+                continue
+            setattr(integration, field, payload[field])
+    integration.save()
+    return integration
+
+
+def _mask_secret(value: str) -> str:
+    if not value:
+        return ""
+    if len(value) <= 8:
+        return "••••"
+    return f"{value[:4]}••••{value[-4:]}"
+
+
+def get_masked_integration_secrets() -> dict[str, str]:
+    integration = get_external_service_integration()
+    return {
+        "steam_api_key": _mask_secret(integration.steam_api_key),
+        "faceit_api_key": _mask_secret(integration.faceit_api_key),
+        "telegram_bot_token": _mask_secret(integration.telegram_bot_token),
+    }
+
+
+def get_external_service_health() -> list[ExternalServiceHealth]:
+    integration = get_external_service_integration()
+
+    forced = {
+        ExternalServiceIntegration.HealthMode.FORCE_UP: ("up", "Принудительно отмечен как рабочий."),
+        ExternalServiceIntegration.HealthMode.FORCE_DEGRADED: ("degraded", integration.degraded_stub_message),
+        ExternalServiceIntegration.HealthMode.FORCE_DOWN: ("down", integration.down_stub_message),
+    }
+
+    checks = [
+        ("steam", "Steam API", integration.steam_api_key, integration.steam_health_mode, _check_steam),
+        ("faceit", "FaceIT API", integration.faceit_api_key, integration.faceit_health_mode, _check_faceit),
+        ("telegram", "Telegram Bot API", integration.telegram_bot_token, integration.telegram_health_mode, _check_telegram),
+    ]
+    results: list[ExternalServiceHealth] = []
+    for key, label, secret, mode, checker in checks:
+        has_key = bool(secret)
+        if mode in forced:
+            status, message = forced[mode]
+        elif not has_key:
+            status, message = "missing_key", "API ключ не задан."
+        else:
+            status, message = checker(secret)
+        results.append(ExternalServiceHealth(key=key, label=label, status=status, mode=mode, has_key=has_key, message=message))
+    return results
+
+
+def _check_steam(api_key: str) -> tuple[str, str]:
+    try:
+        response = requests.get(
+            "https://api.steampowered.com/ISteamWebAPIUtil/GetSupportedAPIList/v1/",
+            params={"key": api_key},
+            timeout=4,
+        )
+    except requests.RequestException as exc:
+        return ("down", f"Steam API недоступен: {exc.__class__.__name__}.")
+    if response.ok:
+        return ("up", "Steam API отвечает корректно.")
+    return ("degraded", f"Steam API вернул HTTP {response.status_code}.")
+
+
+def _check_faceit(api_key: str) -> tuple[str, str]:
+    try:
+        response = requests.get(
+            "https://open.faceit.com/data/v4/games",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=4,
+        )
+    except requests.RequestException as exc:
+        return ("down", f"FaceIT API недоступен: {exc.__class__.__name__}.")
+    if response.ok:
+        return ("up", "FaceIT API отвечает корректно.")
+    if response.status_code in {401, 403}:
+        return ("degraded", "FaceIT API отклонил ключ (401/403).")
+    return ("degraded", f"FaceIT API вернул HTTP {response.status_code}.")
+
+
+def _check_telegram(bot_token: str) -> tuple[str, str]:
+    try:
+        response = requests.get(f"https://api.telegram.org/bot{bot_token}/getMe", timeout=4)
+    except requests.RequestException as exc:
+        return ("down", f"Telegram API недоступен: {exc.__class__.__name__}.")
+    if not response.ok:
+        return ("degraded", f"Telegram API вернул HTTP {response.status_code}.")
+    payload = response.json() if response.headers.get("Content-Type", "").startswith("application/json") else {}
+    if payload.get("ok"):
+        return ("up", "Telegram bot token валиден.")
+    return ("degraded", "Telegram API вернул отрицательный ответ на getMe.")
 
 
 def get_current_project_version() -> ProjectVersion | None:
@@ -158,7 +285,17 @@ def ensure_environment_module_states() -> None:
 
 @transaction.atomic
 def ensure_project_versions() -> None:
+    config = get_site_configuration()
     if ProjectVersion.objects.exists():
+        if not config.current_project_version_id:
+            fallback = (
+                ProjectVersion.objects.filter(is_current=True).first()
+                or ProjectVersion.objects.filter(is_default_for_dev=True).first()
+                or ProjectVersion.objects.order_by("version_order").last()
+            )
+            if fallback is not None:
+                config.current_project_version = fallback
+                config.save(update_fields=["current_project_version", "updated_at"])
         return
     version = ProjectVersion.objects.create(
         version="0.1.38",
@@ -169,7 +306,6 @@ def ensure_project_versions() -> None:
         is_default_for_dev=True,
         is_default_for_prod=True,
     )
-    config = get_site_configuration()
     config.current_project_version = version
     config.save(update_fields=["current_project_version", "updated_at"])
 

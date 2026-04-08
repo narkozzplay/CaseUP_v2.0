@@ -7,14 +7,25 @@ from .module_registry import MODULE_REGISTRY
 from .models import ProjectVersion, SiteConfiguration, ThemeProfile
 from .services import (
     build_effective_module_state_map,
+    get_external_service_integration,
     get_available_themes,
     get_current_project_version,
+    get_masked_integration_secrets,
     get_module_state_map,
+    save_external_service_integration,
     save_site_configuration,
 )
 
 
 class SiteConfigurationForm(forms.ModelForm):
+    steam_api_key = forms.CharField(required=False, widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "new-password", "render_value": True}))
+    faceit_api_key = forms.CharField(required=False, widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "new-password", "render_value": True}))
+    telegram_bot_token = forms.CharField(required=False, widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "new-password", "render_value": True}))
+    steam_health_mode = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
+    faceit_health_mode = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
+    telegram_health_mode = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
+    degraded_stub_message = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    down_stub_message = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     current_project_version = forms.ModelChoiceField(
         queryset=ProjectVersion.objects.none(),
         required=False,
@@ -59,6 +70,8 @@ class SiteConfigurationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        integration = get_external_service_integration()
+        masked = get_masked_integration_secrets()
         self.initial_module_state_map = get_module_state_map()
         current_version = self.instance.current_project_version or get_current_project_version()
         self.fields["current_project_version"].queryset = ProjectVersion.objects.order_by("version_order")
@@ -73,6 +86,18 @@ class SiteConfigurationForm(forms.ModelForm):
                 help_text=self._build_help_text(definition),
             )
             self.fields[f"module__{key}"].widget.attrs["class"] = "toggle-control__input"
+        self.fields["steam_health_mode"].choices = integration.HealthMode.choices
+        self.fields["faceit_health_mode"].choices = integration.HealthMode.choices
+        self.fields["telegram_health_mode"].choices = integration.HealthMode.choices
+        self.fields["steam_api_key"].initial = integration.steam_api_key
+        self.fields["faceit_api_key"].initial = integration.faceit_api_key
+        self.fields["telegram_bot_token"].initial = integration.telegram_bot_token
+        self.fields["steam_health_mode"].initial = integration.steam_health_mode
+        self.fields["faceit_health_mode"].initial = integration.faceit_health_mode
+        self.fields["telegram_health_mode"].initial = integration.telegram_health_mode
+        self.fields["degraded_stub_message"].initial = integration.degraded_stub_message
+        self.fields["down_stub_message"].initial = integration.down_stub_message
+        self.masked_integration_secrets = masked
 
     def _build_help_text(self, definition):
         parts = [definition.description]
@@ -125,7 +150,20 @@ class SiteConfigurationForm(forms.ModelForm):
         module_states = self.get_module_states()
         if not commit:
             return instance
-        return save_site_configuration(config=instance, module_states=module_states)
+        config = save_site_configuration(config=instance, module_states=module_states)
+        save_external_service_integration(
+            payload={
+                "steam_api_key": self.cleaned_data.get("steam_api_key", ""),
+                "faceit_api_key": self.cleaned_data.get("faceit_api_key", ""),
+                "telegram_bot_token": self.cleaned_data.get("telegram_bot_token", ""),
+                "steam_health_mode": self.cleaned_data.get("steam_health_mode"),
+                "faceit_health_mode": self.cleaned_data.get("faceit_health_mode"),
+                "telegram_health_mode": self.cleaned_data.get("telegram_health_mode"),
+                "degraded_stub_message": self.cleaned_data.get("degraded_stub_message", ""),
+                "down_stub_message": self.cleaned_data.get("down_stub_message", ""),
+            }
+        )
+        return config
 
 
 
