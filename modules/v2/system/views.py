@@ -23,6 +23,7 @@ from .services import (
     get_module_release_matrix,
     get_module_state_map,
     get_module_state_views,
+    get_external_service_health,
     get_runtime_environment,
     get_site_configuration,
     preview_module_update,
@@ -47,6 +48,8 @@ def _build_settings_context(*, role_access, config, form, current_state_map, pre
         "runtime_environment": runtime_environment,
         "current_project_version": current_project_version,
         "module_preview": preview,
+        "integration_health": get_external_service_health(),
+        "masked_integration_secrets": getattr(form, "masked_integration_secrets", {}),
     }
 
 

@@ -104,9 +104,12 @@ def purchase_add(request):
 @farm_required
 def purchase_sell(request, purchase_id: int):
     access = get_farm_access(request.user)
+    role_access = get_user_role(request.user)
     purchase_qs = with_purchase_sales_annotations(
         SteamPurchase.objects.select_related("item", "created_by").prefetch_related("sales__created_by")
-    ).filter(created_by=request.user)
+    )
+    if not role_access.is_admin_plus:
+        purchase_qs = purchase_qs.filter(created_by=request.user)
 
     purchase = get_object_or_404(purchase_qs, pk=purchase_id)
     purchase_row = build_purchase_row(purchase)
@@ -159,7 +162,7 @@ def purchase_sell(request, purchase_id: int):
         partial_template="steam_trading/partials/sell_content.html",
         context={
             "steam_trading_access": access,
-            "role_access": get_user_role(request.user),
+            "role_access": role_access,
             "purchase": purchase,
             "purchase_row": purchase_row,
             "form": form,
