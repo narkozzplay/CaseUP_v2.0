@@ -74,6 +74,7 @@ PROJECT_APPS = [
     "modules.v2.celery_tasks.apps.CeleryTasksConfig",
     "modules.v2.tg_notifier.apps.TgNotifierConfig",
     "modules.v2.game_servers.apps.GameServersConfig",
+    "modules.v2.shop.apps.ShopConfig",
     "modules.v2.web_constructor.apps.WebConstructorConfig",
 ]
 
@@ -247,4 +248,3 @@ CELERY_BEAT_PENDING_ALERT_DISPATCHER_SECONDS = int(
 CELERY_BEAT_STEAM_TRADING_UNLOCK_NOTIFIER_SECONDS = int(
     os.getenv("CELERY_BEAT_STEAM_TRADING_UNLOCK_NOTIFIER_SECONDS", "120")
 )
-

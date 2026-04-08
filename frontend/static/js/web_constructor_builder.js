@@ -17,6 +17,8 @@
     const previewFrame = root.querySelector('[data-builder-preview-frame]');
     const previewStatus = root.querySelector('[data-builder-preview-status]');
     const previewMessage = root.querySelector('[data-builder-preview-message]');
+    const activeAreaBadge = root.querySelector('[data-builder-active-area]');
+    const debugNote = root.querySelector('[data-builder-debug-note]');
 
     let builderState = {};
     try {
@@ -46,6 +48,9 @@
         if (previewStatus) previewStatus.textContent = label;
         if (previewMessage && message) previewMessage.textContent = message;
     }
+    function setDebugNote(message) {
+        if (debugNote) debugNote.textContent = `Debug: ${message}`;
+    }
 
     function ensureAreaState(areaKey) {
         draft.areas = draft.areas || {};
@@ -64,6 +69,7 @@
         form.elements.color.value = areaState.color || '';
         form.elements.style_preset.value = areaState.style_preset || '';
         form.elements.is_visible.checked = areaState.is_visible !== false;
+        if (activeAreaBadge) activeAreaBadge.textContent = `Area: ${selectedAreaKey}`;
     }
 
     function bindAreaClicks() {
@@ -75,6 +81,7 @@
                 button.classList.add('is-active');
                 renderInspector();
                 updatePreviewDocument();
+                setDebugNote(`выбрана зона ${selectedAreaKey}`);
             });
         });
         const first = areaList.querySelector('[data-area-key]');
@@ -82,28 +89,33 @@
     }
 
     async function fetchVariables(query) {
-        const url = new URL(root.dataset.variablesUrl, window.location.origin);
-        if (query) url.searchParams.set('q', query);
-        const response = await fetch(url.toString(), {headers: {'X-Requested-With': 'XMLHttpRequest'}});
-        const payload = await response.json();
-        variableList.innerHTML = '';
-        (payload.items || []).forEach((item) => {
-            const el = document.createElement('button');
-            el.type = 'button';
-            el.className = 'wc-builder-variable-item';
-            el.innerHTML = `<strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.key)}</span><small>${escapeHtml(item.example_value || item.resolver_hint || '')}</small>`;
-            el.addEventListener('click', () => {
-                if (!form || !selectedAreaKey) return;
-                const areaState = ensureAreaState(selectedAreaKey);
-                const current = form.elements.content.value || '';
-                const token = `{{ ${item.key} }}`;
-                form.elements.content.value = current ? `${current} ${token}` : token;
-                areaState.content = form.elements.content.value;
-                setSaveState('Draft changed');
-                updatePreviewDocument();
+        try {
+            const url = new URL(root.dataset.variablesUrl, window.location.origin);
+            if (query) url.searchParams.set('q', query);
+            const response = await fetch(url.toString(), {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+            const payload = await response.json();
+            variableList.innerHTML = '';
+            (payload.items || []).forEach((item) => {
+                const el = document.createElement('button');
+                el.type = 'button';
+                el.className = 'wc-builder-variable-item';
+                el.innerHTML = `<strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.key)}</span><small>${escapeHtml(item.example_value || item.resolver_hint || '')}</small>`;
+                el.addEventListener('click', () => {
+                    if (!form || !selectedAreaKey) return;
+                    const areaState = ensureAreaState(selectedAreaKey);
+                    const current = form.elements.content.value || '';
+                    const token = `{{ ${item.key} }}`;
+                    form.elements.content.value = current ? `${current} ${token}` : token;
+                    areaState.content = form.elements.content.value;
+                    setSaveState('Draft changed');
+                    updatePreviewDocument();
+                });
+                variableList.appendChild(el);
             });
-            variableList.appendChild(el);
-        });
+            setDebugNote(`переменные загружены: ${(payload.items || []).length}`);
+        } catch (error) {
+            setDebugNote(`ошибка загрузки переменных: ${error.message}`);
+        }
     }
 
     function collectDraft() {
@@ -230,39 +242,68 @@
     }
 
     async function saveDraft() {
-        const response = await fetch(root.dataset.saveUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCsrfToken(),
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: JSON.stringify(collectDraft()),
-        });
-        if (!response.ok) {
+        try {
+            const response = await fetch(root.dataset.saveUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify(collectDraft()),
+            });
+            if (!response.ok) {
+                setSaveState('Save failed');
+                setDebugNote(`save failed: HTTP ${response.status}`);
+                return;
+            }
+            setSaveState('Draft saved');
+            setDebugNote('draft сохранен');
+            await refreshBuilderState();
+            updatePreviewDocument();
+        } catch (error) {
             setSaveState('Save failed');
-            return;
+            setDebugNote(`save error: ${error.message}`);
         }
-        setSaveState('Draft saved');
-        updatePreviewDocument();
     }
 
     async function resetDraft() {
-        const response = await fetch(root.dataset.resetUrl, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCsrfToken(),
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-        });
-        if (!response.ok) {
+        try {
+            const response = await fetch(root.dataset.resetUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+            if (!response.ok) {
+                setSaveState('Reset failed');
+                setDebugNote(`reset failed: HTTP ${response.status}`);
+                return;
+            }
+            draft.areas = {};
+            await refreshBuilderState();
+            renderInspector();
+            setSaveState('Draft reset');
+            setDebugNote('draft сброшен');
+            updatePreviewDocument();
+        } catch (error) {
             setSaveState('Reset failed');
-            return;
+            setDebugNote(`reset error: ${error.message}`);
         }
-        draft.areas = {};
-        renderInspector();
-        setSaveState('Draft reset');
-        updatePreviewDocument();
+    }
+
+    async function refreshBuilderState() {
+        try {
+            const response = await fetch(root.dataset.stateUrl, {headers: {'X-Requested-With': 'XMLHttpRequest'}, cache: 'no-store'});
+            if (!response.ok) return;
+            builderState = await response.json();
+            const areas = (builderState && builderState.areas) || [];
+            if (!selectedAreaKey && areas.length) selectedAreaKey = areas[0].area_key;
+            setDebugNote(`state synced (${areas.length} areas)`);
+        } catch (error) {
+            setDebugNote(`state sync error: ${error.message}`);
+        }
     }
 
     function getCsrfToken() {
@@ -288,5 +329,6 @@
     bindAreaClicks();
     renderInspector();
     fetchVariables('');
+    refreshBuilderState();
     loadPreview();
 })();

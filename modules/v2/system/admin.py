@@ -7,6 +7,7 @@ from .dashboard_menu import ensure_dashboard_menu_items
 from .models import (
     DashboardMenuItem,
     EnvironmentModuleState,
+    ExternalServiceIntegration,
     ModuleCompatibility,
     ModuleRelease,
     ModuleState,
@@ -42,6 +43,22 @@ class SiteConfigurationAdmin(admin.ModelAdmin):
     )
     def has_add_permission(self, request):
         return not SiteConfiguration.objects.exists()
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ExternalServiceIntegration)
+class ExternalServiceIntegrationAdmin(admin.ModelAdmin):
+    list_display = ("singleton_key", "steam_health_mode", "faceit_health_mode", "telegram_health_mode", "updated_at")
+    readonly_fields = ("singleton_key", "created_at", "updated_at")
+    fieldsets = (
+        ("Keys", {"fields": ("singleton_key", "steam_api_key", "faceit_api_key", "telegram_bot_token")}),
+        ("Health", {"fields": ("steam_health_mode", "faceit_health_mode", "telegram_health_mode")}),
+        ("Stubs", {"fields": ("degraded_stub_message", "down_stub_message")}),
+        ("Meta", {"fields": ("created_at", "updated_at")}),
+    )
+    def has_add_permission(self, request):
+        return not ExternalServiceIntegration.objects.exists()
     def has_delete_permission(self, request, obj=None):
         return False
 

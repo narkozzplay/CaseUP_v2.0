@@ -84,6 +84,21 @@ MODULE_REGISTRY: dict[str, ModuleDefinition] = {
         addon_targets=("subscriptions",),
         default_enabled=True,
     ),
+    "midnight_plugin": ModuleDefinition(
+        key="midnight_plugin",
+        label="Midnight Plugin",
+        description="Плагин расширенного Midnight layout (top navigation + UX-пакет).",
+        namespaces=(),
+        default_enabled=False,
+    ),
+    "shop": ModuleDefinition(
+        key="shop",
+        label="Shop",
+        description="Модуль магазина (заглушка, подготовка каталога и витрины).",
+        namespaces=("shop",),
+        addon_targets=("subscriptions",),
+        default_enabled=False,
+    ),
 }
 
 NAMESPACE_TO_MODULE_KEY = {

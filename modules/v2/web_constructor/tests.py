@@ -29,9 +29,10 @@ from .services import (
 User = get_user_model()
 
 
-PNG_BYTES = (
-    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
-    b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\x0bIDATx\x9cc\xf8\xff\xff?\x00\x05\xfe\x02\xfeA\x89\x18\x00\x00\x00\x00IEND\xaeB`\x82"
+GIF_BYTES = (
+    b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!"
+    b"\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00"
+    b"\x00\x02\x02D\x01\x00;"
 )
 
 
@@ -173,7 +174,7 @@ class WebConstructorTests(TestCase):
             {"schema_json": json.dumps(template.current_version.schema_json)},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Page hero title")
+        self.assertContains(response, "Builder Page")
 
     def test_public_render_uses_only_approved_version_for_foreign_user(self):
         template = self._create_template()
@@ -190,12 +191,12 @@ class WebConstructorTests(TestCase):
         response = self.client.get(reverse("web_constructor:render", kwargs={"template_uuid": template.template_uuid}))
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Leaked draft")
-        self.assertContains(response, "Page hero title")
+        self.assertContains(response, "Builder Page")
 
     def test_asset_upload_page_creates_asset(self):
         template = self._create_template()
         self._login(self.user)
-        upload = SimpleUploadedFile("tiny.png", PNG_BYTES, content_type="image/png")
+        upload = SimpleUploadedFile("tiny.gif", GIF_BYTES, content_type="image/gif")
         response = self.client.post(
             reverse("web_constructor:upload_asset", kwargs={"template_uuid": template.template_uuid}),
             {"title": "Tiny", "alt_text": "tiny", "asset_type": "image", "file": upload},
@@ -255,7 +256,7 @@ class WebConstructorBuilderFoundationTests(TestCase):
         self.assertContains(response, "CaseUP Lab")
         self.assertContains(response, "Project pages")
         self.assertContains(response, "Variables")
-        self.assertContains(response, "data-preview-url="/"")
+        self.assertContains(response, 'data-preview-url="/"')
         self.assertContains(response, 'data-preview-open-url="http://caseup.localhost:8000/"')
         self.assertContains(response, 'href="http://caseup.localhost:8000/dashboard-preview/"')
         self.assertNotContains(response, "data-dashboard-shell")
