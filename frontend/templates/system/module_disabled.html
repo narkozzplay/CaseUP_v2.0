@@ -1,0 +1,79 @@
+{% extends module_disabled_layout_template %}
+
+{% block title %}
+    {% if LANGUAGE_CODE == "ru" %}
+        Модуль недоступен | {{ site_settings.site_name|default:"CaseUP" }}
+    {% else %}
+        Module unavailable | {{ site_settings.site_name|default:"CaseUP" }}
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% if module_disabled_is_dashboard %}
+        <section class="section section--compact">
+            <article class="card">
+                <div class="card-body">
+                    <span class="eyebrow">Module disabled</span>
+                    <h1 class="page-title page-title--sm">{{ module_disabled_module_label }}</h1>
+                    <p class="text-muted">
+                        {% if LANGUAGE_CODE == "ru" %}
+                            Модуль временно недоступен. Попробуйте позже или перейдите в другой раздел.
+                        {% else %}
+                            This module is temporarily unavailable. Please try again later or open another section.
+                        {% endif %}
+                    </p>
+
+                    {% if module_disabled_reason %}
+                        <div class="form-error" style="margin-top: 14px;">
+                            <strong>{% if LANGUAGE_CODE == "ru" %}Причина:{% else %}Reason:{% endif %}</strong>
+                            {{ module_disabled_reason }}
+                        </div>
+                    {% endif %}
+
+                    <div class="hero-actions" style="margin-top: 18px;">
+                        <a href="{{ module_disabled_dashboard_url }}" class="btn btn-primary">
+                            {% if LANGUAGE_CODE == "ru" %}В dashboard{% else %}Go to dashboard{% endif %}
+                        </a>
+                        <a href="{{ module_disabled_back_url }}" class="btn btn-secondary">
+                            {% if LANGUAGE_CODE == "ru" %}Назад{% else %}Back{% endif %}
+                        </a>
+                    </div>
+                </div>
+            </article>
+        </section>
+    {% else %}
+        <section class="auth-section">
+            <div class="container auth-grid auth-grid--single">
+                <div class="auth-card card">
+                    <div class="card-body auth-card__body">
+                        <span class="eyebrow">Module disabled</span>
+                        <h1 class="auth-title">{{ module_disabled_module_label }}</h1>
+                        <p class="text-muted auth-description">
+                            {% if LANGUAGE_CODE == "ru" %}
+                                Модуль временно недоступен. Попробуйте позже или вернитесь на главную.
+                            {% else %}
+                                This module is temporarily unavailable. Please try again later or return to home.
+                            {% endif %}
+                        </p>
+
+                        {% if module_disabled_reason %}
+                            <div class="form-error" style="margin-top: 14px;">
+                                <strong>{% if LANGUAGE_CODE == "ru" %}Причина:{% else %}Reason:{% endif %}</strong>
+                                {{ module_disabled_reason }}
+                            </div>
+                        {% endif %}
+
+                        <div class="hero-actions" style="margin-top: 18px;">
+                            <a href="{{ module_disabled_dashboard_url }}" class="btn btn-primary">
+                                {% if LANGUAGE_CODE == "ru" %}На главную{% else %}Go to home{% endif %}
+                            </a>
+                            <a href="{{ module_disabled_back_url }}" class="btn btn-secondary">
+                                {% if LANGUAGE_CODE == "ru" %}Назад{% else %}Back{% endif %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    {% endif %}
+{% endblock %}

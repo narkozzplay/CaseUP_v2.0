@@ -38,9 +38,13 @@
     <div class="stats-grid stats-grid--dashboard">
         {% include "components/stats_card.html" with label="Users" value=total_users meta="Profiles: "|add:total_profiles %}
         {% include "components/stats_card.html" with label="Staff" value=staff_users meta="Admin / Mod / Chief" %}
-        {% include "components/stats_card.html" with label="Steam Catalog" value=steam_items_total meta="Review: "|add:steam_items_review %}
-        {% include "components/stats_card.html" with label="Steam Stock" value=steam_stock_total meta="Current total stock" %}
-        {% include "components/stats_card.html" with label="Farm Accounts" value=farm_accounts_total meta="Active: "|add:farm_accounts_active %}
+        {% if feature_flags.steam_catalog %}
+            {% include "components/stats_card.html" with label="Steam Catalog" value=steam_items_total meta="Review: "|add:steam_items_review %}
+            {% include "components/stats_card.html" with label="Steam Stock" value=steam_stock_total meta="Current total stock" %}
+        {% endif %}
+        {% if feature_flags.farm %}
+            {% include "components/stats_card.html" with label="Farm Accounts" value=farm_accounts_total meta="Active: "|add:farm_accounts_active %}
+        {% endif %}
         {% include "components/stats_card.html" with label="Ledger Entries" value=latest_ledger|length meta="Recent loaded entries" %}
     </div>
     
@@ -84,7 +88,7 @@
                         <span>{% if LANGUAGE_CODE == "ru" %}Steam, FACEIT, баланс{% else %}Steam, FACEIT, balance{% endif %}</span>
                     </a>
 
-                    {% if subscription_context.feature_map.steam_catalog_view %}
+                    {% if feature_flags.steam_catalog and subscription_context.feature_map.steam_catalog_view %}
                         <a href="{% url 'steam_catalog:list' %}" class="quick-action-card">
                             <strong>Steam Catalog</strong>
                             <span>{% if LANGUAGE_CODE == "ru" %}Предметы, цены, stock{% else %}Items, prices, stock{% endif %}</span>
@@ -96,10 +100,12 @@
                         <span>{% if LANGUAGE_CODE == "ru" %}Текущий тариф и доступные апгрейды{% else %}Current plan and upgrade path{% endif %}</span>
                     </a>{% endif %}
 
-                    <a href="{% url 'farm:dashboard' %}" class="quick-action-card">
-                        <strong>Farm</strong>
-                        <span>{% if LANGUAGE_CODE == "ru" %}Аккаунты и статусы{% else %}Accounts and statuses{% endif %}</span>
-                    </a>
+                    {% if feature_flags.farm %}
+                        <a href="{% url 'farm:dashboard' %}" class="quick-action-card">
+                            <strong>Farm</strong>
+                            <span>{% if LANGUAGE_CODE == "ru" %}Аккаунты и статусы{% else %}Accounts and statuses{% endif %}</span>
+                        </a>
+                    {% endif %}
 
                     {% if role_access.is_admin_plus %}
                         <a href="{% url 'frontend:admin_panel' %}" class="quick-action-card">
@@ -143,27 +149,29 @@
             </div>
         </article>
 
-        <article class="card dashboard-panel">
-            <div class="card-body">
-                <div class="section-head-inline">
-                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Последние предметы{% else %}Latest items{% endif %}</h2>
-                </div>
+        {% if feature_flags.steam_catalog %}
+            <article class="card dashboard-panel">
+                <div class="card-body">
+                    <div class="section-head-inline">
+                        <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Последние предметы{% else %}Latest items{% endif %}</h2>
+                    </div>
 
-                <div class="dashboard-list">
-                    {% for item in latest_items %}
-                        <a href="{% url 'steam_catalog:detail' item.id %}" class="dashboard-list__row dashboard-list__row--link">
-                            <div>
-                                <strong>{{ item.group_name }}</strong>
-                                <div class="text-muted">{{ item.get_item_type_display }}</div>
-                            </div>
-                            <span class="text-muted">{{ item.updated_at|date:"d.m.Y H:i" }}</span>
-                        </a>
-                    {% empty %}
-                        <p class="text-muted">No data.</p>
-                    {% endfor %}
+                    <div class="dashboard-list">
+                        {% for item in latest_items %}
+                            <a href="{% url 'steam_catalog:detail' item.id %}" class="dashboard-list__row dashboard-list__row--link">
+                                <div>
+                                    <strong>{{ item.group_name }}</strong>
+                                    <div class="text-muted">{{ item.get_item_type_display }}</div>
+                                </div>
+                                <span class="text-muted">{{ item.updated_at|date:"d.m.Y H:i" }}</span>
+                            </a>
+                        {% empty %}
+                            <p class="text-muted">No data.</p>
+                        {% endfor %}
+                    </div>
                 </div>
-            </div>
-        </article>
+            </article>
+        {% endif %}
 
         <article class="card dashboard-panel">
             <div class="card-body">

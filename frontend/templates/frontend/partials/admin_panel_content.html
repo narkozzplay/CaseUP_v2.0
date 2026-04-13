@@ -15,8 +15,8 @@
 
             <div class="dashboard-hero__meta">
                 <span class="status-pill">Users: {{ total_users }}</span>
-                <span class="status-pill">Catalog: {{ steam_items_total }}</span>
-                <span class="status-pill">Farm: {{ farm_accounts_total }}</span>
+                {% if feature_flags.steam_catalog %}<span class="status-pill">Catalog: {{ steam_items_total }}</span>{% endif %}
+                {% if feature_flags.farm %}<span class="status-pill">Farm: {{ farm_accounts_total }}</span>{% endif %}
             </div>
         </div>
     </div>

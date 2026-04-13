@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 import requests
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import OperationalError, ProgrammingError, transaction
 from django.template.loader import get_template
 from django.template import TemplateDoesNotExist
 
@@ -830,6 +830,23 @@ def is_module_enabled(key: str, environment: str | None = None) -> bool:
             return False
         return True
     return get_module_state_map(environment=environment).get(key, definition.default_enabled)
+
+
+def get_module_disabled_note(module_key: str, *, environment: str | None = None) -> str:
+    module_key = (module_key or "").strip()
+    if not module_key:
+        return ""
+    environment = environment or get_runtime_environment()
+    try:
+        note = (
+            EnvironmentModuleState.objects
+            .filter(environment=environment, module_key=module_key)
+            .values_list("notes", flat=True)
+            .first()
+        )
+    except (OperationalError, ProgrammingError):
+        return ""
+    return str(note or "").strip()
 
 
 def resolve_module_for_namespace(namespace: str | None) -> ModuleDefinition | None:

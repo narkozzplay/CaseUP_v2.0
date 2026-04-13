@@ -17,8 +17,12 @@
 
     <div class="stats-grid stats-grid--dashboard">
         {% include "components/stats_card.html" with label="Users" value=total_users meta="Profiles: "|add:total_profiles %}
-        {% include "components/stats_card.html" with label="Steam" value=steam_items_total meta="Review: "|add:steam_items_review %}
-        {% include "components/stats_card.html" with label="Farm" value=farm_accounts_total meta="Active: "|add:farm_accounts_active %}
+        {% if feature_flags.steam_catalog %}
+            {% include "components/stats_card.html" with label="Steam" value=steam_items_total meta="Review: "|add:steam_items_review %}
+        {% endif %}
+        {% if feature_flags.farm %}
+            {% include "components/stats_card.html" with label="Farm" value=farm_accounts_total meta="Active: "|add:farm_accounts_active %}
+        {% endif %}
     </div>
 
     <article class="card">
@@ -26,7 +30,7 @@
             <h2 class="section-title">{% trans "Quick actions" %}</h2>
             <div class="quick-actions-grid">
                 <a href="{% url 'profiles:profile' %}" class="quick-action-card"><strong>{% trans "Profile" %}</strong></a>
-                {% if feature_flags.steam_catalog %}<a href="{% url 'steam_catalog:list' %}" class="quick-action-card"><strong>Steam Catalog</strong></a>{% endif %}
+                {% if feature_flags.steam_catalog and subscription_context.feature_map.steam_catalog_view %}<a href="{% url 'steam_catalog:list' %}" class="quick-action-card"><strong>Steam Catalog</strong></a>{% endif %}
                 {% if feature_flags.farm %}<a href="{% url 'farm:dashboard' %}" class="quick-action-card"><strong>Farm</strong></a>{% endif %}
                 {% if feature_flags.store %}<a href="{% url 'store:storefront' %}" class="quick-action-card"><strong>{% trans "Store" %}</strong></a>{% endif %}
                 {% if role_access.is_admin_plus %}<a href="{% url 'frontend:admin_panel' %}" class="quick-action-card"><strong>Control Center</strong></a>{% endif %}

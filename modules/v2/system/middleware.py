@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-from django.http import HttpResponseNotFound
 from django.shortcuts import render
-from django.urls import Resolver404, resolve
+from django.urls import Resolver404, resolve, reverse
 from django.utils.translation import get_language_from_path
 
 from modules.v2.profiles.rbac import get_user_role
 
-from .services import get_site_configuration, is_module_enabled, resolve_module_for_namespace
+from .services import (
+    get_module_disabled_note,
+    get_site_configuration,
+    is_module_enabled,
+    resolve_module_for_namespace,
+)
 
 
 def _normalize_path(path: str | None) -> str:
@@ -84,7 +88,23 @@ class ModuleAccessMiddleware:
             normalized_path = _normalize_path(request.path_info)
             if normalized_path.startswith("/control-center/") and access.is_admin_plus:
                 return self.get_response(request)
-            response = HttpResponseNotFound("Module is disabled.")
+            is_authenticated = bool(getattr(request.user, "is_authenticated", False))
+            dashboard_url = reverse("frontend:dashboard_preview") if is_authenticated else reverse("frontend:home")
+            back_url = (request.META.get("HTTP_REFERER") or "").strip() or dashboard_url
+            module_reason = get_module_disabled_note(module.key)
+            response = render(
+                request,
+                "system/module_disabled.html",
+                {
+                    "module_disabled_layout_template": "layouts/base_dashboard.html" if is_authenticated else "layouts/base_public.html",
+                    "module_disabled_is_dashboard": is_authenticated,
+                    "module_disabled_module_label": module.label or module.key,
+                    "module_disabled_reason": module_reason,
+                    "module_disabled_dashboard_url": dashboard_url,
+                    "module_disabled_back_url": back_url,
+                },
+                status=404,
+            )
             setattr(response, "_caseup_skip_global_404", True)
             return response
 

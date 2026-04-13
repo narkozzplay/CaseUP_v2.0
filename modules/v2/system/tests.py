@@ -111,7 +111,7 @@ class SystemConfigurationTests(TestCase):
             update_module_states({"steam_trading": True})
 
     def test_disabled_module_returns_404(self):
-        admin = self._make_admin("admin_disabled_module")
+        user = self._make_user("user_disabled_module")
         SteamItem.objects.create(
             market_hash_name="Revolution Case",
             family_name="Revolution Case",
@@ -125,9 +125,25 @@ class SystemConfigurationTests(TestCase):
             }
         )
 
-        self.client.login(username=admin.username, password="StrongPass123")
+        self.client.login(username=user.username, password="StrongPass123")
         response = self.client.get(reverse("steam_catalog:list"))
         self.assertEqual(response.status_code, 404)
+        self.assertContains(response, "Steam Catalog", status_code=404)
+        self.assertNotContains(response, "Module is disabled.", status_code=404)
+
+    def test_disabled_module_page_shows_environment_reason_from_notes(self):
+        user = self._make_user("user_disabled_reason")
+        update_module_states({"steam_catalog": False})
+        env = get_runtime_environment()
+        env_state = EnvironmentModuleState.objects.get(environment=env, module_key="steam_catalog")
+        env_state.notes = "Плановые работы: миграция каталога."
+        env_state.save(update_fields=["notes", "updated_at"])
+
+        self.client.login(username=user.username, password="StrongPass123")
+        response = self.client.get(reverse("steam_catalog:list"))
+
+        self.assertEqual(response.status_code, 404)
+        self.assertContains(response, "Плановые работы: миграция каталога.", status_code=404)
 
     def test_admin_can_save_system_configuration(self):
         admin = self._make_admin("admin_system_save")
@@ -603,6 +619,42 @@ class DashboardMenuBuilderTests(TestCase):
             if item.key == "web_constructor"
         )
         self.assertEqual(web_constructor_item.url, "http://lib.caseup.localhost:8000/constructor/builder/")
+
+    def test_web_constructor_menu_item_hidden_when_module_disabled(self):
+        ensure_dashboard_menu_items()
+        user = self._make_user(username="menu_web_constructor_disabled", role=UserRole.ADMIN)
+        self.client.login(username=user.username, password="StrongPass123")
+
+        update_module_states({"web_constructor": False})
+        response = self.client.get(reverse("frontend:dashboard_preview"))
+
+        self.assertEqual(response.status_code, 200)
+        menu_groups = build_dashboard_menu(response.wsgi_request)
+        self.assertFalse(
+            any(
+                item.key == "web_constructor"
+                for group in menu_groups
+                for item in group["items"]
+            )
+        )
+
+    def test_steam_catalog_menu_item_hidden_when_module_disabled(self):
+        ensure_dashboard_menu_items()
+        user = self._make_user(username="menu_steam_catalog_disabled", role=UserRole.ADMIN)
+        self.client.login(username=user.username, password="StrongPass123")
+
+        update_module_states({"steam_catalog": False})
+        response = self.client.get(reverse("frontend:dashboard_preview"))
+
+        self.assertEqual(response.status_code, 200)
+        menu_groups = build_dashboard_menu(response.wsgi_request)
+        self.assertFalse(
+            any(
+                item.key == "steam_catalog"
+                for group in menu_groups
+                for item in group["items"]
+            )
+        )
 
 
 class SystemVersioningTests(TestCase):

@@ -12,7 +12,7 @@ from modules.v2.subscriptions.feature_codes import TG_NOTIFIER_USER
 from modules.v2.subscriptions.services import get_subscription_context
 
 from .models import DashboardMenuItem
-from .services import build_lab_url, get_module_state_map
+from .services import build_lab_url, get_module_state_map, resolve_module_for_namespace
 
 
 @dataclass(frozen=True)
@@ -100,11 +100,11 @@ def _resolve_item_label(item: DashboardMenuItem, request) -> str:
     return item.label_en or item.label_ru or item.key
 
 
-def _visibility_map(request) -> dict[str, bool]:
+def _visibility_map(request, *, feature_flags: dict[str, bool] | None = None) -> dict[str, bool]:
     user = getattr(request, "user", None)
     role_access = get_user_role(user)
     farm_access = get_farm_access(user)
-    feature_flags = get_module_state_map()
+    feature_flags = feature_flags or get_module_state_map()
     site_subscription = get_subscription_context(user)
     tg_allowed = bool(feature_flags.get("tg_notifier", False) and site_subscription.feature_map.get(TG_NOTIFIER_USER, False))
 
@@ -146,14 +146,26 @@ def _is_item_active(item: DashboardMenuItem, request, url: str) -> bool:
     return path == comparable_url
 
 
+def _resolve_item_namespace(url_name: str) -> str:
+    raw = (url_name or "").strip()
+    if ":" not in raw:
+        return ""
+    return raw.split(":", 1)[0]
+
+
 def build_dashboard_menu(request) -> tuple[dict[str, object], ...]:
     ensure_dashboard_menu_items()
 
-    visibility_map = _visibility_map(request)
+    feature_flags = get_module_state_map()
+    visibility_map = _visibility_map(request, feature_flags=feature_flags)
     items = []
     try:
         queryset = DashboardMenuItem.objects.filter(is_enabled=True).order_by("group", "sort_order", "id")
         for item in queryset:
+            namespace = _resolve_item_namespace(item.url_name)
+            module = resolve_module_for_namespace(namespace)
+            if module is not None and not bool(feature_flags.get(module.key, module.default_enabled)):
+                continue
             if not visibility_map.get(item.visibility_condition, False):
                 continue
             try:

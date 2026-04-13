@@ -69,6 +69,21 @@ class FrontendDashboardTests(TestCase):
         content = response.content.decode("utf-8")
         self.assertEqual(content.count("<article"), content.count("</article>"))
 
+    def test_admin_panel_hides_disabled_module_blocks(self):
+        admin = User.objects.create_user(username="admin_panel_hidden_blocks", password="StrongPass123")
+        profile = UserProfile.objects.get(user=admin)
+        profile.role = UserRole.ADMIN
+        profile.save(update_fields=["role"])
+
+        update_module_states({"celery_tasks": False, "tg_notifier": False})
+
+        self.client.login(username="admin_panel_hidden_blocks", password="StrongPass123")
+        response = self.client.get(reverse("frontend:admin_panel"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, reverse("celery_tasks:control_center"))
+        self.assertNotContains(response, reverse("tg_notifier:settings"))
+
     def test_admin_panel_dev_topup_updates_balance(self):
         admin = User.objects.create_user(username="admin2", password="StrongPass123")
         admin_profile = UserProfile.objects.get(user=admin)
@@ -147,6 +162,25 @@ class FrontendDashboardTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, reverse("profiles:profile_detail", args=[target.id]))
+
+    def test_dashboard_hides_disabled_module_quick_blocks(self):
+        owner = User.objects.create_user(username="owner_disabled_blocks", password="StrongPass123")
+        item = SteamItem.objects.create(
+            market_hash_name="Kilowatt Case",
+            family_name="Kilowatt Case",
+            name="Kilowatt Case",
+            item_type=SteamItem.ItemType.CASE,
+        )
+
+        update_module_states({"farm": False, "steam_catalog": False})
+
+        self.client.login(username="owner_disabled_blocks", password="StrongPass123")
+        response = self.client.get(reverse("frontend:dashboard_preview"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, reverse("farm:dashboard"))
+        self.assertNotContains(response, reverse("steam_catalog:detail", args=[item.id]))
+        self.assertNotContains(response, "Последние предметы")
 
     def test_unknown_url_renders_custom_404_for_anonymous_user(self):
         response = self.client.get("/pro")
