@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from secrets import compare_digest
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -318,7 +319,8 @@ def telegram_webhook_view(request, webhook_secret: str):
         return JsonResponse({"ok": False, "error": "method_not_allowed"}, status=405)
 
     config = get_telegram_notifier_config()
-    if webhook_secret != config.webhook_secret:
+    configured_secret = str(config.webhook_secret or "")
+    if not configured_secret or not compare_digest(str(webhook_secret or ""), configured_secret):
         return JsonResponse({"ok": False, "error": "forbidden"}, status=403)
 
     try:
@@ -345,17 +347,27 @@ def telegram_webhook_view(request, webhook_secret: str):
                 telegram_username=str(from_user.get("username") or "").strip(),
                 telegram_first_name=str(from_user.get("first_name") or "").strip(),
             )
+        except TelegramNotifierError as exc:
+            try:
+                send_message(
+                    chat_id=chat_id,
+                    text=f"❌ Не удалось подключить Telegram к профилю CaseUP: {exc}",
+                )
+            except TelegramNotifierError:
+                pass
+            return JsonResponse({"ok": True, "bound": False, "error": str(exc)})
+
+        warning = ""
+        try:
             send_message(
                 chat_id=chat_id,
                 text="✅ Telegram успешно подключен к вашему профилю CaseUP.",
             )
         except TelegramNotifierError as exc:
-            send_message(
-                chat_id=chat_id,
-                text=f"❌ Не удалось подключить Telegram к профилю CaseUP: {exc}",
-            )
-            return JsonResponse({"ok": True, "bound": False, "error": str(exc)})
+            warning = str(exc)
 
+        if warning:
+            return JsonResponse({"ok": True, "bound": True, "warning": warning})
         return JsonResponse({"ok": True, "bound": True})
 
     touch_profile_last_interaction_by_chat_id(chat_id)

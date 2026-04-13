@@ -7,6 +7,8 @@ from django.utils import timezone
 
 from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserProfile, UserRole
 from modules.v2.steam_catalog.models import SteamItem
+from modules.v2.system.models import ThemeProfile
+from modules.v2.system.services import bootstrap_versioning, get_site_configuration, update_module_states
 
 User = get_user_model()
 
@@ -14,6 +16,13 @@ User = get_user_model()
 class FrontendDashboardTests(TestCase):
     def setUp(self):
         self.client = Client()
+
+    def _activate_midnight_theme(self):
+        bootstrap_versioning()
+        update_module_states({"midnight_theme": True})
+        config = get_site_configuration()
+        config.active_theme = ThemeProfile.objects.get(key="midnight")
+        config.save(update_fields=["active_theme", "updated_at"])
 
     def test_dashboard_requires_login(self):
         response = self.client.get(reverse("frontend:dashboard_preview"))
@@ -46,8 +55,6 @@ class FrontendDashboardTests(TestCase):
         self.assertContains(response, "Control Center")
 
     def test_admin_panel_balances_article_tags_when_optional_cards_disabled(self):
-        from modules.v2.system.services import update_module_states
-
         admin = User.objects.create_user(username="admin_panel_html", password="StrongPass123")
         profile = UserProfile.objects.get(user=admin)
         profile.role = UserRole.ADMIN
@@ -162,3 +169,36 @@ class FrontendDashboardTests(TestCase):
         self.assertContains(response, "Упс, страница не найдена", status_code=404)
         self.assertNotContains(response, "No UserProfile matches the given query", status_code=404)
         self.assertNotContains(response, "Запрошенный адрес", status_code=404)
+
+    def test_midnight_home_renders_theme_specific_content(self):
+        self._activate_midnight_theme()
+
+        response = self.client.get(reverse("frontend:home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "midnight-home")
+        self.assertContains(response, reverse("frontend:dashboard_preview"))
+        self.assertContains(response, reverse("frontend:testing_preview"))
+
+    def test_midnight_public_navbar_uses_named_routes(self):
+        self._activate_midnight_theme()
+
+        response = self.client.get(reverse("frontend:home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("frontend:home"))
+        self.assertContains(response, reverse("frontend:dashboard_preview"))
+        self.assertContains(response, reverse("frontend:testing_preview"))
+        self.assertContains(response, reverse("accounts:login"))
+        self.assertContains(response, "lang-switcher")
+
+    def test_midnight_dashboard_preview_keeps_topnav_shell(self):
+        self._activate_midnight_theme()
+        user = User.objects.create_user(username="midnight_dashboard_user", password="StrongPass123")
+        self.client.login(username="midnight_dashboard_user", password="StrongPass123")
+
+        response = self.client.get(reverse("frontend:dashboard_preview"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "midnight-topnav")
+        self.assertContains(response, "dashboard-shell--midnight")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 from urllib.parse import urlparse
@@ -27,6 +28,8 @@ from .models import (
 
 ZERO = Decimal("0.00")
 MONEY_Q = Decimal("0.01")
+_BOOTSTRAP_VERSIONING_LOCK = threading.Lock()
+_BOOTSTRAP_VERSIONING_DONE = False
 
 
 @dataclass(frozen=True)
@@ -405,6 +408,19 @@ def bootstrap_versioning() -> None:
     ensure_module_releases()
     ensure_themes()
     ensure_environment_module_states()
+
+
+def bootstrap_versioning_once() -> None:
+    global _BOOTSTRAP_VERSIONING_DONE
+
+    if _BOOTSTRAP_VERSIONING_DONE and ProjectVersion.objects.only("id").exists():
+        return
+
+    with _BOOTSTRAP_VERSIONING_LOCK:
+        if _BOOTSTRAP_VERSIONING_DONE and ProjectVersion.objects.only("id").exists():
+            return
+        bootstrap_versioning()
+        _BOOTSTRAP_VERSIONING_DONE = True
 
 
 def get_module_state_map(environment: str | None = None) -> dict[str, bool]:

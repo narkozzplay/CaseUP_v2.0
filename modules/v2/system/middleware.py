@@ -3,10 +3,26 @@ from __future__ import annotations
 from django.http import HttpResponseNotFound
 from django.shortcuts import render
 from django.urls import Resolver404, resolve
+from django.utils.translation import get_language_from_path
 
 from modules.v2.profiles.rbac import get_user_role
 
 from .services import get_site_configuration, is_module_enabled, resolve_module_for_namespace
+
+
+def _normalize_path(path: str | None) -> str:
+    normalized = path or "/"
+    language = get_language_from_path(normalized)
+    if not language:
+        return normalized
+
+    prefix = f"/{language}"
+    if normalized == prefix:
+        return "/"
+    if normalized.startswith(prefix + "/"):
+        stripped = normalized[len(prefix):]
+        return stripped or "/"
+    return normalized
 
 
 class MaintenanceModeMiddleware:
@@ -29,7 +45,7 @@ class MaintenanceModeMiddleware:
         if not config.maintenance_mode_enabled:
             return self.get_response(request)
 
-        path = request.path_info or "/"
+        path = _normalize_path(request.path_info)
         if path.startswith(self.ALLOW_PREFIXES):
             return self.get_response(request)
 
@@ -65,7 +81,8 @@ class ModuleAccessMiddleware:
         module = resolve_module_for_namespace(match.namespace)
         if module is not None and not is_module_enabled(module.key):
             access = get_user_role(request.user)
-            if request.path_info.startswith("/control-center/") and access.is_admin_plus:
+            normalized_path = _normalize_path(request.path_info)
+            if normalized_path.startswith("/control-center/") and access.is_admin_plus:
                 return self.get_response(request)
             response = HttpResponseNotFound("Module is disabled.")
             setattr(response, "_caseup_skip_global_404", True)

@@ -1,1 +1,1 @@
-CaseUP build: 0.2.1 (08.04.2026)
+CaseUP build: 0.2.3 (13.04.2026)

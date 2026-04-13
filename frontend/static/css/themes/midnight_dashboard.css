@@ -1,6 +1,6 @@
 .dashboard-shell--midnight {
     display: block;
-    background: radial-gradient(circle at top, rgba(88, 28, 135, .25), rgba(2, 6, 23, 0) 50%), #020617;
+    background: transparent;
     min-height: 100vh;
 }
 
@@ -9,7 +9,7 @@
     top: 0;
     z-index: 20;
     backdrop-filter: blur(8px);
-    background: rgba(2, 6, 23, .88);
+    background: rgba(7, 11, 22, 0.86);
     border-bottom: 1px solid rgba(148, 163, 184, .18);
 }
 
@@ -29,6 +29,22 @@
     display: flex;
     gap: .5rem;
     flex-wrap: wrap;
+}
+
+.midnight-topnav__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .65rem;
+    flex-wrap: wrap;
+}
+
+.midnight-topnav__actions .lang-switcher-wrap {
+    min-width: 108px;
+}
+
+.midnight-topnav__actions .lang-switcher__note {
+    display: none;
 }
 
 .midnight-topnav__brand {
@@ -62,4 +78,47 @@
 .dashboard-content-frame--midnight .card {
     border-color: rgba(99, 102, 241, .2);
     box-shadow: 0 8px 30px rgba(15, 23, 42, .45);
+}
+
+.midnight-subnav-group summary {
+    cursor: pointer;
+    color: #e2e8f0;
+    font-weight: 600;
+    padding: .15rem 0;
+}
+
+.midnight-subnav-group summary::marker {
+    color: rgba(203, 213, 225, .7);
+}
+
+.midnight-subnav-group__links {
+    margin-top: .45rem;
+}
+
+@media (max-width: 1180px) {
+    .midnight-topnav__bar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .midnight-topnav__actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 820px) {
+    .midnight-topnav__bar,
+    .midnight-topnav__subnav {
+        padding: .75rem 1rem;
+    }
+
+    .midnight-topnav__main {
+        width: 100%;
+    }
+
+    .midnight-topnav__link,
+    .midnight-subnav-group__links a {
+        width: 100%;
+    }
 }

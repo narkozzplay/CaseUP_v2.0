@@ -29,6 +29,14 @@ class SaleStats:
     total_payout_rub: Decimal
 
 
+TERMINAL_ORDER_STATUSES = {
+    SaleOrder.Status.COMPLETED,
+    SaleOrder.Status.CANCELLED_BY_USER,
+    SaleOrder.Status.CANCELLED_BY_SYSTEM,
+    SaleOrder.Status.FAILED,
+}
+
+
 def _normalize_ids(item_ids) -> list[int]:
     values: list[int] = []
     for raw in item_ids:
@@ -176,7 +184,13 @@ def create_sale_order(*, seller, account: FarmAccount, inventory_item_ids, creat
 @transaction.atomic
 def mark_offer_sent(*, order: SaleOrder, external_offer_id: str, payload: dict | None = None, created_by=None) -> TradeOffer:
     order = SaleOrder.objects.select_for_update().get(pk=order.pk)
-    offer = order.offer
+    offer = TradeOffer.objects.select_for_update().get(order=order)
+
+    if order.status in TERMINAL_ORDER_STATUSES:
+        raise TradeHubError("Нельзя отправить оффер для завершённой или отменённой продажи.")
+    if offer.status in {TradeOffer.Status.ACCEPTED, TradeOffer.Status.CANCELLED, TradeOffer.Status.FAILED}:
+        raise TradeHubError("Статус оффера не позволяет повторно отметить его как отправленный.")
+
     offer.status = TradeOffer.Status.SENT
     offer.external_offer_id = (external_offer_id or "").strip()
     offer.response_payload = payload or {}
@@ -193,6 +207,18 @@ def mark_offer_sent(*, order: SaleOrder, external_offer_id: str, payload: dict |
 def mark_offer_accepted(*, order: SaleOrder, payload: dict | None = None, created_by=None) -> TradeOffer:
     order = SaleOrder.objects.select_for_update().get(pk=order.pk)
     offer = TradeOffer.objects.select_for_update().get(order=order)
+
+    if order.status in TERMINAL_ORDER_STATUSES:
+        raise TradeHubError("Нельзя подтвердить оффер для завершённой или отменённой продажи.")
+    if offer.status in {TradeOffer.Status.CANCELLED, TradeOffer.Status.FAILED}:
+        raise TradeHubError("Оффер уже закрыт и не может быть отмечен как принятый.")
+
+    if offer.status == TradeOffer.Status.ACCEPTED and order.status in {
+        SaleOrder.Status.OFFER_ACCEPTED,
+        SaleOrder.Status.PAYOUT_PENDING,
+    }:
+        return offer
+
     offer.status = TradeOffer.Status.ACCEPTED
     offer.response_payload = payload or offer.response_payload
     offer.last_checked_at = timezone.now()
@@ -292,6 +318,10 @@ def cancel_sale_order(*, order: SaleOrder, reason: str, cancelled_by_user: bool 
     order = SaleOrder.objects.select_for_update().select_related("seller").get(pk=order.pk)
     if order.status == SaleOrder.Status.COMPLETED:
         raise TradeHubError("Нельзя отменить уже завершённую продажу.")
+    if order.status in {SaleOrder.Status.CANCELLED_BY_USER, SaleOrder.Status.CANCELLED_BY_SYSTEM}:
+        raise TradeHubError("Продажа уже отменена.")
+    if order.status == SaleOrder.Status.FAILED:
+        raise TradeHubError("Нельзя отменить продажу в статусе failed.")
 
     offer = TradeOffer.objects.select_for_update().get(order=order)
     now = timezone.now()

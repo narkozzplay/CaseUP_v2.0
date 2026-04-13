@@ -10,7 +10,14 @@ from modules.v2.profiles.models import UserProfile, UserRole
 from modules.v2.steam_catalog.models import SteamItem
 
 from .models import SaleOrder, TradeBotAccount, TradeOffer, TradeUserPenalty
-from .services import cancel_sale_order, create_sale_order, finalize_sale_order, mark_offer_accepted
+from .services import (
+    TradeHubError,
+    cancel_sale_order,
+    create_sale_order,
+    finalize_sale_order,
+    mark_offer_accepted,
+    mark_offer_sent,
+)
 
 User = get_user_model()
 
@@ -137,6 +144,46 @@ class TradeHubTests(TestCase):
 
         self.assertEqual(TradeUserPenalty.objects.filter(user=user, type=TradeUserPenalty.Type.WARNING).count(), 1)
         self.assertTrue(TradeUserPenalty.objects.filter(user=user, type=TradeUserPenalty.Type.BAN, is_active=True).exists())
+
+    def test_cancel_sale_order_rejects_second_cancel_and_does_not_duplicate_penalty(self):
+        user = self._make_farmer("farmer_cancel_once")
+        TradeBotAccount.objects.create(
+            title="Bot #cancel once",
+            steam_id64="76561198000000203",
+            status=TradeBotAccount.Status.ACTIVE,
+            is_enabled=True,
+            is_default=True,
+        )
+        account, item, _ = self._make_inventory_item(user=user, asset_id="1203", market_hash_name="MP9 | Hydra (Field-Tested)")
+        order = create_sale_order(seller=user, account=account, inventory_item_ids=[item.id], created_by=user)
+
+        cancel_sale_order(order=order, reason="Первый отказ", cancelled_by_user=True, created_by=user)
+        with self.assertRaises(TradeHubError):
+            cancel_sale_order(order=order, reason="Повторный отказ", cancelled_by_user=True, created_by=user)
+
+        penalties = TradeUserPenalty.objects.filter(user=user, order=order)
+        self.assertEqual(penalties.count(), 1)
+        self.assertEqual(penalties.first().type, TradeUserPenalty.Type.WARNING)
+
+    def test_mark_offer_sent_rejects_terminal_completed_order(self):
+        user = self._make_farmer("farmer_mark_sent_completed")
+        TradeBotAccount.objects.create(
+            title="Bot #terminal",
+            steam_id64="76561198000000204",
+            status=TradeBotAccount.Status.ACTIVE,
+            is_enabled=True,
+            is_default=True,
+        )
+        account, item, _ = self._make_inventory_item(user=user, asset_id="1204", market_hash_name="Galil AR | Chatterbox (Field-Tested)")
+        order = create_sale_order(seller=user, account=account, inventory_item_ids=[item.id], created_by=user)
+        mark_offer_accepted(order=order, created_by=user)
+        finalize_sale_order(order=order, created_by=user)
+
+        with self.assertRaises(TradeHubError):
+            mark_offer_sent(order=order, external_offer_id="late-offer", created_by=user)
+
+        order.refresh_from_db()
+        self.assertEqual(order.status, SaleOrder.Status.COMPLETED)
 
     def test_farmer_can_create_order_from_farm_page(self):
         user = self._make_farmer("farmer_tradehub_view")

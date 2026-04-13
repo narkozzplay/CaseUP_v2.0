@@ -312,6 +312,22 @@ class SystemConfigurationTests(TestCase):
         response = self.client.get(reverse("system_config:settings"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "midnight-topnav")
+        self.assertContains(response, "dashboard-shell--midnight")
+
+    def test_midnight_theme_renders_versioning_page_with_topnav_shell(self):
+        admin = self._make_admin("admin_midnight_versioning_shell")
+        self.client.login(username=admin.username, password="StrongPass123")
+        bootstrap_versioning()
+        midnight = ThemeProfile.objects.get(key="midnight")
+        config = get_site_configuration()
+        config.active_theme = midnight
+        config.save(update_fields=["active_theme", "updated_at"])
+        update_module_states({"midnight_theme": True})
+
+        response = self.client.get(reverse("system_config:versioning"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "midnight-topnav")
+        self.assertContains(response, "dashboard-shell--midnight")
 
     def test_store_menu_item_visible_only_when_store_enabled(self):
         user = self._make_user("menu_store_user")
@@ -428,6 +444,24 @@ class SystemConfigurationTests(TestCase):
         response = self.client.get(reverse("frontend:dashboard_preview"))
         self.assertEqual(response.status_code, 503)
         self.assertContains(response, "технические работы", status_code=503)
+
+    def test_maintenance_mode_allows_i18n_login_path(self):
+        config = get_site_configuration()
+        config.maintenance_mode_enabled = True
+        config.save(update_fields=["maintenance_mode_enabled", "updated_at"])
+
+        response = self.client.get("/en/auth/login/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Steam")
+
+    def test_admin_can_open_i18n_control_center_route_even_when_module_disabled(self):
+        admin = self._make_admin("admin_i18n_control_center")
+        update_module_states({"celery_tasks": False})
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.get("/en/control-center/celery-tasks/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Celery Tasks")
 
 
     def test_admin_can_activate_theme_with_redirect(self):

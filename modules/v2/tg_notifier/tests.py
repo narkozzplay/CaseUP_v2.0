@@ -287,6 +287,96 @@ class TgNotifierTests(TestCase):
         self.assertEqual(profile.telegram_chat_id, "7151390596")
         send_message_mock.assert_called_once()
 
+    def test_webhook_rejects_invalid_secret(self):
+        TelegramNotifierConfig.objects.create(
+            singleton_key=1,
+            is_enabled=True,
+            bot_token="123456:ABCDEF",
+            bot_username="caseup_bot",
+            default_chat_id="-100555",
+            webhook_secret="supersecret",
+            investment_message_template="Предмет: {{ item_name }}",
+        )
+
+        response = self.client.post(
+            reverse("tg_notifier_public:webhook", args=["wrongsecret"]),
+            data={},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertJSONEqual(response.content, {"ok": False, "error": "forbidden"})
+
+    @patch("modules.v2.tg_notifier.views.send_message")
+    def test_webhook_does_not_fail_when_success_message_send_errors(self, send_message_mock):
+        send_message_mock.side_effect = TelegramNotifierError("telegram temporary down")
+
+        user = self._make_user("tg_webhook_warning_user", UserRole.FARMER)
+        config = TelegramNotifierConfig.objects.create(
+            singleton_key=1,
+            is_enabled=True,
+            bot_token="123456:ABCDEF",
+            bot_username="caseup_bot",
+            default_chat_id="-100555",
+            webhook_secret="supersecret",
+            investment_message_template="Предмет: {{ item_name }}",
+        )
+        link_token = TelegramLinkToken.objects.create(user=user)
+
+        response = self.client.post(
+            reverse("tg_notifier_public:webhook", args=[config.webhook_secret]),
+            data={
+                "message": {
+                    "chat": {"id": 7151390596, "type": "private"},
+                    "from": {"id": 111, "username": "narkozzplay", "first_name": "Fedor"},
+                    "text": f"/start caseup_{link_token.token}",
+                }
+            },
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["bound"])
+        self.assertIn("warning", payload)
+        profile = UserProfile.objects.get(user=user)
+        self.assertEqual(profile.telegram_chat_id, "7151390596")
+        send_message_mock.assert_called_once()
+
+    @patch("modules.v2.tg_notifier.views.send_message")
+    def test_webhook_does_not_500_when_bind_fails_and_error_send_fails(self, send_message_mock):
+        send_message_mock.side_effect = TelegramNotifierError("bot token invalid")
+
+        config = TelegramNotifierConfig.objects.create(
+            singleton_key=1,
+            is_enabled=True,
+            bot_token="123456:ABCDEF",
+            bot_username="caseup_bot",
+            default_chat_id="-100555",
+            webhook_secret="supersecret",
+            investment_message_template="Предмет: {{ item_name }}",
+        )
+
+        response = self.client.post(
+            reverse("tg_notifier_public:webhook", args=[config.webhook_secret]),
+            data={
+                "message": {
+                    "chat": {"id": 7151390596, "type": "private"},
+                    "from": {"id": 111, "username": "narkozzplay", "first_name": "Fedor"},
+                    "text": "/start caseup_unknown-token",
+                }
+            },
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertFalse(payload["bound"])
+        self.assertIn("error", payload)
+        send_message_mock.assert_called_once()
+
 
     @patch("modules.v2.tg_notifier.services._telegram_api_request")
     def test_send_message_passes_parse_mode(self, api_request_mock):

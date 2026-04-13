@@ -1,10 +1,15 @@
+{% load i18n %}
 <footer class="site-footer">
     <div class="container footer-inner">
         <div>
             <strong>{{ site_settings.site_name|default:"CaseUP" }} · Midnight</strong>
-            <div class="text-muted">Альтернативная тема для тестирования и plugin-provided overrides.</div>
+            <p class="text-muted">{% trans "Alternative theme for testing and plugin-provided overrides." %}</p>
         </div>
         <div class="footer-links">
+            <a href="{% url 'frontend:home' %}">{% trans "Home" %}</a>
+            <a href="{% url 'frontend:dashboard_preview' %}">{% trans "Dashboard" %}</a>
+            <a href="{% url 'frontend:testing_preview' %}">{% trans "Testing" %}</a>
+            {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}">{% trans "Subscriptions" %}</a>{% endif %}
             <span>theme={{ active_theme.key|default:"default" }}</span>
             <span>runtime={{ runtime_environment|default:"dev" }}</span>
         </div>
