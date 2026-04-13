@@ -16,7 +16,7 @@ from .models import (
     ThemeProfile,
 )
 from .module_registry import MODULE_REGISTRY
-from .services import bootstrap_versioning, get_module_state_map, update_module_states
+from .services import get_module_state_map, update_module_states
 
 
 @admin.register(SiteConfiguration)
@@ -139,6 +139,5 @@ class DashboardMenuItemAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
     fields = ("key", "label_ru", "label_en", "url_name", "group", "visibility_condition", "is_enabled", "sort_order", "created_at", "updated_at")
     def changelist_view(self, request, extra_context=None):
-        bootstrap_versioning()
         ensure_dashboard_menu_items()
         return super().changelist_view(request, extra_context=extra_context)

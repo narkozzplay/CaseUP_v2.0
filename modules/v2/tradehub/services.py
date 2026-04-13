@@ -322,8 +322,12 @@ def cancel_sale_order(*, order: SaleOrder, reason: str, cancelled_by_user: bool 
         raise TradeHubError("Продажа уже отменена.")
     if order.status == SaleOrder.Status.FAILED:
         raise TradeHubError("Нельзя отменить продажу в статусе failed.")
+    if order.status in {SaleOrder.Status.OFFER_ACCEPTED, SaleOrder.Status.PAYOUT_PENDING}:
+        raise TradeHubError("Нельзя отменить продажу после принятия оффера.")
 
     offer = TradeOffer.objects.select_for_update().get(order=order)
+    if offer.status == TradeOffer.Status.ACCEPTED:
+        raise TradeHubError("Нельзя отменить продажу после принятия оффера.")
     now = timezone.now()
     offer.status = TradeOffer.Status.CANCELLED
     offer.closed_at = now

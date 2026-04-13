@@ -6,3 +6,6 @@ class SystemConfig(AppConfig):
     name = "modules.v2.system"
     label = "system_config"
     verbose_name = "System Configuration"
+
+    def ready(self):
+        from . import signals  # noqa: F401

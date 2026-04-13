@@ -43,7 +43,7 @@ class ProfileTests(TestCase):
         self.assertContains(response, "FACEIT")
 
 
-    def test_profile_detail_view_hides_private_data_for_foreign_regular_user(self):
+    def test_profile_detail_view_forbidden_for_foreign_regular_user(self):
         viewer = User.objects.create_user(username="viewer1", password="StrongPass123")
         target = User.objects.create_user(username="target10", password="StrongPass123", email="target@example.com")
         target_profile = UserProfile.objects.get(user=target)
@@ -60,12 +60,7 @@ class ProfileTests(TestCase):
         self.client.login(username="viewer1", password="StrongPass123")
         response = self.client.get(reverse("profiles:profile_detail", args=[target.id]))
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "target10")
-        self.assertNotContains(response, "target@example.com")
-        self.assertNotContains(response, "7151390596")
-        self.assertNotContains(response, "recent-operations")
-        self.assertContains(response, "Приватные данные профиля скрыты")
+        self.assertEqual(response.status_code, 403)
 
     def test_profile_detail_view_shows_private_data_for_admin(self):
         admin = User.objects.create_user(username="admin_profile", password="StrongPass123")
@@ -92,6 +87,25 @@ class ProfileTests(TestCase):
         self.assertContains(response, "target11@example.com")
         self.assertContains(response, "7151390596")
         self.assertContains(response, 'recent-operations')
+
+    def test_profile_detail_view_shows_private_data_for_moderator(self):
+        moderator = User.objects.create_user(username="mod_profile", password="StrongPass123")
+        mod_profile = UserProfile.objects.get(user=moderator)
+        mod_profile.role = UserRole.MOD
+        mod_profile.save(update_fields=["role"])
+
+        target = User.objects.create_user(username="target_mod_view", password="StrongPass123", email="target_mod_view@example.com")
+        target_profile = UserProfile.objects.get(user=target)
+        target_profile.balance_coins = Decimal("75.00")
+        target_profile.telegram_chat_id = "7151390596"
+        target_profile.save(update_fields=["balance_coins", "telegram_chat_id"])
+
+        self.client.login(username="mod_profile", password="StrongPass123")
+        response = self.client.get(reverse("profiles:profile_detail", args=[target.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "target_mod_view@example.com")
+        self.assertContains(response, "7151390596")
 
     def test_profile_detail_view_uses_target_subscription_context(self):
         admin = User.objects.create_user(username="admin_sub_view", password="StrongPass123")

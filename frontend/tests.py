@@ -96,6 +96,9 @@ class FrontendDashboardTests(TestCase):
 
     def test_dashboard_shows_online_stats_and_clickable_links(self):
         owner = User.objects.create_user(username="owner", password="StrongPass123")
+        owner_profile = UserProfile.objects.get(user=owner)
+        owner_profile.role = UserRole.ADMIN
+        owner_profile.save(update_fields=["role"])
         target = User.objects.create_user(username="target", password="StrongPass123")
         target_profile = UserProfile.objects.get(user=target)
         target_profile.role = UserRole.MOD
@@ -123,6 +126,27 @@ class FrontendDashboardTests(TestCase):
         self.assertContains(response, reverse("profiles:profile_detail", args=[target.id]))
         self.assertContains(response, reverse("steam_catalog:detail", args=[item.id]))
         self.assertContains(response, f'{reverse("profiles:profile_detail", args=[target.id])}#recent-operations')
+
+    def test_dashboard_hides_profile_detail_links_for_regular_user(self):
+        owner = User.objects.create_user(username="owner_regular", password="StrongPass123")
+        target = User.objects.create_user(username="target_regular", password="StrongPass123")
+        target_profile = UserProfile.objects.get(user=target)
+        target_profile.role = UserRole.USER
+        target_profile.last_seen_at = timezone.now()
+        target_profile.save(update_fields=["role", "last_seen_at"])
+
+        LedgerEntry.objects.create(
+            user=target,
+            delta=Decimal("5.00"),
+            balance_after=Decimal("5.00"),
+            reason=LedgerReason.TOPUP,
+        )
+
+        self.client.login(username="owner_regular", password="StrongPass123")
+        response = self.client.get(reverse("frontend:dashboard_preview"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, reverse("profiles:profile_detail", args=[target.id]))
 
     def test_unknown_url_renders_custom_404_for_anonymous_user(self):
         response = self.client.get("/pro")

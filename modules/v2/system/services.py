@@ -720,7 +720,6 @@ def get_theme_template_map() -> dict[str, str]:
 
 
 def get_control_center_summary(*, config: SiteConfiguration | None = None, state_map: dict[str, bool] | None = None) -> dict[str, object]:
-    bootstrap_versioning()
     config = config or get_site_configuration()
     state_map = state_map or get_module_state_map()
     enabled_count = sum(1 for enabled in state_map.values() if enabled)
@@ -766,7 +765,6 @@ def update_module_states(proposed: dict[str, bool], *, environment: str | None =
 
 @transaction.atomic
 def save_site_configuration(*, config: SiteConfiguration, module_states: dict[str, bool]) -> SiteConfiguration:
-    bootstrap_versioning()
     if config.current_project_version_id is None:
         config.current_project_version = get_current_project_version()
     if config.active_theme_id is None:

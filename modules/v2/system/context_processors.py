@@ -4,7 +4,6 @@ from modules.v2.profiles.rbac import get_user_role
 
 from .dashboard_menu import build_dashboard_menu
 from .services import (
-    bootstrap_versioning_once,
     get_active_theme,
     get_current_project_version,
     get_module_state_map,
@@ -15,7 +14,6 @@ from .services import (
 
 
 def system_settings(request):
-    bootstrap_versioning_once()
     config = get_site_configuration()
     active_theme = get_active_theme(project_version=get_current_project_version())
     return {

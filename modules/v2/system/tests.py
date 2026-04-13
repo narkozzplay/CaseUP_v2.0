@@ -1,6 +1,7 @@
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.test import Client, TestCase, override_settings
+from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
 from modules.v2.profiles.models import UserProfile, UserRole
@@ -9,10 +10,12 @@ from modules.v2.subscriptions.models import SubscriptionPlan
 from modules.v2.subscriptions.services import assign_user_subscription_plan
 
 from .dashboard_menu import build_dashboard_menu, ensure_dashboard_menu_items
+from .context_processors import system_settings
 from .models import DashboardMenuItem, SiteConfiguration, ThemeProfile, ProjectVersion, EnvironmentModuleState, ModuleRelease, ExternalServiceIntegration
 from .services import (
     bootstrap_versioning,
     get_active_theme,
+    get_control_center_summary,
     get_current_project_version,
     get_external_service_health,
     get_runtime_environment,
@@ -506,6 +509,33 @@ class ThemeVersioningTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Midnight Neon")
         self.assertContains(response, "themes/midnight")
+
+
+class SystemBootstrapIsolationTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def test_system_context_processor_does_not_bootstrap_versioning(self):
+        ProjectVersion.objects.all().delete()
+        ThemeProfile.objects.all().delete()
+
+        request = self.factory.get("/")
+        request.user = AnonymousUser()
+        context = system_settings(request)
+
+        self.assertIn("site_settings", context)
+        self.assertEqual(ProjectVersion.objects.count(), 0)
+        self.assertEqual(ThemeProfile.objects.count(), 0)
+
+    def test_control_center_summary_does_not_bootstrap_versioning(self):
+        ProjectVersion.objects.all().delete()
+        ThemeProfile.objects.all().delete()
+
+        summary = get_control_center_summary()
+
+        self.assertIn("enabled_count", summary)
+        self.assertEqual(ProjectVersion.objects.count(), 0)
+        self.assertEqual(ThemeProfile.objects.count(), 0)
 
 
 class DashboardMenuBuilderTests(TestCase):

@@ -14,7 +14,6 @@ from modules.v2.profiles.rbac import get_user_role
 from .dashboard_shell import DASHBOARD_RELOAD_URL_HEADER, is_dashboard_partial_request, render_dashboard_page
 from .forms import SiteConfigurationForm, ThemeActivateForm
 from .services import (
-    bootstrap_versioning,
     build_page_title,
     build_theme_update_headers,
     get_available_themes,
@@ -58,7 +57,6 @@ def _build_settings_context(*, role_access, config, form, current_state_map, pre
 
 @login_required
 def settings_page(request):
-    bootstrap_versioning()
     role_access = get_user_role(request.user)
     if not role_access.is_admin_plus:
         return HttpResponseForbidden("System configuration доступна только admin+.")
@@ -115,7 +113,6 @@ def settings_page(request):
 
 @login_required
 def versioning_page(request):
-    bootstrap_versioning()
     role_access = get_user_role(request.user)
     if not role_access.is_admin_plus:
         return HttpResponseForbidden("Version control доступен только admin+.")
@@ -136,7 +133,6 @@ def versioning_page(request):
 @login_required
 @require_POST
 def activate_theme_page(request):
-    bootstrap_versioning()
     role_access = get_user_role(request.user)
     if not role_access.is_admin_plus:
         return HttpResponseForbidden("Theme activation доступна только admin+.")
@@ -186,7 +182,6 @@ def activate_theme_page(request):
 @login_required
 @require_POST
 def toggle_module_state_page(request, module_key: str):
-    bootstrap_versioning()
     role_access = get_user_role(request.user)
     if not role_access.is_admin_plus:
         return JsonResponse({"ok": False, "error": "forbidden"}, status=403)

@@ -253,6 +253,12 @@ class UserSubscription(models.Model):
         on_delete=models.PROTECT,
         related_name="user_subscriptions",
     )
+    family = models.CharField(
+        max_length=16,
+        choices=SubscriptionPlan.Family.choices,
+        default=SubscriptionPlan.Family.SITE,
+        db_index=True,
+    )
     status = models.CharField(
         max_length=16,
         choices=Status.choices,
@@ -273,6 +279,14 @@ class UserSubscription(models.Model):
             models.Index(fields=["user", "status", "starts_at"], name="sub_usr_stat_start_idx"),
             models.Index(fields=["status", "expires_at"], name="sub_stat_exp_idx"),
             models.Index(fields=["plan", "status"], name="sub_plan_stat_idx"),
+            models.Index(fields=["user", "family", "status"], name="sub_usr_fam_stat_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "family"],
+                condition=Q(status="active"),
+                name="sub_usr_family_active_uniq",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -291,12 +305,15 @@ class UserSubscription(models.Model):
 
     def clean(self):
         errors: dict[str, str] = {}
-        if self.expires_at and self.starts_at and self.expires_at <= self.starts_at:
+        if self.status == self.Status.ACTIVE and self.expires_at and self.starts_at and self.expires_at <= self.starts_at:
             errors["expires_at"] = "Expiry datetime must be later than start datetime."
 
         plan_family = SubscriptionPlan.Family.SITE
         if self.plan_id:
             plan_family = self.plan.family
+        if self.family and self.family != plan_family:
+            errors["family"] = "Subscription family must match plan family."
+        self.family = plan_family
 
         now = timezone.now()
         overlap_requested = (
@@ -307,7 +324,7 @@ class UserSubscription(models.Model):
         if overlap_requested and self.user_id:
             overlapping_qs = (
                 UserSubscription.objects
-                .filter(user_id=self.user_id, status=self.Status.ACTIVE, plan__family=plan_family)
+                .filter(user_id=self.user_id, status=self.Status.ACTIVE, family=self.family)
                 .exclude(pk=self.pk)
                 .filter(Q(starts_at__isnull=True) | Q(starts_at__lte=now))
                 .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
@@ -321,5 +338,7 @@ class UserSubscription(models.Model):
             raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
+        if self.plan_id:
+            self.family = self.plan.family
         self.full_clean()
         return super().save(*args, **kwargs)

@@ -2,6 +2,7 @@ from decimal import Decimal
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.utils import timezone
 from django.urls import reverse
@@ -20,7 +21,6 @@ from .models import SubscriptionFeature, SubscriptionFeaturePricingRule, Subscri
 from .pricing import STATUS_REASONABLE, evaluate_plan_pricing
 from .services import (
     FEATURE_ACCESS_SUBSCRIPTIONS_DISABLED,
-    SubscriptionInvariantError,
     assign_user_subscription_plan,
     get_feature_access_state,
     get_subscription_context,
@@ -177,43 +177,58 @@ class SubscriptionServicesTests(TestCase):
 
 
 class SubscriptionInvariantTests(TestCase):
-    def test_assign_user_subscription_plan_rejects_duplicate_active_family_state(self):
+    def test_db_unique_constraint_blocks_second_active_subscription_in_same_family(self):
         user = User.objects.create_user(username="dup_sub_user", password="StrongPass123")
         first_plan = SubscriptionPlan.objects.get(level=1)
         second_plan = SubscriptionPlan.objects.get(level=2)
         now = timezone.now()
         expires_at = now + timedelta(days=30)
 
-        UserSubscription.objects.bulk_create([
-            UserSubscription(
-                user=user,
-                plan=first_plan,
-                status=UserSubscription.Status.ACTIVE,
-                starts_at=now,
-                expires_at=expires_at,
-                notes="seed-1",
-            ),
-            UserSubscription(
-                user=user,
-                plan=second_plan,
-                status=UserSubscription.Status.ACTIVE,
-                starts_at=now,
-                expires_at=expires_at,
-                notes="seed-2",
-            ),
-        ])
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                UserSubscription.objects.bulk_create([
+                    UserSubscription(
+                        user=user,
+                        plan=first_plan,
+                        family=first_plan.family,
+                        status=UserSubscription.Status.ACTIVE,
+                        starts_at=now,
+                        expires_at=expires_at,
+                        notes="seed-1",
+                    ),
+                    UserSubscription(
+                        user=user,
+                        plan=second_plan,
+                        family=second_plan.family,
+                        status=UserSubscription.Status.ACTIVE,
+                        starts_at=now,
+                        expires_at=expires_at,
+                        notes="seed-2",
+                    ),
+                ])
 
-        with self.assertRaises(SubscriptionInvariantError):
-            assign_user_subscription_plan(user=user, plan=second_plan)
-
-        self.assertEqual(
-            UserSubscription.objects.filter(
-                user=user,
-                status=UserSubscription.Status.ACTIVE,
-                plan__family=first_plan.family,
-            ).count(),
-            2,
+    def test_assign_user_subscription_plan_expires_stale_active_and_assigns_new_plan(self):
+        user = User.objects.create_user(username="stale_sub_user", password="StrongPass123")
+        first_plan = SubscriptionPlan.objects.get(level=1)
+        second_plan = SubscriptionPlan.objects.get(level=2)
+        now = timezone.now()
+        stale = UserSubscription.objects.create(
+            user=user,
+            plan=first_plan,
+            family=first_plan.family,
+            status=UserSubscription.Status.ACTIVE,
+            starts_at=now - timedelta(days=10),
+            expires_at=now - timedelta(days=1),
+            notes="stale",
         )
+
+        assigned = assign_user_subscription_plan(user=user, plan=second_plan)
+
+        stale.refresh_from_db()
+        self.assertEqual(stale.status, UserSubscription.Status.EXPIRED)
+        self.assertEqual(assigned.status, UserSubscription.Status.ACTIVE)
+        self.assertEqual(assigned.plan_id, second_plan.id)
+        self.assertEqual(assigned.family, second_plan.family)
 
 
 class SubscriptionViewsTests(TestCase):

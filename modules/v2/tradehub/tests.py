@@ -185,6 +185,30 @@ class TradeHubTests(TestCase):
         order.refresh_from_db()
         self.assertEqual(order.status, SaleOrder.Status.COMPLETED)
 
+    def test_cancel_sale_order_rejects_after_offer_accepted(self):
+        user = self._make_farmer("farmer_cancel_after_accept")
+        TradeBotAccount.objects.create(
+            title="Bot #accepted",
+            steam_id64="76561198000000205",
+            status=TradeBotAccount.Status.ACTIVE,
+            is_enabled=True,
+            is_default=True,
+        )
+        account, inventory_item, _ = self._make_inventory_item(user=user, asset_id="1205", market_hash_name="M4A4 | Tooth Fairy (Field-Tested)")
+        order = create_sale_order(seller=user, account=account, inventory_item_ids=[inventory_item.id], created_by=user)
+        mark_offer_accepted(order=order, created_by=user)
+
+        with self.assertRaises(TradeHubError):
+            cancel_sale_order(order=order, reason="late cancel", cancelled_by_user=True, created_by=user)
+
+        order.refresh_from_db()
+        inventory_item.refresh_from_db()
+        offer = TradeOffer.objects.get(order=order)
+        self.assertEqual(order.status, SaleOrder.Status.PAYOUT_PENDING)
+        self.assertEqual(offer.status, TradeOffer.Status.ACCEPTED)
+        self.assertEqual(inventory_item.sale_state, FarmAccountInventoryItem.SaleState.RESERVED)
+        self.assertEqual(TradeUserPenalty.objects.filter(order=order).count(), 0)
+
     def test_farmer_can_create_order_from_farm_page(self):
         user = self._make_farmer("farmer_tradehub_view")
         account, inventory_item, _ = self._make_inventory_item(user=user, asset_id="1005")

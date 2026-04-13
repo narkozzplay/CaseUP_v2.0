@@ -9,6 +9,7 @@ from modules.v2.system.ops import (
     grant_role,
     validate_critical_prod_env,
 )
+from modules.v2.system.services import bootstrap_versioning
 
 
 class Command(BaseCommand):
@@ -44,6 +45,8 @@ class Command(BaseCommand):
                 f"module_states.updated={list(result.updated_module_state_keys)}"
             )
         )
+        bootstrap_versioning()
+        self.stdout.write(self.style.SUCCESS("Versioning and theme bootstrap completed."))
 
         username = options.get("username")
         role = options.get("role")

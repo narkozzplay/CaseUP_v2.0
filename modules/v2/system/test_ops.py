@@ -40,6 +40,8 @@ def workspace_temp_dir():
 
 class BootstrapOpsTests(TestCase):
     def test_bootstrap_system_state_creates_singleton_and_module_states(self):
+        SiteConfiguration.objects.all().delete()
+        ModuleState.objects.all().delete()
         self.assertEqual(SiteConfiguration.objects.count(), 0)
         self.assertEqual(ModuleState.objects.count(), 0)
 
@@ -51,11 +53,12 @@ class BootstrapOpsTests(TestCase):
         self.assertEqual(ModuleState.objects.count(), len(MODULE_REGISTRY))
 
     def test_bootstrap_system_state_fills_blank_defaults_without_overwriting_existing_values(self):
-        config = SiteConfiguration.objects.create(
-            site_name="Prod Name",
-            support_email="",
-            public_base_url="",
-        )
+        config = SiteConfiguration.objects.get(singleton_key=1)
+        config.site_name = "Prod Name"
+        config.support_email = ""
+        config.public_base_url = ""
+        config.save(update_fields=["site_name", "support_email", "public_base_url", "updated_at"])
+        ModuleState.objects.all().delete()
         ModuleState.objects.create(key="steam_catalog", is_enabled=False)
 
         result = bootstrap_system_state(sync_defaults=True)

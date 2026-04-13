@@ -119,13 +119,23 @@
 
                 <div class="dashboard-list">
                     {% for profile in latest_users %}
-                        <a href="{% url 'profiles:profile_detail' profile.user_id %}" class="dashboard-list__row dashboard-list__row--link">
-                            <div>
-                                <strong>{{ profile.steam_personaname|default:profile.user.username }}</strong>
-                                <div class="text-muted">{{ profile.get_role_display }}</div>
+                        {% if role_access.is_moder_plus or request.user.is_staff or request.user.is_superuser %}
+                            <a href="{% url 'profiles:profile_detail' profile.user_id %}" class="dashboard-list__row dashboard-list__row--link">
+                                <div>
+                                    <strong>{{ profile.steam_personaname|default:profile.user.username }}</strong>
+                                    <div class="text-muted">{{ profile.get_role_display }}</div>
+                                </div>
+                                <span class="text-muted">{{ profile.created_at|date:"d.m.Y H:i" }}</span>
+                            </a>
+                        {% else %}
+                            <div class="dashboard-list__row">
+                                <div>
+                                    <strong>{{ profile.steam_personaname|default:profile.user.username }}</strong>
+                                    <div class="text-muted">{{ profile.get_role_display }}</div>
+                                </div>
+                                <span class="text-muted">{{ profile.created_at|date:"d.m.Y H:i" }}</span>
                             </div>
-                            <span class="text-muted">{{ profile.created_at|date:"d.m.Y H:i" }}</span>
-                        </a>
+                        {% endif %}
                     {% empty %}
                         <p class="text-muted">No data.</p>
                     {% endfor %}
@@ -163,15 +173,27 @@
 
                 <div class="dashboard-list">
                     {% for entry in latest_ledger %}
-                        <a href="{% url 'profiles:profile_detail' entry.user_id %}#recent-operations" class="dashboard-list__row dashboard-list__row--link">
-                            <div>
-                                <strong>{{ entry.user.profile_v2.steam_personaname|default:entry.user.username }}</strong>
-                                <div class="text-muted">{{ entry.get_reason_display }}</div>
+                        {% if role_access.is_moder_plus or request.user.is_staff or request.user.is_superuser %}
+                            <a href="{% url 'profiles:profile_detail' entry.user_id %}#recent-operations" class="dashboard-list__row dashboard-list__row--link">
+                                <div>
+                                    <strong>{{ entry.user.profile_v2.steam_personaname|default:entry.user.username }}</strong>
+                                    <div class="text-muted">{{ entry.get_reason_display }}</div>
+                                </div>
+                                <span class="{% if entry.delta >= 0 %}metric-positive{% else %}metric-negative{% endif %}">
+                                    {{ entry.delta }}
+                                </span>
+                            </a>
+                        {% else %}
+                            <div class="dashboard-list__row">
+                                <div>
+                                    <strong>{{ entry.user.profile_v2.steam_personaname|default:entry.user.username }}</strong>
+                                    <div class="text-muted">{{ entry.get_reason_display }}</div>
+                                </div>
+                                <span class="{% if entry.delta >= 0 %}metric-positive{% else %}metric-negative{% endif %}">
+                                    {{ entry.delta }}
+                                </span>
                             </div>
-                            <span class="{% if entry.delta >= 0 %}metric-positive{% else %}metric-negative{% endif %}">
-                                {{ entry.delta }}
-                            </span>
-                        </a>
+                        {% endif %}
                     {% empty %}
                         <p class="text-muted">No data.</p>
                     {% endfor %}

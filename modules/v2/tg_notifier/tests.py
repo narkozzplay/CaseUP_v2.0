@@ -2,7 +2,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -20,6 +20,7 @@ from .services import (
     build_connect_url_for_user,
     build_investment_message_context,
     extract_start_token_from_message_text,
+    register_webhook,
     render_investment_message,
     unlink_user_telegram,
     build_webhook_url,
@@ -280,6 +281,7 @@ class TgNotifierTests(TestCase):
                 }
             },
             content_type="application/json",
+            HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN=config.webhook_secret,
         )
 
         self.assertEqual(response.status_code, 200)
@@ -333,6 +335,7 @@ class TgNotifierTests(TestCase):
                 }
             },
             content_type="application/json",
+            HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN=config.webhook_secret,
         )
 
         self.assertEqual(response.status_code, 200)
@@ -368,6 +371,7 @@ class TgNotifierTests(TestCase):
                 }
             },
             content_type="application/json",
+            HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN=config.webhook_secret,
         )
 
         self.assertEqual(response.status_code, 200)
@@ -414,6 +418,151 @@ class TgNotifierTests(TestCase):
             webhook_url,
             "https://abc123.ngrok-free.dev/telegram/webhook/supersecret/",
         )
+
+    def test_webhook_rejects_missing_secret_header(self):
+        config = TelegramNotifierConfig.objects.create(
+            singleton_key=1,
+            is_enabled=True,
+            bot_token="123456:ABCDEF",
+            bot_username="caseup_bot",
+            default_chat_id="-100555",
+            webhook_secret="supersecret",
+            investment_message_template="Предмет: {{ item_name }}",
+        )
+
+        response = self.client.post(
+            reverse("tg_notifier_public:webhook", args=[config.webhook_secret]),
+            data={"message": {"chat": {"id": 1}, "text": "/start caseup_missing"}},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertJSONEqual(response.content, {"ok": False, "error": "forbidden"})
+
+    def test_webhook_rejects_invalid_secret_header(self):
+        config = TelegramNotifierConfig.objects.create(
+            singleton_key=1,
+            is_enabled=True,
+            bot_token="123456:ABCDEF",
+            bot_username="caseup_bot",
+            default_chat_id="-100555",
+            webhook_secret="supersecret",
+            investment_message_template="Предмет: {{ item_name }}",
+        )
+
+        response = self.client.post(
+            reverse("tg_notifier_public:webhook", args=[config.webhook_secret]),
+            data={"message": {"chat": {"id": 1}, "text": "/start caseup_missing"}},
+            content_type="application/json",
+            HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN="wrong",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertJSONEqual(response.content, {"ok": False, "error": "forbidden"})
+
+    def test_webhook_rejects_non_object_payload(self):
+        config = TelegramNotifierConfig.objects.create(
+            singleton_key=1,
+            is_enabled=True,
+            bot_token="123456:ABCDEF",
+            bot_username="caseup_bot",
+            default_chat_id="-100555",
+            webhook_secret="supersecret",
+            investment_message_template="Предмет: {{ item_name }}",
+        )
+
+        response = self.client.post(
+            reverse("tg_notifier_public:webhook", args=[config.webhook_secret]),
+            data="[]",
+            content_type="application/json",
+            HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN=config.webhook_secret,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(response.content, {"ok": False, "error": "invalid_payload"})
+
+    def test_webhook_rejects_invalid_json_payload(self):
+        config = TelegramNotifierConfig.objects.create(
+            singleton_key=1,
+            is_enabled=True,
+            bot_token="123456:ABCDEF",
+            bot_username="caseup_bot",
+            default_chat_id="-100555",
+            webhook_secret="supersecret",
+            investment_message_template="Предмет: {{ item_name }}",
+        )
+
+        response = self.client.post(
+            reverse("tg_notifier_public:webhook", args=[config.webhook_secret]),
+            data="{",
+            content_type="application/json",
+            HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN=config.webhook_secret,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(response.content, {"ok": False, "error": "invalid_json"})
+
+    def test_webhook_rejects_invalid_utf8_payload(self):
+        config = TelegramNotifierConfig.objects.create(
+            singleton_key=1,
+            is_enabled=True,
+            bot_token="123456:ABCDEF",
+            bot_username="caseup_bot",
+            default_chat_id="-100555",
+            webhook_secret="supersecret",
+            investment_message_template="Предмет: {{ item_name }}",
+        )
+
+        response = self.client.post(
+            reverse("tg_notifier_public:webhook", args=[config.webhook_secret]),
+            data=b"\xff\xfe\xfa",
+            content_type="application/json",
+            HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN=config.webhook_secret,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(response.content, {"ok": False, "error": "invalid_encoding"})
+
+    @override_settings(TELEGRAM_WEBHOOK_MAX_BODY_BYTES=16)
+    def test_webhook_rejects_oversized_payload(self):
+        config = TelegramNotifierConfig.objects.create(
+            singleton_key=1,
+            is_enabled=True,
+            bot_token="123456:ABCDEF",
+            bot_username="caseup_bot",
+            default_chat_id="-100555",
+            webhook_secret="supersecret",
+            investment_message_template="Предмет: {{ item_name }}",
+        )
+
+        response = self.client.post(
+            reverse("tg_notifier_public:webhook", args=[config.webhook_secret]),
+            data={"message": {"chat": {"id": 1}, "text": "x" * 128}},
+            content_type="application/json",
+            HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN=config.webhook_secret,
+        )
+
+        self.assertEqual(response.status_code, 413)
+        self.assertJSONEqual(response.content, {"ok": False, "error": "payload_too_large"})
+
+    @patch("modules.v2.tg_notifier.services._telegram_api_request")
+    def test_register_webhook_sends_secret_token(self, api_request_mock):
+        api_request_mock.return_value = {"ok": True, "result": True}
+        config = TelegramNotifierConfig.objects.create(
+            singleton_key=1,
+            is_enabled=True,
+            bot_token="123456:ABCDEF",
+            bot_username="caseup_bot",
+            default_chat_id="-100555",
+            webhook_secret="supersecret",
+            public_base_url="https://abc123.ngrok-free.dev",
+            investment_message_template="Предмет: {{ item_name }}",
+        )
+
+        register_webhook(config=config)
+
+        payload = api_request_mock.call_args.kwargs["payload"]
+        self.assertEqual(payload["secret_token"], "supersecret")
 
     def test_user_can_open_notification_center(self):
         user = self._make_user("tg_center_user", UserRole.USER)

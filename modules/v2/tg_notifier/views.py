@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from secrets import compare_digest
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
@@ -318,15 +319,44 @@ def telegram_webhook_view(request, webhook_secret: str):
     if request.method != "POST":
         return JsonResponse({"ok": False, "error": "method_not_allowed"}, status=405)
 
+    raw_max_body_bytes = getattr(settings, "TELEGRAM_WEBHOOK_MAX_BODY_BYTES", 262_144)
+    try:
+        max_body_bytes = int(raw_max_body_bytes or 262_144)
+    except (TypeError, ValueError):
+        max_body_bytes = 262_144
+    if max_body_bytes <= 0:
+        max_body_bytes = 262_144
+    content_length = request.META.get("CONTENT_LENGTH")
+    if content_length:
+        try:
+            if int(content_length) > max_body_bytes:
+                return JsonResponse({"ok": False, "error": "payload_too_large"}, status=413)
+        except (TypeError, ValueError):
+            pass
+
     config = get_telegram_notifier_config()
     configured_secret = str(config.webhook_secret or "")
     if not configured_secret or not compare_digest(str(webhook_secret or ""), configured_secret):
         return JsonResponse({"ok": False, "error": "forbidden"}, status=403)
+    header_secret = str(request.headers.get("X-Telegram-Bot-Api-Secret-Token") or "").strip()
+    if not header_secret or not compare_digest(header_secret, configured_secret):
+        return JsonResponse({"ok": False, "error": "forbidden"}, status=403)
+
+    raw_body = request.body or b""
+    if len(raw_body) > max_body_bytes:
+        return JsonResponse({"ok": False, "error": "payload_too_large"}, status=413)
 
     try:
-        payload = json.loads(request.body.decode("utf-8") or "{}")
+        raw_text = raw_body.decode("utf-8")
+    except UnicodeDecodeError:
+        return JsonResponse({"ok": False, "error": "invalid_encoding"}, status=400)
+
+    try:
+        payload = json.loads(raw_text or "{}")
     except json.JSONDecodeError:
         return JsonResponse({"ok": False, "error": "invalid_json"}, status=400)
+    if not isinstance(payload, dict):
+        return JsonResponse({"ok": False, "error": "invalid_payload"}, status=400)
 
     message = payload.get("message") or {}
     chat = message.get("chat") or {}

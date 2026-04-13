@@ -468,6 +468,7 @@ def register_webhook(config: TelegramNotifierConfig | None = None, timeout: int 
     payload = {
         "url": webhook_url,
         "drop_pending_updates": False,
+        "secret_token": config.webhook_secret,
     }
     return _telegram_api_request(
         endpoint=_build_telegram_endpoint(bot_token, "setWebhook"),

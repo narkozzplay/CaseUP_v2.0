@@ -90,8 +90,27 @@ def _lock_subscription_owner(user) -> None:
     UserModel.objects.select_for_update().only("pk").get(pk=user.pk)
 
 
+def _expire_stale_active_subscriptions(*, user, family: str, now: datetime) -> None:
+    stale_qs = (
+        UserSubscription.objects
+        .select_for_update()
+        .filter(
+            user=user,
+            status=UserSubscription.Status.ACTIVE,
+            family=family,
+            expires_at__isnull=False,
+            expires_at__lte=now,
+        )
+    )
+    stale_ids = list(stale_qs.values_list("id", flat=True))
+    if stale_ids:
+        UserSubscription.objects.filter(id__in=stale_ids).update(
+            status=UserSubscription.Status.EXPIRED,
+            updated_at=now,
+        )
+
+
 def _get_locked_active_subscriptions(*, user, family: str) -> list[UserSubscription]:
-    now = timezone.now()
     return list(
         UserSubscription.objects
         .select_for_update()
@@ -99,11 +118,8 @@ def _get_locked_active_subscriptions(*, user, family: str) -> list[UserSubscript
         .filter(
             user=user,
             status=UserSubscription.Status.ACTIVE,
-            plan__family=family,
-            plan__is_active=True,
+            family=family,
         )
-        .filter(Q(starts_at__isnull=True) | Q(starts_at__lte=now))
-        .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
         .order_by("-starts_at", "-id")
     )
 
@@ -176,7 +192,7 @@ def get_active_subscription(user, *, family: str | None = DEFAULT_SUBSCRIPTION_F
         .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
     )
     if family:
-        queryset = queryset.filter(plan__family=family)
+        queryset = queryset.filter(family=family)
     return queryset.order_by("-starts_at", "-id").first()
 
 
@@ -376,7 +392,11 @@ def assign_user_subscription_plan(
     notes: str = "",
 ) -> UserSubscription | None:
     target_family = family or (plan.family if plan is not None else DEFAULT_SUBSCRIPTION_FAMILY)
+    if plan is not None and family and family != plan.family:
+        raise SubscriptionInvariantError("Requested subscription family does not match selected plan family.")
     _lock_subscription_owner(user)
+    now = timezone.now()
+    _expire_stale_active_subscriptions(user=user, family=target_family, now=now)
     active_subscriptions = _get_locked_active_subscriptions(user=user, family=target_family)
     if len(active_subscriptions) > 1:
         raise SubscriptionInvariantError(
@@ -384,9 +404,8 @@ def assign_user_subscription_plan(
         )
 
     current = active_subscriptions[0] if active_subscriptions else None
-    starts_at = starts_at or timezone.now()
+    starts_at = starts_at or now
     notes = (notes or "").strip()
-    now = timezone.now()
 
     if current is not None:
         same_plan = plan is not None and current.plan_id == plan.id
@@ -408,6 +427,7 @@ def assign_user_subscription_plan(
     return UserSubscription.objects.create(
         user=user,
         plan=plan,
+        family=target_family,
         status=UserSubscription.Status.ACTIVE,
         starts_at=starts_at,
         expires_at=expires_at,

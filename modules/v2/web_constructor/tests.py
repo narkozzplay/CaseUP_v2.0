@@ -11,6 +11,7 @@ from django.urls import reverse
 
 from modules.v2.profiles.models import UserRole
 
+from .forms import PageTemplateEditorForm
 from .models import EditablePage, PageTemplate, PageTemplateVersion, SandboxSession, TemplateAsset, TemplateVariable, UserTemplateOwnership
 from .services import (
     approve_template_version,
@@ -204,6 +205,58 @@ class WebConstructorTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertTrue(TemplateAsset.objects.filter(owner=self.user, template=template, title="Tiny").exists())
+
+    @override_settings(WEB_CONSTRUCTOR_MAX_IMAGE_UPLOAD_BYTES=16)
+    def test_asset_upload_rejects_oversized_file(self):
+        template = self._create_template()
+        self._login(self.user)
+        upload = SimpleUploadedFile("tiny.gif", GIF_BYTES, content_type="image/gif")
+        response = self.client.post(
+            reverse("web_constructor:upload_asset", kwargs={"template_uuid": template.template_uuid}),
+            {"title": "Too large", "alt_text": "large", "asset_type": "image", "file": upload},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(TemplateAsset.objects.filter(owner=self.user, template=template, title="Too large").exists())
+        self.assertContains(response, "Не удалось загрузить asset")
+
+    def test_asset_upload_rejects_malformed_image(self):
+        template = self._create_template()
+        self._login(self.user)
+        upload = SimpleUploadedFile("broken.png", b"not-an-image", content_type="image/png")
+        response = self.client.post(
+            reverse("web_constructor:upload_asset", kwargs={"template_uuid": template.template_uuid}),
+            {"title": "Broken", "alt_text": "broken", "asset_type": "image", "file": upload},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(TemplateAsset.objects.filter(owner=self.user, template=template, title="Broken").exists())
+        self.assertContains(response, "Не удалось загрузить asset")
+
+    def test_editor_form_rejects_malformed_cover_image(self):
+        template = self._create_template()
+        bad_cover = SimpleUploadedFile("broken.png", b"not-an-image", content_type="image/png")
+        form = PageTemplateEditorForm(
+            data={
+                "title": template.title,
+                "slug": template.slug,
+                "description": template.description,
+                "page_type": template.page_type,
+                "visibility": template.visibility,
+                "access_mode": template.access_mode,
+                "is_free": "on",
+                "price": "0.00",
+                "currency": template.currency,
+                "schema_json": json.dumps(template.current_version.schema_json),
+                "changelog": "",
+            },
+            files={"cover_image": bad_cover},
+            instance=template,
+            initial_schema=template.current_version.schema_json,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("cover_image", form.errors)
 
 
 class WebConstructorBuilderFoundationTests(TestCase):

@@ -42,7 +42,7 @@ def _can_view_private_profile(*, request_user, target_user) -> bool:
     if request_user.id == target_user.id:
         return True
     viewer_access = get_user_role(request_user)
-    return viewer_access.is_admin_plus
+    return bool(viewer_access.is_moder_plus or request_user.is_staff or request_user.is_superuser)
 
 
 def _profile_redirect_name(request_user, target_user) -> str:
@@ -140,6 +140,10 @@ def profile_detail_view(request, user_id: int):
         UserProfile.objects.select_related("user"),
         user_id=user_id,
     ).user
+    if request.user.id != target_user.id:
+        viewer_role_access = get_user_role(request.user)
+        if not (viewer_role_access.is_moder_plus or request.user.is_staff or request.user.is_superuser):
+            return HttpResponseForbidden("Просмотр чужого профиля доступен только staff/mod/admin.")
     context = _build_profile_context(request=request, target_user=target_user)
     return render_dashboard_page(
         request,
