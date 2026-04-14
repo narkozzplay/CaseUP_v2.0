@@ -314,6 +314,37 @@
                 {% endif %}
             </div>
         </article>
+        {% if is_owner_profile and user_theme_preferences_form %}
+        <article class="card profile-card-accent" id="theme-preferences">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Локальные темы{% else %}Local themes{% endif %}</h2>
+                </div>
+                <p class="text-muted">
+                    {% if LANGUAGE_CODE == "ru" %}
+                        Покупка темы в Store выдаёт доступ, а здесь ты выбираешь применение по scope (global/dashboard/steam_catalog и т.д.).
+                    {% else %}
+                        Buying a theme in Store grants access, and here you choose per-scope activation (global/dashboard/steam_catalog, etc.).
+                    {% endif %}
+                </p>
+                <form method="post" action="{% url 'profiles:profile_theme_preferences_update' %}" class="form-stack">
+                    {% csrf_token %}
+                    {% for field in user_theme_preferences_form %}
+                        <div class="form-field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {{ field.errors }}
+                        </div>
+                    {% endfor %}
+                    <div class="auth-card__actions" style="margin-top: 1rem;">
+                        <button type="submit" class="btn btn-primary btn-block">
+                            {% if LANGUAGE_CODE == "ru" %}Сохранить выбор тем{% else %}Save theme selection{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </article>
+        {% endif %}
         {% if viewer_role_access.is_admin_plus and admin_identity_form %}
         <article class="card profile-card-accent">
             <div class="card-body">
@@ -338,6 +369,14 @@
                         </label>
                         {{ admin_identity_form.balance_coins }}
                         {{ admin_identity_form.balance_coins.errors }}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ admin_identity_form.role.id_for_label }}">
+                            {% if LANGUAGE_CODE == "ru" %}Роль пользователя{% else %}User role{% endif %}
+                        </label>
+                        {{ admin_identity_form.role }}
+                        {{ admin_identity_form.role.errors }}
                     </div>
                 
                     <div class="auth-card__actions" style="margin-top: 1rem;">

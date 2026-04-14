@@ -6,6 +6,11 @@ from django import forms
 from django.contrib.auth import get_user_model
 
 from modules.v2.subscriptions.models import SubscriptionPlan
+from modules.v2.store.services import get_user_theme_options_by_scope
+from modules.v2.system.theme_plugins import get_theme_scope_label
+
+from .models import UserRole
+from .rbac import ROLE_RANK, get_user_role
 
 User = get_user_model()
 
@@ -37,10 +42,15 @@ class AdminProfileIdentityForm(_AdminBaseForm):
         min_value=Decimal("0.00"),
         label="Balance",
     )
+    role = forms.ChoiceField(
+        choices=UserRole.choices,
+        label="Role",
+    )
 
-    def __init__(self, *args, target_user=None, target_profile=None, **kwargs):
+    def __init__(self, *args, target_user=None, target_profile=None, actor_user=None, **kwargs):
         self.target_user = target_user
         self.target_profile = target_profile
+        self.actor_user = actor_user
         super().__init__(*args, **kwargs)
 
         if target_user is not None and not self.is_bound:
@@ -48,6 +58,7 @@ class AdminProfileIdentityForm(_AdminBaseForm):
 
         if target_profile is not None and not self.is_bound:
             self.initial.setdefault("balance_coins", target_profile.balance_coins)
+            self.initial.setdefault("role", target_profile.role)
 
     def clean_username(self):
         username = (self.cleaned_data.get("username") or "").strip()
@@ -62,6 +73,24 @@ class AdminProfileIdentityForm(_AdminBaseForm):
             raise forms.ValidationError("Пользователь с таким username уже существует.")
 
         return username
+
+    def clean_role(self):
+        role = (self.cleaned_data.get("role") or "").strip()
+        valid_roles = {choice for choice, _label in UserRole.choices}
+        if role not in valid_roles:
+            raise forms.ValidationError("Недопустимая роль.")
+
+        actor = self.actor_user
+        if not getattr(actor, "is_authenticated", False):
+            raise forms.ValidationError("Только admin+ может менять роль.")
+
+        actor_access = get_user_role(actor)
+        actor_rank = actor_access.rank
+        requested_rank = ROLE_RANK.get(role, ROLE_RANK[UserRole.USER])
+        if requested_rank > actor_rank:
+            raise forms.ValidationError("Нельзя назначить роль выше собственного уровня доступа.")
+
+        return role
 
 
 class AdminSiteSubscriptionForm(_AdminBaseForm):
@@ -158,3 +187,55 @@ class AdminFarmerSubscriptionForm(_AdminBaseForm):
             self.add_error("farmer_subscription_plan", "Сначала выбери farmer-тариф.")
 
         return cleaned_data
+
+
+class UserThemePreferencesForm(forms.Form):
+    FIELD_PREFIX = "theme_scope__"
+
+    def __init__(self, *args, user=None, current_preferences=None, **kwargs):
+        self.user = user
+        self.current_preferences = dict(current_preferences or {})
+        self.theme_options_by_scope = get_user_theme_options_by_scope(user)
+        super().__init__(*args, **kwargs)
+
+        if not self.theme_options_by_scope:
+            self.theme_options_by_scope = {"global": []}
+
+        for scope, themes in self.theme_options_by_scope.items():
+            field_name = self._field_name(scope)
+            choices = [("", "Site default / inherit")]
+            for theme in themes:
+                choices.append((theme.key, theme.name))
+
+            self.fields[field_name] = forms.ChoiceField(
+                required=False,
+                choices=choices,
+                label=get_theme_scope_label(scope),
+                widget=forms.Select(attrs={"class": "form-control"}),
+            )
+            if not self.is_bound:
+                self.initial[field_name] = self.current_preferences.get(scope, "")
+
+    @classmethod
+    def _field_name(cls, scope: str) -> str:
+        return f"{cls.FIELD_PREFIX}{scope}"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        selected: dict[str, str] = {}
+        for scope, themes in self.theme_options_by_scope.items():
+            field_name = self._field_name(scope)
+            value = str(cleaned_data.get(field_name) or "").strip().lower()
+            if not value:
+                continue
+            allowed_keys = {theme.key for theme in themes}
+            if value not in allowed_keys:
+                self.add_error(field_name, "Тема недоступна для выбранного scope.")
+                continue
+            selected[scope] = value
+
+        self.cleaned_preferences = selected if not self.errors else {}
+        return cleaned_data
+
+    def get_selected_preferences(self) -> dict[str, str]:
+        return dict(getattr(self, "cleaned_preferences", {}))

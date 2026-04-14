@@ -1,3 +1,8 @@
+import shutil
+from pathlib import Path
+from types import SimpleNamespace
+
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -8,6 +13,7 @@ from modules.v2.profiles.models import UserProfile, UserRole
 from modules.v2.steam_catalog.models import SteamItem
 from modules.v2.subscriptions.models import SubscriptionPlan
 from modules.v2.subscriptions.services import assign_user_subscription_plan
+from modules.v2.store.models import ThemeStoreListing, UserThemePurchase
 
 from .dashboard_menu import build_dashboard_menu, ensure_dashboard_menu_items
 from .context_processors import system_settings
@@ -22,6 +28,7 @@ from .services import (
 )
 from .module_registry import MODULE_REGISTRY
 from .services import get_module_state_map, get_site_configuration, update_module_states
+from .theme_plugins import discover_runtime_themes
 
 User = get_user_model()
 
@@ -552,6 +559,60 @@ class SystemBootstrapIsolationTests(TestCase):
         self.assertIn("enabled_count", summary)
         self.assertEqual(ProjectVersion.objects.count(), 0)
         self.assertEqual(ThemeProfile.objects.count(), 0)
+
+
+class RuntimeThemeDiscoveryTests(TestCase):
+    def test_runtime_theme_discovery_includes_demo_package(self):
+        discovered = discover_runtime_themes(refresh=True)
+        self.assertIn("steam_catalog_price_graph_plus", discovered)
+        self.assertEqual(discovered["steam_catalog_price_graph_plus"].name, "Улучшенный график цен в стим каталоге")
+
+    def test_invalid_theme_manifest_is_ignored(self):
+        themes_root = Path(settings.BASE_DIR) / "modules" / "plugins" / "themes"
+        broken_dir = themes_root / "broken_theme_manifest"
+        broken_dir.mkdir(parents=True, exist_ok=True)
+        (broken_dir / "theme.json").write_text("{invalid json", encoding="utf-8")
+        try:
+            discovered = discover_runtime_themes(refresh=True)
+            self.assertNotIn("broken_theme_manifest", discovered)
+        finally:
+            shutil.rmtree(broken_dir, ignore_errors=True)
+            discover_runtime_themes(refresh=True)
+
+
+class UserRuntimeThemeResolutionTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="theme_context_user", password="StrongPass123")
+        self.demo_listing = ThemeStoreListing.objects.get(key="steam-catalog-price-graph-theme")
+
+    def test_unpurchased_private_theme_does_not_override_scope_css(self):
+        self.user.profile_v2.theme_preferences = {"steam_catalog": "steam_catalog_price_graph_plus"}
+        self.user.profile_v2.save(update_fields=["theme_preferences", "updated_at"])
+        request = RequestFactory().get("/steam-catalog/")
+        request.user = self.user
+        request.resolver_match = SimpleNamespace(namespace="steam_catalog", view_name="steam_catalog:list")
+
+        context = system_settings(request)
+
+        self.assertEqual(context["runtime_theme_css_files"], tuple())
+
+    def test_purchased_theme_overrides_scope_css_for_owner(self):
+        UserThemePurchase.objects.create(
+            user=self.user,
+            listing=self.demo_listing,
+            theme_key=self.demo_listing.theme_key,
+            amount_rub=self.demo_listing.price_rub,
+        )
+        self.user.profile_v2.theme_preferences = {"steam_catalog": self.demo_listing.theme_key}
+        self.user.profile_v2.save(update_fields=["theme_preferences", "updated_at"])
+
+        request = RequestFactory().get("/steam-catalog/")
+        request.user = self.user
+        request.resolver_match = SimpleNamespace(namespace="steam_catalog", view_name="steam_catalog:list")
+
+        context = system_settings(request)
+
+        self.assertIn("steam_catalog_price_graph_plus/css/steam_catalog_price_graph_plus.css", context["runtime_theme_css_files"])
 
 
 class DashboardMenuBuilderTests(TestCase):

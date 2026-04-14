@@ -1,0 +1,14 @@
+{
+  "key": "steam_catalog_price_graph_plus",
+  "name": "Улучшенный график цен в стим каталоге",
+  "description": "Улучшаем стиль графиков в Steam Catalog",
+  "author": "Система",
+  "scope": ["steam_catalog"],
+  "css_files": [
+    "steam_catalog_price_graph_plus/css/steam_catalog_price_graph_plus.css"
+  ],
+  "template_overrides": {},
+  "preview_image": "",
+  "is_public": false,
+  "price_default": "1000.00"
+}

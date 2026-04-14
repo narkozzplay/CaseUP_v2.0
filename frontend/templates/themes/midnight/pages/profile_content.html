@@ -37,6 +37,51 @@
                 </p>
             </div>
         </article>
+        {% if is_owner_profile and user_theme_preferences_form %}
+        <article class="card" id="theme-preferences">
+            <div class="card-body">
+                <h2 class="section-title">{% trans "Local themes" %}</h2>
+                <form method="post" action="{% url 'profiles:profile_theme_preferences_update' %}" class="form-stack">
+                    {% csrf_token %}
+                    {% for field in user_theme_preferences_form %}
+                        <div class="form-field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {{ field.errors }}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary btn-block">{% trans "Save theme selection" %}</button>
+                </form>
+            </div>
+        </article>
+        {% endif %}
+        {% if viewer_role_access.is_admin_plus and admin_identity_form %}
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">{% trans "Admin role edit" %}</h2>
+                <form method="post" action="{% url 'profiles:profile_admin_update' profile_user.id %}" class="form-stack">
+                    {% csrf_token %}
+                    <input type="hidden" name="admin_section" value="identity">
+                    <div class="form-field">
+                        <label for="{{ admin_identity_form.username.id_for_label }}">Username</label>
+                        {{ admin_identity_form.username }}
+                        {{ admin_identity_form.username.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ admin_identity_form.balance_coins.id_for_label }}">{% trans "Balance" %}</label>
+                        {{ admin_identity_form.balance_coins }}
+                        {{ admin_identity_form.balance_coins.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ admin_identity_form.role.id_for_label }}">{% trans "Role" %}</label>
+                        {{ admin_identity_form.role }}
+                        {{ admin_identity_form.role.errors }}
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">{% trans "Save profile data" %}</button>
+                </form>
+            </div>
+        </article>
+        {% endif %}
     </div>
 
     <article class="card">

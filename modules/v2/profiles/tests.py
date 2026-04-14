@@ -10,6 +10,7 @@ from modules.v2.profiles.services.balance import BalanceError, adjust_balance
 from modules.v2.profiles.services.ledger import LedgerError, LedgerIdempotencyConflictError, apply_ledger_delta
 from modules.v2.profiles.services.faceit import build_faceit_level_image_url, sync_faceit_profile
 from modules.v2.profiles.models import UserProfile, UserRole
+from modules.v2.store.models import ThemeStoreListing, UserThemePurchase
 from modules.v2.subscriptions.models import SubscriptionPlan, UserSubscription
 from modules.v2.tg_notifier.models import TelegramNotifierConfig
 from modules.v2.profiles.services.steam_profile import (
@@ -138,6 +139,7 @@ class ProfileTests(TestCase):
                 "admin_section": "identity",
                 "username": "target_manage_profile_updated",
                 "balance_coins": "150.00",
+                "role": UserRole.FARMER,
             },
         )
         self.assertEqual(response.status_code, 302)
@@ -157,6 +159,7 @@ class ProfileTests(TestCase):
         target.profile_v2.refresh_from_db()
         self.assertEqual(target.username, "target_manage_profile_updated")
         self.assertEqual(target.profile_v2.balance_coins, Decimal("150.00"))
+        self.assertEqual(target.profile_v2.role, UserRole.FARMER)
         self.assertContains(response, "Site-подписка обновлена.")
 
         active_subscription = UserSubscription.objects.get(user=target, status=UserSubscription.Status.ACTIVE)
@@ -180,6 +183,93 @@ class ProfileTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 403)
+
+    def test_admin_cannot_assign_role_higher_than_self(self):
+        admin = User.objects.create_user(username="profile_admin_role_guard", password="StrongPass123")
+        admin.profile_v2.role = UserRole.ADMIN
+        admin.profile_v2.save(update_fields=["role"])
+        target = User.objects.create_user(username="profile_target_role_guard", password="StrongPass123")
+
+        self.client.login(username="profile_admin_role_guard", password="StrongPass123")
+        response = self.client.post(
+            reverse("profiles:profile_admin_update", args=[target.id]),
+            {
+                "admin_section": "identity",
+                "username": "profile_target_role_guard",
+                "balance_coins": "0.00",
+                "role": UserRole.SUPER_ADMIN,
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        target.profile_v2.refresh_from_db()
+        self.assertEqual(target.profile_v2.role, UserRole.USER)
+
+    def test_admin_can_update_role_and_sync_staff_flags(self):
+        admin = User.objects.create_user(username="profile_role_admin", password="StrongPass123")
+        admin.profile_v2.role = UserRole.ADMIN
+        admin.profile_v2.save(update_fields=["role"])
+        target = User.objects.create_user(username="profile_role_target", password="StrongPass123")
+
+        self.client.login(username="profile_role_admin", password="StrongPass123")
+        response = self.client.post(
+            reverse("profiles:profile_admin_update", args=[target.id]),
+            {
+                "admin_section": "identity",
+                "username": "profile_role_target",
+                "balance_coins": "0.00",
+                "role": UserRole.MOD,
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        target.refresh_from_db()
+        target.profile_v2.refresh_from_db()
+        self.assertEqual(target.profile_v2.role, UserRole.MOD)
+        self.assertTrue(target.is_staff)
+        self.assertFalse(target.is_superuser)
+
+    def test_profile_theme_preferences_show_only_purchased_or_public_themes(self):
+        user = User.objects.create_user(username="theme_profile_user", password="StrongPass123")
+        listing = ThemeStoreListing.objects.get(key="steam-catalog-price-graph-theme")
+        self.client.login(username="theme_profile_user", password="StrongPass123")
+
+        response = self.client.get(reverse("profiles:profile"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, listing.title)
+
+        UserThemePurchase.objects.create(
+            user=user,
+            listing=listing,
+            theme_key=listing.theme_key,
+            amount_rub=listing.price_rub,
+        )
+        response = self.client.get(reverse("profiles:profile"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, listing.title)
+
+    def test_profile_theme_preferences_update_persists_scope_selection(self):
+        user = User.objects.create_user(username="theme_profile_save_user", password="StrongPass123")
+        listing = ThemeStoreListing.objects.get(key="steam-catalog-price-graph-theme")
+        UserThemePurchase.objects.create(
+            user=user,
+            listing=listing,
+            theme_key=listing.theme_key,
+            amount_rub=listing.price_rub,
+        )
+        self.client.login(username="theme_profile_save_user", password="StrongPass123")
+
+        response = self.client.post(
+            reverse("profiles:profile_theme_preferences_update"),
+            {"theme_scope__steam_catalog": listing.theme_key},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        user.profile_v2.refresh_from_db()
+        self.assertEqual(user.profile_v2.theme_preferences.get("steam_catalog"), listing.theme_key)
 
     def test_adjust_balance_topup(self):
         user = User.objects.create_user(username="user3", password="StrongPass123")

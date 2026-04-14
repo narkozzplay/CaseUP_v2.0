@@ -105,6 +105,10 @@ class UserProfile(models.Model):
         null=True,
         blank=True,
     )
+    theme_preferences = models.JSONField(
+        default=dict,
+        blank=True,
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -135,6 +139,7 @@ class LedgerReason(models.TextChoices):
     WITHDRAW_CANCEL = "withdraw_cancel", "Withdraw cancel"
     ADMIN_ADJUST = "admin_adjust", "Admin adjust"
     SUBSCRIPTION_PURCHASE = "subscription_purchase", "Subscription purchase"
+    THEME_PURCHASE = "theme_purchase", "Theme purchase"
 
 
 class LedgerEntry(models.Model):

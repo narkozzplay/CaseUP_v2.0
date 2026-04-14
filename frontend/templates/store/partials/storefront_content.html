@@ -3,25 +3,85 @@
     <article class="card dashboard-hero">
         <div class="card-body dashboard-hero__body">
             <div>
-                <span class="eyebrow">Store</span>
-                <h1 class="page-title page-title--sm">{% trans "Store module" %}</h1>
+                <span class="eyebrow">Store · Themes</span>
+                <h1 class="page-title page-title--sm">{% trans "Theme Marketplace" %}</h1>
                 <p class="text-muted dashboard-hero__text">
-                    {% trans "This is a production-ready placeholder for the future CaseUP storefront domain." %}
+                    {% trans "Themes are sold as store products, while runtime source of truth remains plugin manifests in modules/plugins/themes." %}
                 </p>
             </div>
             <div class="dashboard-hero__meta">
-                <span class="status-pill">{% trans "Status" %}: {% trans "Enabled" %}</span>
-                <span class="status-pill">{% trans "Mode" %}: placeholder</span>
+                <span class="status-pill">{% trans "Listings" %}: {{ theme_cards|length }}</span>
+                <span class="status-pill">{% trans "Runtime available" %}: {{ available_cards_count }}</span>
+                <span class="status-pill">{% trans "Runtime missing" %}: {{ unavailable_cards_count }}</span>
             </div>
         </div>
     </article>
 
-    <div class="profile-grid profile-grid--3">
-        {% for section in quick_sections %}
+    <div class="cards-grid">
+        {% for card in theme_cards %}
             <article class="card">
                 <div class="card-body">
-                    <h2 class="section-title">{{ section.title }}</h2>
-                    <p class="text-muted">{{ section.description }}</p>
+                    <div class="section-head-inline">
+                        <h2 class="section-title">{{ card.listing.title }}</h2>
+                        <span class="status-pill status-pill--sm">{{ card.listing.price_rub }} ₽</span>
+                    </div>
+
+                    {% if card.listing.short_description %}
+                        <p class="text-muted">{{ card.listing.short_description }}</p>
+                    {% endif %}
+                    {% if card.listing.cover_image %}
+                        <div style="margin: 0.75rem 0 0.5rem;">
+                            <img
+                                src="{{ card.listing.cover_image }}"
+                                alt="{{ card.listing.title }}"
+                                style="width: 100%; max-height: 180px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border);">
+                        </div>
+                    {% endif %}
+
+                    <div class="profile-badges">
+                        <span class="status-pill status-pill--sm">theme_key={{ card.listing.theme_key }}</span>
+                        {% for scope in card.theme_scopes %}
+                            <span class="status-pill status-pill--sm">{{ scope }}</span>
+                        {% empty %}
+                            <span class="status-pill status-pill--sm">runtime: unknown</span>
+                        {% endfor %}
+                        <span class="status-pill status-pill--sm">{% trans "Author" %}: {{ card.listing.author|default:"—" }}</span>
+                    </div>
+
+                    {% if not card.runtime_available %}
+                        <div class="feature-lock-card feature-lock-card--compact" style="margin-top: 1rem;">
+                            <div class="feature-lock-card__badge">runtime</div>
+                            <h3 class="feature-lock-card__title">{% trans "Theme package is unavailable" %}</h3>
+                            <p class="feature-lock-card__text">{% trans "Listing exists, but runtime manifest/package is missing or incompatible." %}</p>
+                        </div>
+                    {% elif card.already_owned %}
+                        <div class="feature-lock-card feature-lock-card--compact" style="margin-top: 1rem;">
+                            <div class="feature-lock-card__badge">access</div>
+                            <h3 class="feature-lock-card__title">{% trans "Theme is available to your account" %}</h3>
+                            <p class="feature-lock-card__text">{% trans "Open profile to activate this theme in local preferences." %}</p>
+                            <a href="{% url 'profiles:profile' %}#theme-preferences" class="btn btn-secondary btn-sm">{% trans "Open profile themes" %}</a>
+                        </div>
+                    {% elif card.can_purchase %}
+                        <form method="post" action="{% url 'store:purchase_theme' card.listing.id %}" class="form-stack" style="margin-top: 1rem;">
+                            {% csrf_token %}
+                            <input type="hidden" name="next_url" value="{% url 'store:storefront' %}">
+                            <button type="submit" class="btn btn-primary btn-block">
+                                {% trans "Buy theme" %} · {{ card.listing.price_rub }} ₽
+                            </button>
+                        </form>
+                    {% else %}
+                        <div class="feature-lock-card feature-lock-card--compact" style="margin-top: 1rem;">
+                            <div class="feature-lock-card__badge">store</div>
+                            <h3 class="feature-lock-card__title">{% trans "Theme is not purchasable right now" %}</h3>
+                            <p class="feature-lock-card__text">{% trans "Check publication status or access policy for this listing." %}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </article>
+        {% empty %}
+            <article class="card">
+                <div class="card-body">
+                    <p class="text-muted">{% trans "Theme listings are not configured yet." %}</p>
                 </div>
             </article>
         {% endfor %}

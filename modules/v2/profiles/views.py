@@ -16,6 +16,7 @@ from modules.v2.accounts.steam_sync import (
 from modules.v2.profiles.services.balance import BalanceError, adjust_balance
 from modules.v2.profiles.services.faceit import sync_faceit_if_needed, sync_faceit_profile
 from modules.v2.profiles.services.steam_profile import sync_profile_steam_meta_if_needed
+from modules.v2.store.services import save_user_theme_preferences
 from modules.v2.subscriptions.services import assign_user_subscription_plan, get_active_subscription, get_subscription_context
 from modules.v2.subscriptions.models import SubscriptionPlan
 from modules.v2.system.dashboard_shell import render_dashboard_page
@@ -31,8 +32,9 @@ from .forms import (
     AdminFarmerSubscriptionForm,
     AdminProfileIdentityForm,
     AdminSiteSubscriptionForm,
+    UserThemePreferencesForm,
 )
-from .models import LedgerEntry, LedgerReason, UserProfile
+from .models import LedgerEntry, LedgerReason, UserProfile, UserRole
 from .rbac import get_user_role
 
 
@@ -47,6 +49,41 @@ def _can_view_private_profile(*, request_user, target_user) -> bool:
 
 def _profile_redirect_name(request_user, target_user) -> str:
     return "profiles:profile" if request_user.id == target_user.id else "profiles:profile_detail"
+
+
+ROLE_TO_FLAGS = {
+    UserRole.USER: {"is_staff": False, "is_superuser": False},
+    UserRole.FARMER: {"is_staff": False, "is_superuser": False},
+    UserRole.MOD: {"is_staff": True, "is_superuser": False},
+    UserRole.ADMIN: {"is_staff": True, "is_superuser": False},
+    UserRole.CHIEF_ADMIN: {"is_staff": True, "is_superuser": False},
+    UserRole.SUPER_ADMIN: {"is_staff": True, "is_superuser": True},
+}
+
+
+def _apply_profile_role(*, target_user, profile: UserProfile, role: str) -> bool:
+    normalized_role = (role or "").strip()
+    if not normalized_role:
+        return False
+
+    changed = False
+    if profile.role != normalized_role:
+        profile.role = normalized_role
+        profile.save(update_fields=["role", "updated_at"])
+        changed = True
+
+    desired_flags = ROLE_TO_FLAGS.get(normalized_role, ROLE_TO_FLAGS[UserRole.USER])
+    user_changed_fields: list[str] = []
+    if bool(target_user.is_staff) != desired_flags["is_staff"]:
+        target_user.is_staff = desired_flags["is_staff"]
+        user_changed_fields.append("is_staff")
+    if bool(target_user.is_superuser) != desired_flags["is_superuser"]:
+        target_user.is_superuser = desired_flags["is_superuser"]
+        user_changed_fields.append("is_superuser")
+    if user_changed_fields:
+        target_user.save(update_fields=user_changed_fields)
+        changed = True
+    return changed
 
 
 def _build_profile_context(*, request, target_user):
@@ -91,12 +128,20 @@ def _build_profile_context(*, request, target_user):
         admin_identity_form = AdminProfileIdentityForm(
             target_user=target_user,
             target_profile=profile,
+            actor_user=request.user,
         )
         admin_site_subscription_form = AdminSiteSubscriptionForm(
             active_site_subscription=active_site_subscription,
         )
         admin_farmer_subscription_form = AdminFarmerSubscriptionForm(
             active_farmer_subscription=active_farmer_subscription,
+        )
+
+    user_theme_preferences_form = None
+    if is_owner:
+        user_theme_preferences_form = UserThemePreferencesForm(
+            user=target_user,
+            current_preferences=profile.theme_preferences or {},
         )
 
     return {
@@ -118,6 +163,7 @@ def _build_profile_context(*, request, target_user):
         "admin_identity_form": admin_identity_form,
         "admin_site_subscription_form": admin_site_subscription_form,
         "admin_farmer_subscription_form": admin_farmer_subscription_form,
+        "user_theme_preferences_form": user_theme_preferences_form,
     }
 
 
@@ -184,6 +230,7 @@ def profile_admin_update_view(request, user_id: int):
     identity_form = AdminProfileIdentityForm(
         target_user=target_user,
         target_profile=profile,
+        actor_user=request.user,
     )
     site_form = AdminSiteSubscriptionForm(
         active_site_subscription=active_site_subscription,
@@ -199,6 +246,7 @@ def profile_admin_update_view(request, user_id: int):
                     request.POST,
                     target_user=target_user,
                     target_profile=profile,
+                    actor_user=request.user,
                 )
                 if not identity_form.is_valid():
                     raise ValueError("identity_form_invalid")
@@ -221,7 +269,14 @@ def profile_admin_update_view(request, user_id: int):
                         idempotency_key=f"profile-admin-balance:{target_user.id}:{uuid.uuid4()}",
                     )
 
+                role_changed = _apply_profile_role(
+                    target_user=target_user,
+                    profile=profile,
+                    role=identity_form.cleaned_data["role"],
+                )
                 messages.success(request, "Основные данные профиля обновлены.")
+                if role_changed:
+                    messages.success(request, "Роль и staff-права пользователя синхронизированы.")
 
             elif section == "site_subscription":
                 site_form = AdminSiteSubscriptionForm(
@@ -277,6 +332,32 @@ def profile_admin_update_view(request, user_id: int):
     context["admin_site_subscription_form"] = site_form
     context["admin_farmer_subscription_form"] = farmer_form
     return render(request, "profiles/profile.html", context, status=200)
+
+
+@login_required
+def profile_theme_preferences_update_view(request):
+    if request.method != "POST":
+        return redirect("profiles:profile")
+
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    form = UserThemePreferencesForm(
+        request.POST,
+        user=request.user,
+        current_preferences=profile.theme_preferences or {},
+    )
+    if form.is_valid():
+        saved_preferences = save_user_theme_preferences(
+            user=request.user,
+            submitted_preferences=form.get_selected_preferences(),
+        )
+        if saved_preferences:
+            messages.success(request, "Локальные настройки тем сохранены.")
+        else:
+            messages.success(request, "Локальные темы сброшены на глобальные настройки сайта.")
+    else:
+        messages.error(request, "Не удалось сохранить настройки локальных тем.")
+
+    return redirect("profiles:profile")
 
 
 @login_required
