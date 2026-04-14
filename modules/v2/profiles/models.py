@@ -109,6 +109,11 @@ class UserProfile(models.Model):
         default=dict,
         blank=True,
     )
+    module_preferences = models.JSONField(
+        default=dict,
+        blank=True,
+    )
+    is_store_author = models.BooleanField(default=False, db_index=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -140,6 +145,8 @@ class LedgerReason(models.TextChoices):
     ADMIN_ADJUST = "admin_adjust", "Admin adjust"
     SUBSCRIPTION_PURCHASE = "subscription_purchase", "Subscription purchase"
     THEME_PURCHASE = "theme_purchase", "Theme purchase"
+    STORE_PURCHASE = "store_purchase", "Store purchase"
+    BUNDLE_PURCHASE = "bundle_purchase", "Bundle purchase"
 
 
 class LedgerEntry(models.Model):

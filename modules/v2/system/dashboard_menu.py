@@ -63,7 +63,14 @@ ACTIVE_VIEW_ALIASES = {
     "subscription_pricing": {"subscriptions:pricing_dashboard"},
     "farm_settings": {"farm:settings"},
     "web_constructor": {"web_constructor:builder", "web_constructor:builder_editor", "web_constructor:dashboard", "web_constructor:create", "web_constructor:detail", "web_constructor:editor", "web_constructor:versions"},
-    "store": {"store:storefront"},
+    "store": {
+        "store:storefront",
+        "store:library",
+        "store:product_detail",
+        "store:author_products",
+        "store:moderation_queue",
+        "store:analytics",
+    },
     "web_constructor_moderation": {"web_constructor:moderation", "web_constructor:moderate_version"},
     "django_admin": {"admin:index"},
 }

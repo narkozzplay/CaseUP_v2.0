@@ -274,6 +274,10 @@ def profile_admin_update_view(request, user_id: int):
                     profile=profile,
                     role=identity_form.cleaned_data["role"],
                 )
+                store_author = bool(identity_form.cleaned_data.get("is_store_author"))
+                if profile.is_store_author != store_author:
+                    profile.is_store_author = store_author
+                    profile.save(update_fields=["is_store_author", "updated_at"])
                 messages.success(request, "Основные данные профиля обновлены.")
                 if role_changed:
                     messages.success(request, "Роль и staff-права пользователя синхронизированы.")

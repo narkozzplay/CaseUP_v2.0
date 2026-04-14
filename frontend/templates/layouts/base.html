@@ -8,13 +8,19 @@
     <link rel="stylesheet" href="{% static 'css/layout.css' %}">
     <link rel="stylesheet" href="{% static 'css/components.css' %}">
     {% if active_theme_css_file %}<link rel="stylesheet" href="{% static active_theme_css_file %}" id="active-theme-css" data-theme-key="{{ active_theme.key|default:'' }}">{% endif %}
+    {% block extra_head %}{% endblock %}
     {% for runtime_theme_css_file in runtime_theme_css_files %}
         <link rel="stylesheet" href="{% static runtime_theme_css_file %}" data-user-runtime-theme-css="{{ runtime_theme_css_file }}">
     {% endfor %}
-    {% block extra_head %}{% endblock %}
+    {% for runtime_module_css_file in runtime_module_css_files %}
+        <link rel="stylesheet" href="{% static runtime_module_css_file %}" data-user-runtime-module-css="{{ runtime_module_css_file }}">
+    {% endfor %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
     {% block page %}{% endblock %}
     {% block extra_js %}{% endblock %}
+    {% for runtime_module_js_file in runtime_module_js_files %}
+        <script src="{% static runtime_module_js_file %}" defer data-user-runtime-module-js="{{ runtime_module_js_file }}"></script>
+    {% endfor %}
 </body>
 </html>

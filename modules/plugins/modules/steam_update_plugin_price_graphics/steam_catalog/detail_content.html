@@ -1,0 +1,31 @@
+﻿{% include "steam_catalog/partials/detail_content.html" %}
+
+<section class="section section--compact steam-update-plugin-price-graphics" data-steam-update-plugin-price-graphics>
+    <article class="card steam-update-plugin-price-graphics__card">
+        <div class="card-body steam-update-plugin-price-graphics__body">
+            <span class="eyebrow">Runtime module</span>
+            <h2 class="section-title">Price Graphics Plus</h2>
+            <p class="text-muted steam-update-plugin-price-graphics__description">
+                Дополнительный блок поверх базовой карточки: быстрый срез по текущей динамике и параметрам авто-обновления.
+            </p>
+            <div class="steam-update-plugin-price-graphics__stats">
+                <div class="steam-update-plugin-price-graphics__stat">
+                    <span>Текущая</span>
+                    <strong>{% if price_analytics.current_value %}{{ price_analytics.current_value|floatformat:2 }}{% else %}—{% endif %}</strong>
+                </div>
+                <div class="steam-update-plugin-price-graphics__stat">
+                    <span>От старта</span>
+                    <strong>{{ price_analytics.trend_delta_label|default:"0.00" }}</strong>
+                </div>
+                <div class="steam-update-plugin-price-graphics__stat">
+                    <span>От пика</span>
+                    <strong>{{ price_analytics.drawdown_delta_label|default:"0.00" }}</strong>
+                </div>
+                <div class="steam-update-plugin-price-graphics__stat">
+                    <span>Авто-обновление</span>
+                    <strong>{% if auto_update_enabled %}ON{% else %}OFF{% endif %}</strong>
+                </div>
+            </div>
+        </div>
+    </article>
+</section>

@@ -283,11 +283,11 @@ def get_user_theme_preferences(user) -> dict[str, str]:
 
     from modules.v2.profiles.models import UserProfile
 
-    profile = getattr(user, "profile_v2", None)
+    profile = (
+        UserProfile.objects.filter(user_id=getattr(user, "id", None))
+        .only("theme_preferences")
+        .first()
+    )
     if profile is None:
-        try:
-            profile = user.profile_v2
-        except UserProfile.DoesNotExist:
-            return {}
-
-    return normalize_theme_preferences(getattr(profile, "theme_preferences", {}))
+        return {}
+    return normalize_theme_preferences(profile.theme_preferences)

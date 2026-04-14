@@ -1,0 +1,48 @@
+﻿<section class="section section--compact">
+    <article class="card">
+        <div class="card-body">
+            <div class="section-head-inline">
+                <h1 class="page-title page-title--sm">Store analytics</h1>
+                <a href="{% url 'store:storefront' %}" class="btn btn-secondary btn-sm">Storefront</a>
+            </div>
+            <p class="text-muted">Раздел для admin и store-author: продажи, bundle продажи, review агрегаты.</p>
+        </div>
+    </article>
+
+    <article class="card" style="margin-top: 1rem;">
+        <div class="card-body">
+            <div class="table-wrap">
+                <table class="table table--dark">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Purchases</th>
+                            <th>Revenue</th>
+                            <th>Bundle purchases</th>
+                            <th>Bundle revenue</th>
+                            <th>Reviews</th>
+                            <th>Avg rating</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in analytics_rows %}
+                            <tr>
+                                <td>{{ row.listing.title }}</td>
+                                <td>{{ row.listing.category }}</td>
+                                <td>{{ row.purchases }}</td>
+                                <td>{{ row.revenue }}</td>
+                                <td>{{ row.bundle_purchases }}</td>
+                                <td>{{ row.bundle_revenue }}</td>
+                                <td>{{ row.reviews }}</td>
+                                <td>{{ row.avg_rating|floatformat:2 }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="8">Analytics rows are empty.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </article>
+</section>

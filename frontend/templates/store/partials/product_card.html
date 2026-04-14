@@ -1,0 +1,50 @@
+﻿<article class="card">
+    <div class="card-body">
+        <div class="section-head-inline">
+            <h3 class="section-title">{{ card.listing.title }}</h3>
+            <span class="status-pill status-pill--sm">{{ card.listing.price_rub }} ₽</span>
+        </div>
+
+        <p class="text-muted">{{ card.listing.short_description|default:"—" }}</p>
+        <div class="profile-badges" style="margin-bottom: 0.75rem;">
+            <span class="status-pill status-pill--sm">{{ card.listing.category }}</span>
+            <span class="status-pill status-pill--sm">key={{ card.listing.key }}</span>
+            {% for badge in card.badges %}
+                <span class="status-pill status-pill--sm">{{ badge }}</span>
+            {% empty %}
+                <span class="status-pill status-pill--sm">Нет доступа</span>
+            {% endfor %}
+        </div>
+
+        <div class="auth-card__actions" style="gap: 0.5rem;">
+            <a href="{% url 'store:product_detail' card.listing.key %}" class="btn btn-secondary btn-sm">Detail</a>
+
+            {% if card.can_purchase %}
+                <form method="post" action="{% url 'store:purchase_product' card.listing.id %}" class="inline-form">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary btn-sm">Buy</button>
+                </form>
+            {% elif card.can_purchase_bundle %}
+                <form method="post" action="{% url 'store:purchase_bundle' card.listing.id %}" class="inline-form">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary btn-sm">Buy bundle</button>
+                </form>
+            {% endif %}
+
+            {% if card.can_activate and card.listing.category == 'themes' %}
+                <form method="post" action="{% url 'store:activate_theme' card.listing.id %}" class="inline-form">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-secondary btn-sm">Activate theme</button>
+                </form>
+            {% endif %}
+
+            {% if card.can_activate and card.listing.category == 'modules' %}
+                <form method="post" action="{% url 'store:activate_module_slot' card.listing.id %}" class="inline-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="slot" value="steam_catalog.detail_content">
+                    <button type="submit" class="btn btn-secondary btn-sm">Activate module</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</article>

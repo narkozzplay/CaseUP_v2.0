@@ -3,7 +3,7 @@
   "name": "Улучшенный график цен в стим каталоге",
   "description": "Улучшаем стиль графиков в Steam Catalog",
   "author": "Система",
-  "scope": ["steam_catalog"],
+  "scope": ["global", "steam_catalog"],
   "css_files": [
     "steam_catalog_price_graph_plus/css/steam_catalog_price_graph_plus.css"
   ],

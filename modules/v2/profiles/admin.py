@@ -9,6 +9,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         "id",
         "user",
         "role",
+        "is_store_author",
         "steam_id",
         "steam_personaname",
         "faceit_skill_level",
@@ -25,7 +26,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         "faceit_nickname",
         "faceit_player_id",
     )
-    list_filter = ("role", "faceit_skill_level")
+    list_filter = ("role", "is_store_author", "faceit_skill_level")
     readonly_fields = (
         "balance_coins",
         "steam_id",

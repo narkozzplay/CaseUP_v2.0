@@ -1,0 +1,34 @@
+﻿<section class="section section--compact">
+    <article class="card dashboard-hero">
+        <div class="card-body dashboard-hero__body">
+            <div>
+                <span class="eyebrow">Store</span>
+                <h1 class="page-title page-title--sm">Portfolio / My Library</h1>
+                <p class="text-muted">Все товары, к которым у пользователя есть доступ: purchase, bundle, subscription или public.</p>
+            </div>
+            <div class="dashboard-hero__meta">
+                <span class="status-pill">Items: {{ portfolio_cards|length }}</span>
+                <a href="{% url 'store:storefront' %}" class="btn btn-secondary btn-sm">Back to storefront</a>
+            </div>
+        </div>
+    </article>
+
+    <div class="cards-grid" style="margin-top: 1rem;">
+        {% for card in portfolio_cards %}
+            {% include "store/partials/product_card.html" with card=card %}
+        {% empty %}
+            <article class="card"><div class="card-body"><p class="text-muted">В библиотеке пока нет товаров.</p></div></article>
+        {% endfor %}
+    </div>
+
+    <article class="card" style="margin-top: 1rem;">
+        <div class="card-body">
+            <h2 class="section-title">Fallback entries</h2>
+            <ul>
+                {% for item in fallback_cards %}
+                    <li><strong>{{ item.label }}</strong> — {{ item.status }}. {{ item.description }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </article>
+</section>

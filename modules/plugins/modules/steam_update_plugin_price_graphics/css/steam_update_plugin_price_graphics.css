@@ -1,0 +1,44 @@
+﻿.steam-update-plugin-price-graphics {
+    margin-top: 1rem;
+}
+
+.steam-update-plugin-price-graphics__card {
+    border: 1px solid var(--border);
+    background: linear-gradient(135deg, rgba(20, 26, 34, 0.95), rgba(28, 36, 48, 0.92));
+}
+
+.steam-update-plugin-price-graphics__description {
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.steam-update-plugin-price-graphics__stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.steam-update-plugin-price-graphics__stat {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.steam-update-plugin-price-graphics__stat span {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.steam-update-plugin-price-graphics__stat strong {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .steam-update-plugin-price-graphics__stats {
+        grid-template-columns: 1fr;
+    }
+}

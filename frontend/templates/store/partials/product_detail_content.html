@@ -1,0 +1,117 @@
+﻿<section class="section section--compact">
+    <article class="card">
+        <div class="card-body">
+            <div class="section-head-inline">
+                <h1 class="page-title page-title--sm">{{ product_card.listing.title }}</h1>
+                <span class="status-pill">{{ product_card.listing.price_rub }} ₽</span>
+            </div>
+            <p class="text-muted">{{ product_card.listing.full_description|default:product_card.listing.short_description }}</p>
+
+            <div class="profile-badges" style="margin-bottom: 1rem;">
+                <span class="status-pill status-pill--sm">category={{ product_card.listing.category }}</span>
+                <span class="status-pill status-pill--sm">runtime_key={{ product_card.listing.runtime_key }}</span>
+                {% for badge in product_card.badges %}
+                    <span class="status-pill status-pill--sm">{{ badge }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="auth-card__actions" style="gap: 0.5rem;">
+                {% if product_card.can_purchase %}
+                    <form method="post" action="{% url 'store:purchase_product' product_card.listing.id %}" class="inline-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary btn-sm">Buy</button>
+                    </form>
+                {% endif %}
+                {% if product_card.can_purchase_bundle %}
+                    <form method="post" action="{% url 'store:purchase_bundle' product_card.listing.id %}" class="inline-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary btn-sm">Buy bundle</button>
+                    </form>
+                {% endif %}
+                {% if product_card.can_activate and product_card.listing.category == 'themes' %}
+                    <form method="post" action="{% url 'store:activate_theme' product_card.listing.id %}" class="inline-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-secondary btn-sm">Activate theme</button>
+                    </form>
+                {% endif %}
+                {% if product_card.can_activate and product_card.listing.category == 'modules' %}
+                    <form method="post" action="{% url 'store:activate_module_slot' product_card.listing.id %}" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="slot" value="steam_catalog.detail_content">
+                        <button type="submit" class="btn btn-secondary btn-sm">Activate module</button>
+                    </form>
+                {% endif %}
+                <a href="{% url 'store:storefront' %}" class="btn btn-secondary btn-sm">Back</a>
+            </div>
+        </div>
+    </article>
+
+    {% if bundle_summary %}
+        <article class="card" style="margin-top: 1rem;">
+            <div class="card-body">
+                <h2 class="section-title">Bundle pricing</h2>
+                <div class="profile-badges">
+                    <span class="status-pill">Bundle: {{ bundle_summary.bundle_price_rub }} ₽</span>
+                    <span class="status-pill">Separate: {{ bundle_summary.separate_price_rub }} ₽</span>
+                    <span class="status-pill">Saving: {{ bundle_summary.savings_rub }} ₽</span>
+                </div>
+                <ul style="margin-top: 0.75rem;">
+                    {% for item in bundle_items %}
+                        <li>{{ item.product_type }} · {{ item.product_key }}</li>
+                    {% empty %}
+                        <li>Bundle items are not configured.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </article>
+    {% endif %}
+
+    <article class="card" style="margin-top: 1rem;">
+        <div class="card-body">
+            <h2 class="section-title">Rating & Reviews</h2>
+            <p class="text-muted">Avg: {{ reviews_summary.avg_rating|floatformat:2 }} · Reviews: {{ reviews_summary.total_reviews }}</p>
+
+            <form method="post" action="{% url 'store:add_review' product_card.listing.id %}" class="form-stack">
+                {% csrf_token %}
+                <input type="hidden" name="next_url" value="{% url 'store:product_detail' product_card.listing.key %}">
+                <div class="form-field">
+                    <label for="id_rating">Rating (1-5)</label>
+                    <input id="id_rating" name="rating" type="number" min="1" max="5" class="form-control" value="5">
+                </div>
+                <div class="form-field">
+                    <label for="id_comment">Comment</label>
+                    <textarea id="id_comment" name="comment" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-field">
+                    <label for="id_improvement">Что можно улучшить</label>
+                    <textarea id="id_improvement" name="improvement_suggestion" class="form-control" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">Save review</button>
+            </form>
+
+            <div style="margin-top: 1rem;">
+                {% for review in reviews %}
+                    <article class="card" style="margin-bottom: 0.75rem;">
+                        <div class="card-body">
+                            <div class="section-head-inline">
+                                <strong>{{ review.user.username }}</strong>
+                                <span class="status-pill status-pill--sm">{{ review.rating }}/5</span>
+                            </div>
+                            <div class="profile-badges" style="margin: 0.35rem 0;">
+                                {% if review.access_source_snapshot == 'purchase' %}<span class="status-pill status-pill--sm">Куплено</span>{% endif %}
+                                {% if review.access_source_snapshot == 'bundle_purchase' %}<span class="status-pill status-pill--sm">Куплено в наборе</span>{% endif %}
+                                {% if review.access_source_snapshot == 'subscription' %}<span class="status-pill status-pill--sm">В подписке</span>{% endif %}
+                            </div>
+                            {% if review.comment %}<p>{{ review.comment }}</p>{% endif %}
+                            {% if review.improvement_suggestion %}
+                                <p class="text-muted"><strong>Что можно улучшить:</strong> {{ review.improvement_suggestion }}</p>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% empty %}
+                    <p class="text-muted">Пока нет отзывов.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </article>
+</section>

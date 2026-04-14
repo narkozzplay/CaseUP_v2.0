@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserProfile, UserRole
 from modules.v2.steam_catalog.models import SteamItem
+from modules.v2.store.models import ThemeStoreListing, UserThemePurchase
 from modules.v2.system.models import ThemeProfile
 from modules.v2.system.services import bootstrap_versioning, get_site_configuration, update_module_states
 
@@ -260,3 +261,36 @@ class FrontendDashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "midnight-topnav")
         self.assertContains(response, "dashboard-shell--midnight")
+
+    def test_runtime_theme_css_is_loaded_after_steam_catalog_css(self):
+        user = User.objects.create_user(username="steam_theme_order_user", password="StrongPass123")
+        item = SteamItem.objects.create(
+            market_hash_name="Order Test Case",
+            family_name="Order Test Case",
+            name="Order Test Case",
+            item_type=SteamItem.ItemType.CASE,
+        )
+        listing = ThemeStoreListing.objects.get(key="steam-catalog-price-graph-theme")
+        UserThemePurchase.objects.create(
+            user=user,
+            listing=listing,
+            theme_key=listing.theme_key,
+            amount_rub=listing.price_rub,
+        )
+
+        profile = UserProfile.objects.get(user=user)
+        profile.theme_preferences = {"steam_catalog": listing.theme_key}
+        profile.save(update_fields=["theme_preferences", "updated_at"])
+
+        update_module_states({"steam_catalog": True, "subscriptions": False, "store": True})
+
+        self.client.login(username="steam_theme_order_user", password="StrongPass123")
+        response = self.client.get(reverse("steam_catalog:detail", args=[item.id]))
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode("utf-8")
+        steam_catalog_css_pos = content.rfind("css/modules/steam_catalog.css")
+        runtime_theme_css_pos = content.find("steam_catalog_price_graph_plus/css/steam_catalog_price_graph_plus.css")
+
+        self.assertGreaterEqual(steam_catalog_css_pos, 0)
+        self.assertGreater(runtime_theme_css_pos, steam_catalog_css_pos)

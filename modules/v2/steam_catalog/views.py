@@ -19,6 +19,11 @@ from common.search import render_search_not_found
 
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.celery_tasks.models import PriceAutoUpdateRule
+from modules.v2.store.services import (
+    DEFAULT_STEAM_CATALOG_DETAIL_TEMPLATE,
+    STEAM_CATALOG_DETAIL_CONTENT_SLOT,
+    resolve_store_module_slot_template,
+)
 from modules.v2.subscriptions.feature_codes import (
     STEAM_CATALOG_DEEP_ANALYTICS,
     STEAM_CATALOG_VIEW,
@@ -557,11 +562,17 @@ def catalog_detail(request, item_id: int):
         .filter(category=item.item_type, is_enabled=True)
         .first()
     )
+    detail_content_template = resolve_store_module_slot_template(
+        user=request.user,
+        slot=STEAM_CATALOG_DETAIL_CONTENT_SLOT,
+        request_scope="steam_catalog",
+        default_template=DEFAULT_STEAM_CATALOG_DETAIL_TEMPLATE,
+    )
 
     return render_dashboard_page(
         request,
         full_template="steam_catalog/detail.html",
-        partial_template="steam_catalog/partials/detail_content.html",
+        partial_template=detail_content_template,
         context={
             "item": item,
             "family_items": family_items,
@@ -584,6 +595,7 @@ def catalog_detail(request, item_id: int):
             "catalog_can_edit": _catalog_staff_access(request.user),
             "catalog_can_view_deep_analytics": _catalog_analytics_access(request.user),
             "catalog_analytics_access_state": get_feature_access_state(request.user, STEAM_CATALOG_DEEP_ANALYTICS),
+            "steam_catalog_detail_content_template": detail_content_template,
         },
         page_title=f"{item.group_name} | Steam Catalog",
         active_menu_key="steam_catalog",

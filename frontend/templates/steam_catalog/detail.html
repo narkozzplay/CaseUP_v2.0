@@ -10,5 +10,5 @@
 {% endblock %}
 
 {% block content %}
-    {% include "steam_catalog/partials/detail_content.html" %}
+    {% include steam_catalog_detail_content_template|default:"steam_catalog/partials/detail_content.html" %}
 {% endblock %}

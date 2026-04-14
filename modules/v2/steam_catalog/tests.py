@@ -12,6 +12,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from modules.v2.profiles.models import UserProfile, UserRole
+from modules.v2.profiles.services.balance import adjust_balance
 from modules.v2.subscriptions.models import SubscriptionPlan, UserSubscription
 from modules.v2.system.services import update_module_states
 from modules.v2.tg_notifier.models import TelegramNotifierConfig
@@ -1073,3 +1074,57 @@ class UserPriceAlertRuleTests(TestCase):
         )
         response = self.client.get(reverse("steam_catalog:alert_rule_edit", args=[rule.id]))
         self.assertEqual(response.status_code, 404)
+
+from modules.v2.store.models import ThemeStoreListing
+from modules.v2.store.services import activate_module_slot, purchase_store_listing_with_balance
+
+
+class SteamCatalogStoreModuleSlotTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        update_module_states({"steam_catalog": True, "store": True, "subscriptions": True})
+
+        self.user = User.objects.create_user(username="catalog_store_slot", password="StrongPass123")
+        plan = SubscriptionPlan.objects.get(level=1)
+        UserSubscription.objects.create(user=self.user, plan=plan)
+
+        self.item = SteamItem.objects.create(
+            market_hash_name="Store Slot Case",
+            family_name="Store Slot Case",
+            name="Store Slot Case",
+            item_type=SteamItem.ItemType.CASE,
+            price_rub=Decimal("50.00"),
+            is_active=True,
+        )
+
+        self.module_listing = ThemeStoreListing.objects.create(
+            key="steam-slot-module-listing",
+            category=ThemeStoreListing.Category.MODULES,
+            module_key="steam_update_plugin_price_graphics",
+            title="Steam slot module",
+            short_description="slot module",
+            full_description="slot module",
+            author="CaseUP",
+            price_rub=Decimal("10.00"),
+            status=ThemeStoreListing.Status.PUBLISHED,
+            is_public=True,
+        )
+
+    def test_detail_renders_without_module_override_by_default(self):
+        self.client.login(username="catalog_store_slot", password="StrongPass123")
+        response = self.client.get(reverse("steam_catalog:detail", args=[self.item.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Price Graphics Plus")
+
+    def test_detail_renders_with_runtime_module_override(self):
+        adjust_balance(user=self.user, delta=Decimal("100.00"), reason="topup", amount_snapshot=Decimal("100.00"))
+        purchase_store_listing_with_balance(user=self.user, listing_id=self.module_listing.id)
+        activate_module_slot(user=self.user, listing_id=self.module_listing.id, slot="steam_catalog.detail_content")
+
+        self.client.login(username="catalog_store_slot", password="StrongPass123")
+        response = self.client.get(reverse("steam_catalog:detail", args=[self.item.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Price Graphics Plus")
+        self.assertContains(response, "data-steam-update-plugin-price-graphics")

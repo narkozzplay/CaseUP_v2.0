@@ -77,6 +77,11 @@
                         {{ admin_identity_form.role }}
                         {{ admin_identity_form.role.errors }}
                     </div>
+                    <div class="form-field">
+                        <label for="{{ admin_identity_form.is_store_author.id_for_label }}">{% trans "Store author" %}</label>
+                        {{ admin_identity_form.is_store_author }}
+                        {{ admin_identity_form.is_store_author.errors }}
+                    </div>
                     <button type="submit" class="btn btn-primary btn-block">{% trans "Save profile data" %}</button>
                 </form>
             </div>

@@ -13,6 +13,7 @@ from modules.v2.profiles.models import UserProfile, UserRole
 from modules.v2.store.models import ThemeStoreListing, UserThemePurchase
 from modules.v2.subscriptions.models import SubscriptionPlan, UserSubscription
 from modules.v2.tg_notifier.models import TelegramNotifierConfig
+from modules.v2.system.services import update_module_states
 from modules.v2.profiles.services.steam_profile import (
     extract_background_url,
     extract_background_video_url,
@@ -232,6 +233,7 @@ class ProfileTests(TestCase):
         self.assertFalse(target.is_superuser)
 
     def test_profile_theme_preferences_show_only_purchased_or_public_themes(self):
+        update_module_states({"store": True})
         user = User.objects.create_user(username="theme_profile_user", password="StrongPass123")
         listing = ThemeStoreListing.objects.get(key="steam-catalog-price-graph-theme")
         self.client.login(username="theme_profile_user", password="StrongPass123")
@@ -251,6 +253,7 @@ class ProfileTests(TestCase):
         self.assertContains(response, listing.title)
 
     def test_profile_theme_preferences_update_persists_scope_selection(self):
+        update_module_states({"store": True})
         user = User.objects.create_user(username="theme_profile_save_user", password="StrongPass123")
         listing = ThemeStoreListing.objects.get(key="steam-catalog-price-graph-theme")
         UserThemePurchase.objects.create(

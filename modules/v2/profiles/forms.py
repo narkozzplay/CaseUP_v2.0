@@ -46,6 +46,10 @@ class AdminProfileIdentityForm(_AdminBaseForm):
         choices=UserRole.choices,
         label="Role",
     )
+    is_store_author = forms.BooleanField(
+        required=False,
+        label="Store author",
+    )
 
     def __init__(self, *args, target_user=None, target_profile=None, actor_user=None, **kwargs):
         self.target_user = target_user
@@ -59,6 +63,7 @@ class AdminProfileIdentityForm(_AdminBaseForm):
         if target_profile is not None and not self.is_bound:
             self.initial.setdefault("balance_coins", target_profile.balance_coins)
             self.initial.setdefault("role", target_profile.role)
+            self.initial.setdefault("is_store_author", bool(target_profile.is_store_author))
 
     def clean_username(self):
         username = (self.cleaned_data.get("username") or "").strip()

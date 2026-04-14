@@ -1,0 +1,69 @@
+﻿<section class="section section--compact">
+    <article class="card">
+        <div class="card-body">
+            <div class="section-head-inline">
+                <h1 class="page-title page-title--sm">Author products</h1>
+                <a href="{% url 'store:storefront' %}" class="btn btn-secondary btn-sm">Storefront</a>
+            </div>
+            <form method="post" action="{% url 'store:author_product_create' %}" class="form-stack" style="margin-top: 1rem;">
+                {% csrf_token %}
+                <input type="hidden" name="next_url" value="{% url 'store:author_products' %}">
+                <div class="form-field">
+                    <label for="id_category">Category</label>
+                    <select id="id_category" name="category" class="form-control">
+                        {% for value, label in category_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field"><label for="id_key">Key</label><input id="id_key" name="key" class="form-control"></div>
+                <div class="form-field"><label for="id_theme_key">theme_key</label><input id="id_theme_key" name="theme_key" class="form-control"></div>
+                <div class="form-field"><label for="id_module_key">module_key</label><input id="id_module_key" name="module_key" class="form-control"></div>
+                <div class="form-field"><label for="id_bundle_key">bundle_key</label><input id="id_bundle_key" name="bundle_key" class="form-control"></div>
+                <div class="form-field"><label for="id_title">Title</label><input id="id_title" name="title" class="form-control"></div>
+                <div class="form-field"><label for="id_short_description">Short description</label><input id="id_short_description" name="short_description" class="form-control"></div>
+                <div class="form-field"><label for="id_full_description">Full description</label><textarea id="id_full_description" name="full_description" class="form-control" rows="3"></textarea></div>
+                <div class="form-field"><label for="id_cover_image">Cover image</label><input id="id_cover_image" name="cover_image" class="form-control"></div>
+                <div class="form-field"><label for="id_author">Author</label><input id="id_author" name="author" class="form-control" value="{{ request.user.username }}"></div>
+                <div class="form-field"><label for="id_price_rub">Price RUB</label><input id="id_price_rub" name="price_rub" class="form-control" value="0.00"></div>
+                <div class="form-field"><label><input type="checkbox" name="is_public" checked> is_public</label></div>
+                <div class="form-field"><label><input type="checkbox" name="is_included_in_store_subscription"> Included in store subscription</label></div>
+                <button type="submit" class="btn btn-primary btn-sm">Create draft</button>
+            </form>
+        </div>
+    </article>
+
+    <div class="cards-grid" style="margin-top: 1rem;">
+        {% for listing in author_listings %}
+            <article class="card">
+                <div class="card-body">
+                    <div class="section-head-inline">
+                        <h3 class="section-title">{{ listing.title }}</h3>
+                        <span class="status-pill status-pill--sm">{{ listing.get_status_display }}</span>
+                    </div>
+                    <p class="text-muted">{{ listing.category }} · {{ listing.runtime_key }}</p>
+                    <form method="post" action="{% url 'store:author_product_update' listing.id %}" class="form-stack">
+                        {% csrf_token %}
+                        <input type="hidden" name="next_url" value="{% url 'store:author_products' %}">
+                        <div class="form-field"><label>Title</label><input name="title" class="form-control" value="{{ listing.title }}"></div>
+                        <div class="form-field"><label>Short description</label><input name="short_description" class="form-control" value="{{ listing.short_description }}"></div>
+                        <div class="form-field"><label>Full description</label><textarea name="full_description" class="form-control" rows="3">{{ listing.full_description }}</textarea></div>
+                        <div class="form-field"><label>Cover image</label><input name="cover_image" class="form-control" value="{{ listing.cover_image }}"></div>
+                        <div class="form-field"><label>Author</label><input name="author" class="form-control" value="{{ listing.author }}"></div>
+                        <div class="form-field"><label>Price RUB</label><input name="price_rub" class="form-control" value="{{ listing.price_rub }}"></div>
+                        <div class="form-field"><label><input type="checkbox" name="is_public" {% if listing.is_public %}checked{% endif %}> is_public</label></div>
+                        <div class="form-field"><label><input type="checkbox" name="is_included_in_store_subscription" {% if listing.is_included_in_store_subscription %}checked{% endif %}> Included in subscription</label></div>
+                        <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+                    </form>
+                    <form method="post" action="{% url 'store:author_product_submit' listing.id %}" class="inline-form" style="margin-top: 0.75rem;">
+                        {% csrf_token %}
+                        <input type="hidden" name="next_url" value="{% url 'store:author_products' %}">
+                        <button type="submit" class="btn btn-primary btn-sm">Submit for moderation</button>
+                    </form>
+                </div>
+            </article>
+        {% empty %}
+            <article class="card"><div class="card-body"><p class="text-muted">Products not created yet.</p></div></article>
+        {% endfor %}
+    </div>
+</section>

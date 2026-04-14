@@ -584,6 +584,7 @@ class UserRuntimeThemeResolutionTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="theme_context_user", password="StrongPass123")
         self.demo_listing = ThemeStoreListing.objects.get(key="steam-catalog-price-graph-theme")
+        update_module_states({"store": True})
 
     def test_unpurchased_private_theme_does_not_override_scope_css(self):
         self.user.profile_v2.theme_preferences = {"steam_catalog": "steam_catalog_price_graph_plus"}
