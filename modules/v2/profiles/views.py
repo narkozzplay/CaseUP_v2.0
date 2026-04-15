@@ -32,9 +32,11 @@ from .forms import (
     AdminFarmerSubscriptionForm,
     AdminProfileIdentityForm,
     AdminSiteSubscriptionForm,
+    UserAvatarUploadForm,
     UserThemePreferencesForm,
 )
 from .models import LedgerEntry, LedgerReason, UserProfile, UserRole
+from .presentation import get_profile_avatar_url, get_profile_display_name
 from .rbac import get_user_role
 
 
@@ -123,6 +125,10 @@ def _build_profile_context(*, request, target_user):
     admin_identity_form = None
     admin_site_subscription_form = None
     admin_farmer_subscription_form = None
+    avatar_upload_form = None
+
+    profile_display_name = get_profile_display_name(profile, fallback_username=target_user.username)
+    profile_avatar_url = get_profile_avatar_url(profile)
 
     if viewer_role_access.is_admin_plus and can_view_private_profile:
         admin_identity_form = AdminProfileIdentityForm(
@@ -139,6 +145,7 @@ def _build_profile_context(*, request, target_user):
 
     user_theme_preferences_form = None
     if is_owner:
+        avatar_upload_form = UserAvatarUploadForm(instance=profile)
         user_theme_preferences_form = UserThemePreferencesForm(
             user=target_user,
             current_preferences=profile.theme_preferences or {},
@@ -147,6 +154,8 @@ def _build_profile_context(*, request, target_user):
     return {
         "profile": profile,
         "profile_user": target_user,
+        "profile_display_name": profile_display_name,
+        "profile_avatar_url": profile_avatar_url,
         "recent_entries": recent_entries,
         "role_access": target_role_access,
         "viewer_role_access": viewer_role_access,
@@ -163,6 +172,7 @@ def _build_profile_context(*, request, target_user):
         "admin_identity_form": admin_identity_form,
         "admin_site_subscription_form": admin_site_subscription_form,
         "admin_farmer_subscription_form": admin_farmer_subscription_form,
+        "avatar_upload_form": avatar_upload_form,
         "user_theme_preferences_form": user_theme_preferences_form,
     }
 
@@ -175,7 +185,7 @@ def profile_view(request):
         full_template="profiles/profile.html",
         partial_template="profiles/partials/profile_content.html",
         context=context,
-        page_title=build_page_title(context["profile"].steam_personaname or context["profile_user"].username),
+        page_title=build_page_title(context["profile_display_name"]),
         active_menu_key="profile",
     )
 
@@ -196,7 +206,7 @@ def profile_detail_view(request, user_id: int):
         full_template="profiles/profile.html",
         partial_template="profiles/partials/profile_content.html",
         context=context,
-        page_title=build_page_title(context["profile"].steam_personaname or context["profile_user"].username),
+        page_title=build_page_title(context["profile_display_name"]),
         active_menu_key="profile",
     )
 
@@ -360,6 +370,22 @@ def profile_theme_preferences_update_view(request):
             messages.success(request, "Локальные темы сброшены на глобальные настройки сайта.")
     else:
         messages.error(request, "Не удалось сохранить настройки локальных тем.")
+
+    return redirect("profiles:profile")
+
+
+@login_required
+def profile_avatar_upload_view(request):
+    if request.method != "POST":
+        return redirect("profiles:profile")
+
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    form = UserAvatarUploadForm(request.POST, request.FILES, instance=profile)
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Аватар обновлён.")
+    else:
+        messages.error(request, "Не удалось обновить аватар.")
 
     return redirect("profiles:profile")
 

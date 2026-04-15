@@ -3,17 +3,17 @@
     <article class="card dashboard-hero">
         <div class="card-body dashboard-hero__body">
             <div>
-                <span class="eyebrow">Store v2 foundation</span>
+                <span class="eyebrow">Store</span>
                 <h1 class="page-title page-title--sm">{% trans "Storefront" %}</h1>
                 <p class="text-muted dashboard-hero__text">
-                    Themes, modules и bundles с единым access-resolver, подписочным источником и безопасным fallback.
+                    Темы, модули и наборы в единой витрине с покупкой, подписочным доступом и безопасным fallback.
                 </p>
             </div>
             <div class="dashboard-hero__meta">
                 <span class="status-pill">Themes: {{ theme_cards|length }}</span>
                 <span class="status-pill">Modules: {{ module_cards|length }}</span>
                 <span class="status-pill">Bundles: {{ bundle_cards|length }}</span>
-                <a href="{% url 'store:library' %}" class="btn btn-secondary btn-sm">Portfolio / My Library</a>
+                <a href="{% url 'store:library' %}" class="btn btn-secondary btn-sm">Portfolio</a>
                 <a href="{% url 'store:analytics' %}" class="btn btn-secondary btn-sm">Analytics</a>
                 {% if is_store_author %}
                     <a href="{% url 'store:author_products' %}" class="btn btn-secondary btn-sm">Author panel</a>
@@ -24,8 +24,11 @@
 
     <article class="card" style="margin-top: 1rem;">
         <div class="card-body">
-            <h2 class="section-title">Store Subscription</h2>
-            <p class="text-muted">Товары с флагом <code>is_included_in_store_subscription</code> доступны по feature <code>site_store_full_access</code>, если опубликованы и runtime-совместимы.</p>
+            <h2 class="section-title">Store subscription</h2>
+            <p class="text-muted">
+                По feature <code>site_store_full_access</code> открываются только опубликованные товары,
+                которые участвуют в подписке и совместимы с runtime.
+            </p>
         </div>
     </article>
 

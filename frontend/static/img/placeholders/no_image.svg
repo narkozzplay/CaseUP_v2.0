@@ -1,0 +1,19 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="No image placeholder">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0b1020" />
+      <stop offset="100%" stop-color="#151f3d" />
+    </linearGradient>
+    <linearGradient id="panel" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#1c2a51" stop-opacity="0.86" />
+      <stop offset="100%" stop-color="#111a34" stop-opacity="0.96" />
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)" />
+  <circle cx="220" cy="130" r="220" fill="#6f7cff" fill-opacity="0.12" />
+  <circle cx="1110" cy="560" r="260" fill="#6f7cff" fill-opacity="0.1" />
+  <rect x="178" y="120" width="924" height="480" rx="36" fill="url(#panel)" stroke="#6f7cff" stroke-opacity="0.35" stroke-width="3" />
+  <path d="M280 496L460 322L584 448L725 288L1000 496" fill="none" stroke="#8f9cff" stroke-opacity="0.58" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="486" cy="250" r="58" fill="#8f9cff" fill-opacity="0.52" />
+  <text x="640" y="402" text-anchor="middle" fill="#d6dcff" font-size="84" font-family="Inter, Arial, sans-serif" font-weight="700" letter-spacing="8">NO IMAGE</text>
+</svg>

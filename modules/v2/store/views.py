@@ -15,7 +15,7 @@ from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.module_registry import MODULE_REGISTRY
 from modules.v2.system.services import build_page_title
 
-from .models import StoreBundleItem, ThemeStoreListing
+from .models import ThemeStoreListing
 from .services import (
     ThemePurchaseError,
     activate_module_slot,
@@ -24,7 +24,9 @@ from .services import (
     deactivate_module_slot,
     deactivate_theme_globally,
     get_bundle_pricing_summary,
+    get_bundle_items_for_display,
     get_listing_reviews_summary,
+    get_listing_reviews_for_display,
     get_store_analytics_rows,
     get_store_card_for_user,
     get_store_listing_by_id,
@@ -158,14 +160,12 @@ def product_detail_page(request, listing_key: str):
 
     card = get_store_card_for_user(user=request.user, listing=listing)
     reviews_summary = get_listing_reviews_summary(listing)
-    reviews = listing.reviews.filter(is_visible=True).select_related("user").order_by("-created_at", "-id")
+    reviews = get_listing_reviews_for_display(listing)
 
     bundle_items = []
     bundle_summary = None
     if listing.category == ThemeStoreListing.Category.BUNDLES:
-        bundle_items = list(
-            StoreBundleItem.objects.filter(bundle=listing).order_by("sort_order", "id")
-        )
+        bundle_items = get_bundle_items_for_display(listing)
         bundle_summary = get_bundle_pricing_summary(listing)
 
     return render_dashboard_page(

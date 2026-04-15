@@ -1,0 +1,20 @@
+﻿{% load static %}
+<div class="store-star-rating{% if size == 'lg' %} store-star-rating--lg{% endif %}">
+    {% if show_value %}
+        <span class="store-star-rating__value">{{ rating_value|default:"0.0" }}</span>
+    {% endif %}
+    <span class="store-star-rating__stars" aria-hidden="true">
+        {% for state in star_states %}
+            {% if state == "full" %}
+                <img src="{% static 'icons/star-full.svg' %}" alt="*">
+            {% elif state == "half" %}
+                <img src="{% static 'icons/star-half.svg' %}" alt="*">
+            {% else %}
+                <img src="{% static 'icons/star-empty.svg' %}" alt="*">
+            {% endif %}
+        {% endfor %}
+    </span>
+    {% if review_count_label %}
+        <span class="store-star-rating__count">{{ review_count_label }}</span>
+    {% endif %}
+</div>

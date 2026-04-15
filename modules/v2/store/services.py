@@ -44,6 +44,12 @@ from .models import (
     UserStorePurchase,
     UserThemePurchase,
 )
+from .presentation import (
+    build_review_presenter,
+    build_star_rating_data,
+    format_reviews_count_label,
+    get_product_preview_url,
+)
 
 
 STEAM_CATALOG_DETAIL_CONTENT_SLOT = "steam_catalog.detail_content"
@@ -600,8 +606,22 @@ def _build_card_badges(access_state: StoreProductAccessState, listing: ThemeStor
     return badges
 
 
-def get_store_card_for_user(*, user, listing: ThemeStoreListing, slot: str = "") -> dict[str, object]:
+def get_store_card_for_user(
+    *,
+    user,
+    listing: ThemeStoreListing,
+    slot: str = "",
+    reviews_summary_map: dict[int, dict[str, object]] | None = None,
+) -> dict[str, object]:
     access_state = resolve_store_product_access_state(user=user, listing=listing, slot=slot)
+    review_summary = (
+        reviews_summary_map.get(listing.id, {})
+        if reviews_summary_map is not None
+        else get_listing_reviews_summary(listing)
+    )
+    if not review_summary:
+        review_summary = get_listing_reviews_summary(listing)
+
     can_purchase = bool(
         is_store_runtime_available()
         and getattr(user, "is_authenticated", False)
@@ -619,13 +639,20 @@ def get_store_card_for_user(*, user, listing: ThemeStoreListing, slot: str = "")
         and listing.category == ThemeStoreListing.Category.BUNDLES
         and not access_state.is_bundle_owned
     )
+    can_manage = can_manage_store_listing(user=user, listing=listing)
+
     return {
         "listing": listing,
         "access_state": access_state,
+        "preview_url": get_product_preview_url(listing),
+        "fallback_preview_url": get_product_preview_url(None),
+        "reviews_summary": review_summary,
+        "is_owned": bool(access_state.is_purchased or access_state.is_bundle_owned),
         "badges": _build_card_badges(access_state, listing),
         "can_purchase": can_purchase,
         "can_purchase_bundle": can_purchase_bundle,
         "can_activate": access_state.can_activate,
+        "can_manage": can_manage,
     }
 
 
@@ -670,7 +697,15 @@ def get_storefront_cards_for_user(user) -> dict[str, list[dict[str, object]]]:
             include_unpublished=include_unpublished,
             include_private=include_private,
         )
-        grouped[category] = [get_store_card_for_user(user=user, listing=listing) for listing in listings]
+        summary_map = get_listings_reviews_summary_map(listings)
+        grouped[category] = [
+            get_store_card_for_user(
+                user=user,
+                listing=listing,
+                reviews_summary_map=summary_map,
+            )
+            for listing in listings
+        ]
 
     return grouped
 
@@ -1109,10 +1144,81 @@ def submit_store_review(
 
 def get_listing_reviews_summary(listing: ThemeStoreListing) -> dict[str, object]:
     aggregate = listing.reviews.filter(is_visible=True).aggregate(avg_rating=Avg("rating"), total_reviews=Count("id"))
+    avg_rating = aggregate.get("avg_rating") or Decimal("0.00")
+    total_reviews = int(aggregate.get("total_reviews") or 0)
+    rating_data = build_star_rating_data(avg_rating, precision=1)
     return {
-        "avg_rating": aggregate.get("avg_rating") or Decimal("0.00"),
-        "total_reviews": aggregate.get("total_reviews") or 0,
+        "avg_rating": avg_rating,
+        "total_reviews": total_reviews,
+        "avg_rating_label": rating_data["value_label"],
+        "avg_rating_normalized": rating_data["normalized_value"],
+        "avg_rating_stars": rating_data["states"],
+        "total_reviews_label": format_reviews_count_label(total_reviews),
     }
+
+
+def get_listings_reviews_summary_map(listings: list[ThemeStoreListing]) -> dict[int, dict[str, object]]:
+    listing_ids = [listing.id for listing in listings if listing and listing.id]
+    if not listing_ids:
+        return {}
+
+    aggregates = {
+        row["listing_id"]: row
+        for row in (
+            StoreProductReview.objects.filter(listing_id__in=listing_ids, is_visible=True)
+            .values("listing_id")
+            .annotate(avg_rating=Avg("rating"), total_reviews=Count("id"))
+        )
+    }
+
+    summary_map: dict[int, dict[str, object]] = {}
+    for listing in listings:
+        row = aggregates.get(listing.id, {})
+        avg_rating = row.get("avg_rating") or Decimal("0.00")
+        total_reviews = int(row.get("total_reviews") or 0)
+        rating_data = build_star_rating_data(avg_rating, precision=1)
+        summary_map[listing.id] = {
+            "avg_rating": avg_rating,
+            "total_reviews": total_reviews,
+            "avg_rating_label": rating_data["value_label"],
+            "avg_rating_normalized": rating_data["normalized_value"],
+            "avg_rating_stars": rating_data["states"],
+            "total_reviews_label": format_reviews_count_label(total_reviews),
+        }
+    return summary_map
+
+
+def get_listing_reviews_for_display(listing: ThemeStoreListing) -> list[dict[str, object]]:
+    reviews = list(
+        listing.reviews.filter(is_visible=True)
+        .select_related("user", "user__profile_v2")
+        .order_by("-created_at", "-id")
+    )
+    return [build_review_presenter(review) for review in reviews]
+
+
+def get_bundle_items_for_display(bundle_listing: ThemeStoreListing) -> list[dict[str, object]]:
+    bundle_items = list(StoreBundleItem.objects.filter(bundle=bundle_listing).order_by("sort_order", "id"))
+    type_labels = {
+        StoreBundleItem.ProductType.THEME: "Тема",
+        StoreBundleItem.ProductType.MODULE: "Модуль",
+    }
+    result: list[dict[str, object]] = []
+    for item in bundle_items:
+        category = (
+            ThemeStoreListing.Category.THEMES
+            if item.product_type == StoreBundleItem.ProductType.THEME
+            else ThemeStoreListing.Category.MODULES
+        )
+        target_listing = _get_listing_by_runtime_key(category=category, runtime_key=item.product_key)
+        result.append(
+            {
+                "product_type": item.product_type,
+                "product_type_label": type_labels.get(item.product_type, "Продукт"),
+                "product_title": target_listing.title if target_listing else "Недоступный продукт",
+            }
+        )
+    return result
 
 
 def get_user_portfolio_cards(user) -> list[dict[str, object]]:
@@ -1120,8 +1226,15 @@ def get_user_portfolio_cards(user) -> list[dict[str, object]]:
     include_unpublished = role_access.is_admin_plus
     include_private = role_access.is_admin_plus
     listings = get_store_listings(include_unpublished=include_unpublished, include_private=include_private)
-
-    cards = [get_store_card_for_user(user=user, listing=listing) for listing in listings]
+    summary_map = get_listings_reviews_summary_map(listings)
+    cards = [
+        get_store_card_for_user(
+            user=user,
+            listing=listing,
+            reviews_summary_map=summary_map,
+        )
+        for listing in listings
+    ]
     cards = [card for card in cards if card["access_state"].is_owned_effective or card["access_state"].is_public_access]
     return cards
 

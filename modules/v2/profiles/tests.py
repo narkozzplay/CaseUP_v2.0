@@ -1,7 +1,11 @@
 from decimal import Decimal
+from io import BytesIO
+import shutil
+import tempfile
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
 from django.test import Client, TestCase, TransactionTestCase
 from django.urls import reverse
@@ -14,14 +18,25 @@ from modules.v2.store.models import ThemeStoreListing, UserThemePurchase
 from modules.v2.subscriptions.models import SubscriptionPlan, UserSubscription
 from modules.v2.tg_notifier.models import TelegramNotifierConfig
 from modules.v2.system.services import update_module_states
+from modules.v2.profiles.presentation import get_profile_avatar_url
 from modules.v2.profiles.services.steam_profile import (
     extract_background_url,
     extract_background_video_url,
     fetch_steam_level,
     sync_profile_background_if_needed,
 )
+from PIL import Image
 
 User = get_user_model()
+
+
+def _build_test_png_bytes() -> bytes:
+    buffer = BytesIO()
+    Image.new("RGB", (4, 4), color=(40, 72, 132)).save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+PNG_1X1_BYTES = _build_test_png_bytes()
 
 
 class ProfileTests(TestCase):
@@ -637,6 +652,65 @@ class ProfileTests(TestCase):
         profile.refresh_from_db()
         self.assertIsNone(profile.telegram_chat_id)
         self.assertContains(response, "Telegram отключен от вашего профиля.")
+
+
+class ProfileAvatarPatchTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="avatar_patch_user", password="StrongPass123")
+        self.media_root = tempfile.mkdtemp(prefix="caseup-avatar-tests-")
+        self.addCleanup(lambda: shutil.rmtree(self.media_root, ignore_errors=True))
+
+    def test_profile_page_uses_no_image_placeholder_when_avatar_missing(self):
+        self.client.login(username="avatar_patch_user", password="StrongPass123")
+        response = self.client.get(reverse("profiles:profile"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "img/placeholders/no_image.svg")
+
+    def test_profile_avatar_upload_view_saves_uploaded_avatar(self):
+        self.client.login(username="avatar_patch_user", password="StrongPass123")
+        uploaded_file = SimpleUploadedFile(
+            "avatar.png",
+            PNG_1X1_BYTES,
+            content_type="image/png",
+        )
+
+        with self.settings(MEDIA_ROOT=self.media_root):
+            response = self.client.post(
+                reverse("profiles:profile_avatar_upload"),
+                {"uploaded_avatar": uploaded_file},
+                follow=True,
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.user.profile_v2.refresh_from_db()
+            self.assertTrue(bool(self.user.profile_v2.uploaded_avatar))
+            self.assertIn("profiles/avatars/", self.user.profile_v2.uploaded_avatar.name)
+            self.assertContains(response, "Аватар обновлён.")
+
+    def test_avatar_source_priority_uploaded_then_steam_then_default(self):
+        profile = self.user.profile_v2
+        profile.uploaded_avatar = None
+        profile.steam_avatar = ""
+        profile.save(update_fields=["uploaded_avatar", "steam_avatar"])
+        default_avatar = get_profile_avatar_url(profile)
+        self.assertTrue(default_avatar.endswith("img/placeholders/no_image.svg"))
+
+        profile.steam_avatar = "https://cdn.example.com/steam-avatar.jpg"
+        profile.save(update_fields=["steam_avatar"])
+        steam_avatar = get_profile_avatar_url(profile)
+        self.assertEqual(steam_avatar, "https://cdn.example.com/steam-avatar.jpg")
+
+        with self.settings(MEDIA_ROOT=self.media_root):
+            profile.uploaded_avatar.save(
+                "local-avatar.png",
+                SimpleUploadedFile("local-avatar.png", PNG_1X1_BYTES, content_type="image/png"),
+                save=True,
+            )
+            uploaded_avatar_url = get_profile_avatar_url(profile)
+
+        self.assertIn("/profiles/avatars/", uploaded_avatar_url)
 
 
 class ProfileBalanceConstraintTests(TransactionTestCase):

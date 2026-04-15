@@ -27,6 +27,12 @@ from .models import (
     UserBundlePurchase,
     UserThemePurchase,
 )
+from .presentation import (
+    build_review_presenter,
+    build_star_rating_data,
+    get_product_preview_url,
+    normalize_rating_to_half,
+)
 from .services import (
     DEFAULT_STEAM_CATALOG_DETAIL_TEMPLATE,
     STEAM_CATALOG_DETAIL_CONTENT_SLOT,
@@ -47,6 +53,65 @@ from .services import (
 )
 
 User = get_user_model()
+
+
+class StorePresentationPatchTests(TestCase):
+    def setUp(self):
+        update_module_states({"store": True, "subscriptions": True, "steam_catalog": True})
+        self.user = User.objects.create_user(username="store_presenter_user", password="StrongPass123")
+        self.listing = ThemeStoreListing.objects.create(
+            key="store-presenter-module",
+            category=ThemeStoreListing.Category.MODULES,
+            module_key="steam_update_plugin_price_graphics",
+            title="Presenter module",
+            short_description="Presenter module short",
+            full_description="Presenter module full",
+            author="CaseUP",
+            price_rub=Decimal("0.00"),
+            status=ThemeStoreListing.Status.PUBLISHED,
+            is_public=True,
+            cover_image="",
+        )
+
+    def test_product_preview_url_fallback_and_cover_priority(self):
+        fallback_url = get_product_preview_url(self.listing)
+        self.assertTrue(fallback_url.endswith("img/placeholders/no_image.svg"))
+
+        self.listing.cover_image = "https://cdn.example.com/store/preview.webp"
+        explicit_url = get_product_preview_url(self.listing)
+        self.assertEqual(explicit_url, "https://cdn.example.com/store/preview.webp")
+
+    def test_average_rating_normalization_floor_to_half(self):
+        self.assertEqual(normalize_rating_to_half(Decimal("4.7")), Decimal("4.5"))
+        self.assertEqual(normalize_rating_to_half(Decimal("4.2")), Decimal("4"))
+        self.assertEqual(normalize_rating_to_half(Decimal("5.0")), Decimal("5"))
+
+    def test_star_rating_data_builds_expected_states(self):
+        rating_data = build_star_rating_data(Decimal("4.7"), precision=1)
+        self.assertEqual(rating_data["value_label"], "4.7")
+        self.assertEqual(rating_data["normalized_value"], Decimal("4.5"))
+        self.assertEqual(tuple(rating_data["states"]), ("full", "full", "full", "full", "half"))
+
+    def test_review_presenter_uses_steam_display_name_role_prefix_and_badge(self):
+        self.user.profile_v2.role = UserRole.ADMIN
+        self.user.profile_v2.steam_personaname = "Steam Display Name"
+        self.user.profile_v2.steam_avatar = ""
+        self.user.profile_v2.save(update_fields=["role", "steam_personaname", "steam_avatar"])
+
+        review = StoreProductReview.objects.create(
+            listing=self.listing,
+            user=self.user,
+            rating=5,
+            comment="Great module",
+            improvement_suggestion="Add more charts",
+            access_source_snapshot=StoreProductReview.AccessSource.PURCHASE,
+        )
+        presenter = build_review_presenter(review)
+
+        self.assertEqual(presenter["display_name"], "Steam Display Name")
+        self.assertEqual(presenter["role_prefix"], "[ADMIN]")
+        self.assertEqual(presenter["access_badges"], ("Куплено",))
+        self.assertTrue(str(presenter["avatar_url"]).endswith("img/placeholders/no_image.svg"))
 
 
 class StoreRuntimeModuleDiscoveryTests(TestCase):
@@ -319,3 +384,56 @@ class StoreViewsDegradeTests(TestCase):
         response = self.client.get("/store/")
         self.assertEqual(response.status_code, 404)
         self.assertContains(response, "Module disabled", status_code=404)
+
+
+class StoreViewsPatchUxTests(TestCase):
+    def setUp(self):
+        update_module_states({"store": True, "subscriptions": True, "steam_catalog": True})
+        self.user = User.objects.create_user(username="store_patch_user", password="StrongPass123")
+        self.client.login(username="store_patch_user", password="StrongPass123")
+        self.listing = ThemeStoreListing.objects.create(
+            key="store-patch-module",
+            category=ThemeStoreListing.Category.MODULES,
+            module_key="steam_update_plugin_price_graphics",
+            title="Patch module",
+            short_description="Patch module short",
+            full_description="Patch module full",
+            author="CaseUP",
+            price_rub=Decimal("0.00"),
+            status=ThemeStoreListing.Status.PUBLISHED,
+            is_public=True,
+            cover_image="",
+        )
+
+    def test_storefront_hides_debug_fields_and_uses_preview_fallback(self):
+        response = self.client.get("/store/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.listing.title)
+        self.assertContains(response, "img/placeholders/no_image.svg")
+        self.assertNotContains(response, "category=")
+        self.assertNotContains(response, "runtime_key=")
+
+    def test_product_detail_uses_star_input_and_review_ui_without_debug_strings(self):
+        reviewer = User.objects.create_user(username="reviewer_patch_user", password="StrongPass123")
+        reviewer.profile_v2.steam_personaname = "Steam Reviewer"
+        reviewer.profile_v2.save(update_fields=["steam_personaname"])
+        StoreProductReview.objects.create(
+            listing=self.listing,
+            user=reviewer,
+            rating=4,
+            comment="Solid plugin",
+            improvement_suggestion="Improve spacing",
+            access_source_snapshot=StoreProductReview.AccessSource.SUBSCRIPTION,
+        )
+
+        response = self.client.get(f"/store/products/{self.listing.key}/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-store-rating-input")
+        self.assertContains(response, "Steam Reviewer")
+        self.assertContains(response, "[USER]")
+        self.assertContains(response, "Что можно улучшить:")
+        self.assertNotContains(response, "5/5")
+        self.assertNotContains(response, "category=")
+        self.assertNotContains(response, "runtime_key=")

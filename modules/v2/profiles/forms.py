@@ -1,18 +1,73 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from pathlib import Path
 
 from django import forms
 from django.contrib.auth import get_user_model
+from django.conf import settings
+from PIL import Image, UnidentifiedImageError
 
 from modules.v2.subscriptions.models import SubscriptionPlan
 from modules.v2.store.services import get_user_theme_options_by_scope
 from modules.v2.system.theme_plugins import get_theme_scope_label
 
-from .models import UserRole
+from .models import UserProfile, UserRole
 from .rbac import ROLE_RANK, get_user_role
 
 User = get_user_model()
+
+DEFAULT_MAX_AVATAR_UPLOAD_BYTES = 2 * 1024 * 1024
+ALLOWED_AVATAR_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
+ALLOWED_AVATAR_MIME_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/bmp",
+}
+
+
+def _resolve_max_avatar_upload_bytes() -> int:
+    raw_value = getattr(settings, "PROFILE_AVATAR_MAX_UPLOAD_BYTES", DEFAULT_MAX_AVATAR_UPLOAD_BYTES)
+    try:
+        value = int(raw_value)
+    except (TypeError, ValueError):
+        return DEFAULT_MAX_AVATAR_UPLOAD_BYTES
+    return value if value > 0 else DEFAULT_MAX_AVATAR_UPLOAD_BYTES
+
+
+def validate_uploaded_avatar(uploaded_file) -> None:
+    if not uploaded_file:
+        return
+
+    max_bytes = _resolve_max_avatar_upload_bytes()
+    if uploaded_file.size and uploaded_file.size > max_bytes:
+        raise forms.ValidationError(
+            f"Аватар превышает лимит ({max_bytes // (1024 * 1024)} MB).",
+        )
+
+    extension = Path(uploaded_file.name or "").suffix.lower()
+    if extension not in ALLOWED_AVATAR_EXTENSIONS:
+        allowed = ", ".join(sorted(ALLOWED_AVATAR_EXTENSIONS))
+        raise forms.ValidationError(f"Недопустимое расширение '{extension or 'unknown'}'. Разрешены: {allowed}.")
+
+    content_type = str(getattr(uploaded_file, "content_type", "") or "").lower()
+    if content_type and content_type not in ALLOWED_AVATAR_MIME_TYPES:
+        allowed_types = ", ".join(sorted(ALLOWED_AVATAR_MIME_TYPES))
+        raise forms.ValidationError(f"Недопустимый content type '{content_type}'. Разрешены: {allowed_types}.")
+
+    try:
+        uploaded_file.seek(0)
+        with Image.open(uploaded_file) as image:
+            image.verify()
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        raise forms.ValidationError("Загруженный файл не является корректным изображением.") from exc
+    finally:
+        try:
+            uploaded_file.seek(0)
+        except Exception:
+            pass
 
 
 class _AdminBaseForm(forms.Form):
@@ -244,3 +299,22 @@ class UserThemePreferencesForm(forms.Form):
 
     def get_selected_preferences(self) -> dict[str, str]:
         return dict(getattr(self, "cleaned_preferences", {}))
+
+
+class UserAvatarUploadForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ["uploaded_avatar"]
+        widgets = {
+            "uploaded_avatar": forms.ClearableFileInput(
+                attrs={
+                    "class": "form-control",
+                    "accept": "image/*",
+                }
+            ),
+        }
+
+    def clean_uploaded_avatar(self):
+        uploaded_avatar = self.cleaned_data.get("uploaded_avatar")
+        validate_uploaded_avatar(uploaded_avatar)
+        return uploaded_avatar

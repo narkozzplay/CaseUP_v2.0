@@ -24,7 +24,7 @@
                 <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}</span>
 
                 <h1 class="page-title page-title--sm">
-                    {{ profile.steam_personaname|default:profile_user.username }}
+                    {{ profile_display_name }}
                 </h1>
 
                 <p class="text-muted profile-hero__subtitle">
@@ -74,9 +74,7 @@
             </div>
 
             <div class="profile-hero__aside">
-                {% if profile.steam_avatar %}
-                    <img src="{{ profile.steam_avatar }}" alt="Steam avatar" class="profile-avatar profile-avatar--xl">
-                {% endif %}
+                <img src="{{ profile_avatar_url }}" alt="Profile avatar" class="profile-avatar profile-avatar--xl">
 
                 <div class="profile-badges">
                     <span class="status-pill">
@@ -89,6 +87,21 @@
                         </span>
                     {% endif %}
                 </div>
+                {% if is_owner_profile and avatar_upload_form %}
+                    <form method="post" action="{% url 'profiles:profile_avatar_upload' %}" enctype="multipart/form-data" class="form-stack">
+                        {% csrf_token %}
+                        <div class="form-field">
+                            <label for="{{ avatar_upload_form.uploaded_avatar.id_for_label }}">
+                                {% if LANGUAGE_CODE == "ru" %}Своя аватарка{% else %}Custom avatar{% endif %}
+                            </label>
+                            {{ avatar_upload_form.uploaded_avatar }}
+                            {{ avatar_upload_form.uploaded_avatar.errors }}
+                        </div>
+                        <button type="submit" class="btn btn-secondary btn-sm">
+                            {% if LANGUAGE_CODE == "ru" %}Сохранить аватар{% else %}Save avatar{% endif %}
+                        </button>
+                    </form>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -100,7 +113,7 @@
                 <dl class="details-list">
                     <div>
                         <dt>Steam nickname</dt>
-                        <dd>{{ profile.steam_personaname|default:profile_user.username }}</dd>
+                        <dd>{{ profile_display_name }}</dd>
                     </div>
                     <div>
                         <dt>{% if LANGUAGE_CODE == "ru" %}Внутренний username{% else %}Internal username{% endif %}</dt>

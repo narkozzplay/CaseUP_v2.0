@@ -4,13 +4,21 @@
         <div class="card-body dashboard-hero__body">
             <div>
                 <span class="eyebrow">{% trans "Profile" %}</span>
-                <h1 class="page-title page-title--sm">{{ profile.steam_personaname|default:profile_user.username }}</h1>
+                <h1 class="page-title page-title--sm">{{ profile_display_name }}</h1>
                 <p class="text-muted dashboard-hero__text">{% trans "Unified identity and linked services in the Midnight interface." %}</p>
             </div>
             <div class="dashboard-hero__meta">
+                <img src="{{ profile_avatar_url }}" alt="Profile avatar" class="profile-avatar">
                 <span class="status-pill">{% trans "Role" %}: {{ profile.get_role_display }}</span>
                 <span class="status-pill">{% trans "Balance" %}: {{ profile.balance_coins }}</span>
                 <span class="status-pill">Steam lvl: {{ profile.steam_level|default:"—" }}</span>
+                {% if is_owner_profile and avatar_upload_form %}
+                    <form method="post" action="{% url 'profiles:profile_avatar_upload' %}" enctype="multipart/form-data" class="form-stack">
+                        {% csrf_token %}
+                        {{ avatar_upload_form.uploaded_avatar }}
+                        <button type="submit" class="btn btn-secondary btn-sm">{% trans "Save avatar" %}</button>
+                    </form>
+                {% endif %}
             </div>
         </div>
     </article>

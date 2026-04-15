@@ -1,4 +1,9 @@
 ﻿{% extends "layouts/base_dashboard.html" %}
+{% load static %}
+
+{% block dashboard_extra_head %}
+    <link rel="stylesheet" href="{% static 'css/modules/store.css' %}">
+{% endblock %}
 
 {% block content %}
     {% include "store/partials/author_products_content.html" %}

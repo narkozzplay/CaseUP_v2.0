@@ -52,6 +52,11 @@ class UserProfile(models.Model):
         blank=True,
         default="",
     )
+    uploaded_avatar = models.ImageField(
+        upload_to="profiles/avatars/",
+        blank=True,
+        null=True,
+    )
     steam_profile_url = models.URLField(
         blank=True,
         default="",

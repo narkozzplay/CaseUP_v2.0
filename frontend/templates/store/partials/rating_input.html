@@ -1,0 +1,18 @@
+﻿{% load static %}
+<div class="store-rating-input"
+     data-store-rating-input
+     data-star-full-icon="{% static 'icons/star-full.svg' %}"
+     data-star-empty-icon="{% static 'icons/star-empty.svg' %}">
+    <input type="hidden" name="rating" value="{{ initial_rating|default:5 }}" data-store-rating-value>
+    <div class="store-rating-input__stars" role="radiogroup" aria-label="Выбери рейтинг">
+        {% for _ in "12345" %}
+            <button type="button"
+                    class="store-rating-input__button"
+                    data-store-rating-button="{{ forloop.counter }}"
+                    aria-pressed="{% if forloop.counter <= initial_rating|default:5 %}true{% else %}false{% endif %}">
+                <img data-store-rating-icon src="{% static 'icons/star-empty.svg' %}" alt="Rating {{ forloop.counter }}">
+            </button>
+        {% endfor %}
+    </div>
+    <span class="store-rating-input__hint">Наведи и выбери от 1 до 5 звёзд.</span>
+</div>

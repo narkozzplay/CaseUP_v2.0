@@ -1,0 +1,31 @@
+﻿<article class="store-review-card">
+    <div class="store-review-card__head">
+        <div class="store-review-card__author">
+            <img src="{{ review.avatar_url }}" alt="Reviewer avatar" class="store-review-card__avatar">
+            <div>
+                <div class="store-review-card__name">{{ review.display_name }}</div>
+                <div class="store-review-card__role">{{ review.role_prefix }}</div>
+            </div>
+        </div>
+        {% include "store/partials/star_rating.html" with star_states=review.rating_data.states show_value=False size="md" %}
+    </div>
+
+    {% if review.access_badges %}
+        <div class="store-review-card__badges">
+            {% for badge in review.access_badges %}
+                <span class="status-pill status-pill--sm">{{ badge }}</span>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if review.review.comment %}
+        <p class="store-review-card__comment">{{ review.review.comment }}</p>
+    {% endif %}
+
+    {% if review.review.improvement_suggestion %}
+        <div class="store-review-card__improvement text-muted">
+            <span class="store-review-card__improvement-label">Что можно улучшить:</span>
+            <span>{{ review.review.improvement_suggestion }}</span>
+        </div>
+    {% endif %}
+</article>

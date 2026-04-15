@@ -1,0 +1,10 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-label="Half star">
+  <defs>
+    <linearGradient id="half" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="50%" stop-color="#f7c948"/>
+      <stop offset="50%" stop-color="transparent"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </linearGradient>
+  </defs>
+  <path d="M12 2.5l2.97 6.02 6.64.96-4.81 4.69 1.14 6.62L12 17.68 6.06 20.8l1.14-6.62L2.39 9.48l6.64-.96L12 2.5z" fill="url(#half)" stroke="#f7c948" stroke-width="1.2"/>
+</svg>
