@@ -112,6 +112,18 @@ class AdminProfileIdentityForm(_AdminBaseForm):
         self.actor_user = actor_user
         super().__init__(*args, **kwargs)
 
+        actor = self.actor_user
+        if getattr(actor, "is_authenticated", False):
+            actor_rank = get_user_role(actor).rank
+            self.fields["role"].choices = [
+                (role_code, role_label)
+                for role_code, role_label in UserRole.choices
+                if ROLE_RANK.get(role_code, ROLE_RANK[UserRole.USER]) <= actor_rank
+            ]
+        else:
+            # Safe default: without actor context we do not expose role mutations.
+            self.fields["role"].choices = []
+
         if target_user is not None and not self.is_bound:
             self.initial.setdefault("username", target_user.username)
 

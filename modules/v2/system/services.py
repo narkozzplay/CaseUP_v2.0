@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import threading
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
@@ -85,13 +86,31 @@ class ExternalServiceHealth:
     message: str
 
 
+@dataclass(frozen=True)
+class BulkCompatibilityUpdateSummary:
+    updated: int
+    skipped_invalid_range: int
+    skipped_conflict: int
+    skipped_unchanged: int
+
+
+@dataclass(frozen=True)
+class BulkReleaseCompatibilityEnsureSummary:
+    created: int
+    existing: int
+
+
 
 
 def get_runtime_environment() -> str:
     explicit = getattr(settings, "CASEUP_RUNTIME_ENV", "").strip().lower()
     if explicit in {"dev", "prod", "test"}:
         return explicit
-    module = getattr(settings, "SETTINGS_MODULE", "") or getattr(settings, "DJANGO_SETTINGS_MODULE", "")
+    module = (
+        getattr(settings, "SETTINGS_MODULE", "")
+        or getattr(settings, "DJANGO_SETTINGS_MODULE", "")
+        or os.environ.get("DJANGO_SETTINGS_MODULE", "")
+    )
     module = str(module).lower()
     if module.endswith(".prod"):
         return EnvironmentModuleState.Environment.PROD
@@ -401,6 +420,90 @@ def ensure_module_releases() -> None:
                 compatibility_status=ModuleCompatibility.CompatibilityStatus.SUPPORTED,
                 notes="Seeded from current module registry.",
             )
+
+
+@transaction.atomic
+def bulk_update_module_compatibility_to_target_version(
+    *,
+    compatibilities,
+    target_version: ProjectVersion,
+) -> BulkCompatibilityUpdateSummary:
+    updated = 0
+    skipped_invalid_range = 0
+    skipped_conflict = 0
+    skipped_unchanged = 0
+
+    target_version_id = target_version.id
+    if not target_version_id:
+        return BulkCompatibilityUpdateSummary(
+            updated=0,
+            skipped_invalid_range=0,
+            skipped_conflict=0,
+            skipped_unchanged=0,
+        )
+
+    compatibility_rows = list(
+        compatibilities.select_for_update().select_related("module_release", "project_version_from", "project_version_to")
+    )
+    for compatibility in compatibility_rows:
+        if compatibility.project_version_from.version_order > target_version.version_order:
+            skipped_invalid_range += 1
+            continue
+
+        if compatibility.project_version_to_id == target_version_id:
+            skipped_unchanged += 1
+            continue
+
+        has_conflict = ModuleCompatibility.objects.filter(
+            module_release=compatibility.module_release,
+            project_version_from=compatibility.project_version_from,
+            project_version_to=target_version,
+        ).exclude(pk=compatibility.pk).exists()
+        if has_conflict:
+            skipped_conflict += 1
+            continue
+
+        compatibility.project_version_to = target_version
+        compatibility.save(update_fields=["project_version_to", "updated_at"])
+        updated += 1
+
+    return BulkCompatibilityUpdateSummary(
+        updated=updated,
+        skipped_invalid_range=skipped_invalid_range,
+        skipped_conflict=skipped_conflict,
+        skipped_unchanged=skipped_unchanged,
+    )
+
+
+@transaction.atomic
+def bulk_ensure_module_releases_compatibility_for_target_version(
+    *,
+    module_releases,
+    target_version: ProjectVersion,
+) -> BulkReleaseCompatibilityEnsureSummary:
+    created = 0
+    existing = 0
+
+    if not target_version.id:
+        return BulkReleaseCompatibilityEnsureSummary(created=0, existing=0)
+
+    release_rows = list(module_releases.select_for_update())
+    for release in release_rows:
+        _compatibility, is_created = ModuleCompatibility.objects.get_or_create(
+            module_release=release,
+            project_version_from=target_version,
+            project_version_to=target_version,
+            defaults={
+                "compatibility_status": ModuleCompatibility.CompatibilityStatus.SUPPORTED,
+                "notes": "Bulk ensured from admin action.",
+            },
+        )
+        if is_created:
+            created += 1
+        else:
+            existing += 1
+
+    return BulkReleaseCompatibilityEnsureSummary(created=created, existing=existing)
 
 
 def bootstrap_versioning() -> None:

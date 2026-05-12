@@ -35,7 +35,7 @@ DEBUG = True
 SECRET_KEY = (os.getenv("DJANGO_SECRET_KEY") or "dev-secret-key-not-for-production").strip()
 ALLOWED_HOSTS = get_env_list(
     "DJANGO_ALLOWED_HOSTS",
-    "127.0.0.1,localhost,.ngrok-free.dev,.ngrok-free.app",
+    "127.0.0.1,localhost,.ngrok-free.dev,.ngrok-free.app,192.168.0.19,caseup.local",
 )
 CSRF_TRUSTED_ORIGINS = get_env_list(
     "DJANGO_CSRF_TRUSTED_ORIGINS",

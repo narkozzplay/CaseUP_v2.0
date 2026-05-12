@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="{% static 'css/modules/steam_trading.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/subscriptions.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/web_constructor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modules/store.css' %}">
     {% if active_theme and active_theme.key == "midnight" and feature_flags.midnight_theme %}
         <link rel="stylesheet" href="{% static 'css/themes/midnight_dashboard.css' %}">
     {% endif %}
@@ -39,4 +40,5 @@
     {{ block.super }}
     <script src="{% static 'js/dashboard_shell.js' %}"></script>
     <script src="{% static 'js/web_constructor_editor.js' %}"></script>
+    <script src="{% static 'js/store_rating_input.js' %}"></script>
 {% endblock %}

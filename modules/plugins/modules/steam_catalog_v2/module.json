@@ -1,0 +1,22 @@
+{
+  "key": "steam_catalog_v2",
+  "name": "Steam Catalog 2.0",
+  "description": "Foundation runtime module for Steam Catalog 2.0 mode with compatible fallback to legacy detail rendering.",
+  "author": "CaseUP",
+  "version": "0.3.0",
+  "target_scopes": ["steam_catalog"],
+  "placements": [
+    {
+      "slot": "steam_catalog.detail_mode",
+      "action": "replace",
+      "template": "steam_catalog_v2/steam_catalog/detail_content.html"
+    }
+  ],
+  "css_files": [],
+  "js_files": [],
+  "preview_image": "",
+  "is_public": false,
+  "compatible_project_versions": ["0.3.0", "0.2.7.1", "0.1.38"],
+  "compatible_themes": ["*", "default", "midnight"],
+  "access_mode": "purchase_or_subscription"
+}

@@ -1,15 +1,17 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
+from modules.v2.profiles.presentation import get_user_display_name
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.module_registry import MODULE_REGISTRY
@@ -20,6 +22,8 @@ from .services import (
     ThemePurchaseError,
     activate_module_slot,
     activate_theme_globally,
+    apply_listing_media_uploads,
+    build_store_listing_editor_state,
     can_manage_store_listing,
     deactivate_module_slot,
     deactivate_theme_globally,
@@ -93,6 +97,27 @@ def _parse_decimal(value: object) -> Decimal:
         return Decimal(str(value or "0")).quantize(Decimal("0.01"))
     except Exception:
         return Decimal("0.00")
+
+
+def _normalize_slug_key(value: object) -> str:
+    return str(value or "").strip().lower()
+
+
+def _get_posted_screenshot_paths(request) -> list[str]:
+    values = request.POST.getlist("remove_screenshots")
+    result: list[str] = []
+    for value in values:
+        normalized = str(value or "").strip()
+        if not normalized:
+            continue
+        result.append(normalized)
+    return result
+
+
+def _validation_error_message(exc: ValidationError) -> str:
+    if hasattr(exc, "messages") and exc.messages:
+        return "; ".join(str(message) for message in exc.messages)
+    return str(exc)
 
 
 @login_required
@@ -324,7 +349,15 @@ def add_review_page(request, listing_id: int):
         messages.error(request, "Товар для отзыва не найден.")
         return redirect(next_url)
 
-    rating = int(request.POST.get("rating") or 0)
+    try:
+        rating = int(request.POST.get("rating") or 0)
+    except (TypeError, ValueError):
+        rating = 0
+
+    if rating < 1 or rating > 5:
+        messages.error(request, "Выбери оценку от 1 до 5 звёзд.")
+        return redirect(next_url)
+
     comment = str(request.POST.get("comment") or "")
     improvement = str(request.POST.get("improvement_suggestion") or "")
 
@@ -353,9 +386,11 @@ def author_products_page(request):
 
     role_access = get_user_role(request.user)
     if role_access.is_admin_plus:
-        listings = ThemeStoreListing.objects.all().order_by("-updated_at", "-id")
+        queryset = ThemeStoreListing.objects.all().order_by("-updated_at", "-id")
     else:
-        listings = ThemeStoreListing.objects.filter(submitted_by=request.user).order_by("-updated_at", "-id")
+        queryset = ThemeStoreListing.objects.filter(submitted_by=request.user).order_by("-updated_at", "-id")
+    listings = list(queryset)
+    listing_cards = [build_store_listing_editor_state(listing) for listing in listings]
 
     return render_dashboard_page(
         request,
@@ -363,10 +398,41 @@ def author_products_page(request):
         partial_template="store/partials/author_products_content.html",
         context={
             "author_listings": listings,
+            "author_listing_cards": listing_cards,
             "can_moderate": role_access.is_admin_plus,
             "category_choices": ThemeStoreListing.Category.choices,
         },
         page_title=build_page_title("Store Author"),
+        active_menu_key="store",
+    )
+
+
+@login_required
+def author_product_edit_page(request, listing_id: int):
+    if not is_store_runtime_available():
+        return _render_store_unavailable(request, reason="Store runtime is unavailable.")
+
+    if not is_user_store_author(request.user):
+        return HttpResponseForbidden("Author panel доступен только store-author или admin+.")
+
+    listing = get_store_listing_by_id(listing_id)
+    if listing is None:
+        messages.error(request, "Товар не найден.")
+        return redirect("store:author_products")
+
+    if not can_manage_store_listing(user=request.user, listing=listing):
+        return HttpResponseForbidden("Недостаточно прав для редактирования товара.")
+
+    role_access = get_user_role(request.user)
+    return render_dashboard_page(
+        request,
+        full_template="store/author_product_edit.html",
+        partial_template="store/partials/author_product_edit_content.html",
+        context={
+            "listing_editor": build_store_listing_editor_state(listing),
+            "can_moderate": role_access.is_admin_plus,
+        },
+        page_title=build_page_title(f"Редактор · {listing.title}"),
         active_menu_key="store",
     )
 
@@ -382,20 +448,21 @@ def author_product_create_page(request):
     if not is_user_store_author(request.user):
         return HttpResponseForbidden("Недостаточно прав для создания store products.")
 
-    category = str(request.POST.get("category") or ThemeStoreListing.Category.THEMES).strip().lower()
-    key = str(request.POST.get("key") or "").strip().lower()
+    category = _normalize_slug_key(request.POST.get("category") or ThemeStoreListing.Category.THEMES)
+    key = _normalize_slug_key(request.POST.get("key") or "")
 
     listing = ThemeStoreListing(
         key=key,
         category=category,
-        theme_key=str(request.POST.get("theme_key") or "").strip().lower(),
-        module_key=str(request.POST.get("module_key") or "").strip().lower(),
-        bundle_key=str(request.POST.get("bundle_key") or "").strip().lower(),
+        theme_key=_normalize_slug_key(request.POST.get("theme_key")),
+        module_key=_normalize_slug_key(request.POST.get("module_key")),
+        bundle_key=_normalize_slug_key(request.POST.get("bundle_key")),
         title=str(request.POST.get("title") or "").strip(),
         short_description=str(request.POST.get("short_description") or "").strip(),
         full_description=str(request.POST.get("full_description") or "").strip(),
         cover_image=str(request.POST.get("cover_image") or "").strip(),
-        author=str(request.POST.get("author") or request.user.username).strip(),
+        screenshots=[],
+        author=get_user_display_name(request.user),
         price_rub=_parse_decimal(request.POST.get("price_rub")),
         is_public=_parse_bool(request.POST.get("is_public")),
         is_included_in_store_subscription=_parse_bool(request.POST.get("is_included_in_store_subscription")),
@@ -404,7 +471,15 @@ def author_product_create_page(request):
     )
 
     try:
+        apply_listing_media_uploads(
+            listing=listing,
+            cover_file=request.FILES.get("cover_image_file"),
+            screenshot_files=request.FILES.getlist("screenshots_files"),
+            replace_screenshots=True,
+        )
         listing.save()
+    except ValidationError as exc:
+        messages.error(request, f"Не удалось создать товар: {_validation_error_message(exc)}")
     except Exception as exc:
         messages.error(request, f"Не удалось создать товар: {exc}")
     else:
@@ -428,14 +503,29 @@ def author_product_update_page(request, listing_id: int):
     listing.title = str(request.POST.get("title") or listing.title).strip()
     listing.short_description = str(request.POST.get("short_description") or listing.short_description).strip()
     listing.full_description = str(request.POST.get("full_description") or listing.full_description).strip()
-    listing.cover_image = str(request.POST.get("cover_image") or listing.cover_image).strip()
-    listing.author = str(request.POST.get("author") or listing.author).strip()
     listing.price_rub = _parse_decimal(request.POST.get("price_rub"))
     listing.is_public = _parse_bool(request.POST.get("is_public"))
     listing.is_included_in_store_subscription = _parse_bool(request.POST.get("is_included_in_store_subscription"))
+    listing.author = listing.author or get_user_display_name(listing.submitted_by or request.user)
+
+    cover_file = request.FILES.get("cover_image_file")
+    remove_cover = _parse_bool(request.POST.get("remove_cover_image"))
+    manual_cover = str(request.POST.get("cover_image") or "").strip()
+    if manual_cover and not cover_file and not remove_cover:
+        listing.cover_image = manual_cover
 
     try:
+        apply_listing_media_uploads(
+            listing=listing,
+            cover_file=cover_file,
+            screenshot_files=request.FILES.getlist("screenshots_files"),
+            remove_cover=remove_cover,
+            replace_screenshots=_parse_bool(request.POST.get("replace_screenshots")),
+            remove_screenshot_paths=_get_posted_screenshot_paths(request),
+        )
         listing.save()
+    except ValidationError as exc:
+        messages.error(request, f"Не удалось обновить товар: {_validation_error_message(exc)}")
     except Exception as exc:
         messages.error(request, f"Не удалось обновить товар: {exc}")
     else:

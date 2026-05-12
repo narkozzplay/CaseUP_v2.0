@@ -18,7 +18,10 @@ from modules.v2.store.models import ThemeStoreListing, UserThemePurchase
 from .dashboard_menu import build_dashboard_menu, ensure_dashboard_menu_items
 from .context_processors import system_settings
 from .models import DashboardMenuItem, SiteConfiguration, ThemeProfile, ProjectVersion, EnvironmentModuleState, ModuleRelease, ExternalServiceIntegration
+from .models import ModuleCompatibility
 from .services import (
+    bulk_ensure_module_releases_compatibility_for_target_version,
+    bulk_update_module_compatibility_to_target_version,
     bootstrap_versioning,
     get_active_theme,
     get_control_center_summary,
@@ -598,6 +601,14 @@ class UserRuntimeThemeResolutionTests(TestCase):
         self.assertEqual(context["runtime_theme_css_files"], tuple())
 
     def test_purchased_theme_overrides_scope_css_for_owner(self):
+        plan = SubscriptionPlan.objects.filter(
+            family=SubscriptionPlan.Family.SITE,
+            level=1,
+            is_active=True,
+        ).first()
+        self.assertIsNotNone(plan)
+        assign_user_subscription_plan(user=self.user, plan=plan)
+
         UserThemePurchase.objects.create(
             user=self.user,
             listing=self.demo_listing,
@@ -747,3 +758,113 @@ class SystemVersioningTests(TestCase):
         self.assertTrue(states.filter(environment="dev").exists())
         self.assertTrue(states.filter(environment="prod").exists())
         self.assertTrue(states.filter(environment="test").exists())
+
+
+class SystemBulkCompatibilityServicesTests(TestCase):
+    def setUp(self):
+        self.version_1 = ProjectVersion.objects.create(version="0.1.0", version_order=10, title="0.1.0")
+        self.version_2 = ProjectVersion.objects.create(version="0.2.0", version_order=20, title="0.2.0")
+        self.version_3 = ProjectVersion.objects.create(version="0.3.0", version_order=30, title="0.3.0")
+
+        self.release_main = ModuleRelease.objects.create(
+            module_key="steam_catalog",
+            version="1.0.0",
+            version_order=100,
+            channel=ModuleRelease.Channel.STABLE,
+            title="Steam Catalog 1.0.0",
+            is_default=False,
+            is_active=True,
+        )
+        self.release_conflict = ModuleRelease.objects.create(
+            module_key="farm",
+            version="1.0.0",
+            version_order=100,
+            channel=ModuleRelease.Channel.STABLE,
+            title="Farm 1.0.0",
+            is_default=False,
+            is_active=True,
+        )
+        self.release_unchanged = ModuleRelease.objects.create(
+            module_key="tradehub",
+            version="1.0.0",
+            version_order=100,
+            channel=ModuleRelease.Channel.STABLE,
+            title="TradeHub 1.0.0",
+            is_default=False,
+            is_active=True,
+        )
+
+    def test_bulk_update_module_compatibility_to_target_version_handles_skips(self):
+        compat_update = ModuleCompatibility.objects.create(
+            module_release=self.release_main,
+            project_version_from=self.version_1,
+            project_version_to=self.version_1,
+            compatibility_status=ModuleCompatibility.CompatibilityStatus.SUPPORTED,
+        )
+        compat_invalid = ModuleCompatibility.objects.create(
+            module_release=self.release_main,
+            project_version_from=self.version_3,
+            project_version_to=self.version_3,
+            compatibility_status=ModuleCompatibility.CompatibilityStatus.SUPPORTED,
+        )
+        compat_conflict = ModuleCompatibility.objects.create(
+            module_release=self.release_conflict,
+            project_version_from=self.version_1,
+            project_version_to=self.version_1,
+            compatibility_status=ModuleCompatibility.CompatibilityStatus.SUPPORTED,
+        )
+        ModuleCompatibility.objects.create(
+            module_release=self.release_conflict,
+            project_version_from=self.version_1,
+            project_version_to=self.version_2,
+            compatibility_status=ModuleCompatibility.CompatibilityStatus.SUPPORTED,
+        )
+        compat_unchanged = ModuleCompatibility.objects.create(
+            module_release=self.release_unchanged,
+            project_version_from=self.version_1,
+            project_version_to=self.version_2,
+            compatibility_status=ModuleCompatibility.CompatibilityStatus.SUPPORTED,
+        )
+
+        summary = bulk_update_module_compatibility_to_target_version(
+            compatibilities=ModuleCompatibility.objects.filter(
+                pk__in=[compat_update.pk, compat_invalid.pk, compat_conflict.pk, compat_unchanged.pk]
+            ),
+            target_version=self.version_2,
+        )
+
+        compat_update.refresh_from_db()
+        compat_invalid.refresh_from_db()
+        compat_conflict.refresh_from_db()
+        compat_unchanged.refresh_from_db()
+
+        self.assertEqual(summary.updated, 1)
+        self.assertEqual(summary.skipped_invalid_range, 1)
+        self.assertEqual(summary.skipped_conflict, 1)
+        self.assertEqual(summary.skipped_unchanged, 1)
+        self.assertEqual(compat_update.project_version_to_id, self.version_2.id)
+        self.assertEqual(compat_invalid.project_version_to_id, self.version_3.id)
+        self.assertEqual(compat_conflict.project_version_to_id, self.version_1.id)
+
+    def test_bulk_ensure_module_releases_compatibility_for_target_version_is_idempotent(self):
+        ModuleCompatibility.objects.create(
+            module_release=self.release_main,
+            project_version_from=self.version_2,
+            project_version_to=self.version_2,
+            compatibility_status=ModuleCompatibility.CompatibilityStatus.SUPPORTED,
+        )
+
+        summary = bulk_ensure_module_releases_compatibility_for_target_version(
+            module_releases=ModuleRelease.objects.filter(pk__in=[self.release_main.pk, self.release_conflict.pk]),
+            target_version=self.version_2,
+        )
+
+        self.assertEqual(summary.created, 1)
+        self.assertEqual(summary.existing, 1)
+        self.assertTrue(
+            ModuleCompatibility.objects.filter(
+                module_release=self.release_conflict,
+                project_version_from=self.version_2,
+                project_version_to=self.version_2,
+            ).exists()
+        )

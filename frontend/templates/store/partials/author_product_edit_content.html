@@ -1,0 +1,137 @@
+﻿{% with listing=listing_editor.listing %}
+<section class="section section--compact">
+    <article class="card">
+        <div class="card-body">
+            <div class="section-head-inline">
+                <h1 class="page-title page-title--sm">Редактирование товара</h1>
+                <div class="store-product-hero__actions">
+                    <a href="{% url 'store:author_products' %}" class="btn btn-secondary btn-sm">Author panel</a>
+                    <a href="{% url 'store:product_detail' listing.key %}" class="btn btn-secondary btn-sm">Открыть товар</a>
+                </div>
+            </div>
+
+            <div class="store-editor-layout">
+                <div class="store-editor__preview">
+                    <img src="{{ listing_editor.preview_url }}" alt="{{ listing.title }}" onerror="this.onerror=null;this.src='{{ listing_editor.fallback_preview_url }}';">
+                </div>
+
+                <div class="store-editor-layout__meta">
+                    <h2 class="section-title">{{ listing.title }}</h2>
+                    <p class="text-muted">{{ listing.get_category_display }} · <code>{{ listing.runtime_key }}</code></p>
+                    <div class="store-product-hero__badges">
+                        <span class="status-pill status-pill--sm">Status: {{ listing.get_status_display }}</span>
+                        <span class="status-pill status-pill--sm">Author: {{ listing.author|default:"—" }}</span>
+                        {% if listing.is_public %}<span class="status-pill status-pill--sm">Public</span>{% endif %}
+                        {% if listing.is_included_in_store_subscription %}<span class="status-pill status-pill--sm">Subscription</span>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <article class="card" style="margin-top: 1rem;">
+        <div class="card-body">
+            <form method="post" action="{% url 'store:author_product_update' listing.id %}" enctype="multipart/form-data" class="form-stack">
+                {% csrf_token %}
+                <input type="hidden" name="next_url" value="{% url 'store:author_product_edit' listing.id %}">
+
+                <div class="form-field"><label for="id_title">Title</label><input id="id_title" name="title" class="form-control" value="{{ listing.title }}" required></div>
+                <div class="form-field"><label for="id_short_description">Short description</label><input id="id_short_description" name="short_description" class="form-control" value="{{ listing.short_description }}"></div>
+                <div class="form-field"><label for="id_full_description">Full description</label><textarea id="id_full_description" name="full_description" class="form-control" rows="5">{{ listing.full_description }}</textarea></div>
+
+                <div class="store-author-form-grid">
+                    <div class="form-field"><label for="id_price_rub">Price RUB</label><input id="id_price_rub" name="price_rub" class="form-control" value="{{ listing.price_rub }}"></div>
+                    <div class="form-field form-field--checks">
+                        <label><input type="checkbox" name="is_public" {% if listing.is_public %}checked{% endif %}> is_public</label>
+                        <label><input type="checkbox" name="is_included_in_store_subscription" {% if listing.is_included_in_store_subscription %}checked{% endif %}> Included in subscription</label>
+                    </div>
+                </div>
+
+                <div class="store-author-form-grid">
+                    <div class="form-field">
+                        <label for="id_cover_image">Cover image path/URL</label>
+                        <input id="id_cover_image" name="cover_image" class="form-control" value="{{ listing.cover_image }}">
+                    </div>
+                    <div class="form-field">
+                        <label for="id_cover_image_file">Replace cover image</label>
+                        <input id="id_cover_image_file" type="file" name="cover_image_file" class="form-control" accept="image/*">
+                    </div>
+                </div>
+
+                {% if listing.cover_image %}
+                    <div class="form-field form-field--checks">
+                        <label><input type="checkbox" name="remove_cover_image" value="1"> Remove current cover</label>
+                    </div>
+                {% endif %}
+
+                {% if listing_editor.screenshot_items %}
+                    <div class="form-field">
+                        <label>Current screenshots</label>
+                        <div class="store-editor__screenshots">
+                            {% for screenshot in listing_editor.screenshot_items %}
+                                <div class="store-editor__shot">
+                                    <img src="{{ screenshot.url }}" alt="Screenshot {{ forloop.counter }}" onerror="this.style.display='none';">
+                                    <label><input type="checkbox" name="remove_screenshots" value="{{ screenshot.raw }}"> Remove</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="form-field form-field--checks">
+                    <label><input type="checkbox" name="replace_screenshots" value="1"> Replace screenshots with new upload</label>
+                </div>
+                <div class="form-field">
+                    <label for="id_screenshots_files">Add screenshots</label>
+                    <input id="id_screenshots_files" type="file" name="screenshots_files" class="form-control" accept="image/*" multiple>
+                </div>
+
+                <div class="store-product-hero__actions">
+                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                </div>
+            </form>
+
+            <div class="store-product-hero__actions" style="margin-top: 0.75rem;">
+                {% if listing.status != 'pending_moderation' and listing.status != 'published' %}
+                    <form method="post" action="{% url 'store:author_product_submit' listing.id %}" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next_url" value="{% url 'store:author_product_edit' listing.id %}">
+                        <button type="submit" class="btn btn-secondary btn-sm">Submit for moderation</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </article>
+
+    {% if can_moderate %}
+        <article class="card" style="margin-top: 1rem;">
+            <div class="card-body">
+                <h2 class="section-title">Moderation actions</h2>
+                <div class="store-author-moderation-grid">
+                    <form method="post" action="{% url 'store:moderation_action' listing.id %}" class="form-stack">
+                        {% csrf_token %}
+                        <input type="hidden" name="next_url" value="{% url 'store:author_product_edit' listing.id %}">
+                        <input type="hidden" name="action" value="approve">
+                        <div class="form-field">
+                            <label for="id_comment_approve">Comment</label>
+                            <textarea id="id_comment_approve" name="comment" rows="3" class="form-control"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">Approve</button>
+                    </form>
+
+                    <form method="post" action="{% url 'store:moderation_action' listing.id %}" class="form-stack">
+                        {% csrf_token %}
+                        <input type="hidden" name="next_url" value="{% url 'store:author_product_edit' listing.id %}">
+                        <input type="hidden" name="action" value="reject">
+                        <div class="form-field">
+                            <label for="id_comment_reject">Comment</label>
+                            <textarea id="id_comment_reject" name="comment" rows="3" class="form-control"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-secondary btn-sm">Reject</button>
+                    </form>
+                </div>
+            </div>
+        </article>
+    {% endif %}
+</section>
+{% endwith %}

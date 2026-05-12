@@ -1076,7 +1076,12 @@ class UserPriceAlertRuleTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
 from modules.v2.store.models import ThemeStoreListing
-from modules.v2.store.services import activate_module_slot, purchase_store_listing_with_balance
+from modules.v2.store.services import (
+    STEAM_CATALOG_DETAIL_CONTENT_SLOT,
+    STEAM_CATALOG_DETAIL_MODE_SLOT,
+    activate_module_slot,
+    purchase_store_listing_with_balance,
+)
 
 
 class SteamCatalogStoreModuleSlotTests(TestCase):
@@ -1109,6 +1114,18 @@ class SteamCatalogStoreModuleSlotTests(TestCase):
             status=ThemeStoreListing.Status.PUBLISHED,
             is_public=True,
         )
+        self.mode_module_listing = ThemeStoreListing.objects.create(
+            key="steam-slot-mode-module-listing",
+            category=ThemeStoreListing.Category.MODULES,
+            module_key="steam_catalog_v2",
+            title="Steam slot mode module",
+            short_description="slot mode module",
+            full_description="slot mode module",
+            author="CaseUP",
+            price_rub=Decimal("15.00"),
+            status=ThemeStoreListing.Status.PUBLISHED,
+            is_public=True,
+        )
 
     def test_detail_renders_without_module_override_by_default(self):
         self.client.login(username="catalog_store_slot", password="StrongPass123")
@@ -1120,7 +1137,7 @@ class SteamCatalogStoreModuleSlotTests(TestCase):
     def test_detail_renders_with_runtime_module_override(self):
         adjust_balance(user=self.user, delta=Decimal("100.00"), reason="topup", amount_snapshot=Decimal("100.00"))
         purchase_store_listing_with_balance(user=self.user, listing_id=self.module_listing.id)
-        activate_module_slot(user=self.user, listing_id=self.module_listing.id, slot="steam_catalog.detail_content")
+        activate_module_slot(user=self.user, listing_id=self.module_listing.id, slot=STEAM_CATALOG_DETAIL_CONTENT_SLOT)
 
         self.client.login(username="catalog_store_slot", password="StrongPass123")
         response = self.client.get(reverse("steam_catalog:detail", args=[self.item.id]))
@@ -1128,3 +1145,16 @@ class SteamCatalogStoreModuleSlotTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Price Graphics Plus")
         self.assertContains(response, "data-steam-update-plugin-price-graphics")
+
+    def test_detail_renders_with_mode_slot_and_prefers_v2_foundation(self):
+        adjust_balance(user=self.user, delta=Decimal("200.00"), reason="topup", amount_snapshot=Decimal("200.00"))
+        purchase_store_listing_with_balance(user=self.user, listing_id=self.module_listing.id)
+        activate_module_slot(user=self.user, listing_id=self.module_listing.id, slot=STEAM_CATALOG_DETAIL_CONTENT_SLOT)
+        purchase_store_listing_with_balance(user=self.user, listing_id=self.mode_module_listing.id)
+        activate_module_slot(user=self.user, listing_id=self.mode_module_listing.id, slot=STEAM_CATALOG_DETAIL_MODE_SLOT)
+
+        self.client.login(username="catalog_store_slot", password="StrongPass123")
+        response = self.client.get(reverse("steam_catalog:detail", args=[self.item.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Steam Catalog 2.0 foundation")

@@ -32,12 +32,15 @@
                             {% csrf_token %}
                             <button type="submit" class="btn btn-primary btn-sm">Купить</button>
                         </form>
-                    {% endif %}
-                    {% if product_card.can_purchase_bundle %}
+                    {% elif product_card.can_purchase_bundle %}
                         <form method="post" action="{% url 'store:purchase_bundle' product_card.listing.id %}" class="inline-form">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-primary btn-sm">Купить набор</button>
                         </form>
+                    {% endif %}
+
+                    {% if product_card.is_owned %}
+                        <a href="{% url 'store:library' %}" class="btn btn-secondary btn-sm">Открыть</a>
                     {% endif %}
 
                     {% if product_card.can_activate and product_card.listing.category == 'themes' and not product_card.access_state.is_active %}
@@ -52,29 +55,52 @@
                         </form>
                     {% endif %}
 
-                    {% if product_card.can_activate and product_card.listing.category == 'modules' and not product_card.access_state.is_active %}
+                    {% if product_card.can_activate and product_card.listing.category == 'modules' and product_card.activation_slot and not product_card.access_state.is_active %}
                         <form method="post" action="{% url 'store:activate_module_slot' product_card.listing.id %}" class="inline-form">
                             {% csrf_token %}
-                            <input type="hidden" name="slot" value="steam_catalog.detail_content">
+                            <input type="hidden" name="slot" value="{{ product_card.activation_slot }}">
                             <button type="submit" class="btn btn-secondary btn-sm">Активировать модуль</button>
                         </form>
-                    {% elif product_card.access_state.is_active and product_card.listing.category == 'modules' %}
+                    {% elif product_card.access_state.is_active and product_card.listing.category == 'modules' and product_card.activation_slot %}
                         <form method="post" action="{% url 'store:deactivate_module_slot' %}" class="inline-form">
                             {% csrf_token %}
-                            <input type="hidden" name="slot" value="steam_catalog.detail_content">
+                            <input type="hidden" name="slot" value="{{ product_card.activation_slot }}">
                             <button type="submit" class="btn btn-secondary btn-sm">Деактивировать модуль</button>
                         </form>
                     {% endif %}
 
                     {% if product_card.can_manage %}
-                        <a href="{% url 'store:author_products' %}#store-author-product-{{ product_card.listing.id }}" class="btn btn-secondary btn-sm">Управление</a>
+                        <a href="{% url 'store:author_product_edit' product_card.listing.id %}" class="btn btn-secondary btn-sm">Управление</a>
                     {% endif %}
 
                     <a href="{% url 'store:storefront' %}" class="btn btn-secondary btn-sm">Назад в магазин</a>
                 </div>
+
+                {% if not product_card.has_target_scope_access %}
+                    <div class="feature-lock-card feature-lock-card--compact" style="margin-top: 0.875rem;">
+                        <span class="feature-lock-card__badge">Доступ</span>
+                        <h3 class="feature-lock-card__title">Товар недоступен в текущем плане</h3>
+                        <p class="feature-lock-card__text">{{ product_card.target_scope_access_message }}</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </article>
+
+    {% if product_card.screenshots_urls %}
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Скриншоты</h2>
+                <div class="store-screenshot-grid">
+                    {% for screenshot in product_card.screenshots_urls %}
+                        <div class="store-screenshot-grid__item">
+                            <img src="{{ screenshot }}" alt="{{ product_card.listing.title }} screenshot {{ forloop.counter }}" onerror="this.style.display='none';">
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </article>
+    {% endif %}
 
     {% if bundle_summary %}
         <article class="card">
@@ -103,25 +129,33 @@
                 {% include "store/partials/star_rating.html" with star_states=reviews_summary.avg_rating_stars rating_value=reviews_summary.avg_rating_label review_count_label=reviews_summary.total_reviews_label show_value=True size="md" %}
             </div>
 
-            <form method="post" action="{% url 'store:add_review' product_card.listing.id %}" class="form-stack">
-                {% csrf_token %}
-                <input type="hidden" name="next_url" value="{% url 'store:product_detail' product_card.listing.key %}">
+            {% if product_card.can_review %}
+                <form method="post" action="{% url 'store:add_review' product_card.listing.id %}" class="form-stack">
+                    {% csrf_token %}
+                    <input type="hidden" name="next_url" value="{% url 'store:product_detail' product_card.listing.key %}">
 
-                <div class="form-field">
-                    <label>Оценка</label>
-                    {% include "store/partials/rating_input.html" with initial_rating=5 %}
-                </div>
+                    <div class="form-field">
+                        <label>Оценка</label>
+                        {% include "store/partials/rating_input.html" with initial_rating=0 %}
+                    </div>
 
-                <div class="form-field">
-                    <label for="id_comment">Комментарий</label>
-                    <textarea id="id_comment" name="comment" class="form-control" rows="3"></textarea>
+                    <div class="form-field">
+                        <label for="id_comment">Комментарий</label>
+                        <textarea id="id_comment" name="comment" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-field">
+                        <label for="id_improvement">Что можно улучшить</label>
+                        <textarea id="id_improvement" name="improvement_suggestion" class="form-control" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">Сохранить отзыв</button>
+                </form>
+            {% else %}
+                <div class="feature-lock-card feature-lock-card--compact" style="margin-top: 1rem;">
+                    <span class="feature-lock-card__badge">Отзывы</span>
+                    <h3 class="feature-lock-card__title">Оставить отзыв могут только владельцы товара</h3>
+                    <p class="feature-lock-card__text">Купи товар, получи доступ через набор или активную подписку, затем вернись на эту страницу для отзыва.</p>
                 </div>
-                <div class="form-field">
-                    <label for="id_improvement">Что можно улучшить</label>
-                    <textarea id="id_improvement" name="improvement_suggestion" class="form-control" rows="3"></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary btn-sm">Сохранить отзыв</button>
-            </form>
+            {% endif %}
 
             <div class="store-review-list">
                 {% for review in reviews %}

@@ -1,12 +1,16 @@
 ﻿from __future__ import annotations
 
 import shutil
+import tempfile
 from decimal import Decimal
+from io import BytesIO
 from pathlib import Path
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.urls import reverse
 
 from modules.v2.profiles.models import UserRole
 from modules.v2.profiles.services.balance import adjust_balance
@@ -35,11 +39,13 @@ from .presentation import (
 )
 from .services import (
     DEFAULT_STEAM_CATALOG_DETAIL_TEMPLATE,
+    STEAM_CATALOG_DETAIL_MODE_SLOT,
     STEAM_CATALOG_DETAIL_CONTENT_SLOT,
     ThemePurchaseError,
     activate_module_slot,
     activate_theme_globally,
     can_manage_store_listing,
+    get_store_card_for_user,
     deactivate_module_slot,
     deactivate_theme_globally,
     moderate_listing,
@@ -51,8 +57,23 @@ from .services import (
     submit_listing_for_moderation,
     submit_store_review,
 )
+from PIL import Image
 
 User = get_user_model()
+
+
+def _build_test_png_bytes() -> bytes:
+    buffer = BytesIO()
+    Image.new("RGB", (8, 8), color=(40, 72, 132)).save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+PNG_1X1_BYTES = _build_test_png_bytes()
+
+
+def _grant_steam_catalog_access(user) -> None:
+    plan = SubscriptionPlan.objects.get(level=1)
+    assign_user_subscription_plan(user=user, plan=plan)
 
 
 class StorePresentationPatchTests(TestCase):
@@ -118,6 +139,7 @@ class StoreRuntimeModuleDiscoveryTests(TestCase):
     def test_runtime_module_discovery_includes_demo_package(self):
         discovered = discover_runtime_modules(refresh=True)
         self.assertIn("steam_update_plugin_price_graphics", discovered)
+        self.assertIn("steam_catalog_v2", discovered)
 
     def test_runtime_module_discovery_ignores_broken_manifest(self):
         modules_root = Path(settings.BASE_DIR) / "modules" / "plugins" / "modules"
@@ -151,6 +173,8 @@ class StoreFoundationFlowTests(TestCase):
         self.author = User.objects.create_user(username="store_author", password="StrongPass123")
         self.author.profile_v2.is_store_author = True
         self.author.profile_v2.save(update_fields=["is_store_author"])
+        self.no_access_user = User.objects.create_user(username="store_no_access", password="StrongPass123")
+        _grant_steam_catalog_access(self.user)
 
         self.theme_listing = ThemeStoreListing.objects.create(
             key="store-theme-demo",
@@ -176,6 +200,18 @@ class StoreFoundationFlowTests(TestCase):
             status=ThemeStoreListing.Status.PUBLISHED,
             is_public=True,
             is_included_in_store_subscription=True,
+        )
+        self.mode_module_listing = ThemeStoreListing.objects.create(
+            key="store-module-mode-demo",
+            category=ThemeStoreListing.Category.MODULES,
+            module_key="steam_catalog_v2",
+            title="Module mode demo",
+            short_description="Module mode demo",
+            full_description="Module mode demo",
+            author="CaseUP",
+            price_rub=Decimal("130.00"),
+            status=ThemeStoreListing.Status.PUBLISHED,
+            is_public=True,
         )
         self.bundle_listing = ThemeStoreListing.objects.create(
             key="store-bundle-demo",
@@ -314,6 +350,22 @@ class StoreFoundationFlowTests(TestCase):
         )
         self.assertEqual(template_fallback, DEFAULT_STEAM_CATALOG_DETAIL_TEMPLATE)
 
+    def test_steam_catalog_mode_slot_template_resolver_with_v2_module(self):
+        adjust_balance(user=self.user, delta=Decimal("500.00"), reason="topup", amount_snapshot=Decimal("500.00"))
+        purchase_store_listing_with_balance(user=self.user, listing_id=self.mode_module_listing.id)
+        activate_module_slot(user=self.user, listing_id=self.mode_module_listing.id, slot=STEAM_CATALOG_DETAIL_MODE_SLOT)
+
+        template_with_module = resolve_store_module_slot_template(
+            user=self.user,
+            slot=STEAM_CATALOG_DETAIL_MODE_SLOT,
+            request_scope="steam_catalog",
+            default_template=DEFAULT_STEAM_CATALOG_DETAIL_TEMPLATE,
+        )
+        self.assertEqual(
+            template_with_module,
+            "steam_catalog_v2/steam_catalog/detail_content.html",
+        )
+
     def test_store_disabled_returns_none_access_even_if_user_owned(self):
         adjust_balance(user=self.user, delta=Decimal("300.00"), reason="topup", amount_snapshot=Decimal("300.00"))
         purchase_store_listing_with_balance(user=self.user, listing_id=self.module_listing.id)
@@ -323,6 +375,25 @@ class StoreFoundationFlowTests(TestCase):
 
         self.assertEqual(state.access_source, "none")
         self.assertFalse(state.can_activate)
+
+    def test_target_scope_gating_blocks_purchase_without_steam_catalog_access(self):
+        adjust_balance(user=self.no_access_user, delta=Decimal("500.00"), reason="topup", amount_snapshot=Decimal("500.00"))
+
+        with self.assertRaises(ThemePurchaseError):
+            purchase_store_listing_with_balance(user=self.no_access_user, listing_id=self.module_listing.id)
+
+    def test_target_scope_gating_blocks_bundle_purchase_without_steam_catalog_access(self):
+        adjust_balance(user=self.no_access_user, delta=Decimal("500.00"), reason="topup", amount_snapshot=Decimal("500.00"))
+
+        with self.assertRaises(ThemePurchaseError):
+            purchase_bundle_with_balance(user=self.no_access_user, listing_id=self.bundle_listing.id)
+
+    def test_target_scope_gating_marks_store_card_unavailable(self):
+        card = get_store_card_for_user(user=self.no_access_user, listing=self.module_listing)
+
+        self.assertFalse(card["has_target_scope_access"])
+        self.assertFalse(card["can_purchase"])
+        self.assertIn("Steam Catalog", card["target_scope_access_message"])
 
     def test_review_requires_valid_access(self):
         with self.assertRaises(ThemePurchaseError):
@@ -390,6 +461,12 @@ class StoreViewsPatchUxTests(TestCase):
     def setUp(self):
         update_module_states({"store": True, "subscriptions": True, "steam_catalog": True})
         self.user = User.objects.create_user(username="store_patch_user", password="StrongPass123")
+        self.author = User.objects.create_user(username="store_patch_author", password="StrongPass123")
+        self.author.profile_v2.is_store_author = True
+        self.author.profile_v2.steam_personaname = "Steam Author Display"
+        self.author.profile_v2.save(update_fields=["is_store_author", "steam_personaname"])
+        _grant_steam_catalog_access(self.user)
+
         self.client.login(username="store_patch_user", password="StrongPass123")
         self.listing = ThemeStoreListing.objects.create(
             key="store-patch-module",
@@ -404,6 +481,19 @@ class StoreViewsPatchUxTests(TestCase):
             is_public=True,
             cover_image="",
         )
+        self.author_listing = ThemeStoreListing.objects.create(
+            key="store-patch-author-module",
+            category=ThemeStoreListing.Category.MODULES,
+            module_key="steam_update_plugin_price_graphics",
+            title="Author patch module",
+            short_description="Author module short",
+            full_description="Author module full",
+            author="Author Initial",
+            price_rub=Decimal("30.00"),
+            status=ThemeStoreListing.Status.PUBLISHED,
+            is_public=True,
+            submitted_by=self.author,
+        )
 
     def test_storefront_hides_debug_fields_and_uses_preview_fallback(self):
         response = self.client.get("/store/")
@@ -414,7 +504,22 @@ class StoreViewsPatchUxTests(TestCase):
         self.assertNotContains(response, "category=")
         self.assertNotContains(response, "runtime_key=")
 
-    def test_product_detail_uses_star_input_and_review_ui_without_debug_strings(self):
+    def test_storefront_card_buy_action_goes_to_detail_not_purchase_post(self):
+        response = self.client.get("/store/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("store:product_detail", args=[self.listing.key]))
+        self.assertNotContains(response, reverse("store:purchase_product", args=[self.listing.id]))
+        self.assertContains(response, ">Купить</a>", html=False)
+
+    def test_storefront_card_shows_open_for_owned_listing(self):
+        purchase_store_listing_with_balance(user=self.user, listing_id=self.listing.id)
+
+        response = self.client.get("/store/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, ">Открыть</a>", html=False)
+
+    def test_product_detail_hides_review_form_without_entitlement(self):
         reviewer = User.objects.create_user(username="reviewer_patch_user", password="StrongPass123")
         reviewer.profile_v2.steam_personaname = "Steam Reviewer"
         reviewer.profile_v2.save(update_fields=["steam_personaname"])
@@ -430,10 +535,163 @@ class StoreViewsPatchUxTests(TestCase):
         response = self.client.get(f"/store/products/{self.listing.key}/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "data-store-rating-input")
+        self.assertNotContains(response, "data-store-rating-input")
+        self.assertContains(response, "Оставить отзыв могут только владельцы товара")
         self.assertContains(response, "Steam Reviewer")
         self.assertContains(response, "[USER]")
         self.assertContains(response, "Что можно улучшить:")
         self.assertNotContains(response, "5/5")
         self.assertNotContains(response, "category=")
         self.assertNotContains(response, "runtime_key=")
+
+    def test_review_post_endpoint_rejects_non_entitled_user(self):
+        response = self.client.post(
+            reverse("store:add_review", args=[self.listing.id]),
+            {
+                "rating": "5",
+                "comment": "Attempt without entitlement",
+                "improvement_suggestion": "",
+                "next_url": reverse("store:product_detail", args=[self.listing.key]),
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Оставлять отзыв можно только")
+        self.assertFalse(StoreProductReview.objects.filter(listing=self.listing, user=self.user).exists())
+
+    def test_product_detail_shows_rating_input_for_entitled_user(self):
+        purchase_store_listing_with_balance(user=self.user, listing_id=self.listing.id)
+
+        response = self.client.get(reverse("store:product_detail", args=[self.listing.key]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-store-rating-input")
+
+        post_response = self.client.post(
+            reverse("store:add_review", args=[self.listing.id]),
+            {
+                "rating": "4",
+                "comment": "Great patch",
+                "improvement_suggestion": "More themes",
+                "next_url": reverse("store:product_detail", args=[self.listing.key]),
+            },
+            follow=True,
+        )
+        self.assertEqual(post_response.status_code, 200)
+        self.assertTrue(StoreProductReview.objects.filter(listing=self.listing, user=self.user).exists())
+
+    def test_management_link_points_to_focused_editor_page(self):
+        self.client.login(username="store_patch_author", password="StrongPass123")
+        response = self.client.get(reverse("store:product_detail", args=[self.author_listing.key]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("store:author_product_edit", args=[self.author_listing.id]))
+        self.assertNotContains(response, "#store-author-product-")
+
+    def test_author_panel_create_form_does_not_expose_editable_author_field(self):
+        self.client.login(username="store_patch_author", password="StrongPass123")
+        response = self.client.get(reverse("store:author_products"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'name="author"')
+        self.assertContains(response, "Steam Author Display")
+
+    def test_author_product_create_sets_author_from_current_user(self):
+        self.client.login(username="store_patch_author", password="StrongPass123")
+
+        response = self.client.post(
+            reverse("store:author_product_create"),
+            {
+                "next_url": reverse("store:author_products"),
+                "category": ThemeStoreListing.Category.MODULES,
+                "key": "author-created-listing",
+                "module_key": "steam_update_plugin_price_graphics",
+                "title": "Created by author",
+                "short_description": "short",
+                "full_description": "full",
+                "author": "FORGED AUTHOR",
+                "price_rub": "15.00",
+                "is_public": "on",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        created = ThemeStoreListing.objects.get(key="author-created-listing")
+        self.assertEqual(created.submitted_by_id, self.author.id)
+        self.assertEqual(created.author, "Steam Author Display")
+
+    def test_author_product_edit_is_focused_for_specific_listing(self):
+        self.client.login(username="store_patch_author", password="StrongPass123")
+        another_listing = ThemeStoreListing.objects.create(
+            key="store-patch-author-second",
+            category=ThemeStoreListing.Category.MODULES,
+            module_key="steam_update_plugin_price_graphics",
+            title="Second author listing",
+            short_description="Second",
+            full_description="Second",
+            author="Second Author",
+            price_rub=Decimal("25.00"),
+            status=ThemeStoreListing.Status.DRAFT,
+            is_public=False,
+            submitted_by=self.author,
+        )
+
+        response = self.client.get(reverse("store:author_product_edit", args=[self.author_listing.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.author_listing.title)
+        self.assertNotContains(response, another_listing.title)
+        self.assertContains(response, reverse("store:author_product_update", args=[self.author_listing.id]))
+
+    def test_author_product_update_supports_cover_and_screenshots_upload(self):
+        self.client.login(username="store_patch_author", password="StrongPass123")
+        media_root = tempfile.mkdtemp(prefix="caseup-store-patch-tests-")
+        self.addCleanup(lambda: shutil.rmtree(media_root, ignore_errors=True))
+
+        cover_file = SimpleUploadedFile("cover.png", PNG_1X1_BYTES, content_type="image/png")
+        shot_file_1 = SimpleUploadedFile("shot1.png", PNG_1X1_BYTES, content_type="image/png")
+        shot_file_2 = SimpleUploadedFile("shot2.png", PNG_1X1_BYTES, content_type="image/png")
+
+        with self.settings(MEDIA_ROOT=media_root):
+            response = self.client.post(
+                reverse("store:author_product_update", args=[self.author_listing.id]),
+                {
+                    "next_url": reverse("store:author_product_edit", args=[self.author_listing.id]),
+                    "title": self.author_listing.title,
+                    "short_description": self.author_listing.short_description,
+                    "full_description": self.author_listing.full_description,
+                    "price_rub": str(self.author_listing.price_rub),
+                    "is_public": "on",
+                    "is_included_in_store_subscription": "on",
+                    "cover_image_file": cover_file,
+                    "screenshots_files": [shot_file_1, shot_file_2],
+                },
+                follow=True,
+            )
+            self.assertEqual(response.status_code, 200)
+
+            self.author_listing.refresh_from_db()
+            self.assertIn("store/products/store-patch-author-module/cover/", self.author_listing.cover_image)
+            self.assertEqual(len(self.author_listing.screenshots), 2)
+            self.assertTrue(all("store/products/store-patch-author-module/screenshots/" in item for item in self.author_listing.screenshots))
+
+            screenshot_to_remove = self.author_listing.screenshots[0]
+            remove_response = self.client.post(
+                reverse("store:author_product_update", args=[self.author_listing.id]),
+                {
+                    "next_url": reverse("store:author_product_edit", args=[self.author_listing.id]),
+                    "title": self.author_listing.title,
+                    "short_description": self.author_listing.short_description,
+                    "full_description": self.author_listing.full_description,
+                    "price_rub": str(self.author_listing.price_rub),
+                    "is_public": "on",
+                    "remove_cover_image": "1",
+                    "remove_screenshots": [screenshot_to_remove],
+                },
+                follow=True,
+            )
+            self.assertEqual(remove_response.status_code, 200)
+
+            self.author_listing.refresh_from_db()
+            self.assertEqual(self.author_listing.cover_image, "")
+            self.assertEqual(len(self.author_listing.screenshots), 1)

@@ -1,6 +1,6 @@
 ﻿<article class="card store-card{% if card.is_owned %} store-card--owned{% endif %}">
-    <div class="card-body">
-        <div class="store-card__preview">
+    <div class="card-body store-card__body">
+        <a href="{% url 'store:product_detail' card.listing.key %}" class="store-card__preview{% if card.is_owned %} store-card__preview--owned{% endif %}">
             {% if card.is_owned %}
                 <span class="store-card__owned-check" title="Куплено">✓</span>
             {% endif %}
@@ -8,15 +8,10 @@
                  alt="{{ card.listing.title }}"
                  loading="lazy"
                  onerror="this.onerror=null;this.src='{{ card.fallback_preview_url }}';">
-        </div>
+        </a>
 
-        <div class="store-card__title-row">
-            <h3 class="store-card__title">{{ card.listing.title }}</h3>
-            <span class="status-pill status-pill--sm">{{ card.listing.price_rub }} ₽</span>
-        </div>
-
+        <h3 class="store-card__title">{{ card.listing.title }}</h3>
         {% include "store/partials/star_rating.html" with star_states=card.reviews_summary.avg_rating_stars rating_value=card.reviews_summary.avg_rating_label review_count_label=card.reviews_summary.total_reviews_label show_value=True size="md" %}
-
         <p class="store-card__description">{{ card.listing.short_description|default:"—" }}</p>
 
         <div class="store-card__badges">
@@ -27,50 +22,15 @@
             {% endfor %}
         </div>
 
-        <div class="store-card__actions">
-            <a href="{% url 'store:product_detail' card.listing.key %}" class="btn btn-secondary btn-sm">Подробнее</a>
-
-            {% if card.can_purchase %}
-                <form method="post" action="{% url 'store:purchase_product' card.listing.id %}" class="inline-form">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary btn-sm">Купить</button>
-                </form>
-            {% elif card.can_purchase_bundle %}
-                <form method="post" action="{% url 'store:purchase_bundle' card.listing.id %}" class="inline-form">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary btn-sm">Купить набор</button>
-                </form>
-            {% endif %}
-
-            {% if card.can_activate and card.listing.category == 'themes' and not card.access_state.is_active %}
-                <form method="post" action="{% url 'store:activate_theme' card.listing.id %}" class="inline-form">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-secondary btn-sm">Активировать</button>
-                </form>
-            {% elif card.access_state.is_active and card.listing.category == 'themes' %}
-                <form method="post" action="{% url 'store:deactivate_theme' %}" class="inline-form">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-secondary btn-sm">Деактивировать</button>
-                </form>
-            {% endif %}
-
-            {% if card.can_activate and card.listing.category == 'modules' and not card.access_state.is_active %}
-                <form method="post" action="{% url 'store:activate_module_slot' card.listing.id %}" class="inline-form">
-                    {% csrf_token %}
-                    <input type="hidden" name="slot" value="steam_catalog.detail_content">
-                    <button type="submit" class="btn btn-secondary btn-sm">Активировать</button>
-                </form>
-            {% elif card.access_state.is_active and card.listing.category == 'modules' %}
-                <form method="post" action="{% url 'store:deactivate_module_slot' %}" class="inline-form">
-                    {% csrf_token %}
-                    <input type="hidden" name="slot" value="steam_catalog.detail_content">
-                    <button type="submit" class="btn btn-secondary btn-sm">Деактивировать</button>
-                </form>
-            {% endif %}
-
-            {% if card.can_manage %}
-                <a href="{% url 'store:author_products' %}#store-author-product-{{ card.listing.id }}" class="btn btn-secondary btn-sm">Управление</a>
-            {% endif %}
+        <div class="store-card__footer">
+            <a href="{% url 'store:product_detail' card.listing.key %}" class="btn btn-primary btn-sm">{{ card.card_primary_label }}</a>
+            <span class="status-pill status-pill--sm store-card__price">{{ card.listing.price_rub }} ₽</span>
         </div>
+
+        {% if card.can_manage %}
+            <div class="store-card__manage">
+                <a href="{% url 'store:author_product_edit' card.listing.id %}" class="btn btn-secondary btn-sm">Управление</a>
+            </div>
+        {% endif %}
     </div>
 </article>

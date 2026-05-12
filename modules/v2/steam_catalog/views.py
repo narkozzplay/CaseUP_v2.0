@@ -21,6 +21,7 @@ from modules.v2.profiles.rbac import get_user_role
 from modules.v2.celery_tasks.models import PriceAutoUpdateRule
 from modules.v2.store.services import (
     DEFAULT_STEAM_CATALOG_DETAIL_TEMPLATE,
+    STEAM_CATALOG_DETAIL_MODE_SLOT,
     STEAM_CATALOG_DETAIL_CONTENT_SLOT,
     resolve_store_module_slot_template,
 )
@@ -562,7 +563,13 @@ def catalog_detail(request, item_id: int):
         .filter(category=item.item_type, is_enabled=True)
         .first()
     )
-    detail_content_template = resolve_store_module_slot_template(
+    detail_mode_template = resolve_store_module_slot_template(
+        user=request.user,
+        slot=STEAM_CATALOG_DETAIL_MODE_SLOT,
+        request_scope="steam_catalog",
+        default_template="",
+    )
+    detail_content_template = detail_mode_template or resolve_store_module_slot_template(
         user=request.user,
         slot=STEAM_CATALOG_DETAIL_CONTENT_SLOT,
         request_scope="steam_catalog",
@@ -596,6 +603,7 @@ def catalog_detail(request, item_id: int):
             "catalog_can_view_deep_analytics": _catalog_analytics_access(request.user),
             "catalog_analytics_access_state": get_feature_access_state(request.user, STEAM_CATALOG_DEEP_ANALYTICS),
             "steam_catalog_detail_content_template": detail_content_template,
+            "steam_catalog_detail_mode_template": detail_mode_template,
         },
         page_title=f"{item.group_name} | Steam Catalog",
         active_menu_key="steam_catalog",

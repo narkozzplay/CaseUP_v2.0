@@ -60,6 +60,20 @@ def get_product_preview_url(listing) -> str:
     return get_default_no_image_url()
 
 
+def get_product_screenshots_urls(listing) -> tuple[str, ...]:
+    raw_items = getattr(listing, "screenshots", []) if listing is not None else []
+    if not isinstance(raw_items, list):
+        return tuple()
+
+    result: list[str] = []
+    for item in raw_items:
+        resolved = _resolve_image_url(item)
+        if not resolved:
+            continue
+        result.append(resolved)
+    return tuple(result)
+
+
 def normalize_rating_to_half(value) -> Decimal:
     raw_value = _to_decimal(value)
     bounded = min(max(raw_value, Decimal("0")), Decimal("5"))
@@ -138,4 +152,3 @@ def build_review_presenter(review) -> dict[str, object]:
         "rating_data": build_star_rating_data(getattr(review, "rating", 0), precision=1),
         "access_badges": get_review_access_badges(getattr(review, "access_source_snapshot", "")),
     }
-

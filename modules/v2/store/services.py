@@ -3,16 +3,22 @@
 import uuid
 from dataclasses import dataclass
 from decimal import Decimal
+from pathlib import Path
 
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.files.storage import default_storage
 from django.db import OperationalError, ProgrammingError, transaction
 from django.db.models import Avg, Count, Sum
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
+from django.utils.text import slugify
+from PIL import Image, UnidentifiedImageError
 
 from modules.v2.profiles.models import LedgerReason, UserProfile
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.profiles.services.balance import BalanceError, adjust_balance
-from modules.v2.subscriptions.feature_codes import SITE_STORE_FULL_ACCESS
+from modules.v2.subscriptions.feature_codes import SITE_STORE_FULL_ACCESS, STEAM_CATALOG_VIEW
 from modules.v2.subscriptions.services import user_has_feature
 from modules.v2.system.module_plugins import (
     RuntimeModuleManifest,
@@ -49,11 +55,26 @@ from .presentation import (
     build_star_rating_data,
     format_reviews_count_label,
     get_product_preview_url,
+    get_product_screenshots_urls,
 )
 
 
+STEAM_CATALOG_DETAIL_MODE_SLOT = "steam_catalog.detail_mode"
 STEAM_CATALOG_DETAIL_CONTENT_SLOT = "steam_catalog.detail_content"
 DEFAULT_STEAM_CATALOG_DETAIL_TEMPLATE = "steam_catalog/partials/detail_content.html"
+DEFAULT_MAX_STORE_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024
+ALLOWED_STORE_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
+ALLOWED_STORE_IMAGE_MIME_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/bmp",
+}
+
+SCOPE_FEATURE_CODES: dict[str, str] = {
+    "steam_catalog": STEAM_CATALOG_VIEW,
+}
 
 
 class AccessSource:
@@ -79,6 +100,9 @@ class StoreProductAccessState:
     is_public_access: bool
     is_runtime_available: bool
     is_compatible: bool
+    target_scopes: tuple[str, ...]
+    missing_target_scopes: tuple[str, ...]
+    has_target_scope_access: bool
     can_activate: bool
     is_active: bool
 
@@ -113,6 +137,171 @@ class BundlePricingSummary:
     bundle_price_rub: Decimal
     separate_price_rub: Decimal
     savings_rub: Decimal
+
+
+def _resolve_max_store_image_upload_bytes() -> int:
+    raw_value = getattr(settings, "STORE_MAX_IMAGE_UPLOAD_BYTES", DEFAULT_MAX_STORE_IMAGE_UPLOAD_BYTES)
+    try:
+        value = int(raw_value)
+    except (TypeError, ValueError):
+        return DEFAULT_MAX_STORE_IMAGE_UPLOAD_BYTES
+    return value if value > 0 else DEFAULT_MAX_STORE_IMAGE_UPLOAD_BYTES
+
+
+def validate_store_uploaded_image(uploaded_file, *, field_label: str = "image") -> None:
+    if not uploaded_file:
+        return
+
+    max_bytes = _resolve_max_store_image_upload_bytes()
+    if uploaded_file.size and uploaded_file.size > max_bytes:
+        raise ValidationError(
+            f"{field_label.capitalize()} превышает лимит ({max_bytes // (1024 * 1024)} MB).",
+        )
+
+    extension = Path(uploaded_file.name or "").suffix.lower()
+    if extension not in ALLOWED_STORE_IMAGE_EXTENSIONS:
+        allowed = ", ".join(sorted(ALLOWED_STORE_IMAGE_EXTENSIONS))
+        raise ValidationError(
+            f"Недопустимое расширение '{extension or 'unknown'}'. Разрешены: {allowed}.",
+        )
+
+    content_type = str(getattr(uploaded_file, "content_type", "") or "").lower()
+    if content_type and content_type not in ALLOWED_STORE_IMAGE_MIME_TYPES:
+        allowed_types = ", ".join(sorted(ALLOWED_STORE_IMAGE_MIME_TYPES))
+        raise ValidationError(
+            f"Недопустимый content type '{content_type}'. Разрешены: {allowed_types}.",
+        )
+
+    try:
+        uploaded_file.seek(0)
+        with Image.open(uploaded_file) as image:
+            image.verify()
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        raise ValidationError("Загруженный файл не является корректным изображением.") from exc
+    finally:
+        try:
+            uploaded_file.seek(0)
+        except Exception:
+            pass
+
+
+def _build_store_media_path(*, listing_key: str, bucket: str, extension: str) -> str:
+    safe_listing_key = slugify(str(listing_key or "").strip()) or "listing"
+    safe_bucket = slugify(str(bucket or "").strip()) or "misc"
+    suffix = extension.lower() if extension.startswith(".") else f".{extension.lower()}"
+    file_name = f"{uuid.uuid4().hex}{suffix}"
+    return f"store/products/{safe_listing_key}/{safe_bucket}/{file_name}"
+
+
+def save_store_uploaded_image(*, uploaded_file, listing_key: str, bucket: str) -> str:
+    validate_store_uploaded_image(uploaded_file, field_label=bucket or "image")
+    extension = Path(uploaded_file.name or "").suffix.lower() or ".png"
+    media_path = _build_store_media_path(listing_key=listing_key, bucket=bucket, extension=extension)
+    saved_path = default_storage.save(media_path, uploaded_file)
+    return str(saved_path).replace("\\", "/")
+
+
+def _normalize_uploaded_or_media_path(value: str) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+
+    if raw.startswith(("http://", "https://", "//")):
+        return raw
+
+    media_url = str(getattr(settings, "MEDIA_URL", "/media/") or "/media/").strip()
+    if not media_url.startswith("/"):
+        media_url = f"/{media_url}"
+    media_url = media_url.rstrip("/") + "/"
+
+    normalized = raw
+    if normalized.startswith(media_url):
+        normalized = normalized[len(media_url):]
+    elif normalized.startswith("/media/"):
+        normalized = normalized[len("/media/"):]
+    elif normalized.startswith("media/"):
+        normalized = normalized[len("media/"):]
+
+    return normalized.lstrip("/")
+
+
+def apply_listing_media_uploads(
+    *,
+    listing: ThemeStoreListing,
+    cover_file=None,
+    screenshot_files: list | tuple | None = None,
+    remove_cover: bool = False,
+    replace_screenshots: bool = False,
+    remove_screenshot_paths: list[str] | tuple[str, ...] | None = None,
+) -> ThemeStoreListing:
+    if remove_cover:
+        listing.cover_image = ""
+
+    if cover_file:
+        listing.cover_image = save_store_uploaded_image(
+            uploaded_file=cover_file,
+            listing_key=listing.key,
+            bucket="cover",
+        )
+
+    current_screenshots = [str(item or "").strip() for item in (listing.screenshots or []) if str(item or "").strip()]
+    if replace_screenshots:
+        current_screenshots = []
+
+    remove_set_raw = {
+        str(item or "").strip()
+        for item in (remove_screenshot_paths or [])
+        if str(item or "").strip()
+    }
+    remove_set_normalized = {_normalize_uploaded_or_media_path(item) for item in remove_set_raw if item}
+
+    if remove_set_raw or remove_set_normalized:
+        filtered_items: list[str] = []
+        for item in current_screenshots:
+            normalized_item = _normalize_uploaded_or_media_path(item)
+            if item in remove_set_raw or normalized_item in remove_set_normalized:
+                continue
+            filtered_items.append(item)
+        current_screenshots = filtered_items
+
+    for uploaded_file in screenshot_files or []:
+        if not uploaded_file:
+            continue
+        uploaded_path = save_store_uploaded_image(
+            uploaded_file=uploaded_file,
+            listing_key=listing.key,
+            bucket="screenshots",
+        )
+        current_screenshots.append(uploaded_path)
+
+    listing.screenshots = current_screenshots
+    return listing
+
+
+def build_store_listing_editor_state(listing: ThemeStoreListing) -> dict[str, object]:
+    raw_screenshots = [
+        str(item or "").strip()
+        for item in (listing.screenshots or [])
+        if str(item or "").strip()
+    ]
+    resolved_screenshots = list(get_product_screenshots_urls(listing))
+    screenshot_items: list[dict[str, str]] = []
+    for idx, url in enumerate(resolved_screenshots):
+        raw_value = raw_screenshots[idx] if idx < len(raw_screenshots) else url
+        screenshot_items.append(
+            {
+                "raw": raw_value,
+                "url": url,
+            }
+        )
+
+    return {
+        "listing": listing,
+        "preview_url": get_product_preview_url(listing),
+        "fallback_preview_url": get_product_preview_url(None),
+        "screenshots_urls": tuple(resolved_screenshots),
+        "screenshot_items": tuple(screenshot_items),
+    }
 
 
 def _template_exists(name: str) -> bool:
@@ -225,6 +414,79 @@ def _get_listing_runtime_state(listing: ThemeStoreListing) -> tuple[bool, bool]:
     return all_runtime_available, all_compatible
 
 
+def _normalize_scope(value: object) -> str:
+    return str(value or "").strip().lower().replace(" ", "_")
+
+
+def _dedupe_scopes(raw_scopes: list[str] | tuple[str, ...]) -> tuple[str, ...]:
+    result: list[str] = []
+    for scope in raw_scopes:
+        normalized = _normalize_scope(scope)
+        if not normalized:
+            continue
+        if normalized not in result:
+            result.append(normalized)
+    return tuple(result)
+
+
+def _resolve_listing_target_scopes(listing: ThemeStoreListing) -> tuple[str, ...]:
+    if listing.category == ThemeStoreListing.Category.THEMES:
+        runtime_theme = get_runtime_theme(listing.theme_key)
+        if runtime_theme is None:
+            return tuple()
+        return _dedupe_scopes(runtime_theme.scopes)
+
+    if listing.category == ThemeStoreListing.Category.MODULES:
+        runtime_module = get_runtime_module(listing.module_key)
+        if runtime_module is None:
+            return tuple()
+        return _dedupe_scopes(runtime_module.target_scopes)
+
+    if listing.category != ThemeStoreListing.Category.BUNDLES:
+        return tuple()
+
+    scopes: list[str] = []
+    bundle_items = list(StoreBundleItem.objects.filter(bundle=listing).order_by("sort_order", "id"))
+    for item in bundle_items:
+        category = (
+            ThemeStoreListing.Category.THEMES
+            if item.product_type == StoreBundleItem.ProductType.THEME
+            else ThemeStoreListing.Category.MODULES
+        )
+        target_listing = _get_listing_by_runtime_key(category=category, runtime_key=item.product_key)
+        if target_listing is None:
+            continue
+        scopes.extend(_resolve_listing_target_scopes(target_listing))
+    return _dedupe_scopes(scopes)
+
+
+def _resolve_target_scope_access(*, user, listing: ThemeStoreListing, role_access) -> tuple[tuple[str, ...], tuple[str, ...], bool]:
+    scopes = _resolve_listing_target_scopes(listing)
+    if role_access.is_admin_plus:
+        return scopes, tuple(), True
+
+    missing_scopes: list[str] = []
+    for scope in scopes:
+        feature_code = SCOPE_FEATURE_CODES.get(scope)
+        if not feature_code:
+            continue
+        if not user_has_feature(user, feature_code):
+            missing_scopes.append(scope)
+    deduped_missing_scopes = _dedupe_scopes(missing_scopes)
+    return scopes, deduped_missing_scopes, not bool(deduped_missing_scopes)
+
+
+def _format_scope_labels(scopes: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(get_theme_scope_label(scope) for scope in scopes)
+
+
+def _build_target_scope_access_message(missing_scopes: tuple[str, ...]) -> str:
+    labels = ", ".join(_format_scope_labels(missing_scopes))
+    if not labels:
+        return "Товар недоступен для вашей подписки."
+    return f"Товар требует доступа к разделу: {labels}."
+
+
 def _get_user_listing_entitlement_sources(user, listing: ThemeStoreListing) -> set[str]:
     if not getattr(user, "is_authenticated", False):
         return set()
@@ -284,11 +546,19 @@ def resolve_store_product_access_state(
             is_public_access=False,
             is_runtime_available=is_runtime_available,
             is_compatible=is_compatible,
+            target_scopes=tuple(),
+            missing_target_scopes=tuple(),
+            has_target_scope_access=False,
             can_activate=False,
             is_active=False,
         )
 
     role_access = get_user_role(user)
+    target_scopes, missing_target_scopes, has_target_scope_access = _resolve_target_scope_access(
+        user=user,
+        listing=listing,
+        role_access=role_access,
+    )
     entitlement_sources = _get_user_listing_entitlement_sources(user, listing)
 
     is_purchased = StoreProductEntitlement.Source.PURCHASE in entitlement_sources
@@ -299,11 +569,18 @@ def resolve_store_product_access_state(
         listing.status == ThemeStoreListing.Status.PUBLISHED
         and listing.is_public
     )
-    is_public_access = bool(is_listing_publicly_visible and listing_price <= Decimal("0.00"))
+    is_public_access = bool(
+        is_listing_publicly_visible
+        and listing_price <= Decimal("0.00")
+        and has_target_scope_access
+    )
 
     is_subscription_access = False
     if is_listing_publicly_visible and listing.is_included_in_store_subscription and getattr(user, "is_authenticated", False):
-        is_subscription_access = user_has_feature(user, SITE_STORE_FULL_ACCESS)
+        is_subscription_access = bool(
+            user_has_feature(user, SITE_STORE_FULL_ACCESS)
+            and has_target_scope_access
+        )
 
     access_source = AccessSource.NONE
     if is_purchased:
@@ -323,6 +600,7 @@ def resolve_store_product_access_state(
         and listing.category in (ThemeStoreListing.Category.THEMES, ThemeStoreListing.Category.MODULES)
         and is_runtime_available
         and is_compatible
+        and has_target_scope_access
     )
 
     return StoreProductAccessState(
@@ -334,6 +612,9 @@ def resolve_store_product_access_state(
         is_public_access=is_public_access,
         is_runtime_available=is_runtime_available,
         is_compatible=is_compatible,
+        target_scopes=target_scopes,
+        missing_target_scopes=missing_target_scopes,
+        has_target_scope_access=has_target_scope_access,
         can_activate=can_activate,
         is_active=_is_listing_active_for_user(user=user, listing=listing, slot=slot) if can_activate else False,
     )
@@ -393,7 +674,7 @@ def get_user_runtime_theme_map(user) -> dict[str, RuntimeThemeManifest]:
             continue
 
         access_state = resolve_store_product_access_state(user=user, listing=listing)
-        if access_state.is_owned_effective and access_state.is_runtime_available and access_state.is_compatible:
+        if access_state.can_activate:
             result[key] = theme
     return result
 
@@ -527,6 +808,30 @@ def resolve_user_runtime_module_state(*, user, request_scope: str) -> UserRuntim
     )
 
 
+def get_listing_module_supported_slots(listing: ThemeStoreListing) -> tuple[str, ...]:
+    if listing.category != ThemeStoreListing.Category.MODULES:
+        return tuple()
+    runtime_module = get_runtime_module(listing.module_key)
+    if runtime_module is None:
+        return tuple()
+    return _dedupe_scopes([placement.slot for placement in runtime_module.placements])
+
+
+def get_listing_preferred_module_slot(listing: ThemeStoreListing) -> str:
+    slots = get_listing_module_supported_slots(listing)
+    if not slots:
+        return ""
+
+    preferred_slots = (
+        STEAM_CATALOG_DETAIL_MODE_SLOT,
+        STEAM_CATALOG_DETAIL_CONTENT_SLOT,
+    )
+    for slot in preferred_slots:
+        if slot in slots:
+            return slot
+    return slots[0]
+
+
 def resolve_store_module_slot_template(
     *,
     user,
@@ -588,6 +893,10 @@ def save_user_module_preferences(*, user, submitted_preferences: object) -> dict
 
 def _build_card_badges(access_state: StoreProductAccessState, listing: ThemeStoreListing) -> list[str]:
     badges: list[str] = []
+    if not access_state.has_target_scope_access and access_state.missing_target_scopes:
+        labels = ", ".join(_format_scope_labels(access_state.missing_target_scopes))
+        badges.append(f"Недоступно: {labels}")
+
     if access_state.is_purchased:
         badges.append("Куплено")
     elif access_state.is_bundle_owned:
@@ -613,7 +922,15 @@ def get_store_card_for_user(
     slot: str = "",
     reviews_summary_map: dict[int, dict[str, object]] | None = None,
 ) -> dict[str, object]:
-    access_state = resolve_store_product_access_state(user=user, listing=listing, slot=slot)
+    activation_slot = ""
+    if listing.category == ThemeStoreListing.Category.MODULES:
+        activation_slot = slot or get_listing_preferred_module_slot(listing)
+    access_state = resolve_store_product_access_state(
+        user=user,
+        listing=listing,
+        slot=activation_slot if listing.category == ThemeStoreListing.Category.MODULES else slot,
+    )
+    is_owned = bool(access_state.is_purchased or access_state.is_bundle_owned)
     review_summary = (
         reviews_summary_map.get(listing.id, {})
         if reviews_summary_map is not None
@@ -628,6 +945,7 @@ def get_store_card_for_user(
         and listing.status == ThemeStoreListing.Status.PUBLISHED
         and listing.is_public
         and listing.category in (ThemeStoreListing.Category.THEMES, ThemeStoreListing.Category.MODULES)
+        and access_state.has_target_scope_access
         and not access_state.is_purchased
         and not access_state.is_bundle_owned
     )
@@ -637,22 +955,41 @@ def get_store_card_for_user(
         and listing.status == ThemeStoreListing.Status.PUBLISHED
         and listing.is_public
         and listing.category == ThemeStoreListing.Category.BUNDLES
+        and access_state.has_target_scope_access
         and not access_state.is_bundle_owned
     )
     can_manage = can_manage_store_listing(user=user, listing=listing)
+    can_review = access_state.access_source not in {AccessSource.NONE, AccessSource.PUBLIC}
+    missing_scope_labels = _format_scope_labels(access_state.missing_target_scopes)
 
     return {
         "listing": listing,
         "access_state": access_state,
         "preview_url": get_product_preview_url(listing),
         "fallback_preview_url": get_product_preview_url(None),
+        "screenshots_urls": get_product_screenshots_urls(listing),
         "reviews_summary": review_summary,
-        "is_owned": bool(access_state.is_purchased or access_state.is_bundle_owned),
+        "is_owned": is_owned,
+        "can_review": can_review,
+        "card_primary_label": (
+            "Открыть"
+            if is_owned
+            else "Недоступно"
+            if not access_state.has_target_scope_access
+            else "Купить"
+        ),
         "badges": _build_card_badges(access_state, listing),
         "can_purchase": can_purchase,
         "can_purchase_bundle": can_purchase_bundle,
-        "can_activate": access_state.can_activate,
+        "can_activate": bool(
+            access_state.can_activate
+            and (listing.category != ThemeStoreListing.Category.MODULES or bool(activation_slot))
+        ),
         "can_manage": can_manage,
+        "activation_slot": activation_slot,
+        "has_target_scope_access": access_state.has_target_scope_access,
+        "missing_target_scope_labels": missing_scope_labels,
+        "target_scope_access_message": _build_target_scope_access_message(access_state.missing_target_scopes),
     }
 
 
@@ -787,6 +1124,8 @@ def purchase_store_listing_with_balance(*, user, listing_id: int) -> UserStorePu
     access_state = resolve_store_product_access_state(user=user, listing=listing)
     if access_state.is_purchased or access_state.is_bundle_owned:
         raise ThemePurchaseError("Этот товар уже доступен вашему аккаунту.")
+    if not access_state.has_target_scope_access:
+        raise ThemePurchaseError(_build_target_scope_access_message(access_state.missing_target_scopes))
 
     if not access_state.is_runtime_available or not access_state.is_compatible:
         raise ThemePurchaseError("Runtime-пакет товара недоступен или несовместим.")
@@ -861,6 +1200,10 @@ def purchase_bundle_with_balance(*, user, listing_id: int) -> UserBundlePurchase
 
     if UserBundlePurchase.objects.select_for_update().filter(user=user, bundle_key=listing.bundle_key).exists():
         raise ThemePurchaseError("Этот набор уже куплен ранее.")
+
+    bundle_access_state = resolve_store_product_access_state(user=user, listing=listing)
+    if not bundle_access_state.has_target_scope_access:
+        raise ThemePurchaseError(_build_target_scope_access_message(bundle_access_state.missing_target_scopes))
 
     price = Decimal(str(listing.price_rub or "0.00")).quantize(Decimal("0.01"))
     if price < 0:
@@ -991,12 +1334,15 @@ def activate_module_slot(*, user, listing_id: int, slot: str) -> dict[str, str]:
         raise ThemePurchaseError("Для активации модуля нужно войти в аккаунт.")
 
     normalized_slot = str(slot or "").strip().lower()
-    if not normalized_slot:
-        raise ThemePurchaseError("Slot не указан.")
 
     listing = ThemeStoreListing.objects.filter(id=listing_id, category=ThemeStoreListing.Category.MODULES).first()
     if listing is None:
         raise ThemePurchaseError("Модуль не найден.")
+
+    if not normalized_slot:
+        normalized_slot = get_listing_preferred_module_slot(listing)
+    if not normalized_slot:
+        raise ThemePurchaseError("Slot не указан.")
 
     runtime_slot = get_runtime_module_slot_state(slot=normalized_slot, module_key=listing.module_key)
     if runtime_slot.module is None or runtime_slot.placement is None:

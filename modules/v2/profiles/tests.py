@@ -13,6 +13,7 @@ from django.urls import reverse
 from modules.v2.profiles.services.balance import BalanceError, adjust_balance
 from modules.v2.profiles.services.ledger import LedgerError, LedgerIdempotencyConflictError, apply_ledger_delta
 from modules.v2.profiles.services.faceit import build_faceit_level_image_url, sync_faceit_profile
+from modules.v2.profiles.forms import AdminProfileIdentityForm
 from modules.v2.profiles.models import UserProfile, UserRole
 from modules.v2.store.models import ThemeStoreListing, UserThemePurchase
 from modules.v2.subscriptions.models import SubscriptionPlan, UserSubscription
@@ -247,9 +248,39 @@ class ProfileTests(TestCase):
         self.assertTrue(target.is_staff)
         self.assertFalse(target.is_superuser)
 
+    def test_admin_identity_form_filters_role_choices_by_actor_rank(self):
+        actor = User.objects.create_user(username="profile_role_choice_actor", password="StrongPass123")
+        actor.profile_v2.role = UserRole.ADMIN
+        actor.profile_v2.save(update_fields=["role"])
+        target = User.objects.create_user(username="profile_role_choice_target", password="StrongPass123")
+
+        form = AdminProfileIdentityForm(
+            target_user=target,
+            target_profile=target.profile_v2,
+            actor_user=actor,
+        )
+        available_roles = [value for value, _label in form.fields["role"].choices]
+
+        self.assertIn(UserRole.ADMIN, available_roles)
+        self.assertNotIn(UserRole.CHIEF_ADMIN, available_roles)
+        self.assertNotIn(UserRole.SUPER_ADMIN, available_roles)
+
+    def test_admin_identity_form_hides_role_choices_without_actor(self):
+        target = User.objects.create_user(username="profile_role_choice_no_actor", password="StrongPass123")
+
+        form = AdminProfileIdentityForm(
+            target_user=target,
+            target_profile=target.profile_v2,
+            actor_user=None,
+        )
+
+        self.assertEqual(list(form.fields["role"].choices), [])
+
     def test_profile_theme_preferences_show_only_purchased_or_public_themes(self):
         update_module_states({"store": True})
         user = User.objects.create_user(username="theme_profile_user", password="StrongPass123")
+        plan = SubscriptionPlan.objects.get(level=1)
+        UserSubscription.objects.create(user=user, plan=plan)
         listing = ThemeStoreListing.objects.get(key="steam-catalog-price-graph-theme")
         self.client.login(username="theme_profile_user", password="StrongPass123")
 
@@ -270,6 +301,8 @@ class ProfileTests(TestCase):
     def test_profile_theme_preferences_update_persists_scope_selection(self):
         update_module_states({"store": True})
         user = User.objects.create_user(username="theme_profile_save_user", password="StrongPass123")
+        plan = SubscriptionPlan.objects.get(level=1)
+        UserSubscription.objects.create(user=user, plan=plan)
         listing = ThemeStoreListing.objects.get(key="steam-catalog-price-graph-theme")
         UserThemePurchase.objects.create(
             user=user,

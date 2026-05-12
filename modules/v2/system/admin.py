@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from django import forms
 from django.contrib import admin, messages
+from django.contrib.admin.helpers import ActionForm
 from django.core.exceptions import ValidationError
 
 from .dashboard_menu import ensure_dashboard_menu_items
@@ -16,7 +18,24 @@ from .models import (
     ThemeProfile,
 )
 from .module_registry import MODULE_REGISTRY
-from .services import get_module_state_map, update_module_states
+from .services import (
+    bulk_ensure_module_releases_compatibility_for_target_version,
+    bulk_update_module_compatibility_to_target_version,
+    get_module_state_map,
+    update_module_states,
+)
+
+
+class TargetProjectVersionActionForm(ActionForm):
+    target_project_version = forms.ModelChoiceField(
+        queryset=ProjectVersion.objects.none(),
+        required=False,
+        label="Target project version",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["target_project_version"].queryset = ProjectVersion.objects.order_by("-version_order", "-id")
 
 
 @admin.register(SiteConfiguration)
@@ -75,6 +94,29 @@ class ModuleReleaseAdmin(admin.ModelAdmin):
     list_display = ("module_key", "label", "version", "version_order", "channel", "is_default", "is_active")
     list_filter = ("module_key", "channel", "is_default", "is_active")
     search_fields = ("module_key", "version", "title")
+    actions = ("ensure_target_version_compatibility_action",)
+    action_form = TargetProjectVersionActionForm
+
+    @admin.action(description="Ensure compatibility for selected target project version")
+    def ensure_target_version_compatibility_action(self, request, queryset):
+        target_id = str(request.POST.get("target_project_version") or "").strip()
+        target_version = ProjectVersion.objects.filter(pk=target_id).first()
+        if target_version is None:
+            self.message_user(request, "Выбери target project version для bulk-операции.", level=messages.ERROR)
+            return
+
+        summary = bulk_ensure_module_releases_compatibility_for_target_version(
+            module_releases=queryset,
+            target_version=target_version,
+        )
+        self.message_user(
+            request,
+            (
+                f"Target version {target_version.version}: created={summary.created}, "
+                f"already_exists={summary.existing}."
+            ),
+            level=messages.SUCCESS,
+        )
 
 
 @admin.register(ModuleCompatibility)
@@ -82,6 +124,31 @@ class ModuleCompatibilityAdmin(admin.ModelAdmin):
     list_display = ("module_release", "project_version_from", "project_version_to", "compatibility_status")
     list_filter = ("compatibility_status", "module_release__module_key")
     search_fields = ("module_release__module_key", "module_release__version", "notes")
+    actions = ("set_target_project_version_to_action",)
+    action_form = TargetProjectVersionActionForm
+
+    @admin.action(description="Set project_version_to to selected target project version")
+    def set_target_project_version_to_action(self, request, queryset):
+        target_id = str(request.POST.get("target_project_version") or "").strip()
+        target_version = ProjectVersion.objects.filter(pk=target_id).first()
+        if target_version is None:
+            self.message_user(request, "Выбери target project version для bulk-операции.", level=messages.ERROR)
+            return
+
+        summary = bulk_update_module_compatibility_to_target_version(
+            compatibilities=queryset,
+            target_version=target_version,
+        )
+        level = messages.SUCCESS if summary.updated else messages.WARNING
+        self.message_user(
+            request,
+            (
+                f"Target version {target_version.version}: updated={summary.updated}, "
+                f"invalid_range={summary.skipped_invalid_range}, conflict={summary.skipped_conflict}, "
+                f"unchanged={summary.skipped_unchanged}."
+            ),
+            level=level,
+        )
 
 
 @admin.register(EnvironmentModuleState)

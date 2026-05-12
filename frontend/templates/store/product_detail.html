@@ -1,15 +1,5 @@
-﻿{% extends "layouts/base_dashboard.html" %}
-{% load static %}
-
-{% block dashboard_extra_head %}
-    <link rel="stylesheet" href="{% static 'css/modules/store.css' %}">
-{% endblock %}
+{% extends "layouts/base_dashboard.html" %}
 
 {% block content %}
     {% include "store/partials/product_detail_content.html" %}
-{% endblock %}
-
-{% block extra_js %}
-    {{ block.super }}
-    <script src="{% static 'js/store_rating_input.js' %}"></script>
 {% endblock %}

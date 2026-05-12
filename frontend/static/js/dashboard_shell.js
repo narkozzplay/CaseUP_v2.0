@@ -583,6 +583,10 @@
         initSteamTradingAdd(scope);
         initSteamTradingSell(scope);
         initLiveModuleToggle(scope);
+
+        if (window.CaseUPStoreRatingInput && typeof window.CaseUPStoreRatingInput.init === 'function') {
+            window.CaseUPStoreRatingInput.init(scope || document);
+        }
     }
 
     restoreGroupState();

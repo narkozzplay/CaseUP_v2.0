@@ -45,6 +45,7 @@ services:
     env_file:
       - ${APP_ENV_FILE:-.env.dev}
     environment:
+      DJANGO_HEALTHCHECK_HOST: ${DJANGO_HEALTHCHECK_HOST:-127.0.0.1}
       DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.dev}
       DB_ENGINE: postgres
       POSTGRES_HOST: db
