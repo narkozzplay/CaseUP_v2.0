@@ -64,8 +64,10 @@ services:
       test:
         - CMD-SHELL
         - >-
-          python -c "from urllib.request import urlopen; import sys;
-          sys.exit(0 if urlopen('http://127.0.0.1:8000/health/', timeout=5).read().decode().strip() == 'OK' else 1)"
+          python -c "import os, urllib.request;
+          host=os.getenv('DJANGO_HEALTHCHECK_HOST','127.0.0.1');
+          req=urllib.request.Request('http://127.0.0.1:8000/health/', headers={'Host': host});
+          urllib.request.urlopen(req, timeout=5).read()"
       interval: 30s
       timeout: 10s
       retries: 5

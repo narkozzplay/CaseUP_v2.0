@@ -5,6 +5,7 @@ services:
     env_file:
       - ${APP_ENV_FILE:-.env.prod}
     environment:
+      DJANGO_HEALTHCHECK_HOST: ${DJANGO_HEALTHCHECK_HOST:-example.com}
       DJANGO_SETTINGS_MODULE: config.settings.prod
       RUN_MIGRATIONS: ${RUN_MIGRATIONS:-1}
       RUN_COLLECTSTATIC: ${RUN_COLLECTSTATIC:-1}
@@ -15,6 +16,14 @@ services:
       - backup_data:/app/backups
     ports:
       - "127.0.0.1:18001:8000"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -c "import os, urllib.request;
+          host=os.getenv('DJANGO_HEALTHCHECK_HOST','example.com');
+          req=urllib.request.Request('http://127.0.0.1:8000/health/', headers={'Host': host, 'X-Forwarded-Proto': 'https'});
+          urllib.request.urlopen(req, timeout=5).read()"
 
   celery_worker:
     depends_on:
