@@ -37,6 +37,20 @@ class FrontendDashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "CaseUP")
 
+    def test_profile_smoke_for_ru_and_en_language_paths(self):
+        user = User.objects.create_user(username="language_profile_user", password="StrongPass123")
+        self.client.login(username="language_profile_user", password="StrongPass123")
+
+        ru_response = self.client.get("/profile/")
+        en_response = self.client.get("/en/profile/")
+
+        self.assertEqual(ru_response.status_code, 200)
+        self.assertEqual(en_response.status_code, 200)
+        self.assertContains(ru_response, 'href="/en/profile/"')
+        self.assertContains(en_response, 'href="/profile/"')
+        self.assertContains(ru_response, 'data-dashboard-nav="false"')
+        self.assertContains(en_response, 'data-dashboard-nav="false"')
+
     def test_admin_panel_forbidden_for_plain_user(self):
         user = User.objects.create_user(username="user2", password="StrongPass123")
         self.client.login(username="user2", password="StrongPass123")

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
@@ -8,7 +8,7 @@ from pathlib import Path
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.storage import default_storage
-from django.db import OperationalError, ProgrammingError, transaction
+from django.db import IntegrityError, OperationalError, ProgrammingError, transaction
 from django.db.models import Avg, Count, Sum
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
@@ -1106,6 +1106,90 @@ def _log_store_event(
     except (OperationalError, ProgrammingError):
         return
 
+
+def _get_or_create_store_purchase(
+    *,
+    user,
+    listing: ThemeStoreListing,
+    amount_rub: Decimal,
+) -> UserStorePurchase:
+    try:
+        with transaction.atomic():
+            purchase, _created = UserStorePurchase.objects.get_or_create(
+                user=user,
+                listing=listing,
+                defaults={
+                    "category": listing.category,
+                    "product_key": listing.runtime_key,
+                    "amount_rub": amount_rub,
+                },
+            )
+            return purchase
+    except IntegrityError:
+        purchase = UserStorePurchase.objects.select_for_update().filter(user=user, listing=listing).first()
+        if purchase is None:
+            raise
+        return purchase
+
+
+def _get_or_create_bundle_purchase(
+    *,
+    user,
+    listing: ThemeStoreListing,
+    amount_rub: Decimal,
+) -> UserBundlePurchase:
+    try:
+        with transaction.atomic():
+            purchase, _created = UserBundlePurchase.objects.get_or_create(
+                user=user,
+                bundle_listing=listing,
+                bundle_key=listing.bundle_key,
+                defaults={"amount_rub": amount_rub},
+            )
+            return purchase
+    except IntegrityError:
+        purchase = UserBundlePurchase.objects.select_for_update().filter(user=user, bundle_key=listing.bundle_key).first()
+        if purchase is None:
+            raise
+        return purchase
+
+
+def _ensure_store_listing_entitlement(*, user, listing: ThemeStoreListing, amount_rub: Decimal) -> None:
+    StoreProductEntitlement.objects.get_or_create(
+        user=user,
+        listing=listing,
+        source=StoreProductEntitlement.Source.PURCHASE,
+    )
+
+    if listing.category == ThemeStoreListing.Category.THEMES:
+        UserThemePurchase.objects.get_or_create(
+            user=user,
+            listing=listing,
+            theme_key=listing.theme_key,
+            defaults={"amount_rub": amount_rub},
+        )
+
+
+def _get_bundle_item_listings(bundle_listing: ThemeStoreListing) -> list[ThemeStoreListing]:
+    bundle_items = list(StoreBundleItem.objects.select_for_update().filter(bundle=bundle_listing).order_by("sort_order", "id"))
+    target_listings: list[ThemeStoreListing] = []
+    for item in bundle_items:
+        category = ThemeStoreListing.Category.THEMES if item.product_type == StoreBundleItem.ProductType.THEME else ThemeStoreListing.Category.MODULES
+        target_listing = _get_listing_by_runtime_key(category=category, runtime_key=item.product_key)
+        if target_listing is not None:
+            target_listings.append(target_listing)
+    return target_listings
+
+
+def _ensure_bundle_entitlements(*, user, target_listings: list[ThemeStoreListing]) -> None:
+    for target_listing in target_listings:
+        StoreProductEntitlement.objects.get_or_create(
+            user=user,
+            listing=target_listing,
+            source=StoreProductEntitlement.Source.BUNDLE_PURCHASE,
+        )
+
+
 @transaction.atomic
 def purchase_store_listing_with_balance(*, user, listing_id: int) -> UserStorePurchase:
     if not getattr(user, "is_authenticated", False):
@@ -1120,6 +1204,26 @@ def purchase_store_listing_with_balance(*, user, listing_id: int) -> UserStorePu
         raise ThemePurchaseError("Этот товар покупается через bundle flow.")
     if listing.status != ThemeStoreListing.Status.PUBLISHED or not listing.is_public:
         raise ThemePurchaseError("Этот товар сейчас недоступен для покупки.")
+
+    existing_purchase = UserStorePurchase.objects.select_for_update().filter(user=user, listing=listing).first()
+    existing_entitlement = (
+        StoreProductEntitlement.objects.select_for_update()
+        .filter(user=user, listing=listing, source=StoreProductEntitlement.Source.PURCHASE)
+        .first()
+    )
+    legacy_purchase = None
+    if listing.category == ThemeStoreListing.Category.THEMES:
+        legacy_purchase = UserThemePurchase.objects.select_for_update().filter(user=user, theme_key=listing.theme_key).first()
+
+    if existing_purchase is not None or existing_entitlement is not None or legacy_purchase is not None:
+        amount = Decimal(str(getattr(existing_purchase or legacy_purchase, "amount_rub", "0.00") or "0.00")).quantize(Decimal("0.01"))
+        purchase = existing_purchase or _get_or_create_store_purchase(
+            user=user,
+            listing=listing,
+            amount_rub=amount,
+        )
+        _ensure_store_listing_entitlement(user=user, listing=listing, amount_rub=purchase.amount_rub)
+        return purchase
 
     access_state = resolve_store_product_access_state(user=user, listing=listing)
     if access_state.is_purchased or access_state.is_bundle_owned:
@@ -1142,36 +1246,20 @@ def purchase_store_listing_with_balance(*, user, listing_id: int) -> UserStorePu
                 delta=-price,
                 reason=LedgerReason.STORE_PURCHASE,
                 amount_snapshot=price,
-                idempotency_key=f"store-purchase:{user.id}:{listing.id}:{uuid.uuid4()}",
+                idempotency_key=f"store-purchase:{user.id}:{listing.id}:{listing.category}:{listing.runtime_key}",
             )
         except BalanceError as exc:
             if str(exc) == "Insufficient balance":
                 raise ThemePurchaseError("Недостаточно средств на балансе профиля.") from exc
             raise ThemePurchaseError(str(exc)) from exc
 
-    purchase, _created = UserStorePurchase.objects.get_or_create(
+    purchase = _get_or_create_store_purchase(
         user=user,
         listing=listing,
-        defaults={
-            "category": listing.category,
-            "product_key": listing.runtime_key,
-            "amount_rub": price,
-        },
+        amount_rub=price,
     )
 
-    StoreProductEntitlement.objects.get_or_create(
-        user=user,
-        listing=listing,
-        source=StoreProductEntitlement.Source.PURCHASE,
-    )
-
-    if listing.category == ThemeStoreListing.Category.THEMES:
-        UserThemePurchase.objects.get_or_create(
-            user=user,
-            listing=listing,
-            theme_key=listing.theme_key,
-            defaults={"amount_rub": price},
-        )
+    _ensure_store_listing_entitlement(user=user, listing=listing, amount_rub=price)
 
     _log_store_event(
         event_type=StoreAnalyticsEvent.EventType.INDIVIDUAL_PURCHASE,
@@ -1198,8 +1286,11 @@ def purchase_bundle_with_balance(*, user, listing_id: int) -> UserBundlePurchase
     if listing.status != ThemeStoreListing.Status.PUBLISHED or not listing.is_public:
         raise ThemePurchaseError("Этот набор сейчас недоступен для покупки.")
 
-    if UserBundlePurchase.objects.select_for_update().filter(user=user, bundle_key=listing.bundle_key).exists():
-        raise ThemePurchaseError("Этот набор уже куплен ранее.")
+    existing_bundle_purchase = UserBundlePurchase.objects.select_for_update().filter(user=user, bundle_key=listing.bundle_key).first()
+    if existing_bundle_purchase is not None:
+        target_listings = _get_bundle_item_listings(listing)
+        _ensure_bundle_entitlements(user=user, target_listings=target_listings)
+        return existing_bundle_purchase
 
     bundle_access_state = resolve_store_product_access_state(user=user, listing=listing)
     if not bundle_access_state.has_target_scope_access:
@@ -1217,31 +1308,21 @@ def purchase_bundle_with_balance(*, user, listing_id: int) -> UserBundlePurchase
                 delta=-price,
                 reason=LedgerReason.BUNDLE_PURCHASE,
                 amount_snapshot=price,
-                idempotency_key=f"bundle-purchase:{user.id}:{listing.id}:{uuid.uuid4()}",
+                idempotency_key=f"bundle-purchase:{user.id}:{listing.id}:{listing.bundle_key}",
             )
         except BalanceError as exc:
             if str(exc) == "Insufficient balance":
                 raise ThemePurchaseError("Недостаточно средств на балансе профиля.") from exc
             raise ThemePurchaseError(str(exc)) from exc
 
-    bundle_purchase = UserBundlePurchase.objects.create(
+    bundle_purchase = _get_or_create_bundle_purchase(
         user=user,
-        bundle_listing=listing,
-        bundle_key=listing.bundle_key,
+        listing=listing,
         amount_rub=price,
     )
 
-    bundle_items = list(StoreBundleItem.objects.select_for_update().filter(bundle=listing).order_by("sort_order", "id"))
-    for item in bundle_items:
-        category = ThemeStoreListing.Category.THEMES if item.product_type == StoreBundleItem.ProductType.THEME else ThemeStoreListing.Category.MODULES
-        target_listing = _get_listing_by_runtime_key(category=category, runtime_key=item.product_key)
-        if target_listing is None:
-            continue
-        StoreProductEntitlement.objects.get_or_create(
-            user=user,
-            listing=target_listing,
-            source=StoreProductEntitlement.Source.BUNDLE_PURCHASE,
-        )
+    target_listings = _get_bundle_item_listings(listing)
+    _ensure_bundle_entitlements(user=user, target_listings=target_listings)
 
     _log_store_event(
         event_type=StoreAnalyticsEvent.EventType.BUNDLE_PURCHASE,

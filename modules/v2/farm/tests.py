@@ -576,6 +576,13 @@ class FarmViewsExpansionTests(TestCase):
         )
         self.client.login(username="farmer_views", password="StrongPass123")
 
+    def _make_admin(self, username="admin_views"):
+        user = User.objects.create_user(username=username, password="StrongPass123")
+        profile = UserProfile.objects.get(user=user)
+        profile.role = UserRole.ADMIN
+        profile.save(update_fields=["role"])
+        return user
+
     def _create_session(self, *, title="Locked Session", collected_price=Decimal("123.45"), quantity=2):
         return create_drop_session(
             account=self.account,
@@ -709,4 +716,49 @@ class FarmViewsExpansionTests(TestCase):
 
     def test_farm_settings_requires_admin_plus(self):
         response = self.client.get(reverse("farm:settings"))
+        self.assertEqual(response.status_code, 403)
+
+    @patch("modules.v2.farm.views.dispatch_price_threshold_notifications")
+    @patch("modules.v2.farm.views.dispatch_caseup_advantage_notifications")
+    def test_farm_settings_get_dispatch_param_does_not_dispatch(self, mocked_advantage, mocked_thresholds):
+        self._make_admin("admin_settings_get")
+        self.client.login(username="admin_settings_get", password="StrongPass123")
+
+        response = self.client.get(reverse("farm:settings"), {"dispatch": "thresholds"})
+
+        self.assertEqual(response.status_code, 200)
+        mocked_thresholds.assert_not_called()
+        mocked_advantage.assert_not_called()
+
+    @patch("modules.v2.farm.views.dispatch_price_threshold_notifications")
+    def test_farm_settings_threshold_dispatch_uses_post(self, mocked_thresholds):
+        mocked_thresholds.return_value = []
+        self._make_admin("admin_settings_thresholds")
+        self.client.login(username="admin_settings_thresholds", password="StrongPass123")
+
+        get_response = self.client.get(reverse("farm:settings_dispatch_thresholds"))
+        post_response = self.client.post(reverse("farm:settings_dispatch_thresholds"))
+
+        self.assertEqual(get_response.status_code, 405)
+        self.assertEqual(post_response.status_code, 302)
+        mocked_thresholds.assert_called_once()
+
+    @patch("modules.v2.farm.views.dispatch_caseup_advantage_notifications")
+    def test_farm_settings_advantage_dispatch_uses_post(self, mocked_advantage):
+        mocked_advantage.return_value = []
+        self._make_admin("admin_settings_advantage")
+        self.client.login(username="admin_settings_advantage", password="StrongPass123")
+
+        response = self.client.post(reverse("farm:settings_dispatch_advantage"))
+
+        self.assertEqual(response.status_code, 302)
+        mocked_advantage.assert_called_once()
+
+    def test_farm_settings_dispatch_requires_csrf_when_enforced(self):
+        self._make_admin("admin_settings_csrf")
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.login(username="admin_settings_csrf", password="StrongPass123")
+
+        response = csrf_client.post(reverse("farm:settings_dispatch_thresholds"))
+
         self.assertEqual(response.status_code, 403)

@@ -62,6 +62,86 @@
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
 }
 
+.avatar-upload {
+    width: min(100%, 320px);
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 18px;
+    background: rgba(8, 13, 27, 0.58);
+}
+
+.avatar-upload--compact {
+    width: min(100%, 280px);
+}
+
+.avatar-upload__control {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+}
+
+.avatar-upload input[type="file"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.avatar-upload__button {
+    min-height: 36px;
+    white-space: nowrap;
+}
+
+.avatar-upload__file-name {
+    min-width: 0;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.avatar-upload__preview {
+    width: 100%;
+    min-height: 92px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background:
+        radial-gradient(circle at top, rgba(111, 124, 255, 0.16), transparent 62%),
+        rgba(255, 255, 255, 0.03);
+}
+
+.avatar-upload__preview img {
+    display: block;
+    width: 100%;
+    height: 92px;
+    border-radius: 12px;
+    object-fit: contain;
+}
+
+.avatar-upload__errors:empty {
+    display: none;
+}
+
+.avatar-upload__errors .errorlist {
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid rgba(239, 68, 68, 0.28);
+    border-radius: 12px;
+    background: rgba(239, 68, 68, 0.10);
+    color: #fecaca;
+    font-size: 0.86rem;
+    list-style: none;
+}
+
 .profile-hero--dashboard {
     border-color: rgba(111, 124, 255, 0.16);
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
@@ -135,5 +215,17 @@
     .profile-avatar--xl {
         width: 96px;
         height: 96px;
+    }
+
+    .avatar-upload {
+        width: 100%;
+    }
+
+    .avatar-upload__control {
+        grid-template-columns: 1fr;
+    }
+
+    .avatar-upload__button {
+        width: 100%;
     }
 }

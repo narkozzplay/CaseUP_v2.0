@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from modules.v2.accounts.steam_sync import (
     sync_profile_from_social_auth,
@@ -384,10 +385,20 @@ def profile_avatar_upload_view(request):
     if form.is_valid():
         form.save()
         messages.success(request, "Аватар обновлён.")
-    else:
-        messages.error(request, "Не удалось обновить аватар.")
+        return redirect("profiles:profile")
 
-    return redirect("profiles:profile")
+    messages.error(request, "Не удалось обновить аватар.")
+    context = _build_profile_context(request=request, target_user=request.user)
+    context["avatar_upload_form"] = form
+    return render_dashboard_page(
+        request,
+        full_template="profiles/profile.html",
+        partial_template="profiles/partials/profile_content.html",
+        context=context,
+        page_title=build_page_title(context["profile_display_name"]),
+        active_menu_key="profile",
+        current_url=reverse("profiles:profile"),
+    )
 
 
 @login_required

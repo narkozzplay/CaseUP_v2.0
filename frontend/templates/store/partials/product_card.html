@@ -1,4 +1,4 @@
-﻿<article class="card store-card{% if card.is_owned %} store-card--owned{% endif %}">
+<article class="card store-card{% if card.is_owned %} store-card--owned{% endif %}">
     <div class="card-body store-card__body">
         <a href="{% url 'store:product_detail' card.listing.key %}" class="store-card__preview{% if card.is_owned %} store-card__preview--owned{% endif %}">
             {% if card.is_owned %}

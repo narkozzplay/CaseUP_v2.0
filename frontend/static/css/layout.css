@@ -110,6 +110,7 @@
 }
 
 .dashboard-sidebar {
+    min-height: 100vh;
     border-right: 1px solid var(--border);
     background:
         radial-gradient(circle at top, rgba(111, 124, 255, 0.12), transparent 30%),
@@ -123,7 +124,26 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
+    max-height: 100vh;
+    min-height: 100vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 24px;
+    scrollbar-color: rgba(111, 124, 255, 0.42) rgba(255, 255, 255, 0.04);
+    scrollbar-width: thin;
+}
+
+.dashboard-sidebar__inner::-webkit-scrollbar {
+    width: 8px;
+}
+
+.dashboard-sidebar__inner::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.dashboard-sidebar__inner::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(111, 124, 255, 0.42);
 }
 
 .brand--dashboard {
@@ -295,12 +315,16 @@
     }
 
     .dashboard-sidebar {
+        min-height: auto;
         border-right: 0;
         border-bottom: 1px solid var(--border);
     }
 
     .dashboard-sidebar__inner {
         position: static;
+        max-height: none;
+        min-height: auto;
+        overflow: visible;
     }
 
     .dashboard-user-card__stats {

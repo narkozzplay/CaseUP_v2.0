@@ -122,6 +122,10 @@
         };
     }
 
+    function getFormActionUrl(form) {
+        const action = form.getAttribute('action') || window.location.href;
+        return new URL(action, window.location.origin);
+    }
 
     function applyThemePayload(payload) {
         if (!payload) {
@@ -191,7 +195,7 @@
 
     async function submitGetForm(form) {
         const formData = new window.FormData(form);
-        const url = new URL(form.action || window.location.href, window.location.origin);
+        const url = getFormActionUrl(form);
         const params = new URLSearchParams();
         formData.forEach((value, key) => {
             if (typeof value === 'string' && value !== '') {
@@ -213,7 +217,7 @@
     });
 
     async function submitPostForm(form) {
-        const action = new URL(form.action || window.location.href, window.location.origin);
+        const action = getFormActionUrl(form);
         const formData = new window.FormData(form);
         const submitter = submitPostForm.lastSubmitter;
         if (submitter && submitter.name) {
@@ -577,12 +581,55 @@
         });
     }
 
+    function initAvatarUpload(scope) {
+        const root = scope || document;
+        root.querySelectorAll('[data-avatar-upload]').forEach((upload) => {
+            if (upload.dataset.avatarUploadBound === 'true') {
+                return;
+            }
+            upload.dataset.avatarUploadBound = 'true';
+
+            const input = upload.querySelector('input[type="file"]');
+            const fileName = upload.querySelector('[data-avatar-upload-file-name]');
+            const previewWrap = upload.querySelector('[data-avatar-upload-preview-wrap]');
+            const preview = upload.querySelector('[data-avatar-upload-preview]');
+            const emptyLabel = upload.dataset.avatarUploadEmpty || 'No file selected';
+            if (!input) {
+                return;
+            }
+
+            input.addEventListener('change', () => {
+                const file = input.files && input.files.length ? input.files[0] : null;
+                if (fileName) {
+                    fileName.textContent = file ? file.name : emptyLabel;
+                }
+                if (!preview || !previewWrap) {
+                    return;
+                }
+                if (preview.dataset.avatarObjectUrl) {
+                    window.URL.revokeObjectURL(preview.dataset.avatarObjectUrl);
+                    delete preview.dataset.avatarObjectUrl;
+                }
+                if (!file || !file.type || !file.type.startsWith('image/')) {
+                    preview.removeAttribute('src');
+                    previewWrap.hidden = true;
+                    return;
+                }
+                const objectUrl = window.URL.createObjectURL(file);
+                preview.dataset.avatarObjectUrl = objectUrl;
+                preview.src = objectUrl;
+                previewWrap.hidden = false;
+            });
+        });
+    }
+
     function initDashboardPageScripts(scope) {
         initCeleryTaskScheduleFields(scope);
         initSteamCatalogPriceHistory(scope);
         initSteamTradingAdd(scope);
         initSteamTradingSell(scope);
         initLiveModuleToggle(scope);
+        initAvatarUpload(scope);
 
         if (window.CaseUPStoreRatingInput && typeof window.CaseUPStoreRatingInput.init === 'function') {
             window.CaseUPStoreRatingInput.init(scope || document);

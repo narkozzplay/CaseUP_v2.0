@@ -134,6 +134,65 @@ class SteamCatalogTests(TestCase):
         self.assertContains(response, "Глубокая аналитика закрыта")
         self.assertContains(response, "Редактирование закрыто")
 
+    def test_catalog_detail_uses_item_media_class_for_case_png(self):
+        user = User.objects.create_user(username="catalog_case_png", password="StrongPass123")
+        self._grant_plan(user, 1)
+        item = SteamItem.objects.create(
+            market_hash_name="Kilowatt Case",
+            family_name="Kilowatt Case",
+            name="Kilowatt Case",
+            item_type=SteamItem.ItemType.CASE,
+            icon_url="https://example.com/kilowatt.png",
+            is_active=True,
+        )
+
+        self.client.login(username="catalog_case_png", password="StrongPass123")
+        response = self.client.get(reverse("steam_catalog:detail", args=[item.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="steam-catalog-detail__media"', html=False)
+        self.assertContains(response, 'class="steam-catalog-detail__image"', html=False)
+        self.assertContains(response, "https://example.com/kilowatt.png")
+        self.assertNotContains(response, "profile-avatar--lg")
+
+    def test_catalog_detail_uses_item_media_class_for_skin_png(self):
+        user = User.objects.create_user(username="catalog_skin_png", password="StrongPass123")
+        self._grant_plan(user, 1)
+        item = SteamItem.objects.create(
+            market_hash_name="AK-47 | Redline (Field-Tested)",
+            family_name="AK-47 | Redline",
+            name="AK-47 | Redline",
+            item_type=SteamItem.ItemType.SKIN,
+            icon_url="https://example.com/redline.png",
+            is_active=True,
+        )
+
+        self.client.login(username="catalog_skin_png", password="StrongPass123")
+        response = self.client.get(reverse("steam_catalog:detail", args=[item.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="steam-catalog-detail__image"', html=False)
+        self.assertContains(response, "https://example.com/redline.png")
+
+    def test_catalog_detail_renders_image_fallback_without_icon(self):
+        user = User.objects.create_user(username="catalog_no_icon", password="StrongPass123")
+        self._grant_plan(user, 1)
+        item = SteamItem.objects.create(
+            market_hash_name="Mystery Item",
+            family_name="Mystery Item",
+            name="Mystery Item",
+            item_type=SteamItem.ItemType.OTHER,
+            icon_url="",
+            is_active=True,
+        )
+
+        self.client.login(username="catalog_no_icon", password="StrongPass123")
+        response = self.client.get(reverse("steam_catalog:detail", args=[item.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="steam-catalog-detail__image-fallback"', html=False)
+        self.assertContains(response, "Other")
+
     def test_catalog_detail_allows_deep_analytics_for_level_2_subscription(self):
         user = User.objects.create_user(username="catalog_level2_detail", password="StrongPass123")
         self._grant_plan(user, 2)

@@ -1,5 +1,6 @@
 from django.http import HttpRequest
 from django.test import SimpleTestCase
+from django.template.loader import render_to_string
 
 from frontend.templatetags.frontend_i18n import switch_lang_url
 
@@ -29,3 +30,14 @@ class FrontendI18nTests(SimpleTestCase):
         request = self._request("/")
         self.assertEqual(switch_lang_url(request, "en"), "/en/")
         self.assertEqual(switch_lang_url(request, "ru"), "/")
+
+    def test_language_switcher_disables_dashboard_ajax_navigation(self):
+        request = self._request("/profile/?tab=account")
+        html = render_to_string(
+            "components/language_switcher.html",
+            {"request": request, "LANGUAGE_CODE": "ru"},
+        )
+
+        self.assertIn('href="/profile/?tab=account"', html)
+        self.assertIn('href="/en/profile/?tab=account"', html)
+        self.assertEqual(html.count('data-dashboard-nav="false"'), 2)

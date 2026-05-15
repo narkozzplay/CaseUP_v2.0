@@ -18,4 +18,6 @@ urlpatterns = [
     path("drop-pool/", views.drop_pool_manage, name="drop_pool"),
     path("drop-pool/<int:entry_id>/remove/", views.drop_pool_remove, name="drop_pool_remove"),
     path("settings/", views.settings_page, name="settings"),
+    path("settings/dispatch-thresholds/", views.settings_dispatch_thresholds, name="settings_dispatch_thresholds"),
+    path("settings/dispatch-advantage/", views.settings_dispatch_advantage, name="settings_dispatch_advantage"),
 ]

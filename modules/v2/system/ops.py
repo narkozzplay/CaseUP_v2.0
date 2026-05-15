@@ -312,6 +312,32 @@ def backup_media_directory(*, destination: Path) -> Path:
     return destination
 
 
+def _path_is_relative_to(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+    except ValueError:
+        return False
+    return True
+
+
+def _validate_media_archive_member(*, member: tarfile.TarInfo, extraction_root: Path, media_root: Path) -> None:
+    member_name = str(member.name or "")
+    member_path = Path(member_name)
+    if not member_name or member_name.startswith("/") or member_path.is_absolute() or ".." in member_path.parts:
+        raise CommandError(f"Unsafe media archive path: {member_name or '<empty>'}")
+
+    if member.issym() or member.islnk():
+        raise CommandError(f"Unsafe media archive link member: {member_name}")
+
+    if not member.isdir() and not member.isfile():
+        raise CommandError(f"Unsupported media archive member type: {member_name}")
+
+    resolved_target = (extraction_root / member_path).resolve()
+    resolved_media_root = media_root.resolve()
+    if resolved_target != resolved_media_root and not _path_is_relative_to(resolved_target, resolved_media_root):
+        raise CommandError(f"Unsafe media archive target: {member_name}")
+
+
 
 def resolve_restore_artifacts(*, backup_dir: str | None = None, db_dump: str | None = None, media_archive: str | None = None) -> RestoreArtifacts:
     root = resolve_backup_root()
@@ -351,6 +377,16 @@ def restore_postgres_database(*, source: Path) -> None:
 def restore_media_directory(*, source: Path) -> None:
     media_root = Path(settings.MEDIA_ROOT)
     media_root.mkdir(parents=True, exist_ok=True)
+    extraction_root = media_root.parent
+
+    with tarfile.open(source, "r:gz") as archive:
+        members = archive.getmembers()
+        for member in members:
+            _validate_media_archive_member(
+                member=member,
+                extraction_root=extraction_root,
+                media_root=media_root,
+            )
 
     for child in media_root.iterdir():
         if child.is_dir():
@@ -359,7 +395,7 @@ def restore_media_directory(*, source: Path) -> None:
             child.unlink()
 
     with tarfile.open(source, "r:gz") as archive:
-        archive.extractall(path=media_root.parent)
+        archive.extractall(path=extraction_root, members=members)
 
 
 

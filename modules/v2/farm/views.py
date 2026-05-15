@@ -7,6 +7,7 @@ from django.db.models import Count, Q
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 from common.search import render_search_not_found
 
@@ -673,16 +674,6 @@ def settings_page(request):
     else:
         form = FarmModuleConfigForm(instance=config)
 
-    if request.GET.get("dispatch") == "thresholds":
-        events = dispatch_price_threshold_notifications()
-        messages.success(request, f"Threshold dispatch: {len(events)} event(s).")
-        return redirect("farm:settings")
-
-    if request.GET.get("dispatch") == "advantage":
-        events = dispatch_caseup_advantage_notifications()
-        messages.success(request, f"CaseUP advantage dispatch: {len(events)} event(s).")
-        return redirect("farm:settings")
-
     return render_dashboard_page(
         request,
         full_template="farm/settings.html",
@@ -695,3 +686,27 @@ def settings_page(request):
         page_title=build_page_title("Farm Settings"),
         active_menu_key="farm_settings",
     )
+
+
+@farm_staff_required
+@require_POST
+def settings_dispatch_thresholds(request):
+    role_access = get_user_role(request.user)
+    if not role_access.is_admin_plus:
+        return HttpResponseForbidden("Farm settings доступны только admin+.")
+
+    events = dispatch_price_threshold_notifications()
+    messages.success(request, f"Threshold dispatch: {len(events)} event(s).")
+    return redirect("farm:settings")
+
+
+@farm_staff_required
+@require_POST
+def settings_dispatch_advantage(request):
+    role_access = get_user_role(request.user)
+    if not role_access.is_admin_plus:
+        return HttpResponseForbidden("Farm settings доступны только admin+.")
+
+    events = dispatch_caseup_advantage_notifications()
+    messages.success(request, f"CaseUP advantage dispatch: {len(events)} event(s).")
+    return redirect("farm:settings")

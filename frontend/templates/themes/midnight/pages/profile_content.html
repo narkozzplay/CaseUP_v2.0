@@ -13,9 +13,21 @@
                 <span class="status-pill">{% trans "Balance" %}: {{ profile.balance_coins }}</span>
                 <span class="status-pill">Steam lvl: {{ profile.steam_level|default:"—" }}</span>
                 {% if is_owner_profile and avatar_upload_form %}
-                    <form method="post" action="{% url 'profiles:profile_avatar_upload' %}" enctype="multipart/form-data" class="form-stack">
+                    <form method="post" action="{% url 'profiles:profile_avatar_upload' %}" enctype="multipart/form-data" class="form-stack avatar-upload avatar-upload--compact" data-avatar-upload data-avatar-upload-empty="{% trans 'No file selected' %}">
                         {% csrf_token %}
-                        {{ avatar_upload_form.uploaded_avatar }}
+                        <div class="avatar-upload__control">
+                            {{ avatar_upload_form.uploaded_avatar }}
+                            <label class="btn btn-secondary btn-sm avatar-upload__button" for="{{ avatar_upload_form.uploaded_avatar.id_for_label }}">
+                                {% trans "Choose file" %}
+                            </label>
+                            <span class="avatar-upload__file-name" data-avatar-upload-file-name aria-live="polite">{% trans "No file selected" %}</span>
+                        </div>
+                        <div class="avatar-upload__preview" data-avatar-upload-preview-wrap hidden>
+                            <img src="" alt="" data-avatar-upload-preview>
+                        </div>
+                        <div class="avatar-upload__errors">
+                            {{ avatar_upload_form.uploaded_avatar.errors }}
+                        </div>
                         <button type="submit" class="btn btn-secondary btn-sm">{% trans "Save avatar" %}</button>
                     </form>
                 {% endif %}

@@ -10,9 +10,15 @@
             </div>
 
             <div class="profile-hero__aside">
-                {% if item.icon_url %}
-                    <img src="{{ item.icon_cdn }}" alt="{{ item.group_name }}" class="profile-avatar profile-avatar--lg">
-                {% endif %}
+                <div class="steam-catalog-detail__media">
+                    {% if item.icon_cdn %}
+                        <img src="{{ item.icon_cdn }}" alt="{{ item.group_name }}" class="steam-catalog-detail__image">
+                    {% else %}
+                        <div class="steam-catalog-detail__image-fallback" aria-hidden="true">
+                            {{ item.get_item_type_display|default:"Item" }}
+                        </div>
+                    {% endif %}
+                </div>
                 <div class="profile-badges">
                     <span class="status-pill">Вариантов: {{ family_items|length }}</span>
                     <span class="status-pill">Stock: {{ family_total_stock }}</span>

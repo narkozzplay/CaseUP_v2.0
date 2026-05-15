@@ -1,4 +1,7 @@
 import shutil
+import tarfile
+import tempfile
+from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -6,6 +9,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.core.management import CommandError
 from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
@@ -30,6 +34,7 @@ from .services import (
     get_runtime_environment,
 )
 from .module_registry import MODULE_REGISTRY
+from .ops import backup_media_directory, restore_media_directory
 from .services import get_module_state_map, get_site_configuration, update_module_states
 from .theme_plugins import discover_runtime_themes
 
@@ -737,9 +742,37 @@ class SystemVersioningTests(TestCase):
     def test_versioning_bootstrap_creates_current_project_version_and_theme(self):
         config = get_site_configuration()
         self.assertIsNotNone(get_current_project_version())
+        self.assertEqual(get_current_project_version().version, "0.3.2")
         self.assertIsNotNone(get_active_theme())
         self.assertTrue(ThemeProfile.objects.filter(is_default=True).exists())
         self.assertIsNotNone(config.current_project_version)
+
+    def test_existing_legacy_project_version_syncs_to_version_file(self):
+        config = get_site_configuration()
+        ProjectVersion.objects.update(
+            is_current=False,
+            is_default_for_dev=False,
+            is_default_for_prod=False,
+        )
+        legacy = ProjectVersion.objects.create(
+            version="0.0.9",
+            version_order=9,
+            title="Legacy",
+            status=ProjectVersion.Status.ACTIVE,
+            is_current=True,
+            is_default_for_dev=True,
+            is_default_for_prod=True,
+        )
+        config.current_project_version = legacy
+        config.save(update_fields=["current_project_version", "updated_at"])
+
+        bootstrap_versioning()
+
+        config.refresh_from_db()
+        self.assertEqual(config.current_project_version.version, "0.3.2")
+        self.assertTrue(ProjectVersion.objects.get(version="0.3.2").is_current)
+        legacy.refresh_from_db()
+        self.assertFalse(legacy.is_current)
 
     def test_admin_can_open_versioning_page(self):
         user = User.objects.create_user(username="admin_versioning", password="StrongPass123")
@@ -758,6 +791,76 @@ class SystemVersioningTests(TestCase):
         self.assertTrue(states.filter(environment="dev").exists())
         self.assertTrue(states.filter(environment="prod").exists())
         self.assertTrue(states.filter(environment="test").exists())
+
+
+class SystemMediaRestoreSafetyTests(TestCase):
+    def _write_tar_member(self, archive_path: Path, name: str, content: bytes = b"bad") -> None:
+        with tarfile.open(archive_path, "w:gz") as archive:
+            info = tarfile.TarInfo(name)
+            info.size = len(content)
+            archive.addfile(info, BytesIO(content))
+
+    def test_restore_media_directory_allows_valid_backup_archive(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            media_root = temp_path / "media"
+            media_root.mkdir()
+            nested = media_root / "nested"
+            nested.mkdir()
+            (nested / "ok.txt").write_text("ok", encoding="utf-8")
+            archive_path = temp_path / "media.tar.gz"
+
+            with override_settings(MEDIA_ROOT=media_root):
+                backup_media_directory(destination=archive_path)
+                shutil.rmtree(media_root)
+                media_root.mkdir()
+                restore_media_directory(source=archive_path)
+
+            self.assertEqual((media_root / "nested" / "ok.txt").read_text(encoding="utf-8"), "ok")
+
+    def test_restore_media_directory_rejects_parent_traversal(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            media_root = temp_path / "media"
+            media_root.mkdir()
+            (media_root / "keep.txt").write_text("keep", encoding="utf-8")
+            archive_path = temp_path / "bad.tar.gz"
+            self._write_tar_member(archive_path, "../evil.txt")
+
+            with override_settings(MEDIA_ROOT=media_root):
+                with self.assertRaises(CommandError):
+                    restore_media_directory(source=archive_path)
+
+            self.assertTrue((media_root / "keep.txt").exists())
+            self.assertFalse((temp_path / "evil.txt").exists())
+
+    def test_restore_media_directory_rejects_absolute_path(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            media_root = temp_path / "media"
+            media_root.mkdir()
+            archive_path = temp_path / "absolute.tar.gz"
+            self._write_tar_member(archive_path, "/absolute/path.txt")
+
+            with override_settings(MEDIA_ROOT=media_root):
+                with self.assertRaises(CommandError):
+                    restore_media_directory(source=archive_path)
+
+    def test_restore_media_directory_rejects_symlink_members(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            media_root = temp_path / "media"
+            media_root.mkdir()
+            archive_path = temp_path / "symlink.tar.gz"
+            with tarfile.open(archive_path, "w:gz") as archive:
+                info = tarfile.TarInfo("media/link")
+                info.type = tarfile.SYMTYPE
+                info.linkname = "../outside.txt"
+                archive.addfile(info)
+
+            with override_settings(MEDIA_ROOT=media_root):
+                with self.assertRaises(CommandError):
+                    restore_media_directory(source=archive_path)
 
 
 class SystemBulkCompatibilityServicesTests(TestCase):

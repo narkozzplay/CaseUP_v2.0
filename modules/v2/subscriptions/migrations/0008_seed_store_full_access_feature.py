@@ -1,4 +1,4 @@
-﻿from django.db import migrations
+from django.db import migrations
 
 
 def seed_store_full_access_feature(apps, schema_editor):

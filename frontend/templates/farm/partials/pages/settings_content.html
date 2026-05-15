@@ -6,8 +6,14 @@
             <p class="text-muted">Commission, thresholds, alert dispatch and reward tiers.</p>
         </div>
         <div class="hero-actions">
-            <a href="?dispatch=thresholds" class="btn btn-secondary">Dispatch thresholds</a>
-            <a href="?dispatch=advantage" class="btn btn-secondary">Dispatch {{ site_settings.site_name|default:"CaseUP" }} advantage</a>
+            <form method="post" action="{% url 'farm:settings_dispatch_thresholds' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary">Dispatch thresholds</button>
+            </form>
+            <form method="post" action="{% url 'farm:settings_dispatch_advantage' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary">Dispatch {{ site_settings.site_name|default:"CaseUP" }} advantage</button>
+            </form>
         </div>
     </div>
 

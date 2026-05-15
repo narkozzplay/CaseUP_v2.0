@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import shutil
 import tempfile
@@ -12,7 +12,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
-from modules.v2.profiles.models import UserRole
+from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserRole
 from modules.v2.profiles.services.balance import adjust_balance
 from modules.v2.subscriptions.models import SubscriptionPlan
 from modules.v2.subscriptions.services import assign_user_subscription_plan
@@ -29,6 +29,7 @@ from .models import (
     StoreProductReview,
     ThemeStoreListing,
     UserBundlePurchase,
+    UserStorePurchase,
     UserThemePurchase,
 )
 from .presentation import (
@@ -159,6 +160,15 @@ class StoreRuntimeModuleDiscoveryTests(TestCase):
         self.assertTrue(is_runtime_module_compatible(module))
         self.assertFalse(is_runtime_module_compatible(module, project_version="9.9.9"))
 
+    def test_steam_runtime_modules_are_compatible_with_project_032(self):
+        price_graphics = get_runtime_module("steam_update_plugin_price_graphics")
+        catalog_v2 = get_runtime_module("steam_catalog_v2")
+
+        self.assertIsNotNone(price_graphics)
+        self.assertIsNotNone(catalog_v2)
+        self.assertTrue(is_runtime_module_compatible(price_graphics, project_version="0.3.2"))
+        self.assertTrue(is_runtime_module_compatible(catalog_v2, project_version="0.3.2"))
+
 
 class StoreFoundationFlowTests(TestCase):
     def setUp(self):
@@ -261,6 +271,68 @@ class StoreFoundationFlowTests(TestCase):
         self.assertEqual(state.access_source, "purchase")
         self.assertTrue(state.is_purchased)
 
+    def test_repeated_store_listing_purchase_does_not_charge_twice(self):
+        adjust_balance(user=self.user, delta=Decimal("300.00"), reason=LedgerReason.TOPUP, amount_snapshot=Decimal("300.00"))
+
+        first_purchase = purchase_store_listing_with_balance(user=self.user, listing_id=self.module_listing.id)
+        self.user.profile_v2.refresh_from_db()
+        balance_after_first = self.user.profile_v2.balance_coins
+        second_purchase = purchase_store_listing_with_balance(user=self.user, listing_id=self.module_listing.id)
+        self.user.profile_v2.refresh_from_db()
+
+        self.assertEqual(second_purchase.id, first_purchase.id)
+        self.assertEqual(self.user.profile_v2.balance_coins, balance_after_first)
+        self.assertEqual(LedgerEntry.objects.filter(user=self.user, reason=LedgerReason.STORE_PURCHASE).count(), 1)
+        self.assertEqual(UserStorePurchase.objects.filter(user=self.user, listing=self.module_listing).count(), 1)
+        self.assertEqual(
+            StoreProductEntitlement.objects.filter(
+                user=self.user,
+                listing=self.module_listing,
+                source=StoreProductEntitlement.Source.PURCHASE,
+            ).count(),
+            1,
+        )
+
+    def test_existing_store_purchase_returns_without_charge(self):
+        adjust_balance(user=self.user, delta=Decimal("300.00"), reason=LedgerReason.TOPUP, amount_snapshot=Decimal("300.00"))
+        existing_purchase = UserStorePurchase.objects.create(
+            user=self.user,
+            listing=self.module_listing,
+            category=self.module_listing.category,
+            product_key=self.module_listing.runtime_key,
+            amount_rub=self.module_listing.price_rub,
+        )
+
+        returned_purchase = purchase_store_listing_with_balance(user=self.user, listing_id=self.module_listing.id)
+        self.user.profile_v2.refresh_from_db()
+
+        self.assertEqual(returned_purchase.id, existing_purchase.id)
+        self.assertEqual(self.user.profile_v2.balance_coins, Decimal("300.00"))
+        self.assertFalse(LedgerEntry.objects.filter(user=self.user, reason=LedgerReason.STORE_PURCHASE).exists())
+        self.assertTrue(
+            StoreProductEntitlement.objects.filter(
+                user=self.user,
+                listing=self.module_listing,
+                source=StoreProductEntitlement.Source.PURCHASE,
+            ).exists()
+        )
+
+    def test_existing_entitlement_returns_without_charge(self):
+        adjust_balance(user=self.user, delta=Decimal("300.00"), reason=LedgerReason.TOPUP, amount_snapshot=Decimal("300.00"))
+        StoreProductEntitlement.objects.create(
+            user=self.user,
+            listing=self.module_listing,
+            source=StoreProductEntitlement.Source.PURCHASE,
+        )
+
+        purchase = purchase_store_listing_with_balance(user=self.user, listing_id=self.module_listing.id)
+        self.user.profile_v2.refresh_from_db()
+
+        self.assertIsNotNone(purchase.id)
+        self.assertEqual(purchase.amount_rub, Decimal("0.00"))
+        self.assertEqual(self.user.profile_v2.balance_coins, Decimal("300.00"))
+        self.assertFalse(LedgerEntry.objects.filter(user=self.user, reason=LedgerReason.STORE_PURCHASE).exists())
+
     def test_bundle_purchase_flow_grants_entitlements(self):
         adjust_balance(user=self.user, delta=Decimal("500.00"), reason="topup", amount_snapshot=Decimal("500.00"))
 
@@ -281,6 +353,35 @@ class StoreFoundationFlowTests(TestCase):
                 source=StoreProductEntitlement.Source.BUNDLE_PURCHASE,
             ).exists()
         )
+
+    def test_repeated_bundle_purchase_does_not_charge_twice(self):
+        adjust_balance(user=self.user, delta=Decimal("500.00"), reason=LedgerReason.TOPUP, amount_snapshot=Decimal("500.00"))
+
+        first_purchase = purchase_bundle_with_balance(user=self.user, listing_id=self.bundle_listing.id)
+        self.user.profile_v2.refresh_from_db()
+        balance_after_first = self.user.profile_v2.balance_coins
+        second_purchase = purchase_bundle_with_balance(user=self.user, listing_id=self.bundle_listing.id)
+        self.user.profile_v2.refresh_from_db()
+
+        self.assertEqual(second_purchase.id, first_purchase.id)
+        self.assertEqual(self.user.profile_v2.balance_coins, balance_after_first)
+        self.assertEqual(LedgerEntry.objects.filter(user=self.user, reason=LedgerReason.BUNDLE_PURCHASE).count(), 1)
+        self.assertEqual(UserBundlePurchase.objects.filter(user=self.user, bundle_key=self.bundle_listing.bundle_key).count(), 1)
+        self.assertEqual(
+            StoreProductEntitlement.objects.filter(
+                user=self.user,
+                source=StoreProductEntitlement.Source.BUNDLE_PURCHASE,
+            ).count(),
+            2,
+        )
+
+    def test_insufficient_balance_does_not_create_purchase_or_entitlement(self):
+        with self.assertRaises(ThemePurchaseError):
+            purchase_store_listing_with_balance(user=self.user, listing_id=self.module_listing.id)
+
+        self.assertFalse(UserStorePurchase.objects.filter(user=self.user, listing=self.module_listing).exists())
+        self.assertFalse(StoreProductEntitlement.objects.filter(user=self.user, listing=self.module_listing).exists())
+        self.assertFalse(LedgerEntry.objects.filter(user=self.user, reason=LedgerReason.STORE_PURCHASE).exists())
 
     def test_store_access_resolver_subscription_only_for_included_products(self):
         level_5 = SubscriptionPlan.objects.get(code="level_5_pro")

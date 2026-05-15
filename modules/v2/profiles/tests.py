@@ -701,6 +701,17 @@ class ProfileAvatarPatchTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "img/placeholders/no_image.svg")
 
+    def test_profile_page_contains_custom_avatar_upload_ui(self):
+        self.client.login(username="avatar_patch_user", password="StrongPass123")
+        response = self.client.get(reverse("profiles:profile"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-avatar-upload")
+        self.assertContains(response, "avatar-upload__button")
+        self.assertContains(response, "data-avatar-upload-file-name")
+        self.assertContains(response, "data-avatar-upload-preview-wrap")
+        self.assertContains(response, 'enctype="multipart/form-data"')
+
     def test_profile_avatar_upload_view_saves_uploaded_avatar(self):
         self.client.login(username="avatar_patch_user", password="StrongPass123")
         uploaded_file = SimpleUploadedFile(
@@ -721,6 +732,26 @@ class ProfileAvatarPatchTests(TestCase):
             self.assertTrue(bool(self.user.profile_v2.uploaded_avatar))
             self.assertIn("profiles/avatars/", self.user.profile_v2.uploaded_avatar.name)
             self.assertContains(response, "Аватар обновлён.")
+
+    def test_profile_avatar_upload_invalid_file_shows_error_and_does_not_save(self):
+        self.client.login(username="avatar_patch_user", password="StrongPass123")
+        uploaded_file = SimpleUploadedFile(
+            "avatar.txt",
+            b"not an image",
+            content_type="text/plain",
+        )
+
+        with self.settings(MEDIA_ROOT=self.media_root):
+            response = self.client.post(
+                reverse("profiles:profile_avatar_upload"),
+                {"uploaded_avatar": uploaded_file},
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.user.profile_v2.refresh_from_db()
+            self.assertFalse(bool(self.user.profile_v2.uploaded_avatar))
+            self.assertContains(response, "Не удалось обновить аватар.")
+            self.assertContains(response, "Загрузите правильное изображение")
 
     def test_avatar_source_priority_uploaded_then_steam_then_default(self):
         profile = self.user.profile_v2

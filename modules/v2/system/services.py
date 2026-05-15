@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import os
+import re
 import threading
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
+from pathlib import Path
 from urllib.parse import urlparse
 
 import requests
@@ -29,6 +31,7 @@ from .models import (
 
 ZERO = Decimal("0.00")
 MONEY_Q = Decimal("0.01")
+FALLBACK_PROJECT_VERSION = "0.1.38"
 _BOOTSTRAP_VERSIONING_LOCK = threading.Lock()
 _BOOTSTRAP_VERSIONING_DONE = False
 
@@ -117,6 +120,35 @@ def get_runtime_environment() -> str:
     if module.endswith(".testing"):
         return EnvironmentModuleState.Environment.TEST
     return EnvironmentModuleState.Environment.DEV
+
+
+def get_project_build_version() -> str:
+    version_path = Path(settings.BASE_DIR) / "VERSION.txt"
+    try:
+        raw_text = version_path.read_text(encoding="utf-8-sig")
+    except OSError:
+        return FALLBACK_PROJECT_VERSION
+    match = re.search(r"(?<!\d)(\d+(?:\.\d+)+)(?!\d)", raw_text)
+    if not match:
+        return FALLBACK_PROJECT_VERSION
+    return match.group(1)
+
+
+def _build_project_version_order(version: str) -> int:
+    parts = [int(part) for part in re.findall(r"\d+", version)]
+    if not parts:
+        return 1
+    if len(parts) > 1 and parts[0] == 0:
+        parts = parts[1:]
+    order = int("".join(str(part) for part in parts))
+    return max(order, 1)
+
+
+def _next_project_version_order(base_order: int) -> int:
+    version_order = max(int(base_order or 1), 1)
+    while ProjectVersion.objects.filter(version_order=version_order).exists():
+        version_order += 1
+    return version_order
 
 
 def get_site_configuration() -> SiteConfiguration:
@@ -283,10 +315,9 @@ def ensure_module_states() -> dict[str, ModuleState]:
 
 @transaction.atomic
 def ensure_environment_module_states() -> None:
-    releases_by_key = {
-        row.module_key: row
-        for row in ModuleRelease.objects.filter(is_active=True).order_by("module_key", "-is_default", "-version_order")
-    }
+    releases_by_key: dict[str, ModuleRelease] = {}
+    for row in ModuleRelease.objects.filter(is_active=True).order_by("module_key", "-is_default", "-version_order"):
+        releases_by_key.setdefault(row.module_key, row)
     for environment in EnvironmentModuleState.Environment.values:
         for key, definition in MODULE_REGISTRY.items():
             state, created = EnvironmentModuleState.objects.get_or_create(
@@ -308,26 +339,41 @@ def ensure_environment_module_states() -> None:
 @transaction.atomic
 def ensure_project_versions() -> None:
     config = get_site_configuration()
-    if ProjectVersion.objects.exists():
-        if not config.current_project_version_id:
-            fallback = (
-                ProjectVersion.objects.filter(is_current=True).first()
-                or ProjectVersion.objects.filter(is_default_for_dev=True).first()
-                or ProjectVersion.objects.order_by("version_order").last()
-            )
-            if fallback is not None:
-                config.current_project_version = fallback
-                config.save(update_fields=["current_project_version", "updated_at"])
-        return
-    version = ProjectVersion.objects.create(
-        version="0.1.38",
-        version_order=138,
-        title="CaseUP 0.1.38",
-        status=ProjectVersion.Status.ACTIVE,
-        is_current=True,
-        is_default_for_dev=True,
-        is_default_for_prod=True,
+    version_value = get_project_build_version()
+    version = ProjectVersion.objects.select_for_update().filter(version=version_value).first()
+    if version is None:
+        version = ProjectVersion.objects.create(
+            version=version_value,
+            version_order=_next_project_version_order(_build_project_version_order(version_value)),
+            title=f"CaseUP {version_value}",
+            status=ProjectVersion.Status.ACTIVE,
+        )
+
+    ProjectVersion.objects.exclude(pk=version.pk).update(
+        is_current=False,
+        is_default_for_dev=False,
+        is_default_for_prod=False,
     )
+
+    changed_fields: list[str] = []
+    if version.title != f"CaseUP {version_value}":
+        version.title = f"CaseUP {version_value}"
+        changed_fields.append("title")
+    if version.status != ProjectVersion.Status.ACTIVE:
+        version.status = ProjectVersion.Status.ACTIVE
+        changed_fields.append("status")
+    if not version.is_current:
+        version.is_current = True
+        changed_fields.append("is_current")
+    if not version.is_default_for_dev:
+        version.is_default_for_dev = True
+        changed_fields.append("is_default_for_dev")
+    if not version.is_default_for_prod:
+        version.is_default_for_prod = True
+        changed_fields.append("is_default_for_prod")
+    if changed_fields:
+        version.save(update_fields=[*changed_fields, "updated_at"])
+
     config.current_project_version = version
     config.save(update_fields=["current_project_version", "updated_at"])
 
@@ -382,8 +428,8 @@ def ensure_themes() -> None:
 @transaction.atomic
 def ensure_module_releases() -> None:
     version = get_current_project_version()
-    seeded_version = version.version if version else "0.1.38"
-    seeded_order = version.version_order if version else 138
+    seeded_version = version.version if version else FALLBACK_PROJECT_VERSION
+    seeded_order = version.version_order if version else _build_project_version_order(FALLBACK_PROJECT_VERSION)
     for key, definition in MODULE_REGISTRY.items():
         release, _created = ModuleRelease.objects.get_or_create(
             module_key=key,
@@ -393,7 +439,7 @@ def ensure_module_releases() -> None:
                 "channel": ModuleRelease.Channel.STABLE,
                 "title": f"{definition.label} {seeded_version}",
                 "description": definition.description,
-                "is_default": True,
+                "is_default": False,
                 "is_active": True,
             },
         )
@@ -401,11 +447,10 @@ def ensure_module_releases() -> None:
         if not release.is_active:
             release.is_active = True
             changed = True
+        ModuleRelease.objects.exclude(pk=release.pk).filter(module_key=key, is_default=True).update(is_default=False)
         if not release.is_default:
-            has_default = ModuleRelease.objects.exclude(pk=release.pk).filter(module_key=key, is_default=True).exists()
-            if not has_default:
-                release.is_default = True
-                changed = True
+            release.is_default = True
+            changed = True
         if changed:
             release.save(update_fields=["is_active", "is_default", "updated_at"])
         if version and not ModuleCompatibility.objects.filter(
