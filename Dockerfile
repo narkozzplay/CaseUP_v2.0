@@ -17,6 +17,9 @@ COPY . /app
 
 RUN chmod +x /app/entrypoint.sh
 
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+USER appuser
+
 EXPOSE 8000
 
 ENTRYPOINT ["/app/entrypoint.sh"]

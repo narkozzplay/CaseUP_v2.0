@@ -10,7 +10,6 @@ from django.utils import timezone
 
 from common.search import render_search_not_found
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.utils.safestring import mark_safe
 
 from modules.v2.farm.auth import get_farm_access
 from modules.v2.farm.decorators import farm_required
@@ -94,7 +93,7 @@ def purchase_add(request):
             "steam_trading_access": access,
             "role_access": get_user_role(request.user),
             "form": form,
-            "item_prices_json": mark_safe(json.dumps(item_prices)),
+            "item_prices_json": json.dumps(item_prices),
         },
         page_title="Добавить закупку | Steam Trading",
         active_menu_key="steam_investments",
