@@ -10,6 +10,7 @@ from .views import (
     sync_steam_view,
     telegram_connect_view,
     telegram_disconnect_view,
+    users_catalog_view,
 )
 
 app_name = "profiles"
@@ -17,6 +18,7 @@ app_name = "profiles"
 urlpatterns = [
     path("profile/", profile_view, name="profile"),
     path("cabinet/", profile_view, name="cabinet"),
+    path("users/", users_catalog_view, name="users_catalog"),
     path("profile/user/<int:user_id>/", profile_detail_view, name="profile_detail"),
     path("profile/user/<int:user_id>/admin-update/", profile_admin_update_view, name="profile_admin_update"),
     path("profile/theme/preferences/", profile_theme_preferences_update_view, name="profile_theme_preferences_update"),

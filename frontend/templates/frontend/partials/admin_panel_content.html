@@ -24,29 +24,6 @@
     <div class="profile-grid profile-grid--3">
         <article class="card">
             <div class="card-body">
-                <h2 class="section-title">Dev topup balance</h2>
-
-                <form method="post" class="form-stack">
-                    {% csrf_token %}
-                    <div class="form-field">
-                        <label for="{{ form.username.id_for_label }}">Username</label>
-                        {{ form.username }}
-                        {{ form.username.errors }}
-                    </div>
-
-                    <div class="form-field">
-                        <label for="{{ form.amount.id_for_label }}">Amount</label>
-                        {{ form.amount }}
-                        {{ form.amount.errors }}
-                    </div>
-
-                    <button type="submit" class="btn btn-primary btn-block">Apply topup</button>
-                </form>
-            </div>
-        </article>
-
-        <article class="card">
-            <div class="card-body">
                 <h2 class="section-title">Role distribution</h2>
 
                 <div class="dashboard-list">
@@ -70,7 +47,9 @@
                     {% for profile in top_profiles %}
                         <div class="dashboard-list__row">
                             <div>
-                                <strong>{{ profile.user.username }}</strong>
+                                <a href="{% url 'profiles:profile_detail' profile.user_id %}" class="table-link" data-dashboard-nav="true">
+                                    {{ profile.steam_personaname|default:profile.user.username }}
+                                </a>
                                 <div class="text-muted">{{ profile.role }}</div>
                             </div>
                             <span class="metric-positive">{{ profile.balance_coins }}</span>
@@ -128,7 +107,7 @@
         </article>{% endif %}
     </div>
 
-    <article class="card dashboard-panel">
+    <article class="card dashboard-panel admin-panel__recent">
         <div class="card-body">
             <div class="section-head-inline">
                 <h2 class="section-title">Recent admin adjustments</h2>
@@ -150,7 +129,11 @@
                         {% for entry in recent_admin_adjustments %}
                             <tr>
                                 <td>{{ entry.created_at|date:"d.m.Y H:i" }}</td>
-                                <td>{{ entry.user.username }}</td>
+                                <td>
+                                    <a href="{% url 'profiles:profile_detail' entry.user_id %}" class="table-link" data-dashboard-nav="true">
+                                        {{ entry.user.profile_v2.steam_personaname|default:entry.user.username }}
+                                    </a>
+                                </td>
                                 <td>{{ entry.reason }}</td>
                                 <td>{{ entry.delta }}</td>
                                 <td>{{ entry.balance_after }}</td>

@@ -1,0 +1,151 @@
+<section class="section section--compact users-catalog" data-users-catalog-view="{{ view_mode }}">
+    <div class="section-heading">
+        <span class="eyebrow">Profiles</span>
+        <h1>Users Catalog</h1>
+        <p class="text-muted">
+            {% if LANGUAGE_CODE == "ru" %}
+                Каталог пользователей с быстрым переходом в профиль, Steam/FACEIT метриками и фильтрами для операционной работы.
+            {% else %}
+                User directory with profile links, Steam/FACEIT metrics and operations-friendly filters.
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="card catalog-toolbar users-catalog__toolbar">
+        <div class="card-body">
+            <form method="get" class="toolbar-grid users-catalog__filters">
+                <input type="hidden" name="view" value="{{ view_mode }}">
+
+                <div class="form-field">
+                    <label for="q">{% if LANGUAGE_CODE == "ru" %}Поиск{% else %}Search{% endif %}</label>
+                    <input id="q" type="text" name="q" value="{{ q }}" class="form-control">
+                </div>
+
+                <div class="form-field">
+                    <label for="role">{% if LANGUAGE_CODE == "ru" %}Роль{% else %}Role{% endif %}</label>
+                    <select id="role" name="role" class="form-control">
+                        <option value="">{% if LANGUAGE_CODE == "ru" %}Все{% else %}All{% endif %}</option>
+                        {% for value, label in role_options %}
+                            <option value="{{ value }}" {% if selected_role == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="sort">{% if LANGUAGE_CODE == "ru" %}Сортировка{% else %}Sort{% endif %}</label>
+                    <select id="sort" name="sort" class="form-control">
+                        {% for value, label in sort_options %}
+                            <option value="{{ value }}" {% if selected_sort == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="toolbar-actions users-catalog__actions">
+                    <button type="submit" class="btn btn-secondary">
+                        {% if LANGUAGE_CODE == "ru" %}Фильтровать{% else %}Filter{% endif %}
+                    </button>
+                    <div class="users-catalog__view-switch" aria-label="Users catalog view mode">
+                        <a href="?{{ grid_query }}" class="price-chart__range-btn {% if view_mode == 'grid' %}is-active{% endif %}">Grid</a>
+                        <a href="?{{ list_query }}" class="price-chart__range-btn {% if view_mode == 'list' %}is-active{% endif %}">List</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if view_mode == "list" %}
+        <div class="users-list">
+            {% for item in users %}
+                <article class="users-list__row">
+                    <img src="{{ item.avatar_url }}" alt="{{ item.display_name }}" class="users-list__avatar">
+                    <div class="users-list__identity">
+                        <a href="{{ item.profile_url }}" class="users-list__name" data-dashboard-nav="true">{{ item.display_name }}</a>
+                        <span class="text-muted">{{ item.user.username }}</span>
+                    </div>
+                    <div class="users-list__meta">
+                        <span class="status-pill status-pill--sm">{{ item.role_label }}</span>
+                        <span class="status-pill status-pill--sm">{% if LANGUAGE_CODE == "ru" %}Баланс:{% else %}Balance:{% endif %} {{ item.balance }}</span>
+                        <span class="status-pill status-pill--sm">Steam lvl: {% if item.steam_level %}{{ item.steam_level }}{% else %}—{% endif %}</span>
+                        <span class="status-pill status-pill--sm">FACEIT: {% if item.faceit_label %}{{ item.faceit_label }}{% else %}—{% endif %}</span>
+                    </div>
+                    <div class="users-list__activity text-muted">
+                        {% if item.activity_kind == "last_seen" %}
+                            {% if LANGUAGE_CODE == "ru" %}Был:{% else %}Seen:{% endif %}
+                        {% elif item.activity_kind == "last_login" %}
+                            {% if LANGUAGE_CODE == "ru" %}Login:{% else %}Login:{% endif %}
+                        {% else %}
+                            {% if LANGUAGE_CODE == "ru" %}С нами:{% else %}Joined:{% endif %}
+                        {% endif %}
+                        {% if item.activity_at %}{{ item.activity_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}
+                    </div>
+                    <a href="{{ item.profile_url }}" class="btn btn-secondary btn-sm users-list__open" data-dashboard-nav="true">
+                        {% if LANGUAGE_CODE == "ru" %}Открыть{% else %}Open{% endif %}
+                    </a>
+                </article>
+            {% empty %}
+                <article class="card">
+                    <div class="card-body">
+                        <p class="text-muted empty-state">{% if LANGUAGE_CODE == "ru" %}Пользователи не найдены.{% else %}No users found.{% endif %}</p>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="cards-grid users-grid">
+            {% for item in users %}
+                <article class="card catalog-card catalog-card--compact users-card">
+                    <a href="{{ item.profile_url }}" class="catalog-card__link" aria-label="{{ item.display_name }}" data-dashboard-nav="true"></a>
+                    <div class="card-body">
+                        <div class="users-card__media">
+                            <img src="{{ item.avatar_url }}" alt="{{ item.display_name }}" class="users-card__avatar">
+                        </div>
+                        <div class="users-card__content">
+                            <h2 class="users-card__name">{{ item.display_name }}</h2>
+                            <div class="text-muted users-card__username">{{ item.user.username }}</div>
+                            <div class="users-card__badges">
+                                <span class="status-pill status-pill--sm">{{ item.role_label }}</span>
+                                <span class="status-pill status-pill--sm">{% if LANGUAGE_CODE == "ru" %}Баланс:{% else %}Balance:{% endif %} {{ item.balance }}</span>
+                                <span class="status-pill status-pill--sm">Steam lvl: {% if item.steam_level %}{{ item.steam_level }}{% else %}—{% endif %}</span>
+                                <span class="status-pill status-pill--sm">FACEIT: {% if item.faceit_label %}{{ item.faceit_label }}{% else %}—{% endif %}</span>
+                            </div>
+                            <div class="text-muted users-card__activity">
+                                {% if item.activity_kind == "last_seen" %}
+                                    {% if LANGUAGE_CODE == "ru" %}Был:{% else %}Seen:{% endif %}
+                                {% elif item.activity_kind == "last_login" %}
+                                    {% if LANGUAGE_CODE == "ru" %}Login:{% else %}Login:{% endif %}
+                                {% else %}
+                                    {% if LANGUAGE_CODE == "ru" %}С нами:{% else %}Joined:{% endif %}
+                                {% endif %}
+                                {% if item.activity_at %}{{ item.activity_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            {% empty %}
+                <article class="card">
+                    <div class="card-body">
+                        <p class="text-muted empty-state">{% if LANGUAGE_CODE == "ru" %}Пользователи не найдены.{% else %}No users found.{% endif %}</p>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if page_obj.paginator.num_pages > 1 %}
+        <div class="pagination-wrap">
+            {% if page_obj.has_previous %}
+                <a class="btn btn-secondary" href="?page={{ page_obj.previous_page_number }}{% if pagination_query %}&amp;{{ pagination_query }}{% endif %}">
+                    {% if LANGUAGE_CODE == "ru" %}Назад{% else %}Back{% endif %}
+                </a>
+            {% endif %}
+            <span class="text-muted">
+                {% if LANGUAGE_CODE == "ru" %}Страница{% else %}Page{% endif %} {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+            </span>
+            {% if page_obj.has_next %}
+                <a class="btn btn-secondary" href="?page={{ page_obj.next_page_number }}{% if pagination_query %}&amp;{{ pagination_query }}{% endif %}">
+                    {% if LANGUAGE_CODE == "ru" %}Вперёд{% else %}Next{% endif %}
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+</section>

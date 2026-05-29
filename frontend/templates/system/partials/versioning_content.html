@@ -46,6 +46,47 @@
 
     <article class="card">
         <div class="card-body">
+            <div class="section-head-inline">
+                <h2 class="section-title">Runtime modules</h2>
+                <form method="post" action="{% url 'system_config:sync_runtime_modules' %}" class="inline-form">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-secondary btn-sm">Синхронизировать модули</button>
+                </form>
+            </div>
+            <div class="dashboard-list">
+                {% for module in runtime_module_rows %}
+                    <div class="dashboard-list__row" style="align-items:flex-start;">
+                        <div>
+                            <div class="section-head-inline">
+                                <strong>{{ module.name }}</strong>
+                                <span class="status-pill status-pill--sm">{{ module.status_label }}</span>
+                            </div>
+                            <div class="text-muted">Key: {{ module.key }} · Version: {{ module.version }} · Listing: {{ module.listing_key|default:"—" }}</div>
+                            <div class="text-muted">Compatible project versions: {{ module.compatible_project_versions|join:", " }}</div>
+                            <div class="text-muted">{{ module.description }}</div>
+                        </div>
+                        <div>
+                            {% if module.can_disable %}
+                                <form method="post" action="{% url 'system_config:disable_runtime_module' module_key=module.key %}" class="inline-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-secondary btn-sm">Отключить</button>
+                                </form>
+                            {% elif module.is_disabled %}
+                                <span class="status-pill status-pill--sm">Disabled</span>
+                            {% else %}
+                                <span class="status-pill status-pill--sm">Sync required</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-muted">Runtime module manifests not found.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </article>
+
+    <article class="card">
+        <div class="card-body">
             <div class="section-head-inline"><h2 class="section-title">Module release matrix</h2><span class="text-muted">Для prod test-only релизы не считаются рабочими.</span></div>
             <div class="dashboard-list">
                 {% for row in module_release_rows %}

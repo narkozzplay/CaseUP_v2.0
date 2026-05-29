@@ -160,14 +160,14 @@ class StoreRuntimeModuleDiscoveryTests(TestCase):
         self.assertTrue(is_runtime_module_compatible(module))
         self.assertFalse(is_runtime_module_compatible(module, project_version="9.9.9"))
 
-    def test_steam_runtime_modules_are_compatible_with_project_032(self):
+    def test_steam_runtime_modules_are_compatible_with_project_034(self):
         price_graphics = get_runtime_module("steam_update_plugin_price_graphics")
         catalog_v2 = get_runtime_module("steam_catalog_v2")
 
         self.assertIsNotNone(price_graphics)
         self.assertIsNotNone(catalog_v2)
-        self.assertTrue(is_runtime_module_compatible(price_graphics, project_version="0.3.2"))
-        self.assertTrue(is_runtime_module_compatible(catalog_v2, project_version="0.3.2"))
+        self.assertTrue(is_runtime_module_compatible(price_graphics, project_version="0.3.4"))
+        self.assertTrue(is_runtime_module_compatible(catalog_v2, project_version="0.3.4"))
 
 
 class StoreFoundationFlowTests(TestCase):
@@ -449,6 +449,29 @@ class StoreFoundationFlowTests(TestCase):
             request_scope="steam_catalog",
             default_template=DEFAULT_STEAM_CATALOG_DETAIL_TEMPLATE,
         )
+        self.assertEqual(template_fallback, DEFAULT_STEAM_CATALOG_DETAIL_TEMPLATE)
+
+    def test_disabled_runtime_module_listing_does_not_override_template(self):
+        adjust_balance(user=self.user, delta=Decimal("500.00"), reason="topup", amount_snapshot=Decimal("500.00"))
+        purchase_store_listing_with_balance(user=self.user, listing_id=self.module_listing.id)
+        activate_module_slot(user=self.user, listing_id=self.module_listing.id, slot=STEAM_CATALOG_DETAIL_CONTENT_SLOT)
+
+        self.module_listing.status = ThemeStoreListing.Status.ARCHIVED
+        self.module_listing.save(update_fields=["status", "updated_at"])
+
+        state = resolve_store_product_access_state(
+            user=self.user,
+            listing=self.module_listing,
+            slot=STEAM_CATALOG_DETAIL_CONTENT_SLOT,
+        )
+        template_fallback = resolve_store_module_slot_template(
+            user=self.user,
+            slot=STEAM_CATALOG_DETAIL_CONTENT_SLOT,
+            request_scope="steam_catalog",
+            default_template=DEFAULT_STEAM_CATALOG_DETAIL_TEMPLATE,
+        )
+
+        self.assertFalse(state.can_activate)
         self.assertEqual(template_fallback, DEFAULT_STEAM_CATALOG_DETAIL_TEMPLATE)
 
     def test_steam_catalog_mode_slot_template_resolver_with_v2_module(self):

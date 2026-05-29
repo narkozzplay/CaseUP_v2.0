@@ -57,6 +57,7 @@ DEFAULT_IGNORE_PATTERNS = [
     # OS / IDE
     ".idea/",
     ".vscode/",
+    ".claude/",
     ".DS_Store",
     "Thumbs.db",
 

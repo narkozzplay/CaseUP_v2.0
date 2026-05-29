@@ -565,6 +565,15 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 50,
             },
             {
+                "key": "users_catalog",
+                "label_ru": "Пользователи",
+                "label_en": "Users Catalog",
+                "url_name": "profiles:users_catalog",
+                "group": cls.Group.ADMIN,
+                "visibility_condition": cls.Visibility.ADMIN_PLUS,
+                "sort_order": 15,
+            },
+            {
                 "key": "notification_center",
                 "label_ru": "Центр уведомлений",
                 "label_en": "Notification Center",

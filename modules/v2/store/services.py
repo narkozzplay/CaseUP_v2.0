@@ -598,6 +598,7 @@ def resolve_store_product_access_state(
     can_activate = bool(
         is_owned_effective
         and listing.category in (ThemeStoreListing.Category.THEMES, ThemeStoreListing.Category.MODULES)
+        and listing.status == ThemeStoreListing.Status.PUBLISHED
         and is_runtime_available
         and is_compatible
         and has_target_scope_access

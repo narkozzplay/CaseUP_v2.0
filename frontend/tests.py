@@ -1,7 +1,9 @@
 from decimal import Decimal
+from pathlib import Path
 
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.conf import settings
+from django.test import Client, SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -12,6 +14,30 @@ from modules.v2.system.models import ThemeProfile
 from modules.v2.system.services import bootstrap_versioning, get_site_configuration, update_module_states
 
 User = get_user_model()
+
+
+class FrontendStaticCssTests(SimpleTestCase):
+    def _css_block(self, css: str, selector: str) -> str:
+        start = css.index(f"{selector} {{")
+        end = css.index("}", start)
+        return css[start:end]
+
+    def test_dashboard_sidebar_is_the_scroll_container(self):
+        css_path = Path(settings.BASE_DIR) / "frontend" / "static" / "css" / "layout.css"
+        css = css_path.read_text(encoding="utf-8")
+
+        sidebar_block = self._css_block(css, ".dashboard-sidebar")
+        inner_block = self._css_block(css, ".dashboard-sidebar__inner")
+
+        self.assertIn("position: sticky;", sidebar_block)
+        self.assertIn("height: 100vh;", sidebar_block)
+        self.assertIn("height: 100dvh;", sidebar_block)
+        self.assertIn("overflow-y: auto;", sidebar_block)
+        self.assertNotIn("overflow-y: auto;", inner_block)
+        self.assertIn(".dashboard-sidebar::-webkit-scrollbar", css)
+        self.assertIn(".dashboard-sidebar::-webkit-scrollbar-track", css)
+        self.assertIn(".dashboard-sidebar::-webkit-scrollbar-thumb", css)
+        self.assertNotIn(".dashboard-sidebar__inner::-webkit-scrollbar", css)
 
 
 class FrontendDashboardTests(TestCase):
@@ -51,6 +77,25 @@ class FrontendDashboardTests(TestCase):
         self.assertContains(ru_response, 'data-dashboard-nav="false"')
         self.assertContains(en_response, 'data-dashboard-nav="false"')
 
+    def test_sidebar_profile_head_link_replaces_open_profile_button(self):
+        user = User.objects.create_user(username="sidebar_user", password="StrongPass123")
+        profile = UserProfile.objects.get(user=user)
+        profile.steam_personaname = "Sidebar Steam"
+        profile.steam_avatar = "https://cdn.example.com/sidebar-avatar.jpg"
+        profile.uploaded_avatar = "profiles/avatars/sidebar-upload.png"
+        profile.save(update_fields=["steam_personaname", "steam_avatar", "uploaded_avatar"])
+
+        self.client.login(username="sidebar_user", password="StrongPass123")
+        response = self.client.get(reverse("profiles:profile"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Открыть профиль")
+        self.assertNotContains(response, "Open profile")
+        self.assertContains(response, f'href="{reverse("profiles:profile")}" class="dashboard-user-card__head dashboard-user-card__head--link"')
+        self.assertContains(response, "/media/profiles/avatars/sidebar-upload.png")
+        self.assertNotContains(response, "https://cdn.example.com/sidebar-avatar.jpg")
+        self.assertContains(response, reverse("accounts:logout"))
+
     def test_admin_panel_forbidden_for_plain_user(self):
         user = User.objects.create_user(username="user2", password="StrongPass123")
         self.client.login(username="user2", password="StrongPass123")
@@ -68,6 +113,20 @@ class FrontendDashboardTests(TestCase):
         response = self.client.get(reverse("frontend:admin_panel"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Control Center")
+
+    def test_admin_panel_does_not_render_dev_topup_balance(self):
+        user = User.objects.create_user(username="admin_no_dev_topup", password="StrongPass123")
+        profile = UserProfile.objects.get(user=user)
+        profile.role = UserRole.ADMIN
+        profile.save(update_fields=["role"])
+
+        self.client.login(username="admin_no_dev_topup", password="StrongPass123")
+        response = self.client.get(reverse("frontend:admin_panel"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Dev topup balance")
+        self.assertNotContains(response, "Apply topup")
+        self.assertNotContains(response, 'name="amount"')
 
     def test_admin_panel_balances_article_tags_when_optional_cards_disabled(self):
         admin = User.objects.create_user(username="admin_panel_html", password="StrongPass123")
@@ -99,7 +158,7 @@ class FrontendDashboardTests(TestCase):
         self.assertNotContains(response, reverse("celery_tasks:control_center"))
         self.assertNotContains(response, reverse("tg_notifier:settings"))
 
-    def test_admin_panel_dev_topup_updates_balance(self):
+    def test_admin_panel_post_no_longer_updates_balance(self):
         admin = User.objects.create_user(username="admin2", password="StrongPass123")
         admin_profile = UserProfile.objects.get(user=admin)
         admin_profile.role = UserRole.ADMIN
@@ -116,13 +175,50 @@ class FrontendDashboardTests(TestCase):
             },
         )
 
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
 
         target_profile = UserProfile.objects.get(user=target)
-        self.assertEqual(target_profile.balance_coins, Decimal("250.00"))
-        self.assertTrue(
-            target.ledger_entries.filter(reason=LedgerReason.ADMIN_ADJUST).exists()
+        self.assertEqual(target_profile.balance_coins, Decimal("0.00"))
+        self.assertFalse(target.ledger_entries.filter(reason=LedgerReason.ADMIN_ADJUST).exists())
+
+    def test_admin_panel_top_balances_uses_steam_nickname_and_profile_link(self):
+        admin = User.objects.create_user(username="admin_top_balances", password="StrongPass123")
+        admin.profile_v2.role = UserRole.ADMIN
+        admin.profile_v2.save(update_fields=["role"])
+        target = User.objects.create_user(username="steam_76561199647175346", password="StrongPass123")
+        target.profile_v2.steam_personaname = "_NaRkOzZ_"
+        target.profile_v2.balance_coins = Decimal("777.00")
+        target.profile_v2.save(update_fields=["steam_personaname", "balance_coins"])
+
+        self.client.login(username="admin_top_balances", password="StrongPass123")
+        response = self.client.get(reverse("frontend:admin_panel"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "_NaRkOzZ_")
+        self.assertContains(response, reverse("profiles:profile_detail", args=[target.id]))
+        self.assertNotContains(response, "steam_76561199647175346")
+
+    def test_admin_panel_recent_adjustments_uses_steam_nickname_and_profile_link(self):
+        admin = User.objects.create_user(username="admin_recent_adjustments", password="StrongPass123")
+        admin.profile_v2.role = UserRole.ADMIN
+        admin.profile_v2.save(update_fields=["role"])
+        target = User.objects.create_user(username="internal_recent_user", password="StrongPass123")
+        target.profile_v2.steam_personaname = "Recent Steam Nick"
+        target.profile_v2.save(update_fields=["steam_personaname"])
+        LedgerEntry.objects.create(
+            user=target,
+            delta=Decimal("12.00"),
+            balance_after=Decimal("12.00"),
+            reason=LedgerReason.ADMIN_ADJUST,
         )
+
+        self.client.login(username="admin_recent_adjustments", password="StrongPass123")
+        response = self.client.get(reverse("frontend:admin_panel"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Recent Steam Nick")
+        self.assertContains(response, reverse("profiles:profile_detail", args=[target.id]))
+        self.assertNotContains(response, "internal_recent_user")
 
     def test_dashboard_shows_online_stats_and_clickable_links(self):
         owner = User.objects.create_user(username="owner", password="StrongPass123")

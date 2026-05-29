@@ -110,7 +110,7 @@
                     {% if role_access.is_admin_plus %}
                         <a href="{% url 'frontend:admin_panel' %}" class="quick-action-card">
                             <strong>Control Center</strong>
-                            <span>{% if LANGUAGE_CODE == "ru" %}Dev topup и admin metrics{% else %}Dev topup and admin metrics{% endif %}</span>
+                            <span>{% if LANGUAGE_CODE == "ru" %}Admin metrics и настройки{% else %}Admin metrics and settings{% endif %}</span>
                         </a>
                     {% endif %}
                 </div>

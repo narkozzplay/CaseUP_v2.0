@@ -31,7 +31,9 @@ from .services import (
     get_control_center_summary,
     get_current_project_version,
     get_external_service_health,
+    get_runtime_module_admin_rows,
     get_runtime_environment,
+    sync_runtime_modules_from_manifests,
 )
 from .module_registry import MODULE_REGISTRY
 from .ops import backup_media_directory, restore_media_directory
@@ -742,7 +744,7 @@ class SystemVersioningTests(TestCase):
     def test_versioning_bootstrap_creates_current_project_version_and_theme(self):
         config = get_site_configuration()
         self.assertIsNotNone(get_current_project_version())
-        self.assertEqual(get_current_project_version().version, "0.3.2")
+        self.assertEqual(get_current_project_version().version, "0.3.4")
         self.assertIsNotNone(get_active_theme())
         self.assertTrue(ThemeProfile.objects.filter(is_default=True).exists())
         self.assertIsNotNone(config.current_project_version)
@@ -769,8 +771,8 @@ class SystemVersioningTests(TestCase):
         bootstrap_versioning()
 
         config.refresh_from_db()
-        self.assertEqual(config.current_project_version.version, "0.3.2")
-        self.assertTrue(ProjectVersion.objects.get(version="0.3.2").is_current)
+        self.assertEqual(config.current_project_version.version, "0.3.4")
+        self.assertTrue(ProjectVersion.objects.get(version="0.3.4").is_current)
         legacy.refresh_from_db()
         self.assertFalse(legacy.is_current)
 
@@ -784,6 +786,8 @@ class SystemVersioningTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Versions & Themes")
         self.assertContains(response, "Module release matrix")
+        self.assertContains(response, "Runtime modules")
+        self.assertContains(response, reverse("system_config:sync_runtime_modules"))
 
     def test_environment_module_states_seeded_for_all_environments(self):
         states = EnvironmentModuleState.objects.filter(module_key="steam_catalog")
@@ -791,6 +795,98 @@ class SystemVersioningTests(TestCase):
         self.assertTrue(states.filter(environment="dev").exists())
         self.assertTrue(states.filter(environment="prod").exists())
         self.assertTrue(states.filter(environment="test").exists())
+
+    def test_sync_runtime_modules_requires_post(self):
+        user = User.objects.create_user(username="runtime_sync_admin_get", password="StrongPass123")
+        profile = UserProfile.objects.get(user=user)
+        profile.role = UserRole.ADMIN
+        profile.save(update_fields=["role"])
+        self.client.login(username=user.username, password="StrongPass123")
+
+        response = self.client.get(reverse("system_config:sync_runtime_modules"))
+
+        self.assertEqual(response.status_code, 405)
+
+    def test_sync_runtime_modules_requires_admin_plus(self):
+        user = User.objects.create_user(username="runtime_sync_plain", password="StrongPass123")
+        self.client.login(username=user.username, password="StrongPass123")
+
+        response = self.client.post(reverse("system_config:sync_runtime_modules"))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_can_sync_runtime_modules_and_broken_manifest_does_not_abort(self):
+        user = User.objects.create_user(username="runtime_sync_admin", password="StrongPass123")
+        profile = UserProfile.objects.get(user=user)
+        profile.role = UserRole.ADMIN
+        profile.save(update_fields=["role"])
+        modules_root = Path(settings.BASE_DIR) / "modules" / "plugins" / "modules"
+        broken_dir = modules_root / "broken_module_manifest"
+        broken_dir.mkdir(parents=True, exist_ok=True)
+        (broken_dir / "module.json").write_text("{invalid json", encoding="utf-8")
+        try:
+            result = sync_runtime_modules_from_manifests()
+        finally:
+            shutil.rmtree(broken_dir, ignore_errors=True)
+
+        self.assertGreaterEqual(result.total, 2)
+        self.assertGreaterEqual(result.failed, 1)
+        self.assertTrue(
+            ThemeStoreListing.objects.filter(
+                key="steam-update-plugin-price-graphics-module",
+                module_key="steam_update_plugin_price_graphics",
+                status=ThemeStoreListing.Status.PUBLISHED,
+            ).exists()
+        )
+        rows = get_runtime_module_admin_rows()
+        self.assertTrue(any(row.key == "steam_update_plugin_price_graphics" for row in rows))
+
+        self.client.login(username=user.username, password="StrongPass123")
+        response = self.client.post(reverse("system_config:sync_runtime_modules"), follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Runtime modules sync")
+
+    def test_disable_runtime_module_endpoint_requires_post_and_is_idempotent(self):
+        admin = User.objects.create_user(username="runtime_disable_admin", password="StrongPass123")
+        admin.profile_v2.role = UserRole.ADMIN
+        admin.profile_v2.save(update_fields=["role"])
+        listing = ThemeStoreListing.objects.create(
+            key="runtime-disable-module",
+            category=ThemeStoreListing.Category.MODULES,
+            module_key="steam_update_plugin_price_graphics",
+            title="Runtime disable module",
+            short_description="Runtime disable module",
+            full_description="Runtime disable module",
+            author="CaseUP",
+            price_rub="0.00",
+            status=ThemeStoreListing.Status.PUBLISHED,
+            is_public=True,
+        )
+
+        self.client.login(username=admin.username, password="StrongPass123")
+        url = reverse("system_config:disable_runtime_module", args=["steam_update_plugin_price_graphics"])
+        self.assertEqual(self.client.get(url).status_code, 405)
+
+        first = self.client.post(url, follow=True)
+        listing.refresh_from_db()
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(listing.status, ThemeStoreListing.Status.ARCHIVED)
+        self.assertContains(first, "отключён")
+
+        second = self.client.post(url, follow=True)
+        listing.refresh_from_db()
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(listing.status, ThemeStoreListing.Status.ARCHIVED)
+        self.assertContains(second, "уже отключён")
+
+    def test_disable_runtime_module_endpoint_requires_admin_plus(self):
+        user = User.objects.create_user(username="runtime_disable_plain", password="StrongPass123")
+        self.client.login(username=user.username, password="StrongPass123")
+
+        response = self.client.post(reverse("system_config:disable_runtime_module", args=["steam_update_plugin_price_graphics"]))
+
+        self.assertEqual(response.status_code, 403)
 
 
 class SystemMediaRestoreSafetyTests(TestCase):

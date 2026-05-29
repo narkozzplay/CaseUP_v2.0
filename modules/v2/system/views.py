@@ -16,6 +16,7 @@ from .forms import SiteConfigurationForm, ThemeActivateForm
 from .services import (
     build_page_title,
     build_theme_update_headers,
+    disable_runtime_module,
     get_available_themes,
     get_control_center_summary,
     get_current_project_version,
@@ -25,7 +26,9 @@ from .services import (
     get_module_state_views,
     get_external_service_health,
     get_runtime_environment,
+    get_runtime_module_admin_rows,
     get_site_configuration,
+    sync_runtime_modules_from_manifests,
     update_module_states,
     preview_module_update,
     set_active_theme,
@@ -124,6 +127,7 @@ def versioning_page(request):
         "runtime_environment": get_runtime_environment(),
         "current_project_version": current_project_version,
         "module_release_rows": get_module_release_matrix(project_version=current_project_version),
+        "runtime_module_rows": get_runtime_module_admin_rows(project_version=current_project_version),
         "themes": get_available_themes(project_version=current_project_version),
     }
     return render_dashboard_page(request, full_template="system/versioning.html", partial_template="system/partials/versioning_content.html", context=context, page_title=build_page_title("Versions & Themes"), active_menu_key="system_versioning")
@@ -161,6 +165,7 @@ def activate_theme_page(request):
             "runtime_environment": get_runtime_environment(),
             "current_project_version": current_project_version,
             "module_release_rows": get_module_release_matrix(project_version=current_project_version),
+            "runtime_module_rows": get_runtime_module_admin_rows(project_version=current_project_version),
             "themes": get_available_themes(project_version=current_project_version),
         }
         response_headers = build_theme_update_headers(previous_theme=previous_theme, next_theme=config.active_theme)
@@ -177,6 +182,45 @@ def activate_theme_page(request):
             response_headers=response_headers,
         )
     return redirect(next_url)
+
+
+@login_required
+@require_POST
+def sync_runtime_modules_page(request):
+    role_access = get_user_role(request.user)
+    if not role_access.is_admin_plus:
+        return HttpResponseForbidden("Runtime module sync доступен только admin+.")
+
+    result = sync_runtime_modules_from_manifests()
+    message = (
+        f"Runtime modules sync: найдено {result.total}, создано {result.created}, "
+        f"обновлено {result.updated}, без изменений {result.skipped}, ошибок {result.failed}."
+    )
+    if result.failed:
+        messages.warning(request, message + " " + " | ".join(result.errors))
+    else:
+        messages.success(request, message)
+    return redirect("system_config:versioning")
+
+
+@login_required
+@require_POST
+def disable_runtime_module_page(request, module_key: str):
+    role_access = get_user_role(request.user)
+    if not role_access.is_admin_plus:
+        return HttpResponseForbidden("Runtime module disable доступен только admin+.")
+
+    try:
+        updated = disable_runtime_module(module_key=module_key)
+    except ValidationError as exc:
+        messages.error(request, str(exc))
+        return redirect("system_config:versioning")
+
+    if updated:
+        messages.success(request, f"Runtime module '{module_key}' отключён.")
+    else:
+        messages.info(request, f"Runtime module '{module_key}' уже отключён или не найден.")
+    return redirect("system_config:versioning")
 
 
 @login_required

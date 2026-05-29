@@ -103,6 +103,32 @@ class BulkReleaseCompatibilityEnsureSummary:
     existing: int
 
 
+@dataclass(frozen=True)
+class RuntimeModuleSyncResult:
+    total: int
+    created: int
+    updated: int
+    skipped: int
+    failed: int
+    errors: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class RuntimeModuleAdminRow:
+    key: str
+    name: str
+    description: str
+    version: str
+    source_path: str
+    compatible_project_versions: tuple[str, ...]
+    is_compatible: bool
+    listing_id: int | None
+    listing_key: str
+    listing_status: str
+    status_label: str
+    is_disabled: bool
+    can_disable: bool
+
 
 
 def get_runtime_environment() -> str:
@@ -569,6 +595,185 @@ def bootstrap_versioning_once() -> None:
             return
         bootstrap_versioning()
         _BOOTSTRAP_VERSIONING_DONE = True
+
+
+def _runtime_module_listing_key(module_key: str) -> str:
+    normalized = str(module_key or "").strip().lower().replace("_", "-")
+    return f"{normalized}-module"
+
+
+def _runtime_module_manifest_dirs() -> list[Path]:
+    root = Path(settings.BASE_DIR) / "modules" / "plugins" / "modules"
+    if not root.exists() or not root.is_dir():
+        return []
+    return [
+        item
+        for item in sorted(root.iterdir(), key=lambda value: value.name)
+        if item.is_dir() and (item / "module.json").exists()
+    ]
+
+
+def _runtime_module_folder_key(module_dir: Path) -> str:
+    return module_dir.name.strip().lower().replace(" ", "_")
+
+
+def sync_runtime_modules_from_manifests() -> RuntimeModuleSyncResult:
+    from modules.v2.store.models import ThemeStoreListing
+
+    from .module_plugins import discover_runtime_modules
+
+    bootstrap_versioning()
+
+    manifest_dirs = _runtime_module_manifest_dirs()
+    discovered = discover_runtime_modules(refresh=True)
+    discovered_folder_keys = set(discovered)
+
+    errors = [
+        f"{module_dir.name}: manifest invalid or incomplete"
+        for module_dir in manifest_dirs
+        if _runtime_module_folder_key(module_dir) not in discovered_folder_keys
+    ]
+
+    created = 0
+    updated = 0
+    skipped = 0
+
+    for module in discovered.values():
+        try:
+            with transaction.atomic():
+                listing_key = _runtime_module_listing_key(module.key)
+                listing, is_created = ThemeStoreListing.objects.select_for_update().get_or_create(
+                    key=listing_key,
+                    defaults={
+                        "category": ThemeStoreListing.Category.MODULES,
+                        "module_key": module.key,
+                        "title": module.name,
+                        "short_description": module.description[:280],
+                        "full_description": module.description,
+                        "cover_image": module.preview_image,
+                        "screenshots": [],
+                        "author": module.author,
+                        "price_rub": ZERO,
+                        "status": ThemeStoreListing.Status.PUBLISHED,
+                        "is_public": bool(module.is_public),
+                        "is_included_in_store_subscription": False,
+                    },
+                )
+                if is_created:
+                    created += 1
+                    continue
+
+                changed_fields: list[str] = []
+                desired_values = {
+                    "category": ThemeStoreListing.Category.MODULES,
+                    "module_key": module.key,
+                    "title": module.name,
+                    "short_description": module.description[:280],
+                    "full_description": module.description,
+                    "cover_image": module.preview_image,
+                    "author": module.author,
+                    "is_public": bool(module.is_public),
+                }
+                for field, desired_value in desired_values.items():
+                    if getattr(listing, field) != desired_value:
+                        setattr(listing, field, desired_value)
+                        changed_fields.append(field)
+
+                if listing.status != ThemeStoreListing.Status.ARCHIVED and listing.status != ThemeStoreListing.Status.PUBLISHED:
+                    listing.status = ThemeStoreListing.Status.PUBLISHED
+                    changed_fields.append("status")
+
+                if changed_fields:
+                    listing.save(update_fields=[*changed_fields, "updated_at"])
+                    updated += 1
+                else:
+                    skipped += 1
+        except Exception as exc:
+            errors.append(f"{module.key}: {exc}")
+
+    return RuntimeModuleSyncResult(
+        total=len(manifest_dirs),
+        created=created,
+        updated=updated,
+        skipped=skipped,
+        failed=len(errors),
+        errors=tuple(errors),
+    )
+
+
+def _get_runtime_module_listing_by_key(module_key: str):
+    from modules.v2.store.models import ThemeStoreListing
+
+    listing_key = _runtime_module_listing_key(module_key)
+    listing = ThemeStoreListing.objects.filter(
+        key=listing_key,
+        category=ThemeStoreListing.Category.MODULES,
+        module_key=module_key,
+    ).first()
+    if listing is not None:
+        return listing
+    return (
+        ThemeStoreListing.objects
+        .filter(category=ThemeStoreListing.Category.MODULES, module_key=module_key)
+        .order_by("-updated_at", "-id")
+        .first()
+    )
+
+
+def get_runtime_module_admin_rows(*, project_version: ProjectVersion | None = None) -> list[RuntimeModuleAdminRow]:
+    from modules.v2.store.models import ThemeStoreListing
+
+    from .module_plugins import discover_runtime_modules, is_runtime_module_compatible
+
+    project_version = project_version or get_current_project_version()
+    rows: list[RuntimeModuleAdminRow] = []
+    for module in discover_runtime_modules(refresh=True).values():
+        listing = _get_runtime_module_listing_by_key(module.key)
+        is_disabled = bool(listing and listing.status == ThemeStoreListing.Status.ARCHIVED)
+        is_compatible = is_runtime_module_compatible(module, project_version=project_version)
+        if is_disabled:
+            status_label = "Disabled"
+        elif not is_compatible:
+            status_label = "Incompatible"
+        elif listing is None:
+            status_label = "Manifest only"
+        else:
+            status_label = "Available"
+        rows.append(
+            RuntimeModuleAdminRow(
+                key=module.key,
+                name=module.name,
+                description=module.description,
+                version=module.version,
+                source_path=module.source_path,
+                compatible_project_versions=module.compatible_project_versions,
+                is_compatible=is_compatible,
+                listing_id=listing.id if listing else None,
+                listing_key=listing.key if listing else "",
+                listing_status=listing.status if listing else "",
+                status_label=status_label,
+                is_disabled=is_disabled,
+                can_disable=bool(listing and not is_disabled),
+            )
+        )
+    return rows
+
+
+@transaction.atomic
+def disable_runtime_module(*, module_key: str) -> int:
+    from modules.v2.store.models import ThemeStoreListing
+
+    normalized_key = str(module_key or "").strip().lower()
+    if not normalized_key:
+        raise ValidationError("Runtime module key is required.")
+
+    updated = ThemeStoreListing.objects.select_for_update().filter(
+        category=ThemeStoreListing.Category.MODULES,
+        module_key=normalized_key,
+    ).exclude(status=ThemeStoreListing.Status.ARCHIVED).update(
+        status=ThemeStoreListing.Status.ARCHIVED,
+    )
+    return int(updated)
 
 
 def get_module_state_map(environment: str | None = None) -> dict[str, bool]:

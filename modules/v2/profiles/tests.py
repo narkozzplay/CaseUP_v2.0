@@ -61,6 +61,162 @@ class ProfileTests(TestCase):
         self.assertContains(response, "FACEIT")
 
 
+class UsersCatalogTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def _make_user(self, username: str, role: str = UserRole.USER, steam_name: str = "", steam_id: str = ""):
+        user = User.objects.create_user(username=username, password="StrongPass123")
+        profile = UserProfile.objects.get(user=user)
+        profile.role = role
+        profile.steam_personaname = steam_name
+        update_fields = ["role", "steam_personaname"]
+        if steam_id:
+            profile.steam_id = steam_id
+            update_fields.append("steam_id")
+        profile.save(update_fields=update_fields)
+        return user
+
+    def _make_admin(self, username: str = "users_catalog_admin"):
+        return self._make_user(username, role=UserRole.ADMIN, steam_name="Catalog Admin")
+
+    def test_users_catalog_route_exists(self):
+        self.assertEqual(reverse("profiles:users_catalog"), "/users/")
+
+    def test_users_catalog_requires_login(self):
+        response = self.client.get(reverse("profiles:users_catalog"))
+        self.assertEqual(response.status_code, 302)
+
+    def test_users_catalog_forbidden_for_regular_user(self):
+        user = self._make_user("users_catalog_plain")
+        self.client.login(username=user.username, password="StrongPass123")
+
+        response = self.client.get(reverse("profiles:users_catalog"))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_users_catalog_available_for_admin(self):
+        admin = self._make_admin()
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.get(reverse("profiles:users_catalog"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Users Catalog")
+        self.assertContains(response, "Пользователи")
+        self.assertContains(response, reverse("profiles:users_catalog"))
+
+    def test_users_catalog_search_by_steam_nickname(self):
+        admin = self._make_admin("users_catalog_search_admin")
+        target = self._make_user("internal_search_user", steam_name="Steam Search Nick")
+        other = self._make_user("other_search_user", steam_name="Other Nick")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.get(reverse("profiles:users_catalog"), {"q": "Steam Search"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Steam Search Nick")
+        self.assertContains(response, reverse("profiles:profile_detail", args=[target.id]))
+        self.assertNotContains(response, "Other Nick")
+        self.assertNotContains(response, reverse("profiles:profile_detail", args=[other.id]))
+
+    def test_users_catalog_search_by_username(self):
+        admin = self._make_admin("users_catalog_username_admin")
+        target = self._make_user("internal_username_match", steam_name="Visible Username Match")
+        other = self._make_user("unrelated_username", steam_name="Unrelated User")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.get(reverse("profiles:users_catalog"), {"q": "internal_username_match"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Visible Username Match")
+        self.assertContains(response, reverse("profiles:profile_detail", args=[target.id]))
+        self.assertNotContains(response, "Unrelated User")
+        self.assertNotContains(response, reverse("profiles:profile_detail", args=[other.id]))
+
+    def test_users_catalog_filter_by_role(self):
+        admin = self._make_admin("users_catalog_role_admin")
+        farmer = self._make_user("catalog_farmer", role=UserRole.FARMER, steam_name="Farmer Visible")
+        plain = self._make_user("catalog_plain", role=UserRole.USER, steam_name="Plain Visible")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.get(reverse("profiles:users_catalog"), {"role": UserRole.FARMER})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Farmer Visible")
+        self.assertContains(response, reverse("profiles:profile_detail", args=[farmer.id]))
+        self.assertNotContains(response, "Plain Visible")
+        self.assertNotContains(response, reverse("profiles:profile_detail", args=[plain.id]))
+
+    def test_users_catalog_grid_mode(self):
+        admin = self._make_admin("users_catalog_grid_admin")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.get(reverse("profiles:users_catalog"), {"view": "grid"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-users-catalog-view="grid"')
+        self.assertContains(response, "users-grid")
+
+    def test_users_catalog_list_mode(self):
+        admin = self._make_admin("users_catalog_list_admin")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.get(reverse("profiles:users_catalog"), {"view": "list"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-users-catalog-view="list"')
+        self.assertContains(response, "users-list__row")
+
+    def test_users_catalog_unknown_view_falls_back_to_grid(self):
+        admin = self._make_admin("users_catalog_unknown_view_admin")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.get(reverse("profiles:users_catalog"), {"view": "cards"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-users-catalog-view="grid"')
+        self.assertContains(response, "users-grid")
+
+    def test_users_catalog_pagination(self):
+        admin = self._make_admin("users_catalog_page_admin")
+        for index in range(25):
+            self._make_user(f"page_user_{index:02d}")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.get(reverse("profiles:users_catalog"), {"page": "2"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Страница 2 /")
+        self.assertContains(response, "page_user_00")
+
+    def test_users_catalog_pagination_preserves_query_params(self):
+        admin = self._make_admin("users_catalog_query_admin")
+        for index in range(25):
+            self._make_user(f"catalog_keep_{index:02d}", role=UserRole.USER)
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        url = f"{reverse('profiles:users_catalog')}?q=catalog_keep&role=user&sort=role&view=list"
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "page=2&amp;q=catalog_keep&amp;role=user&amp;sort=role&amp;view=list",
+            html=False,
+        )
+
+    def test_users_catalog_card_contains_profile_link(self):
+        admin = self._make_admin("users_catalog_link_admin")
+        target = self._make_user("catalog_link_target", steam_name="Link Target")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.get(reverse("profiles:users_catalog"), {"q": "Link Target"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("profiles:profile_detail", args=[target.id]))
+
+
     def test_profile_detail_view_forbidden_for_foreign_regular_user(self):
         viewer = User.objects.create_user(username="viewer1", password="StrongPass123")
         target = User.objects.create_user(username="target10", password="StrongPass123", email="target@example.com")

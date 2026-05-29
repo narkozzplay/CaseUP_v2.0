@@ -49,6 +49,7 @@ media/
 # OS / IDE
 .idea/
 .vscode/
+.claude/
 .DS_Store
 Thumbs.db
 

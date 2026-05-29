@@ -1,3 +1,5 @@
+{% load static %}
+
 <aside class="dashboard-sidebar" data-dashboard-sidebar>
     <div class="dashboard-sidebar__inner">
         <div class="dashboard-sidebar__brand-wrap">
@@ -16,15 +18,19 @@
         {% if request.user.is_authenticated %}
             <div class="dashboard-user-card card card--soft">
                 <div class="card-body dashboard-user-card__body">
-                    <div class="dashboard-user-card__head">
-                        {% if request.user.profile_v2.steam_avatar %}
+                    <a href="{% url 'profiles:profile' %}" class="dashboard-user-card__head dashboard-user-card__head--link" data-dashboard-nav="true">
+                        {% if request.user.profile_v2.uploaded_avatar %}
+                            <img src="{{ request.user.profile_v2.uploaded_avatar.url }}" alt="Profile avatar" class="dashboard-user-card__avatar">
+                        {% elif request.user.profile_v2.steam_avatar %}
                             <img src="{{ request.user.profile_v2.steam_avatar }}" alt="Steam avatar" class="dashboard-user-card__avatar">
+                        {% else %}
+                            <img src="{% static 'img/placeholders/no_image.svg' %}" alt="Profile avatar" class="dashboard-user-card__avatar">
                         {% endif %}
                         <div>
                             <p class="dashboard-user-card__name">{{ request.user.profile_v2.steam_personaname|default:request.user.username }}</p>
                             <p class="dashboard-user-card__meta">{{ request.user.profile_v2.role|default:"user" }}</p>
                         </div>
-                    </div>
+                    </a>
 
                     <div class="dashboard-user-card__stats">
                         <span class="status-pill status-pill--sm">{% if LANGUAGE_CODE == "ru" %}Баланс:{% else %}Balance:{% endif %} {{ coins }}</span>
@@ -37,13 +43,11 @@
 
                     <div class="auth-card__actions">
                         {% if LANGUAGE_CODE == "ru" %}
-                            <a href="{% url 'profiles:profile' %}" class="btn btn-secondary btn-block" data-dashboard-nav="true">Открыть профиль</a>
                             <form method="post" action="{% url 'accounts:logout' %}" class="inline-form inline-form--block">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-primary btn-block">Выйти</button>
                             </form>
                         {% else %}
-                            <a href="{% url 'profiles:profile' %}" class="btn btn-secondary btn-block" data-dashboard-nav="true">Open profile</a>
                             <form method="post" action="{% url 'accounts:logout' %}" class="inline-form inline-form--block">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-primary btn-block">Logout</button>

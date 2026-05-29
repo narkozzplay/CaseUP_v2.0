@@ -1,23 +1,18 @@
 from __future__ import annotations
 
-import uuid
 from datetime import timedelta
-from decimal import Decimal
 
-from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum
 from django.http import HttpResponseForbidden
-from django.shortcuts import redirect, render
+from django.shortcuts import render
 from django.utils import timezone
 
 from common.errors import render_not_found_page
-from frontend.forms import DevBalanceTopUpForm
 from modules.v2.farm.models import FarmAccount
 from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserProfile, UserRole
 from modules.v2.profiles.rbac import get_user_role
-from modules.v2.profiles.services.balance import BalanceError, adjust_balance
 from modules.v2.steam_catalog.models import SteamItem
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
@@ -131,34 +126,9 @@ def admin_panel(request):
     if not role_access.is_admin_plus:
         return HttpResponseForbidden("Control Center доступен только admin+.")
 
-    if request.method == "POST":
-        form = DevBalanceTopUpForm(request.POST)
-        if form.is_valid():
-            target_user = form.cleaned_data["target_user"]
-            amount = form.cleaned_data["amount"]
-
-            try:
-                adjust_balance(
-                    user=target_user,
-                    delta=amount,
-                    reason=LedgerReason.ADMIN_ADJUST,
-                    amount_snapshot=amount,
-                    idempotency_key=f"dev-topup:{target_user.id}:{uuid.uuid4()}",
-                )
-            except BalanceError as exc:
-                messages.error(request, str(exc))
-            else:
-                messages.success(
-                    request,
-                    f"Balance topped up: {target_user.username} +{amount}",
-                )
-                return redirect("frontend:admin_panel")
-    else:
-        form = DevBalanceTopUpForm()
-
     recent_admin_adjustments = (
         LedgerEntry.objects
-        .select_related("user")
+        .select_related("user", "user__profile_v2")
         .filter(reason=LedgerReason.ADMIN_ADJUST)
         .order_by("-created_at")[:12]
     )
@@ -178,7 +148,6 @@ def admin_panel(request):
 
     context = {
         "role_access": role_access,
-        "form": form,
         "recent_admin_adjustments": recent_admin_adjustments,
         "top_profiles": top_profiles,
         "role_distribution": role_distribution,

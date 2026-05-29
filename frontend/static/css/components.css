@@ -66,6 +66,10 @@
     min-height: 100%;
 }
 
+.admin-panel__recent {
+    margin-top: var(--space-4);
+}
+
 .dashboard-hero {
     margin-bottom: 24px;
     overflow: hidden;

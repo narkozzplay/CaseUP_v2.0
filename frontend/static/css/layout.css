@@ -105,43 +105,48 @@
 
 .dashboard-shell {
     display: grid;
-    grid-template-columns: 280px 1fr;
+    grid-template-columns: 280px minmax(0, 1fr);
     min-height: 100vh;
 }
 
 .dashboard-sidebar {
-    min-height: 100vh;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     border-right: 1px solid var(--border);
     background:
         radial-gradient(circle at top, rgba(111, 124, 255, 0.12), transparent 30%),
         rgba(10, 15, 29, 0.88);
     backdrop-filter: blur(14px);
-}
-
-.dashboard-sidebar__inner {
-    position: sticky;
-    top: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    max-height: 100vh;
-    min-height: 100vh;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding: 24px;
     scrollbar-color: rgba(111, 124, 255, 0.42) rgba(255, 255, 255, 0.04);
     scrollbar-width: thin;
 }
 
-.dashboard-sidebar__inner::-webkit-scrollbar {
+.dashboard-sidebar__inner {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-height: 100%;
+    padding: 24px;
+}
+
+.dashboard-sidebar::-webkit-scrollbar {
     width: 8px;
 }
 
-.dashboard-sidebar__inner::-webkit-scrollbar-track {
+.dashboard-sidebar::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.04);
 }
 
-.dashboard-sidebar__inner::-webkit-scrollbar-thumb {
+.dashboard-sidebar::-webkit-scrollbar-thumb {
     border-radius: 999px;
     background: rgba(111, 124, 255, 0.42);
 }
@@ -179,6 +184,21 @@
     display: flex;
     align-items: center;
     gap: 14px;
+}
+
+.dashboard-user-card__head--link {
+    margin: -6px;
+    padding: 6px;
+    border-radius: 18px;
+    color: inherit;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.dashboard-user-card__head--link:hover,
+.dashboard-user-card__head--link:focus-visible {
+    background: rgba(111, 124, 255, 0.10);
+    transform: translateY(-1px);
 }
 
 .dashboard-user-card__avatar {
@@ -315,16 +335,17 @@
     }
 
     .dashboard-sidebar {
+        position: static;
+        height: auto;
+        max-height: none;
         min-height: auto;
+        overflow: visible;
         border-right: 0;
         border-bottom: 1px solid var(--border);
     }
 
     .dashboard-sidebar__inner {
-        position: static;
-        max-height: none;
         min-height: auto;
-        overflow: visible;
     }
 
     .dashboard-user-card__stats {

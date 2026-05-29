@@ -124,7 +124,7 @@ trade hub page
 - существующие runtime module manifests;
 - точечные slot-override для Steam Catalog detail;
 - fallback на дефолтный partial, если модуль не куплен, несовместим или не применён;
-- совместимость с текущей версией проекта `0.3.2`.
+- совместимость с текущей версией проекта `0.3.4`.
 
 #### Следующий шаг
 
@@ -149,10 +149,10 @@ PNG предмета в detail-card не должен рендериться к�
 **Статус:** done  
 **Приоритет:** P1  
 **Версия обнаружения:** 0.3.2  
-**Исправлено в версии:** 0.3.2  
+**Исправлено в версии:** 0.3.3
 **Связанные зоны:** `frontend/static/css/layout.css`, `frontend/templates/components/sidebar_dashboard.html`
 
-Левый dashboard sidebar должен иметь собственный scroll при маленькой высоте окна, чтобы нижние пункты меню оставались доступны независимо от scroll основного контента.
+Левый dashboard sidebar имеет собственный scroll при маленькой высоте окна: прокрутка перенесена с inner-wrapper на сам sticky sidebar, а `.dashboard-sidebar__inner` оставлен только flex-контейнером содержимого.
 
 ### BUG-003: Profile custom avatar upload UI
 
@@ -173,3 +173,67 @@ PNG предмета в detail-card не должен рендериться к�
 **Связанные зоны:** `frontend/templates/components/language_switcher.html`, `frontend/templatetags/frontend_i18n.py`, `frontend/static/js/dashboard_shell.js`
 
 Переключение RU/EN внутри dashboard shell должно выполнять full-page navigation, чтобы sidebar/topnav и active state обновлялись вместе с текущим языком.
+
+---
+
+### IDEA-003: Runtime module version management / quick module update
+
+**Статус:** in_progress
+**Приоритет:** P0
+**Категория:** runtime modules / store / system UI
+**Версия идеи:** 0.3.3
+**Реализовано в версии:** частично
+
+#### Цель
+
+- проект имеет текущую версию `0.3.4`;
+- runtime-модули явно поддерживают `0.3.4` через `compatible_project_versions`;
+- в веб-интерфейсе admin+ есть POST-кнопка быстрой синхронизации runtime module manifests;
+- администратор видит статус runtime-модуля: актуальный, несовместимый, отключён или ошибка manifest/sync;
+- если модуль после обновления не работает, его можно вручную отключить без удаления записей и entitlement;
+- sync не должен auto-enable сломанные или вручную отключённые модули.
+
+#### Ограничения
+
+- не делать destructive upgrade runtime-модулей;
+- не удалять старые записи Store/listing/purchase/entitlement;
+- не активировать новые версии автоматически;
+- на этом этапе включение отключённого runtime-модуля остаётся отдельной задачей после проверки совместимости.
+
+---
+
+### BUG-005: Sidebar profile entry and Control Center cleanup
+
+**Статус:** done
+**Приоритет:** P1
+**Версия обнаружения:** 0.3.4
+**Исправлено в версии:** 0.3.4
+**Связанные зоны:** `frontend/templates/components/sidebar_dashboard.html`, `frontend/templates/frontend/partials/admin_panel_content.html`, `frontend/views.py`
+
+#### Что исправлено
+
+- отдельная кнопка открытия профиля в sidebar заменена кликабельной зоной avatar + nickname;
+- sidebar использует приоритет аватарок `uploaded_avatar` → `steam_avatar` → fallback;
+- Control Center больше не содержит dev topup форму;
+- Top balances и Recent admin adjustments показывают Steam nickname и ведут в профиль пользователя;
+- runtime-модули синхронизированы с проектной версией `0.3.4`.
+
+---
+
+### FEATURE-001: Users Catalog
+
+**Статус:** done
+**Приоритет:** P1
+**Категория:** profiles / admin / UI
+**Версия идеи:** 0.3.4
+**Реализовано в версии:** 0.3.4
+**Связанные зоны:** `modules/v2/profiles/views.py`, `modules/v2/profiles/urls.py`, `frontend/templates/profiles/users_catalog.html`, `frontend/static/css/modules/profiles.css`
+
+#### Что реализовано
+
+- защищённый каталог пользователей в namespace `profiles`;
+- режимы `grid` и `list` через query-param `view`;
+- поиск по Steam nickname, internal username и Steam ID;
+- фильтр по роли и сортировки `newest`, `balance_desc`, `steam_level_desc`, `role`;
+- пагинация по 24 пользователя с сохранением query-param;
+- карточки/строки ведут в существующий route чужого профиля `profiles:profile_detail`.
