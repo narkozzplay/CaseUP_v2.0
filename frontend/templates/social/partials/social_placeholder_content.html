@@ -1,0 +1,54 @@
+<section class="section section--compact social-placeholder" data-social-page="{{ social_page.key }}">
+    <div class="dashboard-hero card">
+        <div class="card-body dashboard-hero__body">
+            <div>
+                <span class="eyebrow">{{ social_page.eyebrow }}</span>
+                <h1 class="page-title page-title--sm">
+                    {% if LANGUAGE_CODE == "ru" %}{{ social_page.title_ru }}{% else %}{{ social_page.title_en }}{% endif %}
+                </h1>
+                <p class="text-muted dashboard-hero__text">
+                    {% if LANGUAGE_CODE == "ru" %}{{ social_page.description_ru }}{% else %}{{ social_page.description_en }}{% endif %}
+                </p>
+            </div>
+            <div class="dashboard-hero__meta">
+                <span class="status-pill">Stage 1</span>
+                <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Заглушка{% else %}Placeholder{% endif %}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <article class="card dashboard-panel">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Статус раздела{% else %}Section status{% endif %}</h2>
+                </div>
+                <p class="text-muted empty-state">
+                    {% if LANGUAGE_CODE == "ru" %}{{ social_page.empty_ru }}{% else %}{{ social_page.empty_en }}{% endif %}
+                </p>
+            </div>
+        </article>
+
+        <article class="card dashboard-panel">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Навигация{% else %}Navigation{% endif %}</h2>
+                </div>
+                <div class="quick-actions-grid">
+                    <a href="{% url 'social:chats' %}" class="quick-action-card" data-dashboard-nav="true">
+                        <strong>{% if LANGUAGE_CODE == "ru" %}Чаты{% else %}Chats{% endif %}</strong>
+                        <span>{% if LANGUAGE_CODE == "ru" %}Личные сообщения позже{% else %}Private messages later{% endif %}</span>
+                    </a>
+                    <a href="{% url 'social:groups' %}" class="quick-action-card" data-dashboard-nav="true">
+                        <strong>{% if LANGUAGE_CODE == "ru" %}Группы{% else %}Groups{% endif %}</strong>
+                        <span>{% if LANGUAGE_CODE == "ru" %}Сообщества и роли позже{% else %}Communities and roles later{% endif %}</span>
+                    </a>
+                    <a href="{% url 'social:conversations' %}" class="quick-action-card" data-dashboard-nav="true">
+                        <strong>{% if LANGUAGE_CODE == "ru" %}Беседы{% else %}Conversations{% endif %}</strong>
+                        <span>{% if LANGUAGE_CODE == "ru" %}Групповые беседы позже{% else %}Group conversations later{% endif %}</span>
+                    </a>
+                </div>
+            </div>
+        </article>
+    </div>
+</section>

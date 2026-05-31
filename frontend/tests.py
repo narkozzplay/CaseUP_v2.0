@@ -39,6 +39,23 @@ class FrontendStaticCssTests(SimpleTestCase):
         self.assertIn(".dashboard-sidebar::-webkit-scrollbar-thumb", css)
         self.assertNotIn(".dashboard-sidebar__inner::-webkit-scrollbar", css)
 
+    def test_right_social_sidebar_css_is_present(self):
+        css_path = Path(settings.BASE_DIR) / "frontend" / "static" / "css" / "layout.css"
+        css = css_path.read_text(encoding="utf-8")
+
+        self.assertIn(".right-social-sidebar", css)
+        self.assertIn(".is-social-sidebar-collapsed", css)
+        self.assertIn(".is-social-sidebar-mobile-open", css)
+        self.assertIn("grid-template-columns: 280px minmax(0, 1fr) 320px;", css)
+
+    def test_dashboard_shell_js_contains_right_social_sidebar_key(self):
+        js_path = Path(settings.BASE_DIR) / "frontend" / "static" / "js" / "dashboard_shell.js"
+        js = js_path.read_text(encoding="utf-8")
+
+        self.assertIn("caseup:right-social-sidebar:collapsed", js)
+        self.assertIn("data-right-social-sidebar-toggle", js)
+        self.assertIn("data-social-menu-key", js)
+
 
 class FrontendDashboardTests(TestCase):
     def setUp(self):
@@ -62,6 +79,19 @@ class FrontendDashboardTests(TestCase):
         response = self.client.get(reverse("frontend:dashboard_preview"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "CaseUP")
+
+    def test_dashboard_renders_right_social_sidebar(self):
+        user = User.objects.create_user(username="right_sidebar_user", password="StrongPass123")
+        self.client.login(username="right_sidebar_user", password="StrongPass123")
+
+        response = self.client.get(reverse("frontend:dashboard_preview"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="right-social-sidebar"')
+        self.assertContains(response, 'aria-controls="right-social-sidebar"')
+        self.assertContains(response, reverse("social:chats"))
+        self.assertContains(response, reverse("social:groups"))
+        self.assertContains(response, reverse("social:conversations"))
 
     def test_profile_smoke_for_ru_and_en_language_paths(self):
         user = User.objects.create_user(username="language_profile_user", password="StrongPass123")
@@ -95,6 +125,8 @@ class FrontendDashboardTests(TestCase):
         self.assertContains(response, "/media/profiles/avatars/sidebar-upload.png")
         self.assertNotContains(response, "https://cdn.example.com/sidebar-avatar.jpg")
         self.assertContains(response, reverse("accounts:logout"))
+        self.assertContains(response, "presence-indicator")
+        self.assertContains(response, "right-social-sidebar")
 
     def test_admin_panel_forbidden_for_plain_user(self):
         user = User.objects.create_user(username="user2", password="StrongPass123")

@@ -11,7 +11,7 @@ def healthcheck(_request):
 urlpatterns = [
     path("i18n/", include("django.conf.urls.i18n")),
     path("health/", healthcheck, name="healthcheck"),
-    path("oauth/", include("social_django.urls", namespace="social")),
+    path("oauth/", include("social_django.urls", namespace="social_auth")),
     path("telegram/", include("modules.v2.tg_notifier.public_urls")),
 ]
 
@@ -29,6 +29,7 @@ urlpatterns += i18n_patterns(
     path("servers/", include("modules.v2.game_servers.urls")),
     path("store/", include("modules.v2.store.urls")),
     path("constructor/", include("modules.v2.web_constructor.urls")),
+    path("social/", include("modules.v2.social.urls")),
     path("", include("frontend.urls")),
     path("", include("modules.v2.profiles.urls")),
     prefix_default_language=False,

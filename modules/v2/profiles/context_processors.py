@@ -1,6 +1,8 @@
 from decimal import Decimal
 
 from .models import UserProfile
+from .presentation import get_profile_avatar_url, get_profile_display_name
+from .services.presence import is_profile_online
 
 
 ZERO = Decimal("0.00")
@@ -25,7 +27,12 @@ def _get_request_profile(request):
 
 def user_balance(request):
     if not getattr(request, "user", None) or not request.user.is_authenticated:
-        return {"coins": 0}
+        return {
+            "coins": 0,
+            "current_user_avatar_url": "",
+            "current_user_display_name": "",
+            "current_user_is_online": False,
+        }
 
     profile = _get_request_profile(request)
     coins = profile.balance_coins
@@ -34,4 +41,9 @@ def user_balance(request):
     except Exception:
         coins_display = coins
 
-    return {"coins": coins_display}
+    return {
+        "coins": coins_display,
+        "current_user_avatar_url": get_profile_avatar_url(profile),
+        "current_user_display_name": get_profile_display_name(profile, fallback_username=request.user.username),
+        "current_user_is_online": is_profile_online(profile),
+    }

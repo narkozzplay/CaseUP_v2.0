@@ -28,7 +28,7 @@
                 </p>
 
                 <div class="auth-actions auth-actions--stack">
-                    <a href="{% url 'social:begin' 'steam' %}" class="btn btn-primary btn-block">
+                    <a href="{% url 'social_auth:begin' 'steam' %}" class="btn btn-primary btn-block">
                         {% if LANGUAGE_CODE == "ru" %}Войти через Steam{% else %}Login via Steam{% endif %}
                     </a>
                     <a href="{% url 'admin:index' %}" class="btn btn-secondary btn-block">

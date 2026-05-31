@@ -74,9 +74,15 @@
             </div>
 
             <div class="profile-hero__aside">
-                <img src="{{ profile_avatar_url }}" alt="Profile avatar" class="profile-avatar profile-avatar--xl">
+                <span class="presence-avatar-wrap">
+                    <img src="{{ profile_avatar_url }}" alt="Profile avatar" class="profile-avatar profile-avatar--xl">
+                    <span class="presence-indicator {% if profile_is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if profile_is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if profile_is_online %}Online{% else %}Offline{% endif %}"></span>
+                </span>
 
                 <div class="profile-badges">
+                    <span class="status-pill">
+                        ID: {{ profile_user.id }}
+                    </span>
                     <span class="status-pill">
                         Steam ID: {{ profile.steam_id|default:"—" }}
                     </span>

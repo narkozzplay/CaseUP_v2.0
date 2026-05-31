@@ -18,6 +18,7 @@ from modules.v2.accounts.steam_sync import (
 )
 from modules.v2.profiles.services.balance import BalanceError, adjust_balance
 from modules.v2.profiles.services.faceit import sync_faceit_if_needed, sync_faceit_profile
+from modules.v2.profiles.services.presence import is_profile_online
 from modules.v2.profiles.services.steam_profile import sync_profile_steam_meta_if_needed
 from modules.v2.store.services import save_user_theme_preferences
 from modules.v2.subscriptions.services import assign_user_subscription_plan, get_active_subscription, get_subscription_context
@@ -106,6 +107,7 @@ def _build_user_catalog_card(profile: UserProfile) -> dict[str, object]:
     return {
         "profile": profile,
         "user": user,
+        "user_id": user.id,
         "display_name": get_profile_display_name(profile, fallback_username=user.username),
         "avatar_url": get_profile_avatar_url(profile),
         "profile_url": reverse("profiles:profile_detail", args=[user.id]),
@@ -113,6 +115,7 @@ def _build_user_catalog_card(profile: UserProfile) -> dict[str, object]:
         "balance": profile.balance_coins,
         "steam_level": profile.steam_level,
         "faceit_label": faceit_label,
+        "is_online": is_profile_online(profile),
         "activity_kind": activity_kind,
         "activity_at": activity_at,
     }
@@ -221,6 +224,7 @@ def _build_profile_context(*, request, target_user):
         "profile_user": target_user,
         "profile_display_name": profile_display_name,
         "profile_avatar_url": profile_avatar_url,
+        "profile_is_online": is_profile_online(profile),
         "recent_entries": recent_entries,
         "role_access": target_role_access,
         "viewer_role_access": viewer_role_access,
@@ -278,11 +282,14 @@ def users_catalog_view(request):
     profiles_qs = UserProfile.objects.select_related("user")
 
     if q:
-        profiles_qs = profiles_qs.filter(
+        query = (
             Q(steam_personaname__icontains=q)
             | Q(user__username__icontains=q)
             | Q(steam_id__icontains=q)
         )
+        if q.isdigit():
+            query |= Q(user_id=int(q))
+        profiles_qs = profiles_qs.filter(query)
 
     if selected_role:
         profiles_qs = profiles_qs.filter(role=selected_role)

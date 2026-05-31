@@ -57,12 +57,16 @@
         <div class="users-list">
             {% for item in users %}
                 <article class="users-list__row">
-                    <img src="{{ item.avatar_url }}" alt="{{ item.display_name }}" class="users-list__avatar">
+                    <span class="presence-avatar-wrap">
+                        <img src="{{ item.avatar_url }}" alt="{{ item.display_name }}" class="users-list__avatar">
+                        <span class="presence-indicator {% if item.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if item.is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if item.is_online %}Online{% else %}Offline{% endif %}"></span>
+                    </span>
                     <div class="users-list__identity">
                         <a href="{{ item.profile_url }}" class="users-list__name" data-dashboard-nav="true">{{ item.display_name }}</a>
                         <span class="text-muted">{{ item.user.username }}</span>
                     </div>
                     <div class="users-list__meta">
+                        <span class="status-pill status-pill--sm">ID: {{ item.user_id }}</span>
                         <span class="status-pill status-pill--sm">{{ item.role_label }}</span>
                         <span class="status-pill status-pill--sm">{% if LANGUAGE_CODE == "ru" %}Баланс:{% else %}Balance:{% endif %} {{ item.balance }}</span>
                         <span class="status-pill status-pill--sm">Steam lvl: {% if item.steam_level %}{{ item.steam_level }}{% else %}—{% endif %}</span>
@@ -97,12 +101,16 @@
                     <a href="{{ item.profile_url }}" class="catalog-card__link" aria-label="{{ item.display_name }}" data-dashboard-nav="true"></a>
                     <div class="card-body">
                         <div class="users-card__media">
-                            <img src="{{ item.avatar_url }}" alt="{{ item.display_name }}" class="users-card__avatar">
+                            <span class="presence-avatar-wrap">
+                                <img src="{{ item.avatar_url }}" alt="{{ item.display_name }}" class="users-card__avatar">
+                                <span class="presence-indicator {% if item.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if item.is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if item.is_online %}Online{% else %}Offline{% endif %}"></span>
+                            </span>
                         </div>
                         <div class="users-card__content">
                             <h2 class="users-card__name">{{ item.display_name }}</h2>
                             <div class="text-muted users-card__username">{{ item.user.username }}</div>
                             <div class="users-card__badges">
+                                <span class="status-pill status-pill--sm">ID: {{ item.user_id }}</span>
                                 <span class="status-pill status-pill--sm">{{ item.role_label }}</span>
                                 <span class="status-pill status-pill--sm">{% if LANGUAGE_CODE == "ru" %}Баланс:{% else %}Balance:{% endif %} {{ item.balance }}</span>
                                 <span class="status-pill status-pill--sm">Steam lvl: {% if item.steam_level %}{{ item.steam_level }}{% else %}—{% endif %}</span>

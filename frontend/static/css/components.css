@@ -170,6 +170,47 @@
     font-weight: 700;
 }
 
+.presence-avatar-wrap {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+}
+
+.presence-avatar-wrap--sm {
+    width: 44px;
+    height: 44px;
+}
+
+.presence-indicator {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(10, 15, 29, 0.96);
+    border-radius: 999px;
+    background: #6b7280;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+}
+
+.presence-indicator--online {
+    background: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16);
+}
+
+.presence-indicator--offline {
+    background: #64748b;
+}
+
+.presence-indicator--inline {
+    position: static;
+    display: inline-flex;
+    width: 10px;
+    height: 10px;
+    border-width: 0;
+    box-shadow: none;
+}
+
 .online-role-grid {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));

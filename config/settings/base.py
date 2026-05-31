@@ -66,6 +66,7 @@ PROJECT_APPS = [
     "modules.v2.accounts.apps.AccountsConfig",
     "modules.v2.system.apps.SystemConfig",
     "modules.v2.profiles.apps.ProfilesConfig",
+    "modules.v2.social.apps.SocialConfig",
     "modules.v2.subscriptions.apps.SubscriptionsConfig",
     "modules.v2.steam_catalog.apps.SteamCatalogConfig",
     "modules.v2.farm.apps.FarmConfig",
@@ -203,6 +204,7 @@ SOCIAL_AUTH_REDIRECT_IS_HTTPS = os.getenv("SOCIAL_AUTH_REDIRECT_IS_HTTPS", "0").
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = os.getenv("SOCIAL_AUTH_LOGIN_REDIRECT_URL", "/profile/")
 SOCIAL_AUTH_NEW_USER_REDIRECT_URL = os.getenv("SOCIAL_AUTH_NEW_USER_REDIRECT_URL", "/profile/")
 SOCIAL_AUTH_LOGIN_ERROR_URL = os.getenv("SOCIAL_AUTH_LOGIN_ERROR_URL", "/auth/login/")
+SOCIAL_AUTH_URL_NAMESPACE = "social_auth"
 
 FACEIT_API_KEY = os.getenv("FACEIT_API_KEY", "").strip()
 

@@ -1,18 +1,25 @@
+from datetime import timedelta
 from decimal import Decimal
 from io import BytesIO
 import shutil
 import tempfile
 from unittest.mock import patch
 
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
-from django.test import Client, TestCase, TransactionTestCase
+from django.http import HttpResponse
+from django.test import Client, RequestFactory, TestCase, TransactionTestCase
 from django.urls import reverse
+from django.utils import timezone
 
+from modules.v2.profiles.middleware import UserLastSeenMiddleware
 from modules.v2.profiles.services.balance import BalanceError, adjust_balance
 from modules.v2.profiles.services.ledger import LedgerError, LedgerIdempotencyConflictError, apply_ledger_delta
 from modules.v2.profiles.services.faceit import build_faceit_level_image_url, sync_faceit_profile
+from modules.v2.profiles.services.presence import is_profile_online
 from modules.v2.profiles.forms import AdminProfileIdentityForm
 from modules.v2.profiles.models import UserProfile, UserRole
 from modules.v2.store.models import ThemeStoreListing, UserThemePurchase
@@ -59,6 +66,94 @@ class ProfileTests(TestCase):
         response = self.client.get(reverse("profiles:profile"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "FACEIT")
+
+
+class ProfilePresenceTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.factory = RequestFactory()
+
+    def _response(self, _request):
+        return HttpResponse("ok")
+
+    def test_is_profile_online_with_fresh_last_seen(self):
+        user = User.objects.create_user(username="presence_fresh", password="StrongPass123")
+        profile = user.profile_v2
+        now = timezone.now()
+        profile.last_seen_at = now - timedelta(minutes=1)
+
+        self.assertTrue(is_profile_online(profile, now=now))
+
+    def test_is_profile_online_false_without_last_seen(self):
+        user = User.objects.create_user(username="presence_empty", password="StrongPass123")
+        profile = user.profile_v2
+        profile.last_seen_at = None
+
+        self.assertFalse(is_profile_online(profile, now=timezone.now()))
+
+    def test_is_profile_online_false_when_expired(self):
+        user = User.objects.create_user(username="presence_expired", password="StrongPass123")
+        profile = user.profile_v2
+        now = timezone.now()
+        profile.last_seen_at = now - timedelta(minutes=6)
+
+        self.assertFalse(is_profile_online(profile, now=now))
+
+    def test_last_seen_middleware_ignores_anonymous_user(self):
+        request = self.factory.get("/")
+        request.user = AnonymousUser()
+        middleware = UserLastSeenMiddleware(self._response)
+
+        response = middleware(request)
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_last_seen_middleware_updates_authenticated_user(self):
+        user = User.objects.create_user(username="presence_touch", password="StrongPass123")
+        profile = user.profile_v2
+        profile.last_seen_at = None
+        profile.save(update_fields=["last_seen_at"])
+        request = self.factory.get("/")
+        request.user = user
+        middleware = UserLastSeenMiddleware(self._response)
+
+        response = middleware(request)
+
+        self.assertEqual(response.status_code, 200)
+        profile.refresh_from_db()
+        self.assertIsNotNone(profile.last_seen_at)
+
+    def test_last_seen_middleware_throttles_updates(self):
+        user = User.objects.create_user(username="presence_throttle", password="StrongPass123")
+        profile = user.profile_v2
+        first_now = timezone.now()
+        second_now = first_now + timedelta(seconds=30)
+        middleware = UserLastSeenMiddleware(self._response)
+
+        with patch("modules.v2.profiles.services.presence.timezone.now", return_value=first_now):
+            first_request = self.factory.get("/")
+            first_request.user = user
+            middleware(first_request)
+
+        with patch("modules.v2.profiles.services.presence.timezone.now", return_value=second_now):
+            second_request = self.factory.get("/")
+            second_request.user = user
+            middleware(second_request)
+
+        profile.refresh_from_db()
+        self.assertEqual(profile.last_seen_at, first_now)
+
+    def test_last_seen_middleware_does_not_create_missing_profile(self):
+        user = User.objects.create_user(username="presence_missing_profile", password="StrongPass123")
+        UserProfile.objects.filter(user=user).delete()
+        request = self.factory.get("/")
+        request.user = user
+        middleware = UserLastSeenMiddleware(self._response)
+
+        response = middleware(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(UserProfile.objects.filter(user=user).exists())
 
 
 class UsersCatalogTests(TestCase):
@@ -134,6 +229,21 @@ class UsersCatalogTests(TestCase):
         self.assertNotContains(response, "Unrelated User")
         self.assertNotContains(response, reverse("profiles:profile_detail", args=[other.id]))
 
+    def test_users_catalog_search_by_user_id(self):
+        admin = self._make_admin("users_catalog_id_admin")
+        target = self._make_user("id_search_target", steam_name="ID Search Target")
+        other = self._make_user("id_search_other", steam_name="ID Search Other")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        response = self.client.get(reverse("profiles:users_catalog"), {"q": str(target.id)})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "ID Search Target")
+        self.assertContains(response, f"ID: {target.id}")
+        self.assertContains(response, reverse("profiles:profile_detail", args=[target.id]))
+        self.assertNotContains(response, "ID Search Other")
+        self.assertNotContains(response, reverse("profiles:profile_detail", args=[other.id]))
+
     def test_users_catalog_filter_by_role(self):
         admin = self._make_admin("users_catalog_role_admin")
         farmer = self._make_user("catalog_farmer", role=UserRole.FARMER, steam_name="Farmer Visible")
@@ -150,23 +260,29 @@ class UsersCatalogTests(TestCase):
 
     def test_users_catalog_grid_mode(self):
         admin = self._make_admin("users_catalog_grid_admin")
+        target = self._make_user("users_catalog_grid_target", steam_name="Grid Target")
         self.client.login(username=admin.username, password="StrongPass123")
 
-        response = self.client.get(reverse("profiles:users_catalog"), {"view": "grid"})
+        response = self.client.get(reverse("profiles:users_catalog"), {"view": "grid", "q": "Grid Target"})
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-users-catalog-view="grid"')
         self.assertContains(response, "users-grid")
+        self.assertContains(response, f"ID: {target.id}")
+        self.assertContains(response, "presence-indicator")
 
     def test_users_catalog_list_mode(self):
         admin = self._make_admin("users_catalog_list_admin")
+        target = self._make_user("users_catalog_list_target", steam_name="List Target")
         self.client.login(username=admin.username, password="StrongPass123")
 
-        response = self.client.get(reverse("profiles:users_catalog"), {"view": "list"})
+        response = self.client.get(reverse("profiles:users_catalog"), {"view": "list", "q": "List Target"})
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-users-catalog-view="list"')
         self.assertContains(response, "users-list__row")
+        self.assertContains(response, f"ID: {target.id}")
+        self.assertContains(response, "presence-indicator")
 
     def test_users_catalog_unknown_view_falls_back_to_grid(self):
         admin = self._make_admin("users_catalog_unknown_view_admin")

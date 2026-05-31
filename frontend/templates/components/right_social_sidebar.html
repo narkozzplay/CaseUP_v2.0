@@ -1,0 +1,80 @@
+{% load static %}
+
+{% if request.user.is_authenticated %}
+<div class="right-social-region" data-right-social-region>
+    <button
+        type="button"
+        class="right-social-sidebar__rail-toggle"
+        data-right-social-sidebar-toggle
+        aria-controls="right-social-sidebar"
+        aria-expanded="true"
+    >
+        Communication
+    </button>
+
+    <aside class="right-social-sidebar" id="right-social-sidebar" data-right-social-sidebar aria-label="Communication">
+        <div class="right-social-sidebar__inner">
+            <div class="right-social-sidebar__head">
+                <div>
+                    <span class="eyebrow">Communication</span>
+                    <h2 class="right-social-sidebar__title">
+                        {% if LANGUAGE_CODE == "ru" %}Связь{% else %}Communication{% endif %}
+                    </h2>
+                </div>
+                <button
+                    type="button"
+                    class="btn btn-secondary btn-sm right-social-sidebar__toggle"
+                    data-right-social-sidebar-toggle
+                    aria-controls="right-social-sidebar"
+                    aria-expanded="true"
+                >
+                    {% if LANGUAGE_CODE == "ru" %}Скрыть{% else %}Hide{% endif %}
+                </button>
+            </div>
+
+            <div class="right-social-sidebar__user">
+                <span class="presence-avatar-wrap presence-avatar-wrap--sm">
+                    <img src="{{ current_user_avatar_url }}" alt="Profile avatar" class="right-social-sidebar__avatar">
+                    <span class="presence-indicator {% if current_user_is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if current_user_is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if current_user_is_online %}Online{% else %}Offline{% endif %}"></span>
+                </span>
+                <div>
+                    <strong>{{ current_user_display_name|default:request.user.username }}</strong>
+                    <p class="text-muted">
+                        {% if current_user_is_online %}
+                            {% if LANGUAGE_CODE == "ru" %}Сейчас онлайн{% else %}Online now{% endif %}
+                        {% else %}
+                            {% if LANGUAGE_CODE == "ru" %}Нет свежей активности{% else %}No recent activity{% endif %}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <nav class="right-social-sidebar__nav" aria-label="Communication sections">
+                <a href="{% url 'social:chats' %}" data-dashboard-nav="true" data-social-menu-key="social_chats">
+                    <strong>{% if LANGUAGE_CODE == "ru" %}Чаты{% else %}Chats{% endif %}</strong>
+                    <span>{% if LANGUAGE_CODE == "ru" %}Чатов пока нет{% else %}No chats yet{% endif %}</span>
+                </a>
+                <a href="{% url 'social:groups' %}" data-dashboard-nav="true" data-social-menu-key="social_groups">
+                    <strong>{% if LANGUAGE_CODE == "ru" %}Группы{% else %}Groups{% endif %}</strong>
+                    <span>{% if LANGUAGE_CODE == "ru" %}Групп пока нет{% else %}No groups yet{% endif %}</span>
+                </a>
+                <a href="{% url 'social:conversations' %}" data-dashboard-nav="true" data-social-menu-key="social_conversations">
+                    <strong>{% if LANGUAGE_CODE == "ru" %}Беседы{% else %}Conversations{% endif %}</strong>
+                    <span>{% if LANGUAGE_CODE == "ru" %}Бесед пока нет{% else %}No conversations yet{% endif %}</span>
+                </a>
+            </nav>
+        </div>
+    </aside>
+
+    <button
+        type="button"
+        class="right-social-sidebar__mobile-close"
+        data-right-social-sidebar-toggle
+        aria-controls="right-social-sidebar"
+        aria-expanded="true"
+    >
+        {% if LANGUAGE_CODE == "ru" %}Закрыть{% else %}Close{% endif %}
+    </button>
+    <div class="right-social-sidebar__backdrop" data-right-social-sidebar-backdrop></div>
+</div>
+{% endif %}

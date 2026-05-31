@@ -14,6 +14,8 @@
     const themeKeyHeaderName = 'X-Dashboard-Theme-Key';
     const reloadUrlHeaderName = 'X-Dashboard-Reload-Url';
     const openStateStorageKey = 'caseup.dashboard.sidebar.groups';
+    const rightSocialSidebarStorageKey = 'caseup:right-social-sidebar:collapsed';
+    const rightSocialSidebarMobileQuery = window.matchMedia('(max-width: 960px)');
 
     function isModifiedClick(event) {
         return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
@@ -56,6 +58,18 @@
         });
     }
 
+    function syncSocialActiveState(activeKey, href) {
+        shell.querySelectorAll('[data-social-menu-key]').forEach((node) => {
+            const isActive = Boolean(activeKey) ? node.dataset.socialMenuKey === activeKey : node.href === href;
+            node.classList.toggle('is-active', isActive);
+            if (isActive) {
+                node.setAttribute('aria-current', 'page');
+            } else {
+                node.removeAttribute('aria-current');
+            }
+        });
+    }
+
     function syncTitleAndActiveStateFromContent() {
         const frame = contentRoot.querySelector('.dashboard-content-frame');
         if (!frame) {
@@ -67,7 +81,63 @@
             document.title = pageTitle;
         }
         syncSidebarActiveState(activeMenu, window.location.href);
+        syncSocialActiveState(activeMenu, window.location.href);
         document.dispatchEvent(new CustomEvent('dashboard:content-replaced', { detail: { frame } }));
+    }
+
+    function readRightSocialSidebarCollapsed() {
+        const stored = window.localStorage.getItem(rightSocialSidebarStorageKey);
+        if (stored === 'true') {
+            return true;
+        }
+        if (stored === 'false') {
+            return false;
+        }
+        return rightSocialSidebarMobileQuery.matches;
+    }
+
+    function setRightSocialSidebarCollapsed(collapsed, { persist = true } = {}) {
+        const isCollapsed = Boolean(collapsed);
+        shell.classList.toggle('is-social-sidebar-collapsed', isCollapsed);
+        shell.classList.toggle('is-social-sidebar-mobile-open', !isCollapsed && rightSocialSidebarMobileQuery.matches);
+        shell.querySelectorAll('[data-right-social-sidebar-toggle]').forEach((button) => {
+            button.setAttribute('aria-expanded', String(!isCollapsed));
+        });
+        if (persist) {
+            window.localStorage.setItem(rightSocialSidebarStorageKey, String(isCollapsed));
+        }
+    }
+
+    function initRightSocialSidebar() {
+        const sidebarNode = shell.querySelector('[data-right-social-sidebar]');
+        if (!sidebarNode) {
+            return;
+        }
+
+        setRightSocialSidebarCollapsed(readRightSocialSidebarCollapsed(), { persist: false });
+        shell.querySelectorAll('[data-right-social-sidebar-toggle]').forEach((button) => {
+            if (button.dataset.dashboardInitBound === 'true') {
+                return;
+            }
+            button.dataset.dashboardInitBound = 'true';
+            button.addEventListener('click', () => {
+                setRightSocialSidebarCollapsed(!shell.classList.contains('is-social-sidebar-collapsed'));
+            });
+        });
+
+        shell.querySelectorAll('[data-right-social-sidebar-backdrop]').forEach((backdrop) => {
+            if (backdrop.dataset.dashboardInitBound === 'true') {
+                return;
+            }
+            backdrop.dataset.dashboardInitBound = 'true';
+            backdrop.addEventListener('click', () => {
+                setRightSocialSidebarCollapsed(true);
+            });
+        });
+
+        rightSocialSidebarMobileQuery.addEventListener('change', () => {
+            setRightSocialSidebarCollapsed(readRightSocialSidebarCollapsed(), { persist: false });
+        });
     }
 
     function persistGroupState() {
@@ -637,6 +707,7 @@
     }
 
     restoreGroupState();
+    initRightSocialSidebar();
     syncTitleAndActiveStateFromContent();
     initDashboardPageScripts(document);
     document.addEventListener('dashboard:content-replaced', (event) => {

@@ -12,14 +12,13 @@ from django.utils import timezone
 from common.errors import render_not_found_page
 from modules.v2.farm.models import FarmAccount
 from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserProfile, UserRole
+from modules.v2.profiles.services.presence import ONLINE_THRESHOLD_MINUTES
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.steam_catalog.models import SteamItem
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
 
 User = get_user_model()
-ONLINE_WINDOW_MINUTES = 5
-
 ROLE_LABELS = {
     UserRole.USER: "User",
     UserRole.FARMER: "Farmer",
@@ -35,7 +34,7 @@ def home(request):
 
 
 def _build_online_role_stats() -> list[dict[str, object]]:
-    threshold = timezone.now() - timedelta(minutes=ONLINE_WINDOW_MINUTES)
+    threshold = timezone.now() - timedelta(minutes=ONLINE_THRESHOLD_MINUTES)
     online_counts = {
         row["role"]: row["total"]
         for row in (

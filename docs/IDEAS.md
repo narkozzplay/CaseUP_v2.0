@@ -242,17 +242,27 @@ PNG предмета в detail-card не должен рендериться к�
 
 ### IDEA-004: Социальный слой CaseUP / коммуникации пользователей
 
-**Статус:** planned
+**Статус:** partial
 **Приоритет:** P2
 **Категория:** profiles / social / communication / UI / realtime
 **Версия идеи:** future roadmap
-**Реализовано в версии:** нет
+**Реализовано в версии:** частично, Stage 1 foundation/stub
 
 #### Суть идеи
 
 Постепенно развить CaseUP от набора личных кабинетов и каталогов к социальному слою: online/offline статусы, аккуратные индикаторы активности, личные чаты, беседы, группы/сообщества, медиа-ленты и кастомизация личной страницы пользователя.
 
-Это future roadmap. Не считать перечисленное ниже реализованным и не внедрять без отдельной задачи, миграций, тестов и проверки RBAC.
+Это future roadmap. Не считать полноценные чаты, группы, realtime, медиа-ленты и кастомизацию профиля реализованными без отдельной задачи, миграций, тестов и проверки RBAC.
+
+#### Stage 1 foundation started
+
+- добавляется правый скрываемый social sidebar для dashboard layout;
+- добавляются страницы-заглушки `Chats`, `Groups`, `Conversations`;
+- используется backend-основа online/offline через `last_seen_at` без WebSocket/Django Channels;
+- добавляется reusable online/offline indicator возле аватарок;
+- Users Catalog показывает Django User ID;
+- Users Catalog поддерживает поиск по Django User ID;
+- этап остаётся foundation/stub: без реального мессенджера, групповых моделей, invite links, media feed и realtime.
 
 #### Online/offline статус пользователя
 
@@ -322,10 +332,11 @@ PNG предмета в detail-card не должен рендериться к�
 
 ##### Stage 1 — безопасные заглушки
 
-- `last_seen`;
-- online/offline indicator;
-- правый sidebar-заглушка;
+- `last_seen` / `last_seen_at`;
+- online/offline indicator возле аватарки;
+- правый sidebar-заглушка для коммуникаций;
 - страницы-заглушки `Chats`, `Groups`, `Conversations`;
+- User ID и поиск по ID в Users Catalog;
 - без тяжёлой realtime-логики.
 
 ##### Stage 2 — модели и права

@@ -62,6 +62,11 @@
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
 }
 
+.profile-hero__aside .presence-indicator {
+    width: 18px;
+    height: 18px;
+}
+
 .avatar-upload {
     width: min(100%, 320px);
     padding: 14px;
@@ -246,6 +251,15 @@
     border-radius: 28px;
     object-fit: cover;
     box-shadow: 0 16px 34px rgba(0, 0, 0, 0.30);
+}
+
+.users-card__media .presence-avatar-wrap {
+    width: min(100%, 148px);
+}
+
+.users-card__media .presence-indicator {
+    width: 16px;
+    height: 16px;
 }
 
 .users-card__content {
