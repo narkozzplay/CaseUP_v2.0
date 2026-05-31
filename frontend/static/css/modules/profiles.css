@@ -301,6 +301,32 @@
     font-size: 0.88rem;
 }
 
+.users-card__actions,
+.users-list__actions,
+.profile-direct-chat {
+    position: relative;
+    z-index: 5;
+}
+
+.users-card__actions,
+.users-direct-chat {
+    display: flex;
+}
+
+.users-card__actions .btn,
+.users-direct-chat .btn,
+.profile-direct-chat .btn {
+    width: 100%;
+}
+
+.users-list__actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
 .users-list {
     display: flex;
     flex-direction: column;
@@ -361,6 +387,7 @@
     }
 
     .users-list__activity,
+    .users-list__actions,
     .users-list__open {
         grid-column: 2 / -1;
     }
@@ -400,8 +427,13 @@
 
     .users-list__meta,
     .users-list__activity,
+    .users-list__actions,
     .users-list__open {
         grid-column: 1 / -1;
+    }
+
+    .users-list__actions {
+        justify-content: stretch;
     }
 
     .users-list__open {

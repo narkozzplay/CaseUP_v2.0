@@ -16,7 +16,7 @@
   "js_files": [],
   "preview_image": "",
   "is_public": false,
-  "compatible_project_versions": ["0.3.4", "0.3.3", "0.3.2", "0.3.0", "0.2.7.1", "0.1.38"],
+  "compatible_project_versions": ["0.3.4.2", "0.3.4", "0.3.3", "0.3.2", "0.3.0", "0.2.7.1", "0.1.38"],
   "compatible_themes": ["*", "default", "midnight"],
   "access_mode": "purchase_or_subscription"
 }

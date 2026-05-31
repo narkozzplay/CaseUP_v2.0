@@ -744,7 +744,7 @@ class SystemVersioningTests(TestCase):
     def test_versioning_bootstrap_creates_current_project_version_and_theme(self):
         config = get_site_configuration()
         self.assertIsNotNone(get_current_project_version())
-        self.assertEqual(get_current_project_version().version, "0.3.4")
+        self.assertEqual(get_current_project_version().version, "0.3.4.2")
         self.assertIsNotNone(get_active_theme())
         self.assertTrue(ThemeProfile.objects.filter(is_default=True).exists())
         self.assertIsNotNone(config.current_project_version)
@@ -771,8 +771,8 @@ class SystemVersioningTests(TestCase):
         bootstrap_versioning()
 
         config.refresh_from_db()
-        self.assertEqual(config.current_project_version.version, "0.3.4")
-        self.assertTrue(ProjectVersion.objects.get(version="0.3.4").is_current)
+        self.assertEqual(config.current_project_version.version, "0.3.4.2")
+        self.assertTrue(ProjectVersion.objects.get(version="0.3.4.2").is_current)
         legacy.refresh_from_db()
         self.assertFalse(legacy.is_current)
 

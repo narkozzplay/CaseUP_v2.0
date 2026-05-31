@@ -82,9 +82,19 @@
                         {% endif %}
                         {% if item.activity_at %}{{ item.activity_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}
                     </div>
-                    <a href="{{ item.profile_url }}" class="btn btn-secondary btn-sm users-list__open" data-dashboard-nav="true">
-                        {% if LANGUAGE_CODE == "ru" %}Открыть{% else %}Open{% endif %}
-                    </a>
+                    <div class="users-list__actions">
+                        <a href="{{ item.profile_url }}" class="btn btn-secondary btn-sm users-list__open" data-dashboard-nav="true">
+                            {% if LANGUAGE_CODE == "ru" %}Открыть{% else %}Open{% endif %}
+                        </a>
+                        {% if item.user_id != request.user.id %}
+                            <form method="post" action="{% url 'profiles:profile_start_direct_chat' item.user_id %}" class="users-direct-chat">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    {% if LANGUAGE_CODE == "ru" %}Написать{% else %}Message{% endif %}
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
                 </article>
             {% empty %}
                 <article class="card">
@@ -126,6 +136,14 @@
                                 {% endif %}
                                 {% if item.activity_at %}{{ item.activity_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}
                             </div>
+                            {% if item.user_id != request.user.id %}
+                                <form method="post" action="{% url 'profiles:profile_start_direct_chat' item.user_id %}" class="users-card__actions users-direct-chat">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        {% if LANGUAGE_CODE == "ru" %}Написать{% else %}Message{% endif %}
+                                    </button>
+                                </form>
+                            {% endif %}
                         </div>
                     </div>
                 </article>

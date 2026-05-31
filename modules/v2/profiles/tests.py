@@ -33,6 +33,8 @@ from modules.v2.profiles.services.steam_profile import (
     fetch_steam_level,
     sync_profile_background_if_needed,
 )
+from modules.v2.social.models import SocialMembership, SocialSpace
+from modules.v2.social.services import build_space_url
 from PIL import Image
 
 User = get_user_model()
@@ -331,6 +333,7 @@ class UsersCatalogTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, reverse("profiles:profile_detail", args=[target.id]))
+        self.assertContains(response, reverse("profiles:profile_start_direct_chat", args=[target.id]))
 
 
     def test_profile_detail_view_forbidden_for_foreign_regular_user(self):
@@ -957,6 +960,76 @@ class UsersCatalogTests(TestCase):
         profile.refresh_from_db()
         self.assertIsNone(profile.telegram_chat_id)
         self.assertContains(response, "Telegram отключен от вашего профиля.")
+
+
+class ProfileDirectChatTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="direct_user", password="StrongPass123")
+        self.target = User.objects.create_user(username="direct_target", password="StrongPass123")
+
+    def test_start_direct_chat_requires_login(self):
+        response = self.client.post(reverse("profiles:profile_start_direct_chat", args=[self.target.id]))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(SocialSpace.objects.filter(space_type=SocialSpace.SpaceType.DIRECT).exists())
+
+    def test_start_direct_chat_cannot_target_self(self):
+        self.client.login(username="direct_user", password="StrongPass123")
+
+        response = self.client.post(reverse("profiles:profile_start_direct_chat", args=[self.user.id]))
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(SocialSpace.objects.filter(space_type=SocialSpace.SpaceType.DIRECT).exists())
+
+    def test_start_direct_chat_missing_target_returns_404(self):
+        self.client.login(username="direct_user", password="StrongPass123")
+
+        response = self.client.post(reverse("profiles:profile_start_direct_chat", args=[999999]))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_start_direct_chat_creates_space_and_redirects_to_detail(self):
+        self.client.login(username="direct_user", password="StrongPass123")
+
+        response = self.client.post(reverse("profiles:profile_start_direct_chat", args=[self.target.id]))
+
+        space = SocialSpace.objects.get(space_type=SocialSpace.SpaceType.DIRECT)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], build_space_url(space))
+        self.assertEqual(space.memberships.count(), 2)
+        self.assertTrue(SocialMembership.objects.filter(space=space, user=self.user).exists())
+        self.assertTrue(SocialMembership.objects.filter(space=space, user=self.target).exists())
+
+    def test_start_direct_chat_reuses_existing_space(self):
+        self.client.login(username="direct_user", password="StrongPass123")
+        first = self.client.post(reverse("profiles:profile_start_direct_chat", args=[self.target.id]))
+        second = self.client.post(reverse("profiles:profile_start_direct_chat", args=[self.target.id]))
+
+        self.assertEqual(first.status_code, 302)
+        self.assertEqual(second.status_code, 302)
+        self.assertEqual(SocialSpace.objects.filter(space_type=SocialSpace.SpaceType.DIRECT).count(), 1)
+        self.assertEqual(first["Location"], second["Location"])
+
+    def test_profile_detail_shows_message_button_for_foreign_user(self):
+        admin = User.objects.create_user(username="direct_admin", password="StrongPass123")
+        admin.profile_v2.role = UserRole.ADMIN
+        admin.profile_v2.save(update_fields=["role"])
+        self.client.login(username="direct_admin", password="StrongPass123")
+
+        response = self.client.get(reverse("profiles:profile_detail", args=[self.target.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("profiles:profile_start_direct_chat", args=[self.target.id]))
+        self.assertContains(response, "Написать")
+
+    def test_profile_owner_does_not_show_message_button_to_self(self):
+        self.client.login(username="direct_user", password="StrongPass123")
+
+        response = self.client.get(reverse("profiles:profile"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, reverse("profiles:profile_start_direct_chat", args=[self.user.id]))
 
 
 class ProfileAvatarPatchTests(TestCase):

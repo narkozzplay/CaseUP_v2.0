@@ -1,0 +1,64 @@
+<section class="section section--compact social-detail">
+    <div class="dashboard-hero card">
+        <div class="card-body dashboard-hero__body">
+            <div class="social-detail__hero">
+                <img src="{{ avatar_url }}" alt="{{ space.title }}" class="social-detail__avatar">
+                <div>
+                    <span class="eyebrow">{{ space_type_label }}</span>
+                    <h1 class="page-title page-title--sm">{{ space.title }}</h1>
+                    <p class="text-muted dashboard-hero__text">
+                        {% if space.description %}
+                            {{ space.description }}
+                        {% else %}
+                            {% if LANGUAGE_CODE == "ru" %}Описание пока не задано.{% else %}No description yet.{% endif %}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="dashboard-hero__meta">
+                <span class="status-pill">{{ privacy_label }}</span>
+                <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Ваша роль:{% else %}Your role:{% endif %} {{ membership_role_label }}</span>
+                <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Участники:{% else %}Members:{% endif %} {{ member_count }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="social-detail__grid">
+        <article class="card social-detail__members">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Участники{% else %}Members{% endif %}</h2>
+                    <span class="text-muted">{{ member_count }}</span>
+                </div>
+                <div class="social-detail__member-list">
+                    {% for member in members %}
+                        <div class="social-detail__member">
+                            <span class="presence-avatar-wrap presence-avatar-wrap--sm">
+                                <img src="{{ member.avatar_url }}" alt="{{ member.display_name }}" class="social-detail__member-avatar">
+                                <span class="presence-indicator {% if member.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if member.is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if member.is_online %}Online{% else %}Offline{% endif %}"></span>
+                            </span>
+                            <div class="social-detail__member-body">
+                                <strong>{{ member.display_name }}</strong>
+                                <span class="text-muted">{{ member.role_label }}</span>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted empty-state">{% if LANGUAGE_CODE == "ru" %}Участников пока нет.{% else %}No members yet.{% endif %}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </article>
+
+        <article class="card social-detail__messages-empty">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Сообщения{% else %}Messages{% endif %}</h2>
+                    <span class="status-pill status-pill--sm">Stage 3</span>
+                </div>
+                <p class="text-muted empty-state">
+                    {% if LANGUAGE_CODE == "ru" %}Сообщения будут добавлены следующим этапом.{% else %}Messages will be added in the next stage.{% endif %}
+                </p>
+            </div>
+        </article>
+    </div>
+</section>

@@ -1,0 +1,7 @@
+{% extends "layouts/base_dashboard.html" %}
+
+{% block title %}{% if LANGUAGE_CODE == "ru" %}Создать беседу{% else %}Create conversation{% endif %} | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
+
+{% block content %}
+    {% include "social/partials/space_create_content.html" %}
+{% endblock %}

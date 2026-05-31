@@ -12,6 +12,12 @@
                 <span class="status-pill">{% trans "Role" %}: {{ profile.get_role_display }}</span>
                 <span class="status-pill">{% trans "Balance" %}: {{ profile.balance_coins }}</span>
                 <span class="status-pill">Steam lvl: {{ profile.steam_level|default:"—" }}</span>
+                {% if not is_owner_profile %}
+                    <form method="post" action="{% url 'profiles:profile_start_direct_chat' profile_user.id %}" class="profile-direct-chat">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary btn-sm">{% trans "Message" %}</button>
+                    </form>
+                {% endif %}
                 {% if is_owner_profile and avatar_upload_form %}
                     <form method="post" action="{% url 'profiles:profile_avatar_upload' %}" enctype="multipart/form-data" class="form-stack avatar-upload avatar-upload--compact" data-avatar-upload data-avatar-upload-empty="{% trans 'No file selected' %}">
                         {% csrf_token %}

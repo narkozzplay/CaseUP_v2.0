@@ -124,7 +124,7 @@ trade hub page
 - существующие runtime module manifests;
 - точечные slot-override для Steam Catalog detail;
 - fallback на дефолтный partial, если модуль не куплен, несовместим или не применён;
-- совместимость с текущей версией проекта `0.3.4`.
+- совместимость с текущей версией проекта `0.3.4.2`.
 
 #### Следующий шаг
 
@@ -186,8 +186,8 @@ PNG предмета в detail-card не должен рендериться к�
 
 #### Цель
 
-- проект имеет текущую версию `0.3.4`;
-- runtime-модули явно поддерживают `0.3.4` через `compatible_project_versions`;
+- проект имеет текущую версию `0.3.4.2`;
+- runtime-модули явно поддерживают `0.3.4.2` через `compatible_project_versions`, сохраняя поддержку `0.3.4` для истории;
 - в веб-интерфейсе admin+ есть POST-кнопка быстрой синхронизации runtime module manifests;
 - администратор видит статус runtime-модуля: актуальный, несовместимый, отключён или ошибка manifest/sync;
 - если модуль после обновления не работает, его можно вручную отключить без удаления записей и entitlement;
@@ -246,7 +246,7 @@ PNG предмета в detail-card не должен рендериться к�
 **Приоритет:** P2
 **Категория:** profiles / social / communication / UI / realtime
 **Версия идеи:** future roadmap
-**Реализовано в версии:** частично, Stage 1 foundation/stub
+**Реализовано в версии:** частично, Stage 1 + Stage 2 foundation
 
 #### Суть идеи
 
@@ -264,11 +264,14 @@ PNG предмета в detail-card не должен рендериться к�
 - Users Catalog поддерживает поиск по Django User ID;
 - этап остаётся foundation/stub: без реального мессенджера, групповых моделей, invite links, media feed и realtime.
 
-#### Stage 2 foundation started
+#### Stage 2 foundation partially implemented
 
 - начат фундамент social layer без realtime-сообщений;
 - реализованы модели social spaces и memberships;
 - правый social sidebar подключён к реальным данным пользователя;
+- добавлены detail pages для social spaces;
+- добавлены flows создания групп и бесед;
+- добавлен direct chat foundation без сообщений с переиспользованием существующего direct space;
 - сообщения, realtime, media upload, group feed и invite links остаются будущими этапами.
 
 #### Online/offline статус пользователя

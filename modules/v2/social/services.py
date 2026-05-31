@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Count, Exists, OuterRef, Q
+from django.http import Http404
 from django.templatetags.static import static
 from django.urls import reverse
 
@@ -18,6 +20,12 @@ SPACE_TYPE_TO_ROUTE = {
     SocialSpace.SpaceType.DIRECT.value: "social:chats",
     SocialSpace.SpaceType.GROUP.value: "social:groups",
     SocialSpace.SpaceType.CONVERSATION.value: "social:conversations",
+}
+
+SPACE_TYPE_TO_ACTIVE_MENU = {
+    SocialSpace.SpaceType.DIRECT.value: "social_chats",
+    SocialSpace.SpaceType.GROUP.value: "social_groups",
+    SocialSpace.SpaceType.CONVERSATION.value: "social_conversations",
 }
 
 
@@ -46,6 +54,10 @@ def _safe_file_url(file_field) -> str:
 
 def _space_url(space_type: str) -> str:
     return reverse(SPACE_TYPE_TO_ROUTE.get(space_type, "social:chats"))
+
+
+def build_space_url(space: SocialSpace) -> str:
+    return reverse("social:space_detail", args=[space.id, space.slug])
 
 
 def _space_avatar_url(space: SocialSpace, preview_members: list[dict[str, object]]) -> str:
@@ -88,12 +100,15 @@ def list_user_spaces(user, *, space_type: str | None = None):
     return qs
 
 
-def build_member_preview(space: SocialSpace, *, limit: int = 3) -> list[dict[str, object]]:
+def _build_member_rows(space: SocialSpace, *, limit: int | None = None) -> list[dict[str, object]]:
     memberships = (
         SocialMembership.objects.filter(space=space, status__in=VISIBLE_MEMBERSHIP_STATUSES)
         .select_related("user", "user__profile_v2")
-        .order_by("joined_at", "id")[: max(0, limit)]
+        .order_by("joined_at", "id")
     )
+    if limit is not None:
+        memberships = memberships[: max(0, limit)]
+
     preview = []
     for membership in memberships:
         profile = _get_user_profile(membership.user)
@@ -111,8 +126,15 @@ def build_member_preview(space: SocialSpace, *, limit: int = 3) -> list[dict[str
     return preview
 
 
+def build_member_preview(space: SocialSpace, *, limit: int = 3) -> list[dict[str, object]]:
+    return _build_member_rows(space, limit=limit)
+
+
 def _build_space_card(space: SocialSpace, membership: SocialMembership | None) -> dict[str, object]:
     preview_members = build_member_preview(space)
+    member_count = getattr(space, "member_count", None)
+    if member_count is None:
+        member_count = space.memberships.filter(status__in=VISIBLE_MEMBERSHIP_STATUSES).count()
     return {
         "space": space,
         "id": space.id,
@@ -123,14 +145,14 @@ def _build_space_card(space: SocialSpace, membership: SocialMembership | None) -
         "space_type_label": space.get_space_type_display(),
         "privacy": space.privacy,
         "privacy_label": space.get_privacy_display(),
-        "member_count": getattr(space, "member_count", None) or space.memberships.filter(status__in=VISIBLE_MEMBERSHIP_STATUSES).count(),
+        "member_count": member_count,
         "role": membership.role if membership else "",
         "role_label": membership.get_role_display() if membership else "",
         "status": membership.status if membership else "",
         "member_preview": preview_members,
         "avatar_url": _space_avatar_url(space, preview_members),
         "last_activity_at": space.last_activity_at,
-        "url": _space_url(space.space_type),
+        "url": build_space_url(space),
     }
 
 
@@ -153,15 +175,76 @@ def build_sidebar_context(user) -> dict[str, object]:
         SocialSpace.SpaceType.GROUP.value: 0,
         SocialSpace.SpaceType.CONVERSATION.value: 0,
     }
-    spaces = list(list_user_spaces(user))
-    for space in spaces:
-        counts[space.space_type] = counts.get(space.space_type, 0) + 1
+    if not getattr(user, "is_authenticated", False):
+        return {"social_counts": counts, "social_recent_spaces": []}
 
-    memberships_by_space = _membership_map_for_user(user, spaces[:5])
-    recent_spaces = [_build_space_card(space, memberships_by_space.get(space.id)) for space in spaces[:5]]
+    count_rows = (
+        SocialMembership.objects.filter(
+            user=user,
+            status__in=VISIBLE_MEMBERSHIP_STATUSES,
+            space__is_active=True,
+        )
+        .values("space__space_type")
+        .annotate(total=Count("space_id", distinct=True))
+    )
+    for row in count_rows:
+        counts[row["space__space_type"]] = row["total"]
+
+    recent_spaces_qs = list_user_spaces(user)[:5]
+    recent_spaces = list(recent_spaces_qs)
+    memberships_by_space = _membership_map_for_user(user, recent_spaces)
+    recent_cards = [_build_space_card(space, memberships_by_space.get(space.id)) for space in recent_spaces]
     return {
         "social_counts": counts,
-        "social_recent_spaces": recent_spaces,
+        "social_recent_spaces": recent_cards,
+    }
+
+
+def get_user_space_or_404(user, *, space_id: int, slug: str | None = None) -> SocialSpace:
+    if not getattr(user, "is_authenticated", False):
+        raise Http404("Social space not found.")
+
+    user_membership = SocialMembership.objects.filter(
+        space=OuterRef("pk"),
+        user=user,
+        status__in=VISIBLE_MEMBERSHIP_STATUSES,
+    )
+    try:
+        return (
+            SocialSpace.objects.filter(pk=space_id, is_active=True)
+            .annotate(current_user_is_member=Exists(user_membership))
+            .filter(current_user_is_member=True)
+            .select_related("owner", "owner__profile_v2")
+            .annotate(
+                member_count=Count(
+                    "memberships",
+                    filter=Q(memberships__status__in=VISIBLE_MEMBERSHIP_STATUSES),
+                    distinct=True,
+                )
+            )
+            .get()
+        )
+    except SocialSpace.DoesNotExist as exc:
+        raise Http404("Social space not found.") from exc
+
+
+def build_space_detail_context(user, space: SocialSpace) -> dict[str, object]:
+    membership = SocialMembership.objects.get(user=user, space=space)
+    member_rows = _build_member_rows(space)
+    member_count = getattr(space, "member_count", None)
+    if member_count is None:
+        member_count = len(member_rows)
+    return {
+        "space": space,
+        "space_url": build_space_url(space),
+        "space_active_menu_key": SPACE_TYPE_TO_ACTIVE_MENU.get(space.space_type, "social_chats"),
+        "space_type_label": space.get_space_type_display(),
+        "privacy_label": space.get_privacy_display(),
+        "membership": membership,
+        "membership_role_label": membership.get_role_display(),
+        "member_count": member_count,
+        "members": member_rows,
+        "avatar_url": _space_avatar_url(space, member_rows[:1]),
     }
 
 
@@ -218,3 +301,84 @@ def create_social_space(
                 status=SocialMembership.Status.ACTIVE,
             )
     return space
+
+
+def _direct_pair_slug(user_a, user_b) -> str:
+    first_id, second_id = sorted((int(user_a.pk), int(user_b.pk)))
+    return f"direct-{first_id}-{second_id}"
+
+
+def _find_existing_direct_space(user_a, user_b) -> SocialSpace | None:
+    first_membership_spaces = SocialMembership.objects.filter(
+        user=user_a,
+        status__in=VISIBLE_MEMBERSHIP_STATUSES,
+        space__space_type=SocialSpace.SpaceType.DIRECT,
+        space__is_active=True,
+    ).values("space_id")
+    return (
+        SocialSpace.objects.filter(
+            pk__in=first_membership_spaces,
+            memberships__user=user_b,
+            memberships__status__in=VISIBLE_MEMBERSHIP_STATUSES,
+            is_active=True,
+            space_type=SocialSpace.SpaceType.DIRECT,
+        )
+        .annotate(
+            visible_members_count=Count(
+                "memberships",
+                filter=Q(memberships__status__in=VISIBLE_MEMBERSHIP_STATUSES),
+                distinct=True,
+            )
+        )
+        .filter(visible_members_count=2)
+        .order_by("-last_activity_at", "-id")
+        .first()
+    )
+
+
+def get_or_create_direct_space(user_a, user_b) -> SocialSpace:
+    if not getattr(user_a, "pk", None) or not getattr(user_b, "pk", None):
+        raise ValueError("Both users must be saved.")
+    if user_a.pk == user_b.pk:
+        raise ValueError("Cannot create a direct chat with yourself.")
+
+    with transaction.atomic():
+        existing = _find_existing_direct_space(user_a, user_b)
+        if existing:
+            return existing
+
+        ordered_users = sorted((user_a, user_b), key=lambda user: int(user.pk))
+        title = f"Direct: {ordered_users[0].username} / {ordered_users[1].username}"
+        slug = _direct_pair_slug(user_a, user_b)
+        try:
+            with transaction.atomic():
+                space = SocialSpace.objects.create(
+                    owner=user_a,
+                    title=title,
+                    slug=slug,
+                    space_type=SocialSpace.SpaceType.DIRECT,
+                    privacy=SocialSpace.Privacy.PRIVATE,
+                    description="",
+                )
+                SocialMembership.objects.create(
+                    space=space,
+                    user=user_a,
+                    role=SocialMembership.Role.OWNER,
+                    status=SocialMembership.Status.ACTIVE,
+                )
+                SocialMembership.objects.create(
+                    space=space,
+                    user=user_b,
+                    role=SocialMembership.Role.MEMBER,
+                    status=SocialMembership.Status.ACTIVE,
+                )
+            return space
+        except IntegrityError:
+            existing = SocialSpace.objects.filter(
+                space_type=SocialSpace.SpaceType.DIRECT,
+                slug=slug,
+                is_active=True,
+            ).first()
+            if existing:
+                return existing
+            raise

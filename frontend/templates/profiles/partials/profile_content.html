@@ -93,6 +93,14 @@
                         </span>
                     {% endif %}
                 </div>
+                {% if not is_owner_profile %}
+                    <form method="post" action="{% url 'profiles:profile_start_direct_chat' profile_user.id %}" class="profile-direct-chat">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            {% if LANGUAGE_CODE == "ru" %}Написать{% else %}Message{% endif %}
+                        </button>
+                    </form>
+                {% endif %}
                 {% if is_owner_profile and avatar_upload_form %}
                     <form method="post" action="{% url 'profiles:profile_avatar_upload' %}" enctype="multipart/form-data" class="form-stack avatar-upload" data-avatar-upload data-avatar-upload-empty="{% if LANGUAGE_CODE == 'ru' %}Файл не выбран{% else %}No file selected{% endif %}">
                         {% csrf_token %}

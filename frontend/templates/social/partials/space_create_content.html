@@ -1,0 +1,62 @@
+<section class="section section--compact social-create">
+    <div class="dashboard-hero card">
+        <div class="card-body dashboard-hero__body">
+            <div>
+                <span class="eyebrow">{{ create_page.eyebrow }}</span>
+                <h1 class="page-title page-title--sm">
+                    {% if LANGUAGE_CODE == "ru" %}{{ create_page.title_ru }}{% else %}{{ create_page.title_en }}{% endif %}
+                </h1>
+                <p class="text-muted dashboard-hero__text">
+                    {% if LANGUAGE_CODE == "ru" %}{{ create_page.description_ru }}{% else %}{{ create_page.description_en }}{% endif %}
+                </p>
+            </div>
+            <div class="dashboard-hero__meta">
+                <a href="{% url create_page.back_url %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                    {% if LANGUAGE_CODE == "ru" %}Назад{% else %}Back{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <article class="card social-create__panel">
+        <div class="card-body">
+            <form method="post" class="form-stack social-create__form">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="faceit-error">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="form-field">
+                    <label for="{{ form.title.id_for_label }}">{% if LANGUAGE_CODE == "ru" %}Название{% else %}Title{% endif %}</label>
+                    {{ form.title }}
+                    {{ form.title.errors }}
+                </div>
+
+                <div class="form-field">
+                    <label for="{{ form.description.id_for_label }}">{% if LANGUAGE_CODE == "ru" %}Описание{% else %}Description{% endif %}</label>
+                    {{ form.description }}
+                    {{ form.description.errors }}
+                </div>
+
+                <div class="form-field">
+                    <label for="{{ form.privacy.id_for_label }}">{% if LANGUAGE_CODE == "ru" %}Приватность{% else %}Privacy{% endif %}</label>
+                    {{ form.privacy }}
+                    {{ form.privacy.errors }}
+                </div>
+
+                <div class="form-field">
+                    <label for="{{ form.members.id_for_label }}">{% if LANGUAGE_CODE == "ru" %}Участники{% else %}Members{% endif %}</label>
+                    {{ form.members }}
+                    {{ form.members.errors }}
+                </div>
+
+                <div class="social-create__actions">
+                    <button type="submit" class="btn btn-primary">
+                        {% if LANGUAGE_CODE == "ru" %}{{ create_page.submit_ru }}{% else %}{{ create_page.submit_en }}{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </article>
+</section>

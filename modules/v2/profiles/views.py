@@ -4,11 +4,12 @@ import uuid
 from decimal import Decimal
 
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
@@ -20,6 +21,7 @@ from modules.v2.profiles.services.balance import BalanceError, adjust_balance
 from modules.v2.profiles.services.faceit import sync_faceit_if_needed, sync_faceit_profile
 from modules.v2.profiles.services.presence import is_profile_online
 from modules.v2.profiles.services.steam_profile import sync_profile_steam_meta_if_needed
+from modules.v2.social.services import build_space_url, get_or_create_direct_space
 from modules.v2.store.services import save_user_theme_preferences
 from modules.v2.subscriptions.services import assign_user_subscription_plan, get_active_subscription, get_subscription_context
 from modules.v2.subscriptions.models import SubscriptionPlan
@@ -42,6 +44,8 @@ from .forms import (
 from .models import LedgerEntry, LedgerReason, UserProfile, UserRole
 from .presentation import get_profile_avatar_url, get_profile_display_name
 from .rbac import get_user_role
+
+User = get_user_model()
 
 USERS_CATALOG_VIEW_MODES = ("grid", "list")
 USERS_CATALOG_SORT_OPTIONS = (
@@ -632,3 +636,16 @@ def telegram_disconnect_view(request):
     unlink_user_telegram(request.user)
     messages.success(request, "Telegram отключен от вашего профиля.")
     return redirect("profiles:profile")
+
+
+@login_required
+def profile_start_direct_chat_view(request, user_id: int):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    target_user = get_object_or_404(User, pk=user_id, is_active=True)
+    if target_user.pk == request.user.pk:
+        return HttpResponseForbidden("Нельзя начать чат с самим собой.")
+
+    space = get_or_create_direct_space(request.user, target_user)
+    return redirect(build_space_url(space))

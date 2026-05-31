@@ -488,6 +488,86 @@
     white-space: nowrap;
 }
 
+.social-space-card__actions,
+.social-create__actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.social-create__panel {
+    max-width: 760px;
+}
+
+.social-create__form select[multiple] {
+    min-height: 160px;
+}
+
+.social-detail__hero {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+    min-width: 0;
+}
+
+.social-detail__avatar {
+    width: 72px;
+    height: 72px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    object-fit: cover;
+}
+
+.social-detail__grid {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+    gap: 16px;
+}
+
+.social-detail__member-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.social-detail__member {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.social-detail__member-avatar {
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.social-detail__member-body {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.social-detail__member-body strong,
+.social-detail__member-body span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.social-detail__messages-empty .card-body {
+    min-height: 220px;
+}
+
 .brand--dashboard {
     font-size: 1.2rem;
     font-weight: 800;
@@ -748,6 +828,21 @@
 
     .dashboard-shell.is-social-sidebar-mobile-open:not(.is-social-sidebar-collapsed) .right-social-sidebar__backdrop {
         display: block;
+    }
+
+    .social-detail__grid,
+    .social-detail__hero {
+        grid-template-columns: 1fr;
+    }
+
+    .social-space-card__actions,
+    .social-create__actions {
+        justify-content: stretch;
+    }
+
+    .social-space-card__actions .btn,
+    .social-create__actions .btn {
+        width: 100%;
     }
 }
 

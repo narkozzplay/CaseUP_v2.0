@@ -13,6 +13,11 @@
             <div class="dashboard-hero__meta">
                 <span class="status-pill">Stage 2</span>
                 <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Фундамент{% else %}Foundation{% endif %}</span>
+                {% if social_page.create_url_name %}
+                    <a href="{% url social_page.create_url_name %}" class="btn btn-primary btn-sm" data-dashboard-nav="true">
+                        {% if LANGUAGE_CODE == "ru" %}{{ social_page.create_label_ru }}{% else %}{{ social_page.create_label_en }}{% endif %}
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -60,6 +65,12 @@
                             {% empty %}
                                 <span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Участников пока нет.{% else %}No members yet.{% endif %}</span>
                             {% endfor %}
+                        </div>
+
+                        <div class="social-space-card__actions">
+                            <a href="{{ card.url }}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                                {% if LANGUAGE_CODE == "ru" %}Открыть{% else %}Open{% endif %}
+                            </a>
                         </div>
                     </div>
                 </article>
