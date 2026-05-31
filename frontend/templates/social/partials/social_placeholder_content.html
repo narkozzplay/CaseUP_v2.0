@@ -11,12 +11,61 @@
                 </p>
             </div>
             <div class="dashboard-hero__meta">
-                <span class="status-pill">Stage 1</span>
-                <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Заглушка{% else %}Placeholder{% endif %}</span>
+                <span class="status-pill">Stage 2</span>
+                <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Фундамент{% else %}Foundation{% endif %}</span>
             </div>
         </div>
     </div>
 
+    {% if social_space_cards %}
+        <div class="social-space-grid">
+            {% for card in social_space_cards %}
+                <article class="card social-space-card">
+                    <div class="card-body">
+                        <div class="social-space-card__head">
+                            <img src="{{ card.avatar_url }}" alt="{{ card.title }}" class="social-space-card__avatar">
+                            <div class="social-space-card__title-wrap">
+                                <span class="eyebrow">{{ card.space_type_label }}</span>
+                                <h2 class="social-space-card__title">{{ card.title }}</h2>
+                            </div>
+                        </div>
+
+                        <p class="text-muted social-space-card__description">
+                            {% if card.description %}
+                                {{ card.description }}
+                            {% else %}
+                                {% if LANGUAGE_CODE == "ru" %}Описание пока не задано.{% else %}No description yet.{% endif %}
+                            {% endif %}
+                        </p>
+
+                        <div class="social-space-card__meta">
+                            <span class="status-pill status-pill--sm">{{ card.privacy_label }}</span>
+                            <span class="status-pill status-pill--sm">
+                                {% if LANGUAGE_CODE == "ru" %}Участники:{% else %}Members:{% endif %} {{ card.member_count }}
+                            </span>
+                            <span class="status-pill status-pill--sm">
+                                {% if LANGUAGE_CODE == "ru" %}Ваша роль:{% else %}Your role:{% endif %} {{ card.role_label }}
+                            </span>
+                        </div>
+
+                        <div class="social-member-preview" aria-label="{% if LANGUAGE_CODE == 'ru' %}Участники{% else %}Members{% endif %}">
+                            {% for member in card.member_preview %}
+                                <span class="social-member-preview__item" title="{{ member.display_name }}">
+                                    <span class="presence-avatar-wrap presence-avatar-wrap--sm">
+                                        <img src="{{ member.avatar_url }}" alt="{{ member.display_name }}" class="social-member-preview__avatar">
+                                        <span class="presence-indicator {% if member.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if member.is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if member.is_online %}Online{% else %}Offline{% endif %}"></span>
+                                    </span>
+                                    <span class="social-member-preview__name">{{ member.display_name }}</span>
+                                </span>
+                            {% empty %}
+                                <span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Участников пока нет.{% else %}No members yet.{% endif %}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
     <div class="dashboard-grid">
         <article class="card dashboard-panel">
             <div class="card-body">
@@ -51,4 +100,5 @@
             </div>
         </article>
     </div>
+    {% endif %}
 </section>

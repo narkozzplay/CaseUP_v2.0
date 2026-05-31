@@ -264,6 +264,13 @@ PNG предмета в detail-card не должен рендериться к�
 - Users Catalog поддерживает поиск по Django User ID;
 - этап остаётся foundation/stub: без реального мессенджера, групповых моделей, invite links, media feed и realtime.
 
+#### Stage 2 foundation started
+
+- начат фундамент social layer без realtime-сообщений;
+- реализованы модели social spaces и memberships;
+- правый social sidebar подключён к реальным данным пользователя;
+- сообщения, realtime, media upload, group feed и invite links остаются будущими этапами.
+
 #### Online/offline статус пользователя
 
 - добавить backend-статус присутствия пользователя как базу для будущих чатов, групп и бесед;

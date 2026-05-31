@@ -119,6 +119,7 @@ TEMPLATES = [
                 "social_django.context_processors.backends",
                 "social_django.context_processors.login_redirect",
                 "modules.v2.profiles.context_processors.user_balance",
+                "modules.v2.social.context_processors.social_sidebar",
                 "modules.v2.system.context_processors.system_settings",
                 "modules.v2.subscriptions.context_processors.subscription_context",
             ],

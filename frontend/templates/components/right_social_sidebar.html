@@ -51,18 +51,46 @@
 
             <nav class="right-social-sidebar__nav" aria-label="Communication sections">
                 <a href="{% url 'social:chats' %}" data-dashboard-nav="true" data-social-menu-key="social_chats">
-                    <strong>{% if LANGUAGE_CODE == "ru" %}Чаты{% else %}Chats{% endif %}</strong>
-                    <span>{% if LANGUAGE_CODE == "ru" %}Чатов пока нет{% else %}No chats yet{% endif %}</span>
+                    <span class="right-social-sidebar__nav-row">
+                        <strong>{% if LANGUAGE_CODE == "ru" %}Чаты{% else %}Chats{% endif %}</strong>
+                        <span class="right-social-sidebar__count">{{ social_counts.direct|default:0 }}</span>
+                    </span>
+                    <span>{% if LANGUAGE_CODE == "ru" %}Личные пространства{% else %}Direct spaces{% endif %}</span>
                 </a>
                 <a href="{% url 'social:groups' %}" data-dashboard-nav="true" data-social-menu-key="social_groups">
-                    <strong>{% if LANGUAGE_CODE == "ru" %}Группы{% else %}Groups{% endif %}</strong>
-                    <span>{% if LANGUAGE_CODE == "ru" %}Групп пока нет{% else %}No groups yet{% endif %}</span>
+                    <span class="right-social-sidebar__nav-row">
+                        <strong>{% if LANGUAGE_CODE == "ru" %}Группы{% else %}Groups{% endif %}</strong>
+                        <span class="right-social-sidebar__count">{{ social_counts.group|default:0 }}</span>
+                    </span>
+                    <span>{% if LANGUAGE_CODE == "ru" %}Сообщества{% else %}Communities{% endif %}</span>
                 </a>
                 <a href="{% url 'social:conversations' %}" data-dashboard-nav="true" data-social-menu-key="social_conversations">
-                    <strong>{% if LANGUAGE_CODE == "ru" %}Беседы{% else %}Conversations{% endif %}</strong>
-                    <span>{% if LANGUAGE_CODE == "ru" %}Бесед пока нет{% else %}No conversations yet{% endif %}</span>
+                    <span class="right-social-sidebar__nav-row">
+                        <strong>{% if LANGUAGE_CODE == "ru" %}Беседы{% else %}Conversations{% endif %}</strong>
+                        <span class="right-social-sidebar__count">{{ social_counts.conversation|default:0 }}</span>
+                    </span>
+                    <span>{% if LANGUAGE_CODE == "ru" %}Групповые беседы{% else %}Group conversations{% endif %}</span>
                 </a>
             </nav>
+
+            {% if social_recent_spaces %}
+                <div class="right-social-sidebar__section">
+                    <div class="right-social-sidebar__section-head">
+                        <h3>{% if LANGUAGE_CODE == "ru" %}Последние{% else %}Recent{% endif %}</h3>
+                    </div>
+                    <div class="right-social-sidebar__recent-list">
+                        {% for item in social_recent_spaces %}
+                            <a href="{{ item.url }}" class="right-social-sidebar__recent-item" data-dashboard-nav="true" data-social-menu-key="{% if item.space_type == 'direct' %}social_chats{% elif item.space_type == 'group' %}social_groups{% else %}social_conversations{% endif %}">
+                                <img src="{{ item.avatar_url }}" alt="{{ item.title }}" class="right-social-sidebar__recent-avatar">
+                                <span class="right-social-sidebar__recent-body">
+                                    <strong>{{ item.title }}</strong>
+                                    <span>{{ item.space_type_label }} · {{ item.member_count }}</span>
+                                </span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </aside>
 
