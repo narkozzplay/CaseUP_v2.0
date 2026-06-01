@@ -1,0 +1,117 @@
+<section class="section section--compact social-settings">
+    <header class="social-space-hero card">
+        <div class="card-body social-space-hero__body">
+            <div class="social-space-hero__avatar-wrap">
+                {% if space_presentation.has_custom_avatar %}
+                    <img src="{{ space_presentation.avatar_url }}" alt="{{ space_presentation.title }}" class="social-space-hero__avatar">
+                {% else %}
+                    <span class="social-space-hero__avatar-fallback" aria-hidden="true">{{ space_presentation.avatar_initial }}</span>
+                {% endif %}
+            </div>
+            <div class="social-space-hero__main">
+                <span class="eyebrow">{{ space_type_label }}</span>
+                <h1 class="social-space-hero__title">
+                    {% if LANGUAGE_CODE == "ru" %}Настройки: {% else %}Settings: {% endif %}{{ space_presentation.title }}
+                </h1>
+                <p class="social-space-hero__description">
+                    {% if LANGUAGE_CODE == "ru" %}Название, описание, приватность и аватар этого social space.{% else %}Title, description, privacy and avatar for this social space.{% endif %}
+                </p>
+                <div class="social-space-hero__meta">
+                    <span class="status-pill">{{ privacy_label }}</span>
+                    <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Ваша роль:{% else %}Your role:{% endif %} {{ membership_role_label }}</span>
+                    <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Участники:{% else %}Members:{% endif %} {{ member_count }}</span>
+                </div>
+            </div>
+            <div class="social-space-hero__actions">
+                <a href="{{ space_url }}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                    {% if LANGUAGE_CODE == "ru" %}Назад{% else %}Back{% endif %}
+                </a>
+                {% if can_manage_space %}
+                    <a href="{{ members_manage_url }}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                        {% if LANGUAGE_CODE == "ru" %}Участники{% else %}Members{% endif %}
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <article class="card social-settings__panel">
+        <div class="card-body">
+            <form method="post" action="{{ settings_url }}" enctype="multipart/form-data" class="form-stack social-settings__form">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="faceit-error">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="social-settings__grid">
+                    <div class="form-field">
+                        <label for="{{ form.title.id_for_label }}">
+                            {% if LANGUAGE_CODE == "ru" %}Название{% else %}Title{% endif %}
+                        </label>
+                        {{ form.title }}
+                        {{ form.title.errors }}
+                        {% if form.title.help_text %}<p class="text-muted">{{ form.title.help_text }}</p>{% endif %}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.privacy.id_for_label }}">
+                            {% if LANGUAGE_CODE == "ru" %}Приватность{% else %}Privacy{% endif %}
+                        </label>
+                        {{ form.privacy }}
+                        {{ form.privacy.errors }}
+                        {% if form.privacy.help_text %}<p class="text-muted">{{ form.privacy.help_text }}</p>{% endif %}
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label for="{{ form.description.id_for_label }}">
+                        {% if LANGUAGE_CODE == "ru" %}Описание{% else %}Description{% endif %}
+                    </label>
+                    {{ form.description }}
+                    {{ form.description.errors }}
+                </div>
+
+                <div class="social-settings__avatar-row">
+                    <div class="social-settings__current-avatar">
+                        {% if space_presentation.has_custom_avatar %}
+                            <img src="{{ space_presentation.avatar_url }}" alt="{{ space_presentation.title }}">
+                        {% else %}
+                            <span aria-hidden="true">{{ space_presentation.avatar_initial }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-stack avatar-upload social-settings__avatar-upload" data-avatar-upload data-avatar-upload-empty="{% if LANGUAGE_CODE == 'ru' %}Файл не выбран{% else %}No file selected{% endif %}">
+                        <div class="form-field">
+                            <label for="{{ form.avatar.id_for_label }}">
+                                {% if LANGUAGE_CODE == "ru" %}Аватар пространства{% else %}Space avatar{% endif %}
+                            </label>
+                            <div class="avatar-upload__control">
+                                {{ form.avatar }}
+                                <label class="btn btn-secondary btn-sm avatar-upload__button" for="{{ form.avatar.id_for_label }}">
+                                    {% if LANGUAGE_CODE == "ru" %}Выбрать файл{% else %}Choose file{% endif %}
+                                </label>
+                                <span class="avatar-upload__file-name" data-avatar-upload-file-name aria-live="polite">
+                                    {% if LANGUAGE_CODE == "ru" %}Файл не выбран{% else %}No file selected{% endif %}
+                                </span>
+                            </div>
+                            <div class="avatar-upload__preview" data-avatar-upload-preview-wrap hidden>
+                                <img src="" alt="" data-avatar-upload-preview>
+                            </div>
+                            <div class="avatar-upload__errors">
+                                {{ form.avatar.errors }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="social-settings__actions">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        {% if LANGUAGE_CODE == "ru" %}Сохранить{% else %}Save{% endif %}
+                    </button>
+                    <a href="{{ space_url }}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                        {% if LANGUAGE_CODE == "ru" %}Назад{% else %}Back{% endif %}
+                    </a>
+                </div>
+            </form>
+        </div>
+    </article>
+</section>

@@ -1,6 +1,6 @@
 {% extends "layouts/base_dashboard.html" %}
 
-{% block title %}{{ space.title }} | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
+{% block title %}{{ space_presentation.title|default:space.title }} | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 
 {% block content %}
     {% include "social/partials/space_detail_content.html" %}

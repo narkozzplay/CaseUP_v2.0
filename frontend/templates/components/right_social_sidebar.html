@@ -101,9 +101,15 @@
                     <div class="right-social-sidebar__recent-list">
                         {% for item in social_recent_spaces %}
                             <a href="{{ item.url }}" class="right-social-sidebar__recent-item" data-dashboard-nav="true" data-social-menu-key="{% if item.space_type == 'direct' %}social_chats{% elif item.space_type == 'group' %}social_groups{% else %}social_conversations{% endif %}">
-                                <img src="{{ item.avatar_url }}" alt="{{ item.title }}" class="right-social-sidebar__recent-avatar">
+                                <span class="right-social-sidebar__recent-avatar-wrap">
+                                    {% if item.has_custom_avatar %}
+                                        <img src="{{ item.display_avatar_url }}" alt="{{ item.display_title }}" class="right-social-sidebar__recent-avatar">
+                                    {% else %}
+                                        <span class="right-social-sidebar__recent-avatar-fallback" aria-hidden="true">{{ item.avatar_initial }}</span>
+                                    {% endif %}
+                                </span>
                                 <span class="right-social-sidebar__recent-body">
-                                    <strong>{{ item.title }}</strong>
+                                    <strong>{{ item.display_title }}</strong>
                                     <span>{{ item.space_type_label }} · {{ item.member_count }}</span>
                                 </span>
                                 {% if item.unread_count %}

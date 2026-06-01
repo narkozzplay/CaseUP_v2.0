@@ -12,6 +12,7 @@ from .forms import (
     SocialConversationCreateForm,
     SocialGroupCreateForm,
     SocialMessageCreateForm,
+    SocialSpaceSettingsForm,
     SpaceMemberAddForm,
     SpaceMemberRoleForm,
 )
@@ -23,6 +24,8 @@ from .services import (
     build_space_cards,
     build_space_detail_context,
     build_space_members_manage_context,
+    build_space_settings_context,
+    build_space_settings_url,
     build_space_url,
     change_member_role,
     create_social_space,
@@ -33,6 +36,7 @@ from .services import (
     remove_space_member,
     transfer_space_ownership,
     unblock_space_member,
+    update_social_space_settings,
 )
 
 
@@ -205,12 +209,13 @@ def space_detail_view(request, space_id: int, slug: str):
 def _render_space_detail(request, space: SocialSpace, *, message_form=None):
     context = build_space_detail_context(request.user, space)
     context["message_form"] = message_form or SocialMessageCreateForm()
+    presentation_title = context["space_presentation"]["title"]
     return render_dashboard_page(
         request,
         full_template="social/space_detail.html",
         partial_template="social/partials/space_detail_content.html",
         context=context,
-        page_title=build_page_title(space.title),
+        page_title=build_page_title(presentation_title),
         active_menu_key=context["space_active_menu_key"],
     )
 
@@ -221,14 +226,33 @@ def _render_members_manage(request, space: SocialSpace, *, add_form=None, status
     except PermissionError as exc:
         return HttpResponseForbidden(str(exc))
     context["member_add_form"] = add_form or SpaceMemberAddForm(current_user=request.user, space=space)
+    presentation_title = context["space_presentation"]["title"]
     return render_dashboard_page(
         request,
         full_template="social/space_members_manage.html",
         partial_template="social/partials/space_members_manage_content.html",
         context=context,
-        page_title=build_page_title(f"{space.title} members"),
+        page_title=build_page_title(f"{presentation_title} members"),
         active_menu_key=context["space_active_menu_key"],
         current_url=build_members_manage_url(space),
+    )
+
+
+def _render_space_settings(request, space: SocialSpace, *, form=None):
+    try:
+        context = build_space_settings_context(request.user, space)
+    except PermissionError as exc:
+        return HttpResponseForbidden(str(exc))
+    context["form"] = form or SocialSpaceSettingsForm(current_user=request.user, space=space, instance=space)
+    presentation_title = context["space_presentation"]["title"]
+    return render_dashboard_page(
+        request,
+        full_template="social/space_settings.html",
+        partial_template="social/partials/space_settings_content.html",
+        context=context,
+        page_title=build_page_title(f"{presentation_title} settings"),
+        active_menu_key=context["space_active_menu_key"],
+        current_url=build_space_settings_url(space),
     )
 
 
@@ -237,6 +261,8 @@ def _redirect_if_stale_slug(space: SocialSpace, slug: str, *, target: str = "det
         return None
     if target == "members":
         return redirect(build_members_manage_url(space))
+    if target == "settings":
+        return redirect(build_space_settings_url(space))
     return redirect(build_space_url(space))
 
 
@@ -273,6 +299,43 @@ def space_members_manage_view(request, space_id: int, slug: str):
     if stale_redirect:
         return stale_redirect
     return _render_members_manage(request, space)
+
+
+@login_required
+def space_settings_view(request, space_id: int, slug: str):
+    if request.method not in {"GET", "POST"}:
+        return HttpResponseNotAllowed(["GET", "POST"])
+
+    space = get_user_space_or_404(request.user, space_id=space_id, slug=slug)
+    stale_redirect = _redirect_if_stale_slug(space, slug, target="settings")
+    if stale_redirect:
+        return stale_redirect
+
+    try:
+        build_space_settings_context(request.user, space)
+    except PermissionError as exc:
+        return HttpResponseForbidden(str(exc))
+
+    if request.method == "POST":
+        form = SocialSpaceSettingsForm(request.POST, request.FILES, current_user=request.user, space=space, instance=space)
+        if form.is_valid():
+            try:
+                update_social_space_settings(
+                    request.user,
+                    space,
+                    title=form.cleaned_data["title"],
+                    description=form.cleaned_data.get("description") or "",
+                    privacy=form.cleaned_data["privacy"],
+                    avatar=request.FILES.get(form.add_prefix("avatar")),
+                )
+            except PermissionError as exc:
+                return _forbidden_response(exc)
+            except ValueError as exc:
+                return HttpResponseBadRequest(str(exc))
+            return redirect(build_space_url(space))
+        return _render_space_settings(request, space, form=form)
+
+    return _render_space_settings(request, space)
 
 
 @login_required

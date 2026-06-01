@@ -16,6 +16,7 @@ from .views import (
     space_member_unblock_view,
     space_members_manage_view,
     space_message_create_view,
+    space_settings_view,
 )
 
 app_name = "social"
@@ -27,6 +28,7 @@ urlpatterns = [
     path("conversations/", conversations_view, name="conversations"),
     path("conversations/create/", conversation_create_view, name="conversation_create"),
     path("spaces/<int:space_id>/<slug:slug>/", space_detail_view, name="space_detail"),
+    path("spaces/<int:space_id>/<slug:slug>/settings/", space_settings_view, name="space_settings"),
     path("spaces/<int:space_id>/<slug:slug>/messages/send/", space_message_create_view, name="space_message_create"),
     path("spaces/<int:space_id>/<slug:slug>/members/", space_members_manage_view, name="space_members_manage"),
     path("spaces/<int:space_id>/<slug:slug>/members/add/", space_member_add_view, name="space_member_add"),

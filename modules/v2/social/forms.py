@@ -3,8 +3,10 @@ from __future__ import annotations
 from django import forms
 from django.contrib.auth import get_user_model
 
+from modules.v2.profiles.forms import validate_uploaded_avatar
+
 from .models import SocialMembership, SocialSpace
-from .services import VISIBLE_MEMBERSHIP_STATUSES
+from .services import VISIBLE_MEMBERSHIP_STATUSES, get_active_user_membership
 
 
 User = get_user_model()
@@ -63,6 +65,45 @@ class SocialMessageCreateForm(forms.Form):
         if not body:
             raise forms.ValidationError("Message cannot be empty.")
         return body
+
+
+class SocialSpaceSettingsForm(forms.ModelForm):
+    class Meta:
+        model = SocialSpace
+        fields = ["title", "description", "privacy", "avatar"]
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 4}),
+            "avatar": forms.FileInput(attrs={"accept": "image/*"}),
+        }
+
+    def __init__(self, *args, current_user=None, space=None, **kwargs):
+        self.current_user = current_user
+        self.space = space or kwargs.get("instance")
+        super().__init__(*args, **kwargs)
+
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
+        self.fields["avatar"].widget.attrs.setdefault("accept", "image/*")
+
+        membership = get_active_user_membership(current_user, self.space) if current_user is not None and self.space is not None else None
+        is_owner = bool(membership and membership.role == SocialMembership.Role.OWNER)
+        if not is_owner:
+            self.fields["title"].disabled = True
+            self.fields["privacy"].disabled = True
+            self.fields["title"].help_text = "Only the owner can change the title."
+            self.fields["privacy"].help_text = "Only the owner can change privacy."
+
+    def clean_title(self):
+        title = str(self.cleaned_data.get("title") or "").strip()
+        if not title:
+            raise forms.ValidationError("Social space title is required.")
+        return title
+
+    def clean_avatar(self):
+        avatar = self.cleaned_data.get("avatar")
+        if self.files.get(self.add_prefix("avatar")):
+            validate_uploaded_avatar(avatar)
+        return avatar
 
 
 class SpaceMemberAddForm(forms.Form):

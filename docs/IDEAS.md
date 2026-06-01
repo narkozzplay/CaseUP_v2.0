@@ -124,7 +124,7 @@ trade hub page
 - существующие runtime module manifests;
 - точечные slot-override для Steam Catalog detail;
 - fallback на дефолтный partial, если модуль не куплен, несовместим или не применён;
-- совместимость с текущей версией проекта `0.3.4.2`.
+- совместимость с текущей версией проекта `0.3.4.4`.
 
 #### Следующий шаг
 
@@ -186,8 +186,8 @@ PNG предмета в detail-card не должен рендериться к�
 
 #### Цель
 
-- проект имеет текущую версию `0.3.4.2`;
-- runtime-модули явно поддерживают `0.3.4.2` через `compatible_project_versions`, сохраняя поддержку `0.3.4` для истории;
+- проект имеет текущую версию `0.3.4.4`;
+- runtime-модули явно поддерживают `0.3.4.4` через `compatible_project_versions`, сохраняя поддержку `0.3.4` для истории;
 - в веб-интерфейсе admin+ есть POST-кнопка быстрой синхронизации runtime module manifests;
 - администратор видит статус runtime-модуля: актуальный, несовместимый, отключён или ошибка manifest/sync;
 - если модуль после обновления не работает, его можно вручную отключить без удаления записей и entitlement;
@@ -246,7 +246,7 @@ PNG предмета в detail-card не должен рендериться к�
 **Приоритет:** P2
 **Категория:** profiles / social / communication / UI / realtime
 **Версия идеи:** future roadmap
-**Реализовано в версии:** частично, Stage 1 + Stage 2 foundation + Stage 3 message MVP
+**Реализовано в версии:** частично, Stage 1 + Stage 2 foundation + Stage 3 message MVP + Stage 4 RBAC + Stage 4.1 UI polish
 
 #### Суть идеи
 
@@ -290,6 +290,59 @@ PNG предмета в detail-card не должен рендериться к�
 - статусы `active`, `muted`, `blocked`, `left` начали реально использоваться в доступе к space и сообщениям;
 - direct chats защищены от group-management операций;
 - realtime/messages delivery, media, group feed и invite links остаются будущими этапами.
+
+#### Stage 4.1 social UI polish / direct presentation
+
+- исправлено viewer-aware отображение direct chat: пользователь видит имя и аватар собеседника, а не технический `SocialSpace.title`;
+- avatar group/conversation отделён от avatar owner: без custom avatar используется fallback/initial, а не первый участник;
+- добавлена settings page для group/conversation social space с изменением title/description/privacy/avatar по backend permissions;
+- participant popover используется как UI-слой RBAC: actions приходят подготовленными из service layer;
+- mini user cards в списках ведут на профиль пользователя и показывают online/offline indicator.
+
+### Future Stage — Friendship & privacy
+
+- добавление в друзья;
+- входящие/исходящие friend requests;
+- настройка: кто может отправлять запросы дружбы;
+- настройка: кто может писать direct messages;
+- blacklist;
+- исключения для super_admin и tech support.
+
+### Future Stage — Trust & moderation
+
+- жалобы на пользователя;
+- похвала пользователя;
+- moderation queue для жалоб;
+- rate-limit жалоб/похвалы;
+- защита от spam/abuse.
+
+### Future Stage — Verification badges
+
+Три типа верификации:
+
+1. обычная верификация;
+2. фермер;
+3. легенда CaseUP.
+
+Требования будущего этапа:
+
+- badge отображается рядом с никнеймом;
+- badges идут из backend profile/trust service;
+- не рисовать badges только frontend-классом;
+- предусмотреть разные визуальные стили для трёх типов.
+
+### Future Stage — Tech support profile
+
+- создать системный профиль “Тех. Поддержка”;
+- техподдержка не имеет постоянного доступа ко всем чатам;
+- доступ в чат открывается только после вызова пользователем или создания support case;
+- действия support должны логироваться;
+- support может писать в direct без дружбы только при активном support case;
+- super_admin может писать всем;
+- пользователи могут писать super_admin только если:
+  - есть отчётный/support чат;
+  - они друзья;
+  - админ сам начал диалог.
 
 #### Online/offline статус пользователя
 

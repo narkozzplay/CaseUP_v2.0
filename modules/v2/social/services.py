@@ -98,13 +98,91 @@ def build_leave_space_url(space: SocialSpace) -> str:
     return reverse("social:space_leave", args=[space.id, space.slug])
 
 
+def build_space_settings_url(space: SocialSpace) -> str:
+    return reverse("social:space_settings", args=[space.id, space.slug])
+
+
 def _space_avatar_url(space: SocialSpace, preview_members: list[dict[str, object]]) -> str:
     avatar_url = _safe_file_url(space.avatar)
     if avatar_url:
         return avatar_url
-    if preview_members:
-        return str(preview_members[0].get("avatar_url") or "")
     return static("img/placeholders/no_image.svg")
+
+
+def _profile_has_avatar(profile: UserProfile | None) -> bool:
+    if profile is None:
+        return False
+    return bool(_safe_file_url(getattr(profile, "uploaded_avatar", None)) or str(getattr(profile, "steam_avatar", "") or "").strip())
+
+
+def _avatar_initial(title: str, *, fallback: str = "C") -> str:
+    clean_title = str(title or "").strip()
+    for char in clean_title:
+        if char.isalnum():
+            return char.upper()
+    return fallback
+
+
+def get_direct_counterpart(user, space: SocialSpace):
+    if not getattr(user, "pk", None) or space.space_type != SocialSpace.SpaceType.DIRECT:
+        return None
+    membership = (
+        SocialMembership.objects.filter(
+            space=space,
+            status__in=VISIBLE_MEMBERSHIP_STATUSES,
+        )
+        .exclude(user=user)
+        .select_related("user", "user__profile_v2")
+        .order_by("joined_at", "id")
+        .first()
+    )
+    return membership.user if membership else None
+
+
+def build_space_presentation(user, space: SocialSpace) -> dict[str, object]:
+    if space.space_type == SocialSpace.SpaceType.DIRECT:
+        counterpart = get_direct_counterpart(user, space)
+        if counterpart is not None:
+            profile = _get_user_profile(counterpart)
+            title = get_profile_display_name(profile, fallback_username=counterpart.username)
+            return {
+                "title": title,
+                "avatar_url": get_profile_avatar_url(profile),
+                "avatar_initial": _avatar_initial(title, fallback="U"),
+                "has_custom_avatar": _profile_has_avatar(profile),
+                "space_type": space.space_type,
+                "space_type_label": space.get_space_type_display(),
+                "privacy": space.privacy,
+                "privacy_label": space.get_privacy_display(),
+                "is_direct": True,
+            }
+
+        fallback_title = str(space.title or "").strip() or "Direct chat"
+        return {
+            "title": fallback_title,
+            "avatar_url": static("img/placeholders/no_image.svg"),
+            "avatar_initial": _avatar_initial(fallback_title, fallback="D"),
+            "has_custom_avatar": False,
+            "space_type": space.space_type,
+            "space_type_label": space.get_space_type_display(),
+            "privacy": space.privacy,
+            "privacy_label": space.get_privacy_display(),
+            "is_direct": True,
+        }
+
+    title = str(space.title or "").strip() or space.get_space_type_display()
+    avatar_url = _safe_file_url(space.avatar)
+    return {
+        "title": title,
+        "avatar_url": avatar_url or static("img/placeholders/no_image.svg"),
+        "avatar_initial": _avatar_initial(title, fallback="S"),
+        "has_custom_avatar": bool(avatar_url),
+        "space_type": space.space_type,
+        "space_type_label": space.get_space_type_display(),
+        "privacy": space.privacy,
+        "privacy_label": space.get_privacy_display(),
+        "is_direct": False,
+    }
 
 
 def list_user_spaces(user, *, space_type: str | None = None):
@@ -179,19 +257,24 @@ def _build_member_rows(space: SocialSpace, *, limit: int | None = None, viewer=N
     return preview
 
 
-def build_member_preview(space: SocialSpace, *, limit: int = 3) -> list[dict[str, object]]:
-    return _build_member_rows(space, limit=limit)
+def build_member_preview(space: SocialSpace, *, limit: int = 3, viewer=None) -> list[dict[str, object]]:
+    return _build_member_rows(space, limit=limit, viewer=viewer)
 
 
-def _build_space_card(space: SocialSpace, membership: SocialMembership | None) -> dict[str, object]:
-    preview_members = build_member_preview(space)
+def _build_space_card(viewer, space: SocialSpace, membership: SocialMembership | None) -> dict[str, object]:
+    presentation = build_space_presentation(viewer, space)
+    preview_members = build_member_preview(space, viewer=viewer)
     member_count = getattr(space, "member_count", None)
     if member_count is None:
         member_count = space.memberships.filter(status__in=VISIBLE_MEMBERSHIP_STATUSES).count()
+    can_manage_members = can_manage_space(viewer, space)
+    space_url = build_space_url(space)
+    members_manage_url = build_members_manage_url(space)
     return {
         "space": space,
         "id": space.id,
         "title": space.title,
+        "display_title": presentation["title"],
         "slug": space.slug,
         "description": space.description,
         "space_type": space.space_type,
@@ -203,9 +286,16 @@ def _build_space_card(space: SocialSpace, membership: SocialMembership | None) -
         "role_label": membership.get_role_display() if membership else "",
         "status": membership.status if membership else "",
         "member_preview": preview_members,
-        "avatar_url": _space_avatar_url(space, preview_members),
+        "avatar_url": presentation["avatar_url"],
+        "display_avatar_url": presentation["avatar_url"],
+        "avatar_initial": presentation["avatar_initial"],
+        "has_custom_avatar": presentation["has_custom_avatar"],
+        "presentation": presentation,
         "last_activity_at": space.last_activity_at,
-        "url": build_space_url(space),
+        "url": space_url,
+        "members_manage_url": members_manage_url,
+        "members_url": members_manage_url if can_manage_members else f"{space_url}#social-members",
+        "can_manage_members": can_manage_members,
         "unread_count": 0,
     }
 
@@ -220,7 +310,7 @@ def _membership_map_for_user(user, spaces: list[SocialSpace]) -> dict[int, Socia
 def build_space_cards(user, *, space_type: str) -> list[dict[str, object]]:
     spaces = list(list_user_spaces(user, space_type=space_type))
     memberships_by_space = _membership_map_for_user(user, spaces)
-    return [_build_space_card(space, memberships_by_space.get(space.id)) for space in spaces]
+    return [_build_space_card(user, space, memberships_by_space.get(space.id)) for space in spaces]
 
 
 def build_sidebar_context(user) -> dict[str, object]:
@@ -257,7 +347,7 @@ def build_sidebar_context(user) -> dict[str, object]:
     memberships_by_space = _membership_map_for_user(user, recent_spaces)
     unread_counts = count_unread_messages_for_user(user)
     unread_by_space_id = unread_counts["by_space_id"]
-    recent_cards = [_build_space_card(space, memberships_by_space.get(space.id)) for space in recent_spaces]
+    recent_cards = [_build_space_card(user, space, memberships_by_space.get(space.id)) for space in recent_spaces]
     for card in recent_cards:
         card["unread_count"] = unread_by_space_id.get(card["id"], 0)
     return {
@@ -329,6 +419,13 @@ def _is_admin(membership: SocialMembership | None) -> bool:
 
 
 def can_manage_space(user, space: SocialSpace) -> bool:
+    if not _is_group_manage_space(space):
+        return False
+    membership = _actor_membership(user, space)
+    return _is_owner(membership) or _is_admin(membership)
+
+
+def can_update_space_settings(user, space: SocialSpace) -> bool:
     if not _is_group_manage_space(space):
         return False
     membership = _actor_membership(user, space)
@@ -578,12 +675,56 @@ def transfer_space_ownership(actor, space: SocialSpace, target_user) -> SocialMe
         return target_membership
 
 
+def update_social_space_settings(actor, space: SocialSpace, *, title: str, description: str, privacy: str, avatar=None) -> SocialSpace:
+    _require_group_manage_space(space)
+    valid_privacy = {choice for choice, _label in SocialSpace.Privacy.choices}
+
+    with transaction.atomic():
+        locked_space = SocialSpace.objects.select_for_update().get(pk=space.pk)
+        actor_membership = _locked_membership(locked_space, actor)
+        if not actor_membership or not (_is_owner(actor_membership) or _is_admin(actor_membership)):
+            raise PermissionError("You cannot update this social space settings.")
+
+        update_fields = ["description", "updated_at"]
+        locked_space.description = str(description or "").strip()
+
+        if _is_owner(actor_membership):
+            clean_title = str(title or "").strip()
+            if not clean_title:
+                raise ValueError("Social space title is required.")
+            clean_privacy = _validate_choice(privacy, valid_privacy, "privacy")
+            if clean_title != locked_space.title:
+                locked_space.title = clean_title
+                locked_space.slug = generate_unique_social_space_slug(
+                    title=clean_title,
+                    space_type=locked_space.space_type,
+                    exclude_space_id=locked_space.id,
+                )
+                update_fields.extend(["title", "slug"])
+            if clean_privacy != locked_space.privacy:
+                locked_space.privacy = clean_privacy
+                update_fields.append("privacy")
+
+        if avatar is not None:
+            locked_space.avatar = avatar
+            update_fields.append("avatar")
+
+        locked_space.save(update_fields=sorted(set(update_fields)))
+        space.title = locked_space.title
+        space.slug = locked_space.slug
+        space.description = locked_space.description
+        space.privacy = locked_space.privacy
+        space.avatar = locked_space.avatar
+        return locked_space
+
+
 def build_space_members_manage_context(user, space: SocialSpace) -> dict[str, object]:
     _require_group_manage_space(space)
     current_membership = get_active_user_membership(user, space)
     if current_membership is None:
         raise PermissionError("Social space access denied.")
 
+    presentation = build_space_presentation(user, space)
     memberships = (
         SocialMembership.objects.filter(space=space)
         .select_related("space", "user", "user__profile_v2")
@@ -592,12 +733,14 @@ def build_space_members_manage_context(user, space: SocialSpace) -> dict[str, ob
     member_rows = [_build_member_row(membership, viewer=user) for membership in memberships]
     return {
         "space": space,
+        "space_presentation": presentation,
         "space_url": build_space_url(space),
         "members_manage_url": build_members_manage_url(space),
+        "settings_url": build_space_settings_url(space),
         "member_add_url": build_member_add_url(space),
         "space_active_menu_key": SPACE_TYPE_TO_ACTIVE_MENU.get(space.space_type, "social_groups"),
-        "space_type_label": space.get_space_type_display(),
-        "privacy_label": space.get_privacy_display(),
+        "space_type_label": presentation["space_type_label"],
+        "privacy_label": presentation["privacy_label"],
         "current_membership": current_membership,
         "current_membership_role_label": current_membership.get_role_display(),
         "members": member_rows,
@@ -605,7 +748,32 @@ def build_space_members_manage_context(user, space: SocialSpace) -> dict[str, ob
         "can_add_member": can_add_member(user, space),
         "can_leave_space": can_leave_space(user, space),
         "can_manage_space": can_manage_space(user, space),
+        "can_update_space_settings": can_update_space_settings(user, space),
         "leave_space_url": build_leave_space_url(space),
+    }
+
+
+def build_space_settings_context(user, space: SocialSpace) -> dict[str, object]:
+    _require_group_manage_space(space)
+    membership = get_active_user_membership(user, space)
+    if membership is None or not can_update_space_settings(user, space):
+        raise PermissionError("Social space settings access denied.")
+    presentation = build_space_presentation(user, space)
+    return {
+        "space": space,
+        "space_presentation": presentation,
+        "space_url": build_space_url(space),
+        "members_manage_url": build_members_manage_url(space),
+        "settings_url": build_space_settings_url(space),
+        "space_active_menu_key": SPACE_TYPE_TO_ACTIVE_MENU.get(space.space_type, "social_groups"),
+        "space_type_label": presentation["space_type_label"],
+        "privacy_label": presentation["privacy_label"],
+        "membership": membership,
+        "membership_role_label": membership.get_role_display(),
+        "member_count": space.memberships.filter(status__in=VISIBLE_MEMBERSHIP_STATUSES).count(),
+        "can_manage_space": can_manage_space(user, space),
+        "can_update_space_settings": True,
+        "is_direct_space": False,
     }
 
 
@@ -618,23 +786,29 @@ def build_space_detail_context(user, space: SocialSpace) -> dict[str, object]:
     if member_count is None:
         member_count = len(member_rows)
     unread_counts = count_unread_messages_for_user(user)
+    presentation = build_space_presentation(user, space)
     return {
         "space": space,
+        "space_presentation": presentation,
         "space_url": build_space_url(space),
         "message_send_url": build_message_send_url(space),
         "space_active_menu_key": SPACE_TYPE_TO_ACTIVE_MENU.get(space.space_type, "social_chats"),
-        "space_type_label": space.get_space_type_display(),
-        "privacy_label": space.get_privacy_display(),
+        "space_type_label": presentation["space_type_label"],
+        "privacy_label": presentation["privacy_label"],
         "membership": membership,
         "membership_role_label": membership.get_role_display(),
         "member_count": member_count,
         "members": member_rows,
         "social_messages": list_space_messages(user, space),
         "unread_count": unread_counts["by_space_id"].get(space.id, 0),
-        "avatar_url": _space_avatar_url(space, member_rows[:1]),
+        "avatar_url": presentation["avatar_url"],
+        "avatar_initial": presentation["avatar_initial"],
+        "has_custom_avatar": presentation["has_custom_avatar"],
         "members_manage_url": build_members_manage_url(space),
+        "settings_url": build_space_settings_url(space),
         "leave_space_url": build_leave_space_url(space),
         "can_manage_space": can_manage_space(user, space),
+        "can_update_space_settings": can_update_space_settings(user, space),
         "can_leave_space": can_leave_space(user, space),
         "is_direct_space": space.space_type == SocialSpace.SpaceType.DIRECT,
     }

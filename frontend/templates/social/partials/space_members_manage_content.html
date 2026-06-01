@@ -3,7 +3,7 @@
         <div class="card-body dashboard-hero__body">
             <div>
                 <span class="eyebrow">{{ space_type_label }}</span>
-                <h1 class="page-title page-title--sm">{{ space.title }}</h1>
+                <h1 class="page-title page-title--sm">{{ space_presentation.title }}</h1>
                 <p class="text-muted dashboard-hero__text">
                     {% if LANGUAGE_CODE == "ru" %}Участники и базовое управление доступом в этом social space.{% else %}Members and base access management for this social space.{% endif %}
                 </p>
@@ -17,6 +17,11 @@
                 <a href="{{ space_url }}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
                     {% if LANGUAGE_CODE == "ru" %}Назад к сообщениям{% else %}Back to messages{% endif %}
                 </a>
+                {% if can_update_space_settings %}
+                    <a href="{{ settings_url }}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                        {% if LANGUAGE_CODE == "ru" %}Настройки{% else %}Settings{% endif %}
+                    </a>
+                {% endif %}
                 {% if can_leave_space %}
                     <form method="post" action="{{ leave_space_url }}" class="inline-form">
                         {% csrf_token %}

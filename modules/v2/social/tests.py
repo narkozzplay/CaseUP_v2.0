@@ -1,9 +1,16 @@
 from datetime import timedelta
+from io import BytesIO
+import shutil
+import tempfile
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, RequestFactory, TestCase
 from django.urls import reverse
 from django.utils import timezone
+
+from modules.v2.profiles.models import UserProfile
+from PIL import Image
 
 from .context_processors import social_sidebar
 from .models import SocialMembership, SocialMessage, SocialSpace
@@ -11,6 +18,10 @@ from .services import (
     add_space_member,
     block_space_member,
     build_members_manage_url,
+    build_space_cards,
+    build_space_detail_context,
+    build_space_presentation,
+    build_space_settings_url,
     build_space_url,
     change_member_role,
     count_unread_messages_for_user,
@@ -30,6 +41,15 @@ from .services import (
 User = get_user_model()
 
 
+def _build_test_png_bytes() -> bytes:
+    buffer = BytesIO()
+    Image.new("RGB", (4, 4), color=(40, 72, 132)).save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+PNG_1X1_BYTES = _build_test_png_bytes()
+
+
 class SocialLayerTests(TestCase):
     def setUp(self):
         self.client = Client()
@@ -37,6 +57,18 @@ class SocialLayerTests(TestCase):
         self.user = User.objects.create_user(username="social_user", password="StrongPass123")
         self.member = User.objects.create_user(username="social_member", password="StrongPass123")
         self.other = User.objects.create_user(username="social_other", password="StrongPass123")
+        self.media_root = tempfile.mkdtemp(prefix="caseup-social-tests-")
+        self.addCleanup(lambda: shutil.rmtree(self.media_root, ignore_errors=True))
+
+    def _set_profile_identity(self, user, *, display_name="", avatar_url=""):
+        profile, _created = UserProfile.objects.get_or_create(user=user)
+        profile.steam_personaname = display_name
+        profile.steam_avatar = avatar_url
+        profile.save(update_fields=["steam_personaname", "steam_avatar"])
+        return profile
+
+    def _avatar_upload(self, name="avatar.png"):
+        return SimpleUploadedFile(name, PNG_1X1_BYTES, content_type="image/png")
 
     def test_social_routes_exist(self):
         self.assertEqual(reverse("social:chats"), "/social/chats/")
@@ -59,6 +91,7 @@ class SocialLayerTests(TestCase):
             "/social/spaces/1/demo/members/2/transfer-owner/",
         )
         self.assertEqual(reverse("social:space_leave", args=[1, "demo"]), "/social/spaces/1/demo/leave/")
+        self.assertEqual(reverse("social:space_settings", args=[1, "demo"]), "/social/spaces/1/demo/settings/")
 
     def test_social_pages_require_login(self):
         for route_name in ("social:chats", "social:groups", "social:group_create", "social:conversations", "social:conversation_create"):
@@ -67,6 +100,8 @@ class SocialLayerTests(TestCase):
         response = self.client.post(reverse("social:space_message_create", args=[1, "demo"]))
         self.assertEqual(response.status_code, 302)
         response = self.client.get(reverse("social:space_members_manage", args=[1, "demo"]))
+        self.assertEqual(response.status_code, 302)
+        response = self.client.get(reverse("social:space_settings", args=[1, "demo"]))
         self.assertEqual(response.status_code, 302)
 
     def test_chats_placeholder_available_for_authenticated_user(self):
@@ -92,7 +127,7 @@ class SocialLayerTests(TestCase):
             response = self.client.get(reverse(route_name))
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, empty_text)
-            self.assertContains(response, "Stage 2")
+            self.assertContains(response, "Stage 4")
 
     def test_create_social_space_creates_owner_membership(self):
         space = create_social_space(
@@ -338,6 +373,102 @@ class SocialLayerTests(TestCase):
         self.assertEqual(first.space_type, SocialSpace.SpaceType.DIRECT)
         self.assertEqual(first.memberships.count(), 2)
         self.assertEqual(SocialSpace.objects.filter(space_type=SocialSpace.SpaceType.DIRECT).count(), 1)
+
+    def test_stage41_direct_presentation_is_viewer_aware(self):
+        self._set_profile_identity(self.user, display_name="Alpha User", avatar_url="https://cdn.example.test/alpha.png")
+        self._set_profile_identity(self.member, display_name="Bravo Member", avatar_url="https://cdn.example.test/bravo.png")
+        space = get_or_create_direct_space(self.user, self.member)
+
+        user_presentation = build_space_presentation(self.user, space)
+        member_presentation = build_space_presentation(self.member, space)
+
+        self.assertEqual(user_presentation["title"], "Bravo Member")
+        self.assertEqual(user_presentation["avatar_url"], "https://cdn.example.test/bravo.png")
+        self.assertEqual(member_presentation["title"], "Alpha User")
+        self.assertEqual(member_presentation["avatar_url"], "https://cdn.example.test/alpha.png")
+
+        self.client.login(username="social_user", password="StrongPass123")
+        response = self.client.get(build_space_url(space))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Bravo Member")
+        self.assertContains(response, "https://cdn.example.test/bravo.png")
+        self.assertNotContains(response, "Direct:")
+
+        self.client.login(username="social_member", password="StrongPass123")
+        response = self.client.get(build_space_url(space))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Alpha User")
+        self.assertContains(response, "https://cdn.example.test/alpha.png")
+        self.assertNotContains(response, "Direct:")
+
+    def test_stage41_direct_list_and_sidebar_use_counterpart_presentation(self):
+        self._set_profile_identity(self.member, display_name="Sidebar Buddy", avatar_url="https://cdn.example.test/sidebar-buddy.png")
+        space = get_or_create_direct_space(self.user, self.member)
+        self.client.login(username="social_user", password="StrongPass123")
+
+        response = self.client.get(reverse("social:chats"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sidebar Buddy")
+        self.assertContains(response, "https://cdn.example.test/sidebar-buddy.png")
+        self.assertNotContains(response, "Direct:")
+
+        request = self.factory.get("/")
+        request.user = self.user
+        context = social_sidebar(request)
+        recent = next(item for item in context["social_recent_spaces"] if item["id"] == space.id)
+        self.assertEqual(recent["display_title"], "Sidebar Buddy")
+        self.assertEqual(recent["display_avatar_url"], "https://cdn.example.test/sidebar-buddy.png")
+
+    def test_stage41_group_presentation_keeps_group_title_and_does_not_use_owner_avatar_fallback(self):
+        owner_profile = self._set_profile_identity(self.user, display_name="Owner Persona", avatar_url="https://cdn.example.test/owner.png")
+        space = create_social_space(self.user, "Visible Group", SocialSpace.SpaceType.GROUP, members=[self.member])
+
+        detail_context = build_space_detail_context(self.user, space)
+        cards = build_space_cards(self.user, space_type=SocialSpace.SpaceType.GROUP)
+        request = self.factory.get("/")
+        request.user = self.user
+        sidebar_context = social_sidebar(request)
+
+        self.assertEqual(detail_context["space_presentation"]["title"], "Visible Group")
+        self.assertFalse(detail_context["space_presentation"]["has_custom_avatar"])
+        self.assertNotEqual(detail_context["space_presentation"]["avatar_url"], owner_profile.steam_avatar)
+        self.assertEqual(cards[0]["display_title"], "Visible Group")
+        self.assertFalse(cards[0]["has_custom_avatar"])
+        self.assertNotEqual(cards[0]["display_avatar_url"], owner_profile.steam_avatar)
+        self.assertNotEqual(sidebar_context["social_recent_spaces"][0]["display_avatar_url"], owner_profile.steam_avatar)
+
+    def test_stage41_group_custom_avatar_is_used_in_detail_list_and_sidebar(self):
+        space = create_social_space(self.user, "Avatar Group", SocialSpace.SpaceType.GROUP, members=[self.member])
+        self.client.login(username="social_user", password="StrongPass123")
+
+        with self.settings(MEDIA_ROOT=self.media_root):
+            response = self.client.post(
+                build_space_settings_url(space),
+                {
+                    "title": space.title,
+                    "description": "Avatar enabled",
+                    "privacy": SocialSpace.Privacy.PRIVATE,
+                    "avatar": self._avatar_upload("group-avatar.png"),
+                },
+            )
+
+            self.assertEqual(response.status_code, 302)
+            space.refresh_from_db()
+            self.assertTrue(bool(space.avatar))
+            self.assertIn("social/avatars/", space.avatar.name)
+            detail_context = build_space_detail_context(self.user, space)
+            cards = build_space_cards(self.user, space_type=SocialSpace.SpaceType.GROUP)
+            request = self.factory.get("/")
+            request.user = self.user
+            sidebar_context = social_sidebar(request)
+
+        self.assertTrue(detail_context["space_presentation"]["has_custom_avatar"])
+        self.assertIn("/media/social/avatars/", detail_context["space_presentation"]["avatar_url"])
+        self.assertTrue(cards[0]["has_custom_avatar"])
+        self.assertIn("/media/social/avatars/", cards[0]["display_avatar_url"])
+        self.assertTrue(sidebar_context["social_recent_spaces"][0]["has_custom_avatar"])
+        self.assertIn("/media/social/avatars/", sidebar_context["social_recent_spaces"][0]["display_avatar_url"])
 
     def test_stage4_owner_and_admin_can_add_members_with_rbac_guards(self):
         admin_user = User.objects.create_user(username="social_admin", password="StrongPass123")
@@ -685,6 +816,89 @@ class SocialLayerTests(TestCase):
         response = self.client.get(build_members_manage_url(direct))
         self.assertEqual(response.status_code, 403)
 
+    def test_stage41_space_settings_access_rules(self):
+        admin_user = User.objects.create_user(username="settings_admin", password="StrongPass123")
+        space = create_social_space(self.user, "Settings Access", SocialSpace.SpaceType.GROUP, members=[self.member, admin_user])
+        change_member_role(self.user, space, admin_user, SocialMembership.Role.ADMIN)
+        direct = get_or_create_direct_space(self.user, self.member)
+
+        response = self.client.get(build_space_settings_url(space))
+        self.assertEqual(response.status_code, 302)
+
+        self.client.login(username="social_user", password="StrongPass123")
+        response = self.client.get(build_space_settings_url(space))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'enctype="multipart/form-data"')
+        self.assertContains(response, "data-avatar-upload")
+
+        self.client.login(username="settings_admin", password="StrongPass123")
+        response = self.client.get(build_space_settings_url(space))
+        self.assertEqual(response.status_code, 200)
+
+        self.client.login(username="social_member", password="StrongPass123")
+        response = self.client.get(build_space_settings_url(space))
+        self.assertEqual(response.status_code, 403)
+
+        self.client.login(username="social_user", password="StrongPass123")
+        response = self.client.get(build_space_settings_url(direct))
+        self.assertEqual(response.status_code, 403)
+
+    def test_stage41_space_settings_owner_updates_title_description_privacy_avatar_and_slug(self):
+        create_social_space(self.other, "Renamed Group", SocialSpace.SpaceType.GROUP)
+        space = create_social_space(self.user, "Original Group", SocialSpace.SpaceType.GROUP)
+        self.client.login(username="social_user", password="StrongPass123")
+
+        with self.settings(MEDIA_ROOT=self.media_root):
+            response = self.client.post(
+                build_space_settings_url(space),
+                {
+                    "title": "Renamed Group",
+                    "description": "Updated by owner",
+                    "privacy": SocialSpace.Privacy.PUBLIC,
+                    "avatar": self._avatar_upload("owner-space.png"),
+                },
+            )
+
+        space.refresh_from_db()
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], build_space_url(space))
+        self.assertEqual(space.title, "Renamed Group")
+        self.assertEqual(space.slug, "renamed-group-2")
+        self.assertEqual(space.description, "Updated by owner")
+        self.assertEqual(space.privacy, SocialSpace.Privacy.PUBLIC)
+        self.assertTrue(bool(space.avatar))
+        self.assertIn("social/avatars/", space.avatar.name)
+
+    def test_stage41_space_settings_admin_updates_description_and_avatar_only(self):
+        admin_user = User.objects.create_user(username="settings_admin_update", password="StrongPass123")
+        space = create_social_space(
+            self.user,
+            "Admin Locked Title",
+            SocialSpace.SpaceType.CONVERSATION,
+            privacy=SocialSpace.Privacy.PRIVATE,
+            members=[admin_user],
+        )
+        change_member_role(self.user, space, admin_user, SocialMembership.Role.ADMIN)
+        self.client.login(username="settings_admin_update", password="StrongPass123")
+
+        with self.settings(MEDIA_ROOT=self.media_root):
+            response = self.client.post(
+                build_space_settings_url(space),
+                {
+                    "title": "Admin Should Not Rename",
+                    "description": "Admin can update this",
+                    "privacy": SocialSpace.Privacy.PUBLIC,
+                    "avatar": self._avatar_upload("admin-space.png"),
+                },
+            )
+
+        space.refresh_from_db()
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(space.title, "Admin Locked Title")
+        self.assertEqual(space.privacy, SocialSpace.Privacy.PRIVATE)
+        self.assertEqual(space.description, "Admin can update this")
+        self.assertTrue(bool(space.avatar))
+
     def test_stage4_member_add_post_works_for_owner_and_admin_only(self):
         admin_user = User.objects.create_user(username="view_add_admin", password="StrongPass123")
         target = User.objects.create_user(username="view_add_target", password="StrongPass123")
@@ -768,6 +982,23 @@ class SocialLayerTests(TestCase):
         self.assertEqual(response["Location"], reverse("social:groups"))
         self.assertEqual(SocialMembership.objects.get(space=space, user=admin_user).status, SocialMembership.Status.LEFT)
 
+    def test_stage41_social_list_cards_link_member_chips_and_participant_count_by_rbac(self):
+        space = create_social_space(self.user, "List Links", SocialSpace.SpaceType.GROUP, members=[self.member])
+
+        self.client.login(username="social_user", password="StrongPass123")
+        response = self.client.get(reverse("social:groups"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("profiles:profile_detail", args=[self.member.id]))
+        self.assertContains(response, "presence-indicator")
+        self.assertContains(response, build_members_manage_url(space))
+
+        self.client.login(username="social_member", password="StrongPass123")
+        response = self.client.get(reverse("social:groups"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("profiles:profile_detail", args=[self.user.id]))
+        self.assertContains(response, f'{build_space_url(space)}#social-members')
+        self.assertNotContains(response, build_members_manage_url(space))
+
     def test_stage4_templates_show_manage_controls_from_prepared_flags(self):
         admin_user = User.objects.create_user(username="template_admin", password="StrongPass123")
         space = create_social_space(self.user, "Template Controls", SocialSpace.SpaceType.GROUP, members=[self.member, admin_user])
@@ -775,7 +1006,11 @@ class SocialLayerTests(TestCase):
 
         self.client.login(username="social_user", password="StrongPass123")
         response = self.client.get(build_space_url(space))
-        self.assertContains(response, "Участники / управление")
+        self.assertContains(response, "Управление участниками")
+        self.assertContains(response, "social-space-settings-button__icon")
+        self.assertNotContains(response, "Участники / управление")
+        self.assertContains(response, reverse("profiles:profile_detail", args=[self.member.id]))
+        self.assertContains(response, f"ID: {self.member.id}")
         self.assertContains(response, reverse("profiles:profile_start_direct_chat", args=[self.member.id]))
         self.assertNotContains(response, reverse("profiles:profile_start_direct_chat", args=[self.user.id]))
         response = self.client.get(build_members_manage_url(space))
@@ -784,7 +1019,8 @@ class SocialLayerTests(TestCase):
 
         self.client.login(username="template_admin", password="StrongPass123")
         response = self.client.get(build_space_url(space))
-        self.assertContains(response, "Участники / управление")
+        self.assertContains(response, "Управление участниками")
+        self.assertNotContains(response, "Участники / управление")
         response = self.client.get(build_members_manage_url(space))
         self.assertNotContains(response, "Сделать admin")
         self.assertNotContains(response, "Передать owner")
@@ -792,10 +1028,16 @@ class SocialLayerTests(TestCase):
         self.client.login(username="social_member", password="StrongPass123")
         response = self.client.get(build_space_url(space))
         self.assertNotContains(response, "Участники / управление")
+        self.assertNotContains(response, "Управление участниками")
         self.assertNotContains(response, "Сделать admin")
 
         direct = get_or_create_direct_space(self.user, self.member)
         self.client.login(username="social_user", password="StrongPass123")
         response = self.client.get(build_space_url(direct))
+        self.assertContains(response, reverse("profiles:profile_detail", args=[self.member.id]))
+        self.assertContains(response, f"ID: {self.member.id}")
+        self.assertContains(response, reverse("profiles:profile_start_direct_chat", args=[self.member.id]))
+        self.assertNotContains(response, reverse("profiles:profile_start_direct_chat", args=[self.user.id]))
         self.assertNotContains(response, "Участники / управление")
+        self.assertNotContains(response, "Управление участниками")
         self.assertNotContains(response, "Сделать admin")
