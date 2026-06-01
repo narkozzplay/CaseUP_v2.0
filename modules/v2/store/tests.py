@@ -160,12 +160,14 @@ class StoreRuntimeModuleDiscoveryTests(TestCase):
         self.assertTrue(is_runtime_module_compatible(module))
         self.assertFalse(is_runtime_module_compatible(module, project_version="9.9.9"))
 
-    def test_steam_runtime_modules_are_compatible_with_project_0342(self):
+    def test_steam_runtime_modules_are_compatible_with_project_0344(self):
         price_graphics = get_runtime_module("steam_update_plugin_price_graphics")
         catalog_v2 = get_runtime_module("steam_catalog_v2")
 
         self.assertIsNotNone(price_graphics)
         self.assertIsNotNone(catalog_v2)
+        self.assertTrue(is_runtime_module_compatible(price_graphics, project_version="0.3.4.4"))
+        self.assertTrue(is_runtime_module_compatible(catalog_v2, project_version="0.3.4.4"))
         self.assertTrue(is_runtime_module_compatible(price_graphics, project_version="0.3.4.2"))
         self.assertTrue(is_runtime_module_compatible(catalog_v2, project_version="0.3.4.2"))
         self.assertTrue(is_runtime_module_compatible(price_graphics, project_version="0.3.4"))

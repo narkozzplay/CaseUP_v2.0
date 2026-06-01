@@ -1,24 +1,42 @@
 from __future__ import annotations
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseNotAllowed
-from django.shortcuts import redirect
+from django.http import HttpResponseBadRequest, HttpResponseForbidden, HttpResponseNotAllowed
+from django.shortcuts import get_object_or_404, redirect
 
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
 
-from .forms import SocialConversationCreateForm, SocialGroupCreateForm, SocialMessageCreateForm
+from .forms import (
+    SocialConversationCreateForm,
+    SocialGroupCreateForm,
+    SocialMessageCreateForm,
+    SpaceMemberAddForm,
+    SpaceMemberRoleForm,
+)
 from .models import SocialSpace
 from .services import (
+    add_space_member,
+    block_space_member,
+    build_members_manage_url,
     build_space_cards,
     build_space_detail_context,
+    build_space_members_manage_context,
     build_space_url,
+    change_member_role,
     create_social_space,
     create_space_message,
     get_user_space_or_404,
+    leave_space,
     mark_space_read,
+    remove_space_member,
+    transfer_space_ownership,
+    unblock_space_member,
 )
 
+
+User = get_user_model()
 
 SOCIAL_PAGES = {
     "chats": {
@@ -197,6 +215,39 @@ def _render_space_detail(request, space: SocialSpace, *, message_form=None):
     )
 
 
+def _render_members_manage(request, space: SocialSpace, *, add_form=None, status=200):
+    try:
+        context = build_space_members_manage_context(request.user, space)
+    except PermissionError as exc:
+        return HttpResponseForbidden(str(exc))
+    context["member_add_form"] = add_form or SpaceMemberAddForm(current_user=request.user, space=space)
+    return render_dashboard_page(
+        request,
+        full_template="social/space_members_manage.html",
+        partial_template="social/partials/space_members_manage_content.html",
+        context=context,
+        page_title=build_page_title(f"{space.title} members"),
+        active_menu_key=context["space_active_menu_key"],
+        current_url=build_members_manage_url(space),
+    )
+
+
+def _redirect_if_stale_slug(space: SocialSpace, slug: str, *, target: str = "detail"):
+    if slug == space.slug:
+        return None
+    if target == "members":
+        return redirect(build_members_manage_url(space))
+    return redirect(build_space_url(space))
+
+
+def _target_user_or_404(user_id: int):
+    return get_object_or_404(User, pk=user_id)
+
+
+def _forbidden_response(exc: Exception):
+    return HttpResponseForbidden(str(exc))
+
+
 @login_required
 def space_message_create_view(request, space_id: int, slug: str):
     if request.method != "POST":
@@ -213,3 +264,142 @@ def space_message_create_view(request, space_id: int, slug: str):
         return redirect(canonical_url)
 
     return _render_space_detail(request, space, message_form=form)
+
+
+@login_required
+def space_members_manage_view(request, space_id: int, slug: str):
+    space = get_user_space_or_404(request.user, space_id=space_id, slug=slug)
+    stale_redirect = _redirect_if_stale_slug(space, slug, target="members")
+    if stale_redirect:
+        return stale_redirect
+    return _render_members_manage(request, space)
+
+
+@login_required
+def space_member_add_view(request, space_id: int, slug: str):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    space = get_user_space_or_404(request.user, space_id=space_id, slug=slug)
+    stale_redirect = _redirect_if_stale_slug(space, slug, target="members")
+    if stale_redirect:
+        return stale_redirect
+
+    form = SpaceMemberAddForm(request.POST, current_user=request.user, space=space)
+    if not form.is_valid():
+        return _render_members_manage(request, space, add_form=form)
+
+    try:
+        add_space_member(request.user, space, form.cleaned_data["user"])
+    except (PermissionError, ValueError) as exc:
+        return _forbidden_response(exc)
+    return redirect(build_members_manage_url(space))
+
+
+@login_required
+def space_member_remove_view(request, space_id: int, slug: str, user_id: int):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    space = get_user_space_or_404(request.user, space_id=space_id, slug=slug)
+    stale_redirect = _redirect_if_stale_slug(space, slug, target="members")
+    if stale_redirect:
+        return stale_redirect
+
+    try:
+        remove_space_member(request.user, space, _target_user_or_404(user_id))
+    except PermissionError as exc:
+        return _forbidden_response(exc)
+    return redirect(build_members_manage_url(space))
+
+
+@login_required
+def space_member_role_view(request, space_id: int, slug: str, user_id: int):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    space = get_user_space_or_404(request.user, space_id=space_id, slug=slug)
+    stale_redirect = _redirect_if_stale_slug(space, slug, target="members")
+    if stale_redirect:
+        return stale_redirect
+
+    form = SpaceMemberRoleForm(request.POST)
+    if not form.is_valid():
+        return HttpResponseBadRequest("Invalid role.")
+
+    try:
+        change_member_role(request.user, space, _target_user_or_404(user_id), form.cleaned_data["role"])
+    except (PermissionError, ValueError) as exc:
+        return _forbidden_response(exc)
+    return redirect(build_members_manage_url(space))
+
+
+@login_required
+def space_member_block_view(request, space_id: int, slug: str, user_id: int):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    space = get_user_space_or_404(request.user, space_id=space_id, slug=slug)
+    stale_redirect = _redirect_if_stale_slug(space, slug, target="members")
+    if stale_redirect:
+        return stale_redirect
+
+    try:
+        block_space_member(request.user, space, _target_user_or_404(user_id))
+    except PermissionError as exc:
+        return _forbidden_response(exc)
+    return redirect(build_members_manage_url(space))
+
+
+@login_required
+def space_member_unblock_view(request, space_id: int, slug: str, user_id: int):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    space = get_user_space_or_404(request.user, space_id=space_id, slug=slug)
+    stale_redirect = _redirect_if_stale_slug(space, slug, target="members")
+    if stale_redirect:
+        return stale_redirect
+
+    try:
+        unblock_space_member(request.user, space, _target_user_or_404(user_id))
+    except PermissionError as exc:
+        return _forbidden_response(exc)
+    return redirect(build_members_manage_url(space))
+
+
+@login_required
+def space_member_transfer_owner_view(request, space_id: int, slug: str, user_id: int):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    space = get_user_space_or_404(request.user, space_id=space_id, slug=slug)
+    stale_redirect = _redirect_if_stale_slug(space, slug, target="members")
+    if stale_redirect:
+        return stale_redirect
+
+    try:
+        transfer_space_ownership(request.user, space, _target_user_or_404(user_id))
+    except PermissionError as exc:
+        return _forbidden_response(exc)
+    return redirect(build_members_manage_url(space))
+
+
+@login_required
+def space_leave_view(request, space_id: int, slug: str):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    space = get_user_space_or_404(request.user, space_id=space_id, slug=slug)
+    stale_redirect = _redirect_if_stale_slug(space, slug, target="detail")
+    if stale_redirect:
+        return stale_redirect
+
+    try:
+        leave_space(request.user, space)
+    except PermissionError as exc:
+        return _forbidden_response(exc)
+
+    if space.space_type == SocialSpace.SpaceType.CONVERSATION:
+        return redirect("social:conversations")
+    return redirect("social:groups")

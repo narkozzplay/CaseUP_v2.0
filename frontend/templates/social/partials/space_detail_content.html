@@ -20,6 +20,23 @@
                 <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Ваша роль:{% else %}Your role:{% endif %} {{ membership_role_label }}</span>
                 <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Участники:{% else %}Members:{% endif %} {{ member_count }}</span>
             </div>
+            {% if can_manage_space or can_leave_space %}
+                <div class="social-members-toolbar">
+                    {% if can_manage_space %}
+                        <a href="{{ members_manage_url }}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                            {% if LANGUAGE_CODE == "ru" %}Участники / управление{% else %}Members / manage{% endif %}
+                        </a>
+                    {% endif %}
+                    {% if can_leave_space %}
+                        <form method="post" action="{{ leave_space_url }}" class="inline-form">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-secondary btn-sm social-danger-action">
+                                {% if LANGUAGE_CODE == "ru" %}Выйти{% else %}Leave{% endif %}
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            {% endif %}
         </div>
     </div>
 
@@ -77,14 +94,90 @@
                 </div>
                 <div class="social-detail__member-list">
                     {% for member in members %}
-                        <div class="social-detail__member">
-                            <span class="presence-avatar-wrap presence-avatar-wrap--sm">
-                                <img src="{{ member.avatar_url }}" alt="{{ member.display_name }}" class="social-detail__member-avatar">
-                                <span class="presence-indicator {% if member.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if member.is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if member.is_online %}Online{% else %}Offline{% endif %}"></span>
-                            </span>
-                            <div class="social-detail__member-body">
-                                <strong>{{ member.display_name }}</strong>
-                                <span class="text-muted">{{ member.role_label }}</span>
+                        <div class="social-detail__member-wrap" data-social-member-menu-wrap>
+                            <button
+                                type="button"
+                                class="social-detail__member social-detail__member--button"
+                                data-social-member-menu-toggle
+                                aria-expanded="false"
+                                aria-controls="social-member-menu-{{ member.user_id }}"
+                            >
+                                <span class="presence-avatar-wrap presence-avatar-wrap--sm">
+                                    <img src="{{ member.avatar_url }}" alt="{{ member.display_name }}" class="social-detail__member-avatar">
+                                    <span class="presence-indicator {% if member.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if member.is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if member.is_online %}Online{% else %}Offline{% endif %}"></span>
+                                </span>
+                                <span class="social-detail__member-body">
+                                    <strong>{{ member.display_name }}</strong>
+                                    <span class="text-muted">{{ member.role_label }}</span>
+                                </span>
+                            </button>
+                            <div id="social-member-menu-{{ member.user_id }}" class="social-member-context-menu" data-social-member-menu hidden>
+                                <div class="social-member-context-menu__head">
+                                    <span class="presence-avatar-wrap">
+                                        <img src="{{ member.avatar_url }}" alt="{{ member.display_name }}" class="social-member-context-menu__avatar">
+                                        <span class="presence-indicator {% if member.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" aria-label="{% if member.is_online %}Online{% else %}Offline{% endif %}"></span>
+                                    </span>
+                                    <div>
+                                        <strong>{{ member.display_name }}</strong>
+                                        <span class="text-muted">ID: {{ member.user_id }}</span>
+                                    </div>
+                                </div>
+                                <div class="social-member-context-menu__meta">
+                                    <span>{% if member.is_online %}{% if LANGUAGE_CODE == "ru" %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}Оффлайн{% else %}Offline{% endif %}{% endif %}</span>
+                                    <span>{{ member.role_label }}</span>
+                                    <span>{{ member.status_label }}</span>
+                                </div>
+                                <div class="social-member-context-menu__actions">
+                                    <a href="{{ member.profile_url }}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                                        {% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}
+                                    </a>
+                                    {% if member.actions.can_message %}
+                                        <form method="post" action="{{ member.message_url }}" class="inline-form">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                {% if LANGUAGE_CODE == "ru" %}Написать{% else %}Message{% endif %}
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    {% if member.actions.can_make_admin %}
+                                        <form method="post" action="{{ member.actions.role_url }}" class="inline-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="role" value="admin">
+                                            <button type="submit" class="btn btn-secondary btn-sm">{% if LANGUAGE_CODE == "ru" %}Сделать admin{% else %}Make admin{% endif %}</button>
+                                        </form>
+                                    {% endif %}
+                                    {% if member.actions.can_make_member %}
+                                        <form method="post" action="{{ member.actions.role_url }}" class="inline-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="role" value="member">
+                                            <button type="submit" class="btn btn-secondary btn-sm">{% if LANGUAGE_CODE == "ru" %}Сделать member{% else %}Make member{% endif %}</button>
+                                        </form>
+                                    {% endif %}
+                                    {% if member.actions.can_remove %}
+                                        <form method="post" action="{{ member.actions.remove_url }}" class="inline-form">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-secondary btn-sm social-danger-action">{% if LANGUAGE_CODE == "ru" %}Удалить{% else %}Remove{% endif %}</button>
+                                        </form>
+                                    {% endif %}
+                                    {% if member.actions.can_block %}
+                                        <form method="post" action="{{ member.actions.block_url }}" class="inline-form">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-secondary btn-sm social-danger-action">{% if LANGUAGE_CODE == "ru" %}Заблокировать{% else %}Block{% endif %}</button>
+                                        </form>
+                                    {% endif %}
+                                    {% if member.actions.can_unblock %}
+                                        <form method="post" action="{{ member.actions.unblock_url }}" class="inline-form">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-secondary btn-sm">{% if LANGUAGE_CODE == "ru" %}Разблокировать{% else %}Unblock{% endif %}</button>
+                                        </form>
+                                    {% endif %}
+                                    {% if member.actions.can_transfer_owner %}
+                                        <form method="post" action="{{ member.actions.transfer_owner_url }}" class="inline-form">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-secondary btn-sm social-danger-action">{% if LANGUAGE_CODE == "ru" %}Передать owner{% else %}Transfer owner{% endif %}</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     {% empty %}

@@ -8,14 +8,22 @@ from django.utils import timezone
 from .context_processors import social_sidebar
 from .models import SocialMembership, SocialMessage, SocialSpace
 from .services import (
+    add_space_member,
+    block_space_member,
+    build_members_manage_url,
     build_space_url,
+    change_member_role,
     count_unread_messages_for_user,
     create_social_space,
     create_space_message,
     get_or_create_direct_space,
+    leave_space,
     list_space_messages,
     list_user_spaces,
     mark_space_read,
+    remove_space_member,
+    transfer_space_ownership,
+    unblock_space_member,
 )
 
 
@@ -40,12 +48,25 @@ class SocialLayerTests(TestCase):
             reverse("social:space_message_create", args=[1, "demo"]),
             "/social/spaces/1/demo/messages/send/",
         )
+        self.assertEqual(reverse("social:space_members_manage", args=[1, "demo"]), "/social/spaces/1/demo/members/")
+        self.assertEqual(reverse("social:space_member_add", args=[1, "demo"]), "/social/spaces/1/demo/members/add/")
+        self.assertEqual(reverse("social:space_member_remove", args=[1, "demo", 2]), "/social/spaces/1/demo/members/2/remove/")
+        self.assertEqual(reverse("social:space_member_role", args=[1, "demo", 2]), "/social/spaces/1/demo/members/2/role/")
+        self.assertEqual(reverse("social:space_member_block", args=[1, "demo", 2]), "/social/spaces/1/demo/members/2/block/")
+        self.assertEqual(reverse("social:space_member_unblock", args=[1, "demo", 2]), "/social/spaces/1/demo/members/2/unblock/")
+        self.assertEqual(
+            reverse("social:space_member_transfer_owner", args=[1, "demo", 2]),
+            "/social/spaces/1/demo/members/2/transfer-owner/",
+        )
+        self.assertEqual(reverse("social:space_leave", args=[1, "demo"]), "/social/spaces/1/demo/leave/")
 
     def test_social_pages_require_login(self):
         for route_name in ("social:chats", "social:groups", "social:group_create", "social:conversations", "social:conversation_create"):
             response = self.client.get(reverse(route_name))
             self.assertEqual(response.status_code, 302)
         response = self.client.post(reverse("social:space_message_create", args=[1, "demo"]))
+        self.assertEqual(response.status_code, 302)
+        response = self.client.get(reverse("social:space_members_manage", args=[1, "demo"]))
         self.assertEqual(response.status_code, 302)
 
     def test_chats_placeholder_available_for_authenticated_user(self):
@@ -220,6 +241,22 @@ class SocialLayerTests(TestCase):
         response = self.client.get(build_space_url(space))
         self.assertEqual(response.status_code, 404)
 
+    def test_left_member_cannot_open_space_and_muted_member_can_send_message(self):
+        space = create_social_space(self.user, "Left And Muted Group", SocialSpace.SpaceType.GROUP, members=[self.member, self.other])
+        SocialMembership.objects.filter(space=space, user=self.member).update(status=SocialMembership.Status.LEFT)
+        SocialMembership.objects.filter(space=space, user=self.other).update(status=SocialMembership.Status.MUTED)
+
+        self.client.login(username="social_member", password="StrongPass123")
+        response = self.client.get(build_space_url(space))
+        self.assertEqual(response.status_code, 404)
+        response = self.client.post(reverse("social:space_message_create", args=[space.id, space.slug]), {"body": "left nope"})
+        self.assertEqual(response.status_code, 404)
+
+        self.client.login(username="social_other", password="StrongPass123")
+        response = self.client.post(reverse("social:space_message_create", args=[space.id, space.slug]), {"body": "muted can write"})
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(SocialMessage.objects.filter(space=space, author=self.other, body="muted can write").exists())
+
     def test_group_create_creates_owner_membership_and_selected_members(self):
         self.client.login(username="social_user", password="StrongPass123")
 
@@ -301,6 +338,114 @@ class SocialLayerTests(TestCase):
         self.assertEqual(first.space_type, SocialSpace.SpaceType.DIRECT)
         self.assertEqual(first.memberships.count(), 2)
         self.assertEqual(SocialSpace.objects.filter(space_type=SocialSpace.SpaceType.DIRECT).count(), 1)
+
+    def test_stage4_owner_and_admin_can_add_members_with_rbac_guards(self):
+        admin_user = User.objects.create_user(username="social_admin", password="StrongPass123")
+        new_user = User.objects.create_user(username="social_new", password="StrongPass123")
+        left_user = User.objects.create_user(username="social_left", password="StrongPass123")
+        blocked_user = User.objects.create_user(username="social_blocked", password="StrongPass123")
+        space = create_social_space(self.user, "RBAC Add", SocialSpace.SpaceType.GROUP, members=[self.member, admin_user])
+        change_member_role(self.user, space, admin_user, SocialMembership.Role.ADMIN)
+
+        added = add_space_member(admin_user, space, new_user)
+        self.assertEqual(added.status, SocialMembership.Status.ACTIVE)
+        self.assertEqual(added.role, SocialMembership.Role.MEMBER)
+
+        duplicate = add_space_member(self.user, space, new_user)
+        self.assertEqual(duplicate.id, added.id)
+        self.assertEqual(SocialMembership.objects.filter(space=space, user=new_user).count(), 1)
+
+        left_membership = add_space_member(self.user, space, left_user)
+        left_membership.status = SocialMembership.Status.LEFT
+        left_membership.save(update_fields=["status"])
+        reactivated = add_space_member(admin_user, space, left_user)
+        self.assertEqual(reactivated.status, SocialMembership.Status.ACTIVE)
+
+        blocked_membership = add_space_member(self.user, space, blocked_user)
+        blocked_membership.status = SocialMembership.Status.BLOCKED
+        blocked_membership.save(update_fields=["status"])
+        with self.assertRaises(PermissionError):
+            add_space_member(admin_user, space, blocked_user)
+        blocked_membership.refresh_from_db()
+        self.assertEqual(blocked_membership.status, SocialMembership.Status.BLOCKED)
+
+        with self.assertRaises(PermissionError):
+            add_space_member(self.member, space, User.objects.create_user(username="member_add_target"))
+
+        direct = get_or_create_direct_space(self.user, self.other)
+        with self.assertRaises(PermissionError):
+            add_space_member(self.user, direct, new_user)
+
+    def test_stage4_remove_sets_left_and_respects_admin_limits(self):
+        admin_user = User.objects.create_user(username="remove_admin", password="StrongPass123")
+        second_admin = User.objects.create_user(username="remove_admin_two", password="StrongPass123")
+        target = User.objects.create_user(username="remove_target", password="StrongPass123")
+        space = create_social_space(self.user, "RBAC Remove", SocialSpace.SpaceType.GROUP, members=[admin_user, second_admin, target])
+        change_member_role(self.user, space, admin_user, SocialMembership.Role.ADMIN)
+        change_member_role(self.user, space, second_admin, SocialMembership.Role.ADMIN)
+
+        removed = remove_space_member(admin_user, space, target)
+        self.assertEqual(removed.status, SocialMembership.Status.LEFT)
+        self.assertTrue(SocialMembership.objects.filter(space=space, user=target).exists())
+
+        with self.assertRaises(PermissionError):
+            remove_space_member(admin_user, space, second_admin)
+        with self.assertRaises(PermissionError):
+            remove_space_member(admin_user, space, self.user)
+        with self.assertRaises(PermissionError):
+            remove_space_member(self.member, space, admin_user)
+
+        owner_removed = remove_space_member(self.user, space, second_admin)
+        self.assertEqual(owner_removed.status, SocialMembership.Status.LEFT)
+
+    def test_stage4_role_changes_block_unblock_transfer_and_leave(self):
+        admin_user = User.objects.create_user(username="rbac_admin", password="StrongPass123")
+        member_user = User.objects.create_user(username="rbac_member", password="StrongPass123")
+        next_owner = User.objects.create_user(username="rbac_next_owner", password="StrongPass123")
+        space = create_social_space(self.user, "RBAC Role", SocialSpace.SpaceType.CONVERSATION, members=[admin_user, member_user, next_owner])
+
+        promoted = change_member_role(self.user, space, admin_user, SocialMembership.Role.ADMIN)
+        self.assertEqual(promoted.role, SocialMembership.Role.ADMIN)
+        demoted = change_member_role(self.user, space, admin_user, SocialMembership.Role.MEMBER)
+        self.assertEqual(demoted.role, SocialMembership.Role.MEMBER)
+        change_member_role(self.user, space, admin_user, SocialMembership.Role.ADMIN)
+
+        with self.assertRaises(PermissionError):
+            change_member_role(admin_user, space, member_user, SocialMembership.Role.ADMIN)
+        with self.assertRaises(PermissionError):
+            change_member_role(member_user, space, admin_user, SocialMembership.Role.MEMBER)
+
+        blocked_member = block_space_member(admin_user, space, member_user)
+        self.assertEqual(blocked_member.status, SocialMembership.Status.BLOCKED)
+        unblocked_member = unblock_space_member(admin_user, space, member_user)
+        self.assertEqual(unblocked_member.status, SocialMembership.Status.ACTIVE)
+
+        blocked_admin = block_space_member(self.user, space, admin_user)
+        self.assertEqual(blocked_admin.status, SocialMembership.Status.BLOCKED)
+        unblocked_admin = unblock_space_member(self.user, space, admin_user)
+        self.assertEqual(unblocked_admin.status, SocialMembership.Status.ACTIVE)
+
+        with self.assertRaises(PermissionError):
+            block_space_member(admin_user, space, self.user)
+        with self.assertRaises(PermissionError):
+            block_space_member(admin_user, space, self.user)
+
+        with self.assertRaises(PermissionError):
+            transfer_space_ownership(admin_user, space, next_owner)
+        transferred = transfer_space_ownership(self.user, space, next_owner)
+        self.assertEqual(transferred.role, SocialMembership.Role.OWNER)
+        self.assertEqual(SocialMembership.objects.get(space=space, user=self.user).role, SocialMembership.Role.ADMIN)
+        space.refresh_from_db()
+        self.assertEqual(space.owner, next_owner)
+
+        with self.assertRaises(PermissionError):
+            leave_space(next_owner, space)
+        left = leave_space(self.user, space)
+        self.assertEqual(left.status, SocialMembership.Status.LEFT)
+
+        direct = get_or_create_direct_space(self.user, self.other)
+        with self.assertRaises(PermissionError):
+            block_space_member(self.user, direct, self.other)
 
     def test_create_space_message_creates_message(self):
         space = create_social_space(self.user, "Message Group", SocialSpace.SpaceType.GROUP, members=[self.member])
@@ -524,3 +669,133 @@ class SocialLayerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Message must be 4000 characters or fewer.")
         self.assertFalse(SocialMessage.objects.filter(space=space).exists())
+
+    def test_stage4_members_manage_page_requires_membership_and_forbids_direct(self):
+        space = create_social_space(self.user, "Manage Access", SocialSpace.SpaceType.GROUP, members=[self.member])
+        direct = get_or_create_direct_space(self.user, self.member)
+
+        response = self.client.get(build_members_manage_url(space))
+        self.assertEqual(response.status_code, 302)
+
+        self.client.login(username="social_other", password="StrongPass123")
+        response = self.client.get(build_members_manage_url(space))
+        self.assertEqual(response.status_code, 404)
+
+        self.client.login(username="social_user", password="StrongPass123")
+        response = self.client.get(build_members_manage_url(direct))
+        self.assertEqual(response.status_code, 403)
+
+    def test_stage4_member_add_post_works_for_owner_and_admin_only(self):
+        admin_user = User.objects.create_user(username="view_add_admin", password="StrongPass123")
+        target = User.objects.create_user(username="view_add_target", password="StrongPass123")
+        admin_target = User.objects.create_user(username="view_add_admin_target", password="StrongPass123")
+        member_target = User.objects.create_user(username="view_add_member_target", password="StrongPass123")
+        space = create_social_space(self.user, "View Add", SocialSpace.SpaceType.GROUP, members=[self.member, admin_user])
+        change_member_role(self.user, space, admin_user, SocialMembership.Role.ADMIN)
+
+        self.client.login(username="social_user", password="StrongPass123")
+        response = self.client.post(reverse("social:space_member_add", args=[space.id, space.slug]), {"user": str(target.id)})
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(SocialMembership.objects.filter(space=space, user=target, status=SocialMembership.Status.ACTIVE).exists())
+
+        self.client.login(username="view_add_admin", password="StrongPass123")
+        response = self.client.post(reverse("social:space_member_add", args=[space.id, space.slug]), {"user": str(admin_target.id)})
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(SocialMembership.objects.filter(space=space, user=admin_target, status=SocialMembership.Status.ACTIVE).exists())
+
+        self.client.login(username="social_member", password="StrongPass123")
+        response = self.client.post(reverse("social:space_member_add", args=[space.id, space.slug]), {"user": str(member_target.id)})
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(SocialMembership.objects.filter(space=space, user=member_target).exists())
+
+    def test_stage4_member_action_views_follow_rbac(self):
+        admin_user = User.objects.create_user(username="view_action_admin", password="StrongPass123")
+        target = User.objects.create_user(username="view_action_target", password="StrongPass123")
+        owner_target = User.objects.create_user(username="view_owner_target", password="StrongPass123")
+        space = create_social_space(self.user, "View Actions", SocialSpace.SpaceType.GROUP, members=[self.member, admin_user, target, owner_target])
+        change_member_role(self.user, space, admin_user, SocialMembership.Role.ADMIN)
+
+        self.client.login(username="social_user", password="StrongPass123")
+        response = self.client.post(
+            reverse("social:space_member_role", args=[space.id, space.slug, target.id]),
+            {"role": SocialMembership.Role.ADMIN},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(SocialMembership.objects.get(space=space, user=target).role, SocialMembership.Role.ADMIN)
+
+        response = self.client.post(reverse("social:space_member_block", args=[space.id, space.slug, target.id]))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(SocialMembership.objects.get(space=space, user=target).status, SocialMembership.Status.BLOCKED)
+
+        response = self.client.post(reverse("social:space_member_unblock", args=[space.id, space.slug, target.id]))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(SocialMembership.objects.get(space=space, user=target).status, SocialMembership.Status.ACTIVE)
+
+        response = self.client.post(reverse("social:space_member_transfer_owner", args=[space.id, space.slug, owner_target.id]))
+        self.assertEqual(response.status_code, 302)
+        space.refresh_from_db()
+        self.assertEqual(space.owner, owner_target)
+        self.assertEqual(SocialMembership.objects.get(space=space, user=self.user).role, SocialMembership.Role.ADMIN)
+
+        self.client.login(username="view_action_admin", password="StrongPass123")
+        response = self.client.post(
+            reverse("social:space_member_role", args=[space.id, space.slug, self.member.id]),
+            {"role": SocialMembership.Role.ADMIN},
+        )
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.post(reverse("social:space_member_remove", args=[space.id, space.slug, self.member.id]))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(SocialMembership.objects.get(space=space, user=self.member).status, SocialMembership.Status.LEFT)
+
+    def test_stage4_leave_post_and_get_mutating_route_does_not_mutate(self):
+        admin_user = User.objects.create_user(username="leave_admin", password="StrongPass123")
+        space = create_social_space(self.user, "Leave View", SocialSpace.SpaceType.GROUP, members=[self.member, admin_user])
+        change_member_role(self.user, space, admin_user, SocialMembership.Role.ADMIN)
+
+        self.client.login(username="social_user", password="StrongPass123")
+        response = self.client.post(reverse("social:space_leave", args=[space.id, space.slug]))
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(SocialMembership.objects.get(space=space, user=self.user).status, SocialMembership.Status.ACTIVE)
+
+        self.client.login(username="leave_admin", password="StrongPass123")
+        response = self.client.get(reverse("social:space_leave", args=[space.id, space.slug]))
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(SocialMembership.objects.get(space=space, user=admin_user).status, SocialMembership.Status.ACTIVE)
+
+        response = self.client.post(reverse("social:space_leave", args=[space.id, space.slug]))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("social:groups"))
+        self.assertEqual(SocialMembership.objects.get(space=space, user=admin_user).status, SocialMembership.Status.LEFT)
+
+    def test_stage4_templates_show_manage_controls_from_prepared_flags(self):
+        admin_user = User.objects.create_user(username="template_admin", password="StrongPass123")
+        space = create_social_space(self.user, "Template Controls", SocialSpace.SpaceType.GROUP, members=[self.member, admin_user])
+        change_member_role(self.user, space, admin_user, SocialMembership.Role.ADMIN)
+
+        self.client.login(username="social_user", password="StrongPass123")
+        response = self.client.get(build_space_url(space))
+        self.assertContains(response, "Участники / управление")
+        self.assertContains(response, reverse("profiles:profile_start_direct_chat", args=[self.member.id]))
+        self.assertNotContains(response, reverse("profiles:profile_start_direct_chat", args=[self.user.id]))
+        response = self.client.get(build_members_manage_url(space))
+        self.assertContains(response, "Сделать admin")
+        self.assertContains(response, "Передать owner")
+
+        self.client.login(username="template_admin", password="StrongPass123")
+        response = self.client.get(build_space_url(space))
+        self.assertContains(response, "Участники / управление")
+        response = self.client.get(build_members_manage_url(space))
+        self.assertNotContains(response, "Сделать admin")
+        self.assertNotContains(response, "Передать owner")
+
+        self.client.login(username="social_member", password="StrongPass123")
+        response = self.client.get(build_space_url(space))
+        self.assertNotContains(response, "Участники / управление")
+        self.assertNotContains(response, "Сделать admin")
+
+        direct = get_or_create_direct_space(self.user, self.member)
+        self.client.login(username="social_user", password="StrongPass123")
+        response = self.client.get(build_space_url(direct))
+        self.assertNotContains(response, "Участники / управление")
+        self.assertNotContains(response, "Сделать admin")

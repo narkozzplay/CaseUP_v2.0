@@ -66,6 +66,38 @@ def build_message_send_url(space: SocialSpace) -> str:
     return reverse("social:space_message_create", args=[space.id, space.slug])
 
 
+def build_members_manage_url(space: SocialSpace) -> str:
+    return reverse("social:space_members_manage", args=[space.id, space.slug])
+
+
+def build_member_add_url(space: SocialSpace) -> str:
+    return reverse("social:space_member_add", args=[space.id, space.slug])
+
+
+def build_member_remove_url(space: SocialSpace, user_id: int) -> str:
+    return reverse("social:space_member_remove", args=[space.id, space.slug, user_id])
+
+
+def build_member_role_url(space: SocialSpace, user_id: int) -> str:
+    return reverse("social:space_member_role", args=[space.id, space.slug, user_id])
+
+
+def build_member_block_url(space: SocialSpace, user_id: int) -> str:
+    return reverse("social:space_member_block", args=[space.id, space.slug, user_id])
+
+
+def build_member_unblock_url(space: SocialSpace, user_id: int) -> str:
+    return reverse("social:space_member_unblock", args=[space.id, space.slug, user_id])
+
+
+def build_member_transfer_owner_url(space: SocialSpace, user_id: int) -> str:
+    return reverse("social:space_member_transfer_owner", args=[space.id, space.slug, user_id])
+
+
+def build_leave_space_url(space: SocialSpace) -> str:
+    return reverse("social:space_leave", args=[space.id, space.slug])
+
+
 def _space_avatar_url(space: SocialSpace, preview_members: list[dict[str, object]]) -> str:
     avatar_url = _safe_file_url(space.avatar)
     if avatar_url:
@@ -106,7 +138,33 @@ def list_user_spaces(user, *, space_type: str | None = None):
     return qs
 
 
-def _build_member_rows(space: SocialSpace, *, limit: int | None = None) -> list[dict[str, object]]:
+def _build_member_row(membership: SocialMembership, *, viewer=None) -> dict[str, object]:
+    profile = _get_user_profile(membership.user)
+    display_name = get_profile_display_name(profile, fallback_username=membership.user.username)
+    is_online = is_profile_online(profile)
+    row = {
+        "membership": membership,
+        "user": membership.user,
+        "user_id": membership.user_id,
+        "display_name": display_name,
+        "avatar_url": get_profile_avatar_url(profile),
+        "is_online": is_online,
+        "online_label": "Online" if is_online else "Offline",
+        "role": membership.role,
+        "role_label": membership.get_role_display(),
+        "status": membership.status,
+        "status_label": membership.get_status_display(),
+        "profile_url": reverse("profiles:profile_detail", args=[membership.user_id]),
+        "message_url": reverse("profiles:profile_start_direct_chat", args=[membership.user_id]),
+        "is_current_user": bool(getattr(viewer, "pk", None) == membership.user_id),
+        "actions": {},
+    }
+    if viewer is not None:
+        row["actions"] = build_member_action_flags(viewer, membership)
+    return row
+
+
+def _build_member_rows(space: SocialSpace, *, limit: int | None = None, viewer=None) -> list[dict[str, object]]:
     memberships = (
         SocialMembership.objects.filter(space=space, status__in=VISIBLE_MEMBERSHIP_STATUSES)
         .select_related("user", "user__profile_v2")
@@ -117,18 +175,7 @@ def _build_member_rows(space: SocialSpace, *, limit: int | None = None) -> list[
 
     preview = []
     for membership in memberships:
-        profile = _get_user_profile(membership.user)
-        preview.append(
-            {
-                "user": membership.user,
-                "user_id": membership.user_id,
-                "display_name": get_profile_display_name(profile, fallback_username=membership.user.username),
-                "avatar_url": get_profile_avatar_url(profile),
-                "is_online": is_profile_online(profile),
-                "role": membership.role,
-                "role_label": membership.get_role_display(),
-            }
-        )
+        preview.append(_build_member_row(membership, viewer=viewer))
     return preview
 
 
@@ -249,9 +296,324 @@ def get_user_space_or_404(user, *, space_id: int, slug: str | None = None) -> So
         raise Http404("Social space not found.") from exc
 
 
+def get_user_membership(user, space: SocialSpace) -> SocialMembership | None:
+    if not getattr(user, "is_authenticated", False):
+        return None
+    try:
+        return SocialMembership.objects.select_related("space", "user").get(user=user, space=space)
+    except SocialMembership.DoesNotExist:
+        return None
+
+
+def get_active_user_membership(user, space: SocialSpace) -> SocialMembership | None:
+    membership = get_user_membership(user, space)
+    if membership and membership.status in VISIBLE_MEMBERSHIP_STATUSES:
+        return membership
+    return None
+
+
+def _is_group_manage_space(space: SocialSpace) -> bool:
+    return bool(space and space.space_type != SocialSpace.SpaceType.DIRECT)
+
+
+def _actor_membership(actor, space: SocialSpace) -> SocialMembership | None:
+    return get_active_user_membership(actor, space)
+
+
+def _is_owner(membership: SocialMembership | None) -> bool:
+    return bool(membership and membership.role == SocialMembership.Role.OWNER)
+
+
+def _is_admin(membership: SocialMembership | None) -> bool:
+    return bool(membership and membership.role == SocialMembership.Role.ADMIN)
+
+
+def can_manage_space(user, space: SocialSpace) -> bool:
+    if not _is_group_manage_space(space):
+        return False
+    membership = _actor_membership(user, space)
+    return _is_owner(membership) or _is_admin(membership)
+
+
+def can_add_member(user, space: SocialSpace) -> bool:
+    return can_manage_space(user, space)
+
+
+def can_remove_member(actor, target_membership: SocialMembership) -> bool:
+    if not target_membership or not _is_group_manage_space(target_membership.space):
+        return False
+    actor_membership = _actor_membership(actor, target_membership.space)
+    if not actor_membership or actor_membership.user_id == target_membership.user_id:
+        return False
+    if target_membership.role == SocialMembership.Role.OWNER:
+        return False
+    if target_membership.status == SocialMembership.Status.LEFT:
+        return False
+    if _is_owner(actor_membership):
+        return target_membership.role in {SocialMembership.Role.ADMIN, SocialMembership.Role.MEMBER}
+    if _is_admin(actor_membership):
+        return target_membership.role == SocialMembership.Role.MEMBER
+    return False
+
+
+def can_change_member_role(actor, target_membership: SocialMembership, new_role: str) -> bool:
+    if not target_membership or not _is_group_manage_space(target_membership.space):
+        return False
+    if new_role not in {SocialMembership.Role.ADMIN, SocialMembership.Role.MEMBER}:
+        return False
+    actor_membership = _actor_membership(actor, target_membership.space)
+    if not _is_owner(actor_membership):
+        return False
+    if actor_membership.user_id == target_membership.user_id:
+        return False
+    if target_membership.role == SocialMembership.Role.OWNER:
+        return False
+    if target_membership.role == new_role:
+        return False
+    return target_membership.status in VISIBLE_MEMBERSHIP_STATUSES
+
+
+def can_block_member(actor, target_membership: SocialMembership) -> bool:
+    if not target_membership or not _is_group_manage_space(target_membership.space):
+        return False
+    actor_membership = _actor_membership(actor, target_membership.space)
+    if not actor_membership or actor_membership.user_id == target_membership.user_id:
+        return False
+    if target_membership.role == SocialMembership.Role.OWNER:
+        return False
+    if target_membership.status not in VISIBLE_MEMBERSHIP_STATUSES:
+        return False
+    if _is_owner(actor_membership):
+        return target_membership.role in {SocialMembership.Role.ADMIN, SocialMembership.Role.MEMBER}
+    if _is_admin(actor_membership):
+        return target_membership.role == SocialMembership.Role.MEMBER
+    return False
+
+
+def can_unblock_member(actor, target_membership: SocialMembership) -> bool:
+    if not target_membership or not _is_group_manage_space(target_membership.space):
+        return False
+    actor_membership = _actor_membership(actor, target_membership.space)
+    if not actor_membership or actor_membership.user_id == target_membership.user_id:
+        return False
+    if target_membership.status != SocialMembership.Status.BLOCKED:
+        return False
+    if target_membership.role == SocialMembership.Role.OWNER:
+        return False
+    if _is_owner(actor_membership):
+        return target_membership.role in {SocialMembership.Role.ADMIN, SocialMembership.Role.MEMBER}
+    if _is_admin(actor_membership):
+        return target_membership.role == SocialMembership.Role.MEMBER
+    return False
+
+
+def can_transfer_ownership(actor, target_membership: SocialMembership) -> bool:
+    if not target_membership or not _is_group_manage_space(target_membership.space):
+        return False
+    actor_membership = _actor_membership(actor, target_membership.space)
+    if not _is_owner(actor_membership):
+        return False
+    if actor_membership.user_id == target_membership.user_id:
+        return False
+    if target_membership.role not in {SocialMembership.Role.ADMIN, SocialMembership.Role.MEMBER}:
+        return False
+    return target_membership.status in VISIBLE_MEMBERSHIP_STATUSES
+
+
+def can_leave_space(user, space: SocialSpace) -> bool:
+    if not _is_group_manage_space(space):
+        return False
+    membership = _actor_membership(user, space)
+    if not membership:
+        return False
+    return membership.role in {SocialMembership.Role.ADMIN, SocialMembership.Role.MEMBER}
+
+
+def build_member_action_flags(actor, target_membership: SocialMembership) -> dict[str, object]:
+    space = target_membership.space
+    user_id = target_membership.user_id
+    can_make_admin = can_change_member_role(actor, target_membership, SocialMembership.Role.ADMIN)
+    can_make_member = can_change_member_role(actor, target_membership, SocialMembership.Role.MEMBER)
+    return {
+        "can_message": bool(getattr(actor, "pk", None) and actor.pk != user_id),
+        "can_remove": can_remove_member(actor, target_membership),
+        "can_make_admin": can_make_admin,
+        "can_make_member": can_make_member,
+        "can_block": can_block_member(actor, target_membership),
+        "can_unblock": can_unblock_member(actor, target_membership),
+        "can_transfer_owner": can_transfer_ownership(actor, target_membership),
+        "remove_url": build_member_remove_url(space, user_id),
+        "role_url": build_member_role_url(space, user_id),
+        "block_url": build_member_block_url(space, user_id),
+        "unblock_url": build_member_unblock_url(space, user_id),
+        "transfer_owner_url": build_member_transfer_owner_url(space, user_id),
+    }
+
+
+def _require_group_manage_space(space: SocialSpace):
+    if not _is_group_manage_space(space):
+        raise PermissionError("Direct chats do not support member management.")
+
+
+def _locked_membership(space: SocialSpace, user) -> SocialMembership | None:
+    if not getattr(user, "pk", None):
+        return None
+    try:
+        return (
+            SocialMembership.objects.select_for_update()
+            .select_related("space", "user")
+            .get(space=space, user=user)
+        )
+    except SocialMembership.DoesNotExist:
+        return None
+
+
+def add_space_member(actor, space: SocialSpace, user) -> SocialMembership:
+    _require_group_manage_space(space)
+    if not can_add_member(actor, space):
+        raise PermissionError("You cannot add members to this space.")
+    if not getattr(user, "pk", None) or not getattr(user, "is_active", True):
+        raise ValueError("Target user must be active.")
+    if user.pk == getattr(actor, "pk", None):
+        raise ValueError("Cannot add yourself.")
+
+    with transaction.atomic():
+        membership = _locked_membership(space, user)
+        if membership is None:
+            return SocialMembership.objects.create(
+                space=space,
+                user=user,
+                role=SocialMembership.Role.MEMBER,
+                status=SocialMembership.Status.ACTIVE,
+            )
+        if membership.status in VISIBLE_MEMBERSHIP_STATUSES:
+            return membership
+        if membership.status == SocialMembership.Status.LEFT:
+            membership.role = SocialMembership.Role.MEMBER
+            membership.status = SocialMembership.Status.ACTIVE
+            membership.joined_at = timezone.now()
+            membership.save(update_fields=["role", "status", "joined_at"])
+            return membership
+        if membership.status == SocialMembership.Status.BLOCKED:
+            raise PermissionError("Blocked members must be unblocked explicitly.")
+        raise PermissionError("Cannot add this member.")
+
+
+def remove_space_member(actor, space: SocialSpace, target_user) -> SocialMembership:
+    _require_group_manage_space(space)
+    with transaction.atomic():
+        membership = _locked_membership(space, target_user)
+        if membership is None or not can_remove_member(actor, membership):
+            raise PermissionError("You cannot remove this member.")
+        membership.status = SocialMembership.Status.LEFT
+        membership.save(update_fields=["status"])
+        return membership
+
+
+def change_member_role(actor, space: SocialSpace, target_user, new_role: str) -> SocialMembership:
+    _require_group_manage_space(space)
+    valid_roles = {SocialMembership.Role.ADMIN, SocialMembership.Role.MEMBER}
+    role = _validate_choice(new_role, valid_roles, "role")
+    with transaction.atomic():
+        membership = _locked_membership(space, target_user)
+        if membership is None or not can_change_member_role(actor, membership, role):
+            raise PermissionError("You cannot change this member role.")
+        membership.role = role
+        membership.save(update_fields=["role"])
+        return membership
+
+
+def block_space_member(actor, space: SocialSpace, target_user) -> SocialMembership:
+    _require_group_manage_space(space)
+    with transaction.atomic():
+        membership = _locked_membership(space, target_user)
+        if membership is None or not can_block_member(actor, membership):
+            raise PermissionError("You cannot block this member.")
+        membership.status = SocialMembership.Status.BLOCKED
+        membership.save(update_fields=["status"])
+        return membership
+
+
+def unblock_space_member(actor, space: SocialSpace, target_user) -> SocialMembership:
+    _require_group_manage_space(space)
+    with transaction.atomic():
+        membership = _locked_membership(space, target_user)
+        if membership is None or not can_unblock_member(actor, membership):
+            raise PermissionError("You cannot unblock this member.")
+        membership.status = SocialMembership.Status.ACTIVE
+        membership.save(update_fields=["status"])
+        return membership
+
+
+def leave_space(user, space: SocialSpace) -> SocialMembership:
+    _require_group_manage_space(space)
+    with transaction.atomic():
+        membership = _locked_membership(space, user)
+        if membership is None or not can_leave_space(user, space):
+            raise PermissionError("You cannot leave this space before transferring ownership.")
+        membership.status = SocialMembership.Status.LEFT
+        membership.save(update_fields=["status"])
+        return membership
+
+
+def transfer_space_ownership(actor, space: SocialSpace, target_user) -> SocialMembership:
+    _require_group_manage_space(space)
+    with transaction.atomic():
+        actor_membership = _locked_membership(space, actor)
+        target_membership = _locked_membership(space, target_user)
+        if actor_membership is None or target_membership is None:
+            raise PermissionError("Ownership transfer is not available.")
+        if not can_transfer_ownership(actor, target_membership):
+            raise PermissionError("You cannot transfer ownership to this member.")
+
+        actor_membership.role = SocialMembership.Role.ADMIN
+        actor_membership.status = SocialMembership.Status.ACTIVE
+        target_membership.role = SocialMembership.Role.OWNER
+        target_membership.status = SocialMembership.Status.ACTIVE
+        space.owner = target_user
+
+        actor_membership.save(update_fields=["role", "status"])
+        target_membership.save(update_fields=["role", "status"])
+        space.save(update_fields=["owner", "updated_at"])
+        return target_membership
+
+
+def build_space_members_manage_context(user, space: SocialSpace) -> dict[str, object]:
+    _require_group_manage_space(space)
+    current_membership = get_active_user_membership(user, space)
+    if current_membership is None:
+        raise PermissionError("Social space access denied.")
+
+    memberships = (
+        SocialMembership.objects.filter(space=space)
+        .select_related("space", "user", "user__profile_v2")
+        .order_by("status", "role", "joined_at", "id")
+    )
+    member_rows = [_build_member_row(membership, viewer=user) for membership in memberships]
+    return {
+        "space": space,
+        "space_url": build_space_url(space),
+        "members_manage_url": build_members_manage_url(space),
+        "member_add_url": build_member_add_url(space),
+        "space_active_menu_key": SPACE_TYPE_TO_ACTIVE_MENU.get(space.space_type, "social_groups"),
+        "space_type_label": space.get_space_type_display(),
+        "privacy_label": space.get_privacy_display(),
+        "current_membership": current_membership,
+        "current_membership_role_label": current_membership.get_role_display(),
+        "members": member_rows,
+        "member_count": len(member_rows),
+        "can_add_member": can_add_member(user, space),
+        "can_leave_space": can_leave_space(user, space),
+        "can_manage_space": can_manage_space(user, space),
+        "leave_space_url": build_leave_space_url(space),
+    }
+
+
 def build_space_detail_context(user, space: SocialSpace) -> dict[str, object]:
-    membership = SocialMembership.objects.get(user=user, space=space)
-    member_rows = _build_member_rows(space)
+    membership = get_active_user_membership(user, space)
+    if membership is None:
+        raise PermissionError("Social space access denied.")
+    member_rows = _build_member_rows(space, viewer=user)
     member_count = getattr(space, "member_count", None)
     if member_count is None:
         member_count = len(member_rows)
@@ -270,6 +632,11 @@ def build_space_detail_context(user, space: SocialSpace) -> dict[str, object]:
         "social_messages": list_space_messages(user, space),
         "unread_count": unread_counts["by_space_id"].get(space.id, 0),
         "avatar_url": _space_avatar_url(space, member_rows[:1]),
+        "members_manage_url": build_members_manage_url(space),
+        "leave_space_url": build_leave_space_url(space),
+        "can_manage_space": can_manage_space(user, space),
+        "can_leave_space": can_leave_space(user, space),
+        "is_direct_space": space.space_type == SocialSpace.SpaceType.DIRECT,
     }
 
 

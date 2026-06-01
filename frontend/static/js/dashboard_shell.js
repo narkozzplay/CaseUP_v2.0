@@ -693,6 +693,65 @@
         });
     }
 
+    let socialMemberMenusBound = false;
+
+    function closeSocialMemberMenus({ exceptMenu = null } = {}) {
+        document.querySelectorAll('[data-social-member-menu]').forEach((menu) => {
+            if (exceptMenu && menu === exceptMenu) {
+                return;
+            }
+            menu.hidden = true;
+            const wrap = menu.closest('[data-social-member-menu-wrap]');
+            const toggle = wrap ? wrap.querySelector('[data-social-member-menu-toggle]') : null;
+            if (toggle) {
+                toggle.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+
+    function initSocialMemberMenus(scope) {
+        const root = scope || document;
+        root.querySelectorAll('[data-social-member-menu-toggle]').forEach((toggle) => {
+            const wrap = toggle.closest('[data-social-member-menu-wrap]');
+            const menu = wrap ? wrap.querySelector('[data-social-member-menu]') : null;
+            if (!menu) {
+                return;
+            }
+            toggle.setAttribute('aria-expanded', String(!menu.hidden));
+        });
+
+        if (socialMemberMenusBound) {
+            return;
+        }
+        socialMemberMenusBound = true;
+
+        document.addEventListener('click', (event) => {
+            const toggle = event.target.closest('[data-social-member-menu-toggle]');
+            if (toggle) {
+                const wrap = toggle.closest('[data-social-member-menu-wrap]');
+                const menu = wrap ? wrap.querySelector('[data-social-member-menu]') : null;
+                if (!menu) {
+                    return;
+                }
+                const shouldOpen = menu.hidden;
+                closeSocialMemberMenus({ exceptMenu: menu });
+                menu.hidden = !shouldOpen;
+                toggle.setAttribute('aria-expanded', String(shouldOpen));
+                return;
+            }
+
+            if (!event.target.closest('[data-social-member-menu-wrap]')) {
+                closeSocialMemberMenus();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeSocialMemberMenus();
+            }
+        });
+    }
+
     function initDashboardPageScripts(scope) {
         initCeleryTaskScheduleFields(scope);
         initSteamCatalogPriceHistory(scope);
@@ -700,6 +759,7 @@
         initSteamTradingSell(scope);
         initLiveModuleToggle(scope);
         initAvatarUpload(scope);
+        initSocialMemberMenus(scope);
 
         if (window.CaseUPStoreRatingInput && typeof window.CaseUPStoreRatingInput.init === 'function') {
             window.CaseUPStoreRatingInput.init(scope || document);

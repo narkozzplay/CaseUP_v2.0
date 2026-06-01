@@ -3,7 +3,8 @@ from __future__ import annotations
 from django import forms
 from django.contrib.auth import get_user_model
 
-from .models import SocialSpace
+from .models import SocialMembership, SocialSpace
+from .services import VISIBLE_MEMBERSHIP_STATUSES
 
 
 User = get_user_model()
@@ -62,3 +63,36 @@ class SocialMessageCreateForm(forms.Form):
         if not body:
             raise forms.ValidationError("Message cannot be empty.")
         return body
+
+
+class SpaceMemberAddForm(forms.Form):
+    user = forms.ModelChoiceField(queryset=User.objects.none())
+
+    def __init__(self, *args, current_user=None, space=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        member_ids = []
+        if space is not None:
+            member_ids = list(
+                SocialMembership.objects.filter(
+                    space=space,
+                    status__in=VISIBLE_MEMBERSHIP_STATUSES,
+                ).values_list("user_id", flat=True)
+            )
+        queryset = User.objects.filter(is_active=True).order_by("username", "id")
+        if getattr(current_user, "pk", None):
+            queryset = queryset.exclude(pk=current_user.pk)
+        if member_ids:
+            queryset = queryset.exclude(pk__in=member_ids)
+        self.fields["user"].queryset = queryset
+        self.fields["user"].label_from_instance = lambda user: user.username
+        self.fields["user"].widget.attrs.setdefault("class", "form-control")
+
+
+class SpaceMemberRoleForm(forms.Form):
+    role = forms.ChoiceField(
+        choices=(
+            (SocialMembership.Role.ADMIN, SocialMembership.Role.ADMIN.label),
+            (SocialMembership.Role.MEMBER, SocialMembership.Role.MEMBER.label),
+        ),
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )

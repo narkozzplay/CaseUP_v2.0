@@ -8,7 +8,7 @@ class SocialMembershipInline(admin.TabularInline):
     extra = 0
     raw_id_fields = ("user",)
     fields = ("user", "role", "status", "joined_at", "last_read_at")
-    readonly_fields = ("joined_at",)
+    readonly_fields = ("joined_at", "last_read_at")
 
 
 @admin.register(SocialSpace)
@@ -24,9 +24,9 @@ class SocialSpaceAdmin(admin.ModelAdmin):
 @admin.register(SocialMembership)
 class SocialMembershipAdmin(admin.ModelAdmin):
     list_display = ("id", "space", "user", "role", "status", "joined_at", "last_read_at")
-    list_filter = ("role", "status", "joined_at")
+    list_filter = ("role", "status", "space__space_type", "joined_at")
     search_fields = ("space__title", "space__slug", "user__username", "user__email")
-    readonly_fields = ("joined_at",)
+    readonly_fields = ("joined_at", "last_read_at")
     raw_id_fields = ("space", "user")
 
 

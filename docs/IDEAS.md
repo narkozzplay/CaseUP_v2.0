@@ -283,6 +283,14 @@ PNG предмета в detail-card не должен рендериться к�
 - правый social sidebar показывает unread badges по разделам и recent spaces;
 - WebSocket/realtime, attachments, media upload, invite links и group feed остаются будущими этапами.
 
+#### Stage 4 social RBAC / member management started
+
+- добавлено управление участниками групп/бесед через backend-first RBAC;
+- роли `owner`, `admin`, `member` используются для доступных действий управления;
+- статусы `active`, `muted`, `blocked`, `left` начали реально использоваться в доступе к space и сообщениям;
+- direct chats защищены от group-management операций;
+- realtime/messages delivery, media, group feed и invite links остаются будущими этапами.
+
 #### Online/offline статус пользователя
 
 - добавить backend-статус присутствия пользователя как базу для будущих чатов, групп и бесед;
