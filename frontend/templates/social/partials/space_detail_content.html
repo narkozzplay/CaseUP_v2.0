@@ -24,6 +24,51 @@
     </div>
 
     <div class="social-detail__grid">
+        <article class="card social-messages">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Сообщения{% else %}Messages{% endif %}</h2>
+                    {% if unread_count %}
+                        <span class="status-pill status-pill--sm">{% if LANGUAGE_CODE == "ru" %}Новых:{% else %}Unread:{% endif %} {{ unread_count }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="social-message-list">
+                    {% for message in social_messages %}
+                        <div class="social-message {% if message.is_own %}social-message--own{% endif %}">
+                            <span class="presence-avatar-wrap presence-avatar-wrap--sm">
+                                <img src="{{ message.author_avatar_url }}" alt="{{ message.author_display_name }}" class="social-message__avatar">
+                                <span class="presence-indicator {% if message.author_is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if message.author_is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if message.author_is_online %}Online{% else %}Offline{% endif %}"></span>
+                            </span>
+                            <div class="social-message__bubble">
+                                <div class="social-message__meta">
+                                    <strong>{{ message.author_display_name }}</strong>
+                                    <time datetime="{{ message.created_at|date:'c' }}">{{ message.created_at|date:"d.m.Y H:i" }}</time>
+                                </div>
+                                <div class="social-message__body">{{ message.body|linebreaksbr }}</div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted empty-state">{% if LANGUAGE_CODE == "ru" %}Сообщений пока нет.{% else %}No messages yet.{% endif %}</p>
+                    {% endfor %}
+                </div>
+
+                <form method="post" action="{{ message_send_url }}" class="social-message-form">
+                    {% csrf_token %}
+                    {% if message_form.non_field_errors %}
+                        <div class="faceit-error">{{ message_form.non_field_errors }}</div>
+                    {% endif %}
+                    {{ message_form.body }}
+                    {{ message_form.body.errors }}
+                    <div class="social-message-form__actions">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            {% if LANGUAGE_CODE == "ru" %}Отправить{% else %}Send{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </article>
+
         <article class="card social-detail__members">
             <div class="card-body">
                 <div class="section-head-inline">
@@ -46,18 +91,6 @@
                         <p class="text-muted empty-state">{% if LANGUAGE_CODE == "ru" %}Участников пока нет.{% else %}No members yet.{% endif %}</p>
                     {% endfor %}
                 </div>
-            </div>
-        </article>
-
-        <article class="card social-detail__messages-empty">
-            <div class="card-body">
-                <div class="section-head-inline">
-                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Сообщения{% else %}Messages{% endif %}</h2>
-                    <span class="status-pill status-pill--sm">Stage 3</span>
-                </div>
-                <p class="text-muted empty-state">
-                    {% if LANGUAGE_CODE == "ru" %}Сообщения будут добавлены следующим этапом.{% else %}Messages will be added in the next stage.{% endif %}
-                </p>
             </div>
         </article>
     </div>

@@ -14,6 +14,15 @@ EMPTY_SOCIAL_SIDEBAR_CONTEXT = {
         "conversation": 0,
     },
     "social_recent_spaces": [],
+    "social_unread_total": 0,
+    "social_unread_counts": {
+        "by_type": {
+            "direct": 0,
+            "group": 0,
+            "conversation": 0,
+        },
+        "by_space_id": {},
+    },
 }
 
 

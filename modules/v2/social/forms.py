@@ -29,6 +29,7 @@ class BaseSocialSpaceCreateForm(forms.Form):
             member_qs = member_qs.exclude(pk=current_user.pk)
         self.fields["members"].queryset = member_qs
         self.fields["members"].label_from_instance = lambda user: user.username
+        self.fields["privacy"].choices = self.privacy_choices
 
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", "form-control")
@@ -39,8 +40,25 @@ class SocialGroupCreateForm(BaseSocialSpaceCreateForm):
 
 
 class SocialConversationCreateForm(BaseSocialSpaceCreateForm):
-    privacy_choices = SocialSpace.Privacy.choices
+    privacy_choices = ((SocialSpace.Privacy.PRIVATE, SocialSpace.Privacy.PRIVATE.label),)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["privacy"].initial = SocialSpace.Privacy.PRIVATE
+
+
+class SocialMessageCreateForm(forms.Form):
+    body = forms.CharField(
+        max_length=4000,
+        error_messages={
+            "required": "Message cannot be empty.",
+            "max_length": "Message must be 4000 characters or fewer.",
+        },
+        widget=forms.Textarea(attrs={"rows": 3, "class": "form-control"}),
+    )
+
+    def clean_body(self):
+        body = str(self.cleaned_data.get("body") or "").strip()
+        if not body:
+            raise forms.ValidationError("Message cannot be empty.")
+        return body

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import SocialMembership, SocialSpace
+from .models import SocialMembership, SocialMessage, SocialSpace
 
 
 class SocialMembershipInline(admin.TabularInline):
@@ -28,3 +28,12 @@ class SocialMembershipAdmin(admin.ModelAdmin):
     search_fields = ("space__title", "space__slug", "user__username", "user__email")
     readonly_fields = ("joined_at",)
     raw_id_fields = ("space", "user")
+
+
+@admin.register(SocialMessage)
+class SocialMessageAdmin(admin.ModelAdmin):
+    list_display = ("id", "space", "author", "message_type", "is_deleted", "created_at")
+    list_filter = ("message_type", "is_deleted", "created_at")
+    search_fields = ("body", "author__username", "space__title")
+    readonly_fields = ("created_at", "updated_at", "edited_at", "deleted_at")
+    raw_id_fields = ("space", "author")

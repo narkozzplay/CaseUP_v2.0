@@ -246,7 +246,7 @@ PNG предмета в detail-card не должен рендериться к�
 **Приоритет:** P2
 **Категория:** profiles / social / communication / UI / realtime
 **Версия идеи:** future roadmap
-**Реализовано в версии:** частично, Stage 1 + Stage 2 foundation
+**Реализовано в версии:** частично, Stage 1 + Stage 2 foundation + Stage 3 message MVP
 
 #### Суть идеи
 
@@ -273,6 +273,15 @@ PNG предмета в detail-card не должен рендериться к�
 - добавлены flows создания групп и бесед;
 - добавлен direct chat foundation без сообщений с переиспользованием существующего direct space;
 - сообщения, realtime, media upload, group feed и invite links остаются будущими этапами.
+
+#### Stage 3 message MVP partially implemented
+
+- добавлена модель сообщений для social spaces;
+- добавлена отправка текстовых сообщений через POST без realtime;
+- добавлен вывод сообщений на detail page social space;
+- read/unread состояние базируется на `SocialMembership.last_read_at`;
+- правый social sidebar показывает unread badges по разделам и recent spaces;
+- WebSocket/realtime, attachments, media upload, invite links и group feed остаются будущими этапами.
 
 #### Online/offline статус пользователя
 

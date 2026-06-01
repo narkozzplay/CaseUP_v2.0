@@ -49,25 +49,45 @@
                 </div>
             </div>
 
+            <div class="right-social-sidebar__unread">
+                <span>{% if LANGUAGE_CODE == "ru" %}Непрочитанные{% else %}Unread{% endif %}</span>
+                <strong>{{ social_unread_total|default:0 }}</strong>
+            </div>
+
             <nav class="right-social-sidebar__nav" aria-label="Communication sections">
                 <a href="{% url 'social:chats' %}" data-dashboard-nav="true" data-social-menu-key="social_chats">
                     <span class="right-social-sidebar__nav-row">
                         <strong>{% if LANGUAGE_CODE == "ru" %}Чаты{% else %}Chats{% endif %}</strong>
-                        <span class="right-social-sidebar__count">{{ social_counts.direct|default:0 }}</span>
+                        <span>
+                            {% with unread=social_unread_counts.by_type.direct|default:0 %}
+                                {% if unread %}<span class="right-social-sidebar__recent-unread">{{ unread }}</span>{% endif %}
+                            {% endwith %}
+                            <span class="right-social-sidebar__count">{{ social_counts.direct|default:0 }}</span>
+                        </span>
                     </span>
                     <span>{% if LANGUAGE_CODE == "ru" %}Личные пространства{% else %}Direct spaces{% endif %}</span>
                 </a>
                 <a href="{% url 'social:groups' %}" data-dashboard-nav="true" data-social-menu-key="social_groups">
                     <span class="right-social-sidebar__nav-row">
                         <strong>{% if LANGUAGE_CODE == "ru" %}Группы{% else %}Groups{% endif %}</strong>
-                        <span class="right-social-sidebar__count">{{ social_counts.group|default:0 }}</span>
+                        <span>
+                            {% with unread=social_unread_counts.by_type.group|default:0 %}
+                                {% if unread %}<span class="right-social-sidebar__recent-unread">{{ unread }}</span>{% endif %}
+                            {% endwith %}
+                            <span class="right-social-sidebar__count">{{ social_counts.group|default:0 }}</span>
+                        </span>
                     </span>
                     <span>{% if LANGUAGE_CODE == "ru" %}Сообщества{% else %}Communities{% endif %}</span>
                 </a>
                 <a href="{% url 'social:conversations' %}" data-dashboard-nav="true" data-social-menu-key="social_conversations">
                     <span class="right-social-sidebar__nav-row">
                         <strong>{% if LANGUAGE_CODE == "ru" %}Беседы{% else %}Conversations{% endif %}</strong>
-                        <span class="right-social-sidebar__count">{{ social_counts.conversation|default:0 }}</span>
+                        <span>
+                            {% with unread=social_unread_counts.by_type.conversation|default:0 %}
+                                {% if unread %}<span class="right-social-sidebar__recent-unread">{{ unread }}</span>{% endif %}
+                            {% endwith %}
+                            <span class="right-social-sidebar__count">{{ social_counts.conversation|default:0 }}</span>
+                        </span>
                     </span>
                     <span>{% if LANGUAGE_CODE == "ru" %}Групповые беседы{% else %}Group conversations{% endif %}</span>
                 </a>
@@ -86,6 +106,9 @@
                                     <strong>{{ item.title }}</strong>
                                     <span>{{ item.space_type_label }} · {{ item.member_count }}</span>
                                 </span>
+                                {% if item.unread_count %}
+                                    <span class="right-social-sidebar__recent-unread">{{ item.unread_count }}</span>
+                                {% endif %}
                             </a>
                         {% endfor %}
                     </div>

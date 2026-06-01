@@ -1,19 +1,22 @@
 from __future__ import annotations
 
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseNotAllowed
 from django.shortcuts import redirect
 
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
 
-from .forms import SocialConversationCreateForm, SocialGroupCreateForm
+from .forms import SocialConversationCreateForm, SocialGroupCreateForm, SocialMessageCreateForm
 from .models import SocialSpace
 from .services import (
     build_space_cards,
     build_space_detail_context,
     build_space_url,
     create_social_space,
+    create_space_message,
     get_user_space_or_404,
+    mark_space_read,
 )
 
 
@@ -177,7 +180,13 @@ def space_detail_view(request, space_id: int, slug: str):
     if slug != space.slug:
         return redirect(canonical_url)
 
+    mark_space_read(request.user, space)
+    return _render_space_detail(request, space)
+
+
+def _render_space_detail(request, space: SocialSpace, *, message_form=None):
     context = build_space_detail_context(request.user, space)
+    context["message_form"] = message_form or SocialMessageCreateForm()
     return render_dashboard_page(
         request,
         full_template="social/space_detail.html",
@@ -186,3 +195,21 @@ def space_detail_view(request, space_id: int, slug: str):
         page_title=build_page_title(space.title),
         active_menu_key=context["space_active_menu_key"],
     )
+
+
+@login_required
+def space_message_create_view(request, space_id: int, slug: str):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    space = get_user_space_or_404(request.user, space_id=space_id, slug=slug)
+    canonical_url = build_space_url(space)
+    if slug != space.slug:
+        return redirect(canonical_url)
+
+    form = SocialMessageCreateForm(request.POST)
+    if form.is_valid():
+        create_space_message(request.user, space, form.cleaned_data["body"])
+        return redirect(canonical_url)
+
+    return _render_space_detail(request, space, message_form=form)

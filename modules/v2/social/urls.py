@@ -7,6 +7,7 @@ from .views import (
     group_create_view,
     groups_view,
     space_detail_view,
+    space_message_create_view,
 )
 
 app_name = "social"
@@ -18,4 +19,5 @@ urlpatterns = [
     path("conversations/", conversations_view, name="conversations"),
     path("conversations/create/", conversation_create_view, name="conversation_create"),
     path("spaces/<int:space_id>/<slug:slug>/", space_detail_view, name="space_detail"),
+    path("spaces/<int:space_id>/<slug:slug>/messages/send/", space_message_create_view, name="space_message_create"),
 ]

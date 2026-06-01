@@ -119,6 +119,46 @@ class SocialMembership(models.Model):
         return f"{self.user_id} in {self.space_id} ({self.role}/{self.status})"
 
 
+class SocialMessage(models.Model):
+    class MessageType(models.TextChoices):
+        TEXT = "text", "Text"
+        SYSTEM = "system", "System"
+
+    space = models.ForeignKey(
+        SocialSpace,
+        on_delete=models.CASCADE,
+        related_name="messages",
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="social_messages",
+    )
+    body = models.TextField()
+    message_type = models.CharField(
+        max_length=16,
+        choices=MessageType.choices,
+        default=MessageType.TEXT,
+    )
+    is_deleted = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    edited_at = models.DateTimeField(null=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Social message"
+        verbose_name_plural = "Social messages"
+        indexes = [
+            models.Index(fields=["space", "created_at", "id"], name="social_msg_space_created_idx"),
+            models.Index(fields=["space", "is_deleted", "created_at"], name="soc_msg_space_del_cr_idx"),
+            models.Index(fields=["author", "created_at"], name="social_msg_author_created_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"Message {self.pk} in {self.space_id}"
+
+
 def generate_unique_social_space_slug(*, title: str, space_type: str, exclude_space_id: int | None = None) -> str:
     safe_type = slugify(space_type or SocialSpace.SpaceType.DIRECT) or SocialSpace.SpaceType.DIRECT
     base = slugify(title or f"{safe_type}-space")[:150] or f"{safe_type}-space"

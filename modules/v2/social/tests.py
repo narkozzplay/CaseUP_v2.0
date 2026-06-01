@@ -6,8 +6,17 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .context_processors import social_sidebar
-from .models import SocialMembership, SocialSpace
-from .services import build_space_url, create_social_space, get_or_create_direct_space, list_user_spaces
+from .models import SocialMembership, SocialMessage, SocialSpace
+from .services import (
+    build_space_url,
+    count_unread_messages_for_user,
+    create_social_space,
+    create_space_message,
+    get_or_create_direct_space,
+    list_space_messages,
+    list_user_spaces,
+    mark_space_read,
+)
 
 
 User = get_user_model()
@@ -27,11 +36,17 @@ class SocialLayerTests(TestCase):
         self.assertEqual(reverse("social:group_create"), "/social/groups/create/")
         self.assertEqual(reverse("social:conversations"), "/social/conversations/")
         self.assertEqual(reverse("social:conversation_create"), "/social/conversations/create/")
+        self.assertEqual(
+            reverse("social:space_message_create", args=[1, "demo"]),
+            "/social/spaces/1/demo/messages/send/",
+        )
 
     def test_social_pages_require_login(self):
         for route_name in ("social:chats", "social:groups", "social:group_create", "social:conversations", "social:conversation_create"):
             response = self.client.get(reverse(route_name))
             self.assertEqual(response.status_code, 302)
+        response = self.client.post(reverse("social:space_message_create", args=[1, "demo"]))
+        self.assertEqual(response.status_code, 302)
 
     def test_chats_placeholder_available_for_authenticated_user(self):
         self.client.login(username="social_user", password="StrongPass123")
@@ -182,7 +197,8 @@ class SocialLayerTests(TestCase):
         response = self.client.get(build_space_url(space))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Detail Group")
-        self.assertContains(response, "Сообщения будут добавлены следующим этапом")
+        self.assertContains(response, "Сообщений пока нет")
+        self.assertContains(response, reverse("social:space_message_create", args=[space.id, space.slug]))
 
         self.client.login(username="social_other", password="StrongPass123")
         response = self.client.get(build_space_url(space))
@@ -239,6 +255,22 @@ class SocialLayerTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(SocialSpace.objects.filter(description="Invalid").exists())
 
+    def test_conversation_create_rejects_public_privacy(self):
+        self.client.login(username="social_user", password="StrongPass123")
+
+        response = self.client.post(
+            reverse("social:conversation_create"),
+            {
+                "title": "Public Conversation",
+                "description": "Should stay private-only",
+                "privacy": SocialSpace.Privacy.PUBLIC,
+                "members": [str(self.member.id)],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(SocialSpace.objects.filter(title="Public Conversation").exists())
+
     def test_create_form_rejects_owner_as_member(self):
         self.client.login(username="social_user", password="StrongPass123")
 
@@ -269,3 +301,226 @@ class SocialLayerTests(TestCase):
         self.assertEqual(first.space_type, SocialSpace.SpaceType.DIRECT)
         self.assertEqual(first.memberships.count(), 2)
         self.assertEqual(SocialSpace.objects.filter(space_type=SocialSpace.SpaceType.DIRECT).count(), 1)
+
+    def test_create_space_message_creates_message(self):
+        space = create_social_space(self.user, "Message Group", SocialSpace.SpaceType.GROUP, members=[self.member])
+
+        message = create_space_message(self.member, space, "  hello team  ")
+
+        self.assertEqual(message.space, space)
+        self.assertEqual(message.author, self.member)
+        self.assertEqual(message.body, "hello team")
+        self.assertEqual(message.message_type, SocialMessage.MessageType.TEXT)
+        self.assertFalse(message.is_deleted)
+
+    def test_create_space_message_rejects_empty_body(self):
+        space = create_social_space(self.user, "Empty Group", SocialSpace.SpaceType.GROUP)
+
+        with self.assertRaises(ValueError):
+            create_space_message(self.user, space, "   ")
+
+        self.assertFalse(SocialMessage.objects.filter(space=space).exists())
+
+    def test_create_space_message_rejects_body_over_limit(self):
+        space = create_social_space(self.user, "Long Group", SocialSpace.SpaceType.GROUP)
+
+        with self.assertRaises(ValueError):
+            create_space_message(self.user, space, "x" * 4001)
+
+        self.assertFalse(SocialMessage.objects.filter(space=space).exists())
+
+    def test_create_space_message_requires_membership(self):
+        space = create_social_space(self.user, "Members Only", SocialSpace.SpaceType.GROUP)
+
+        with self.assertRaises(PermissionError):
+            create_space_message(self.other, space, "hello")
+
+        self.assertFalse(SocialMessage.objects.filter(space=space).exists())
+
+    def test_blocked_and_left_members_cannot_send_messages(self):
+        space = create_social_space(self.user, "Restricted Group", SocialSpace.SpaceType.GROUP, members=[self.member])
+        membership = SocialMembership.objects.get(space=space, user=self.member)
+
+        membership.status = SocialMembership.Status.BLOCKED
+        membership.save(update_fields=["status"])
+        with self.assertRaises(PermissionError):
+            create_space_message(self.member, space, "blocked")
+
+        membership.status = SocialMembership.Status.LEFT
+        membership.save(update_fields=["status"])
+        with self.assertRaises(PermissionError):
+            create_space_message(self.member, space, "left")
+
+        self.assertFalse(SocialMessage.objects.filter(space=space).exists())
+
+    def test_message_send_updates_space_activity_and_author_last_read(self):
+        space = create_social_space(self.user, "Activity Group", SocialSpace.SpaceType.GROUP)
+        old_activity = timezone.now() - timedelta(days=1)
+        space.last_activity_at = old_activity
+        space.save(update_fields=["last_activity_at", "updated_at"])
+
+        message = create_space_message(self.user, space, "activity bump")
+
+        space.refresh_from_db()
+        membership = SocialMembership.objects.get(space=space, user=self.user)
+        self.assertGreater(space.last_activity_at, old_activity)
+        self.assertIsNotNone(membership.last_read_at)
+        self.assertGreaterEqual(membership.last_read_at, message.created_at)
+
+    def test_list_space_messages_returns_chronological_visible_messages(self):
+        space = create_social_space(self.user, "Timeline Group", SocialSpace.SpaceType.GROUP, members=[self.member])
+        first = create_space_message(self.user, space, "first")
+        second = create_space_message(self.member, space, "second")
+        deleted = create_space_message(self.user, space, "deleted")
+        deleted.is_deleted = True
+        deleted.deleted_at = timezone.now()
+        deleted.save(update_fields=["is_deleted", "deleted_at", "updated_at"])
+
+        messages = list_space_messages(self.user, space)
+
+        self.assertEqual([message["id"] for message in messages], [first.id, second.id])
+        self.assertEqual(messages[0]["body"], "first")
+        self.assertEqual(messages[0]["author_id"], self.user.id)
+        self.assertTrue(messages[0]["is_own"])
+        self.assertEqual(messages[1]["body"], "second")
+        self.assertFalse(messages[1]["is_own"])
+
+    def test_unread_counts_ignore_own_messages_and_reset_after_read(self):
+        space = create_social_space(self.user, "Unread Group", SocialSpace.SpaceType.GROUP, members=[self.member])
+        create_space_message(self.user, space, "own")
+        create_space_message(self.member, space, "foreign")
+
+        unread = count_unread_messages_for_user(self.user)
+
+        self.assertEqual(unread["total"], 1)
+        self.assertEqual(unread["by_type"]["group"], 1)
+        self.assertEqual(unread["by_space_id"][space.id], 1)
+
+        mark_space_read(self.user, space)
+        unread = count_unread_messages_for_user(self.user)
+
+        self.assertEqual(unread["total"], 0)
+        self.assertEqual(unread["by_space_id"], {})
+
+    def test_unread_counts_group_by_space_type(self):
+        direct = create_social_space(self.user, "Direct Unread", SocialSpace.SpaceType.DIRECT, members=[self.member])
+        group = create_social_space(self.user, "Group Unread", SocialSpace.SpaceType.GROUP, members=[self.member])
+        conversation = create_social_space(self.user, "Conversation Unread", SocialSpace.SpaceType.CONVERSATION, members=[self.member])
+        create_space_message(self.member, direct, "direct")
+        create_space_message(self.member, group, "group")
+        create_space_message(self.member, conversation, "conversation")
+
+        unread = count_unread_messages_for_user(self.user)
+
+        self.assertEqual(unread["total"], 3)
+        self.assertEqual(unread["by_type"]["direct"], 1)
+        self.assertEqual(unread["by_type"]["group"], 1)
+        self.assertEqual(unread["by_type"]["conversation"], 1)
+
+    def test_unread_counts_ignore_blocked_and_left_memberships(self):
+        blocked = create_social_space(self.user, "Blocked Unread", SocialSpace.SpaceType.GROUP, members=[self.member])
+        left = create_social_space(self.user, "Left Unread", SocialSpace.SpaceType.GROUP, members=[self.member])
+        create_space_message(self.member, blocked, "blocked unread")
+        create_space_message(self.member, left, "left unread")
+        SocialMembership.objects.filter(space=blocked, user=self.user).update(status=SocialMembership.Status.BLOCKED)
+        SocialMembership.objects.filter(space=left, user=self.user).update(status=SocialMembership.Status.LEFT)
+
+        unread = count_unread_messages_for_user(self.user)
+
+        self.assertEqual(unread["total"], 0)
+
+    def test_sidebar_context_contains_unread_counts(self):
+        space = create_social_space(self.user, "Sidebar Unread", SocialSpace.SpaceType.GROUP, members=[self.member])
+        create_space_message(self.member, space, "sidebar unread")
+        request = self.factory.get("/")
+        request.user = self.user
+
+        context = social_sidebar(request)
+
+        self.assertEqual(context["social_unread_total"], 1)
+        self.assertEqual(context["social_unread_counts"]["by_type"]["group"], 1)
+        self.assertEqual(context["social_recent_spaces"][0]["unread_count"], 1)
+
+    def test_space_detail_shows_message_empty_state(self):
+        space = create_social_space(self.user, "Empty Messages", SocialSpace.SpaceType.GROUP)
+        self.client.login(username="social_user", password="StrongPass123")
+
+        response = self.client.get(build_space_url(space))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Сообщений пока нет")
+        self.assertContains(response, "social-message-form")
+
+    def test_space_detail_shows_created_messages(self):
+        space = create_social_space(self.user, "Visible Messages", SocialSpace.SpaceType.GROUP, members=[self.member])
+        create_space_message(self.member, space, "Hello\nCaseUP")
+        self.client.login(username="social_user", password="StrongPass123")
+
+        response = self.client.get(build_space_url(space))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Hello<br>CaseUP", html=False)
+        self.assertContains(response, "social-message")
+        self.assertNotContains(response, "author_display_name")
+        self.assertNotContains(response, "datetime.datetime")
+        self.assertNotContains(response, "messages-stack")
+
+    def test_send_message_requires_membership(self):
+        space = create_social_space(self.user, "Send Private", SocialSpace.SpaceType.GROUP)
+        self.client.login(username="social_other", password="StrongPass123")
+
+        response = self.client.post(reverse("social:space_message_create", args=[space.id, space.slug]), {"body": "nope"})
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(SocialMessage.objects.filter(space=space).exists())
+
+    def test_send_message_blocked_member_gets_404(self):
+        space = create_social_space(self.user, "Blocked Send", SocialSpace.SpaceType.GROUP, members=[self.member])
+        SocialMembership.objects.filter(space=space, user=self.member).update(status=SocialMembership.Status.BLOCKED)
+        self.client.login(username="social_member", password="StrongPass123")
+
+        response = self.client.post(reverse("social:space_message_create", args=[space.id, space.slug]), {"body": "blocked"})
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(SocialMessage.objects.filter(space=space).exists())
+
+    def test_send_message_get_returns_method_not_allowed(self):
+        space = create_social_space(self.user, "Post Only", SocialSpace.SpaceType.GROUP)
+        self.client.login(username="social_user", password="StrongPass123")
+
+        response = self.client.get(reverse("social:space_message_create", args=[space.id, space.slug]))
+
+        self.assertEqual(response.status_code, 405)
+
+    def test_send_message_post_redirects_to_detail(self):
+        space = create_social_space(self.user, "Send Group", SocialSpace.SpaceType.GROUP)
+        self.client.login(username="social_user", password="StrongPass123")
+
+        response = self.client.post(
+            reverse("social:space_message_create", args=[space.id, space.slug]),
+            {"body": "  Sent via view  "},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], build_space_url(space))
+        self.assertTrue(SocialMessage.objects.filter(space=space, author=self.user, body="Sent via view").exists())
+
+    def test_send_message_invalid_form_renders_detail_with_errors(self):
+        space = create_social_space(self.user, "Invalid Send", SocialSpace.SpaceType.GROUP)
+        self.client.login(username="social_user", password="StrongPass123")
+
+        response = self.client.post(reverse("social:space_message_create", args=[space.id, space.slug]), {"body": "   "})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Message cannot be empty.")
+        self.assertFalse(SocialMessage.objects.filter(space=space).exists())
+
+    def test_send_message_over_limit_is_invalid(self):
+        space = create_social_space(self.user, "Over Limit Send", SocialSpace.SpaceType.GROUP)
+        self.client.login(username="social_user", password="StrongPass123")
+
+        response = self.client.post(reverse("social:space_message_create", args=[space.id, space.slug]), {"body": "x" * 4001})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Message must be 4000 characters or fewer.")
+        self.assertFalse(SocialMessage.objects.filter(space=space).exists())

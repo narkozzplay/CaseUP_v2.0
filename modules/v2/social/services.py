@@ -2,18 +2,20 @@ from __future__ import annotations
 
 from django.db import IntegrityError
 from django.db import transaction
-from django.db.models import Count, Exists, OuterRef, Q
+from django.db.models import Count, Exists, F, OuterRef, Q
 from django.http import Http404
 from django.templatetags.static import static
 from django.urls import reverse
+from django.utils import timezone
 
 from modules.v2.profiles.models import UserProfile
 from modules.v2.profiles.presentation import get_profile_avatar_url, get_profile_display_name
 from modules.v2.profiles.services.presence import is_profile_online
 
-from .models import SocialMembership, SocialSpace, generate_unique_social_space_slug
+from .models import SocialMembership, SocialMessage, SocialSpace, generate_unique_social_space_slug
 
 
+MESSAGE_PAGE_SIZE = 50
 VISIBLE_MEMBERSHIP_STATUSES = (SocialMembership.Status.ACTIVE, SocialMembership.Status.MUTED)
 
 SPACE_TYPE_TO_ROUTE = {
@@ -58,6 +60,10 @@ def _space_url(space_type: str) -> str:
 
 def build_space_url(space: SocialSpace) -> str:
     return reverse("social:space_detail", args=[space.id, space.slug])
+
+
+def build_message_send_url(space: SocialSpace) -> str:
+    return reverse("social:space_message_create", args=[space.id, space.slug])
 
 
 def _space_avatar_url(space: SocialSpace, preview_members: list[dict[str, object]]) -> str:
@@ -153,6 +159,7 @@ def _build_space_card(space: SocialSpace, membership: SocialMembership | None) -
         "avatar_url": _space_avatar_url(space, preview_members),
         "last_activity_at": space.last_activity_at,
         "url": build_space_url(space),
+        "unread_count": 0,
     }
 
 
@@ -176,7 +183,15 @@ def build_sidebar_context(user) -> dict[str, object]:
         SocialSpace.SpaceType.CONVERSATION.value: 0,
     }
     if not getattr(user, "is_authenticated", False):
-        return {"social_counts": counts, "social_recent_spaces": []}
+        return {
+            "social_counts": counts,
+            "social_recent_spaces": [],
+            "social_unread_total": 0,
+            "social_unread_counts": {
+                "by_type": dict(counts),
+                "by_space_id": {},
+            },
+        }
 
     count_rows = (
         SocialMembership.objects.filter(
@@ -193,10 +208,16 @@ def build_sidebar_context(user) -> dict[str, object]:
     recent_spaces_qs = list_user_spaces(user)[:5]
     recent_spaces = list(recent_spaces_qs)
     memberships_by_space = _membership_map_for_user(user, recent_spaces)
+    unread_counts = count_unread_messages_for_user(user)
+    unread_by_space_id = unread_counts["by_space_id"]
     recent_cards = [_build_space_card(space, memberships_by_space.get(space.id)) for space in recent_spaces]
+    for card in recent_cards:
+        card["unread_count"] = unread_by_space_id.get(card["id"], 0)
     return {
         "social_counts": counts,
         "social_recent_spaces": recent_cards,
+        "social_unread_total": unread_counts["total"],
+        "social_unread_counts": unread_counts,
     }
 
 
@@ -234,9 +255,11 @@ def build_space_detail_context(user, space: SocialSpace) -> dict[str, object]:
     member_count = getattr(space, "member_count", None)
     if member_count is None:
         member_count = len(member_rows)
+    unread_counts = count_unread_messages_for_user(user)
     return {
         "space": space,
         "space_url": build_space_url(space),
+        "message_send_url": build_message_send_url(space),
         "space_active_menu_key": SPACE_TYPE_TO_ACTIVE_MENU.get(space.space_type, "social_chats"),
         "space_type_label": space.get_space_type_display(),
         "privacy_label": space.get_privacy_display(),
@@ -244,8 +267,134 @@ def build_space_detail_context(user, space: SocialSpace) -> dict[str, object]:
         "membership_role_label": membership.get_role_display(),
         "member_count": member_count,
         "members": member_rows,
+        "social_messages": list_space_messages(user, space),
+        "unread_count": unread_counts["by_space_id"].get(space.id, 0),
         "avatar_url": _space_avatar_url(space, member_rows[:1]),
     }
+
+
+def _require_visible_membership(user, space: SocialSpace) -> SocialMembership:
+    if not getattr(user, "is_authenticated", False):
+        raise PermissionError("Social space access denied.")
+    try:
+        return SocialMembership.objects.get(
+            user=user,
+            space=space,
+            status__in=VISIBLE_MEMBERSHIP_STATUSES,
+        )
+    except SocialMembership.DoesNotExist as exc:
+        raise PermissionError("Social space access denied.") from exc
+
+
+def _build_message_row(user, message: SocialMessage) -> dict[str, object]:
+    profile = _get_user_profile(message.author)
+    return {
+        "id": message.id,
+        "body": message.body,
+        "created_at": message.created_at,
+        "author_id": message.author_id,
+        "author_display_name": get_profile_display_name(profile, fallback_username=message.author.username),
+        "author_avatar_url": get_profile_avatar_url(profile),
+        "author_is_online": is_profile_online(profile),
+        "is_own": message.author_id == user.pk,
+        "message_type": message.message_type,
+    }
+
+
+def list_space_messages(user, space: SocialSpace, *, limit: int = MESSAGE_PAGE_SIZE) -> list[dict[str, object]]:
+    _require_visible_membership(user, space)
+    safe_limit = max(0, int(limit or 0))
+    if safe_limit == 0:
+        return []
+
+    messages = list(
+        SocialMessage.objects.filter(space=space, is_deleted=False)
+        .select_related("author", "author__profile_v2")
+        .order_by("-created_at", "-id")[:safe_limit]
+    )
+    return [_build_message_row(user, message) for message in reversed(messages)]
+
+
+def create_space_message(user, space: SocialSpace, body: str) -> SocialMessage:
+    membership = _require_visible_membership(user, space)
+    clean_body = str(body or "").strip()
+    if not clean_body:
+        raise ValueError("Message body is required.")
+    if len(clean_body) > 4000:
+        raise ValueError("Message body must be 4000 characters or fewer.")
+
+    with transaction.atomic():
+        message = SocialMessage.objects.create(
+            space=space,
+            author=user,
+            body=clean_body,
+            message_type=SocialMessage.MessageType.TEXT,
+        )
+        timestamp = message.created_at or timezone.now()
+        SocialSpace.objects.filter(pk=space.pk).update(last_activity_at=timestamp)
+        SocialMembership.objects.filter(pk=membership.pk).update(last_read_at=timestamp)
+        space.last_activity_at = timestamp
+        membership.last_read_at = timestamp
+    return message
+
+
+def mark_space_read(user, space: SocialSpace):
+    if not getattr(user, "is_authenticated", False):
+        return None
+    now = timezone.now()
+    updated = SocialMembership.objects.filter(
+        user=user,
+        space=space,
+        status__in=VISIBLE_MEMBERSHIP_STATUSES,
+    ).update(last_read_at=now)
+    if updated:
+        return now
+    return None
+
+
+def count_unread_messages_for_user(user) -> dict[str, object]:
+    by_type = {
+        SocialSpace.SpaceType.DIRECT.value: 0,
+        SocialSpace.SpaceType.GROUP.value: 0,
+        SocialSpace.SpaceType.CONVERSATION.value: 0,
+    }
+    result = {
+        "total": 0,
+        "by_type": by_type,
+        "by_space_id": {},
+    }
+    if not getattr(user, "is_authenticated", False):
+        return result
+
+    unread_rows = (
+        SocialMessage.objects.filter(
+            space__memberships__user=user,
+            space__memberships__status__in=VISIBLE_MEMBERSHIP_STATUSES,
+            space__is_active=True,
+            is_deleted=False,
+        )
+        .exclude(author=user)
+        .filter(
+            Q(
+                space__memberships__last_read_at__isnull=False,
+                created_at__gt=F("space__memberships__last_read_at"),
+            )
+            | Q(
+                space__memberships__last_read_at__isnull=True,
+                created_at__gt=F("space__memberships__joined_at"),
+            )
+        )
+        .values("space_id", "space__space_type")
+        .annotate(total=Count("id"))
+    )
+    for row in unread_rows:
+        count = row["total"]
+        space_type = row["space__space_type"]
+        space_id = row["space_id"]
+        by_type[space_type] = by_type.get(space_type, 0) + count
+        result["by_space_id"][space_id] = count
+        result["total"] += count
+    return result
 
 
 def create_social_space(
