@@ -94,12 +94,75 @@
                     {% endif %}
                 </div>
                 {% if not is_owner_profile %}
-                    <form method="post" action="{% url 'profiles:profile_start_direct_chat' profile_user.id %}" class="profile-direct-chat">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            {% if LANGUAGE_CODE == "ru" %}Написать{% else %}Message{% endif %}
-                        </button>
-                    </form>
+                    <div class="profile-social-actions">
+                        {% if friendship_context.can_send_direct %}
+                            <form method="post" action="{% url 'profiles:profile_start_direct_chat' profile_user.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    {% if LANGUAGE_CODE == "ru" %}Написать{% else %}Message{% endif %}
+                                </button>
+                            </form>
+                        {% endif %}
+
+                        {% if friendship_context.can_send_friend_request %}
+                            <form method="post" action="{% url 'social_friends:send_friend_request' profile_user.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="btn btn-secondary btn-sm">
+                                    {% if LANGUAGE_CODE == "ru" %}Добавить в друзья{% else %}Add friend{% endif %}
+                                </button>
+                            </form>
+                        {% elif friendship_context.pending_sent %}
+                            <form method="post" action="{% url 'social_friends:cancel_friend_request' friendship_context.pending_sent.pk %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="btn btn-secondary btn-sm">
+                                    {% if LANGUAGE_CODE == "ru" %}Отозвать заявку{% else %}Cancel request{% endif %}
+                                </button>
+                            </form>
+                        {% elif friendship_context.pending_received %}
+                            <form method="post" action="{% url 'social_friends:accept_friend_request' friendship_context.pending_received.pk %}" style="display:inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    {% if LANGUAGE_CODE == "ru" %}Принять заявку{% else %}Accept{% endif %}
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'social_friends:decline_friend_request' friendship_context.pending_received.pk %}" style="display:inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="btn btn-secondary btn-sm">
+                                    {% if LANGUAGE_CODE == "ru" %}Отклонить{% else %}Decline{% endif %}
+                                </button>
+                            </form>
+                        {% elif friendship_context.is_friend %}
+                            <form method="post" action="{% url 'social_friends:remove_friend' profile_user.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="btn btn-secondary btn-sm">
+                                    {% if LANGUAGE_CODE == "ru" %}Удалить из друзей{% else %}Remove friend{% endif %}
+                                </button>
+                            </form>
+                        {% endif %}
+
+                        {% if friendship_context.can_unblock %}
+                            <form method="post" action="{% url 'social_friends:unblock_user' profile_user.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="btn btn-secondary btn-sm">
+                                    {% if LANGUAGE_CODE == "ru" %}Разблокировать{% else %}Unblock{% endif %}
+                                </button>
+                            </form>
+                        {% elif friendship_context.can_block %}
+                            <form method="post" action="{% url 'social_friends:block_user' profile_user.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="btn btn-secondary btn-sm">
+                                    {% if LANGUAGE_CODE == "ru" %}Заблокировать{% else %}Block{% endif %}
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
                 {% endif %}
                 {% if is_owner_profile and avatar_upload_form %}
                     <form method="post" action="{% url 'profiles:profile_avatar_upload' %}" enctype="multipart/form-data" class="form-stack avatar-upload" data-avatar-upload data-avatar-upload-empty="{% if LANGUAGE_CODE == 'ru' %}Файл не выбран{% else %}No file selected{% endif %}">

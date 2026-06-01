@@ -1037,6 +1037,17 @@ def get_or_create_direct_space(user_a, user_b) -> SocialSpace:
         if existing:
             return existing
 
+        from modules.v2.social_friends.services import can_send_direct
+        allowed, reason = can_send_direct(user_a, user_b)
+        if not allowed:
+            _DM_REASON_MESSAGES = {
+                "blocked_target": "Вы заблокировали этого пользователя.",
+                "blocked_by_target": "Этот пользователь вас заблокировал.",
+                "privacy_friends_only": "Этот пользователь принимает сообщения только от друзей.",
+                "privacy_nobody": "Этот пользователь не принимает личные сообщения.",
+            }
+            raise PermissionError(_DM_REASON_MESSAGES.get(reason, "Нельзя начать чат с этим пользователем."))
+
         ordered_users = sorted((user_a, user_b), key=lambda user: int(user.pk))
         title = f"Direct: {ordered_users[0].username} / {ordered_users[1].username}"
         slug = _direct_pair_slug(user_a, user_b)

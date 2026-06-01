@@ -1,0 +1,88 @@
+<section class="section section--compact social-friends-requests">
+    <div class="dashboard-hero card">
+        <div class="card-body dashboard-hero__body">
+            <div>
+                <span class="eyebrow">Social</span>
+                <h1 class="page-title page-title--sm">
+                    {% if LANGUAGE_CODE == "ru" %}Заявки в друзья{% else %}Friend Requests{% endif %}
+                </h1>
+            </div>
+            <div class="dashboard-hero__meta">
+                <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Входящие:{% else %}Incoming:{% endif %} {{ incoming_count }}</span>
+                <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Исходящие:{% else %}Outgoing:{% endif %} {{ outgoing_count }}</span>
+                <a href="{% url 'social_friends:friends' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                    {% if LANGUAGE_CODE == "ru" %}← Друзья{% else %}← Friends{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <article class="card dashboard-panel">
+            <div class="card-body">
+                <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Входящие заявки{% else %}Incoming requests{% endif %}</h2>
+                {% if incoming_rows %}
+                    <div class="social-friends-list">
+                        {% for row in incoming_rows %}
+                            <div class="social-friend-row">
+                                <span class="presence-avatar-wrap presence-avatar-wrap--sm">
+                                    <img src="{{ row.avatar_url }}" alt="{{ row.display_name }}" class="profile-avatar">
+                                    <span class="presence-indicator {% if row.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}"></span>
+                                </span>
+                                <span class="social-friend-row__name">{{ row.display_name }}</span>
+                                <div class="social-friend-row__actions">
+                                    <form method="post" action="{% url 'social_friends:accept_friend_request' row.request_id %}" style="display:inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{% url 'social_friends:friend_requests' %}">
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            {% if LANGUAGE_CODE == "ru" %}Принять{% else %}Accept{% endif %}
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'social_friends:decline_friend_request' row.request_id %}" style="display:inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{% url 'social_friends:friend_requests' %}">
+                                        <button type="submit" class="btn btn-secondary btn-sm">
+                                            {% if LANGUAGE_CODE == "ru" %}Отклонить{% else %}Decline{% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted empty-state">{% if LANGUAGE_CODE == "ru" %}Входящих заявок нет.{% else %}No incoming requests.{% endif %}</p>
+                {% endif %}
+            </div>
+        </article>
+
+        <article class="card dashboard-panel">
+            <div class="card-body">
+                <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Исходящие заявки{% else %}Outgoing requests{% endif %}</h2>
+                {% if outgoing_rows %}
+                    <div class="social-friends-list">
+                        {% for row in outgoing_rows %}
+                            <div class="social-friend-row">
+                                <span class="presence-avatar-wrap presence-avatar-wrap--sm">
+                                    <img src="{{ row.avatar_url }}" alt="{{ row.display_name }}" class="profile-avatar">
+                                    <span class="presence-indicator {% if row.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}"></span>
+                                </span>
+                                <span class="social-friend-row__name">{{ row.display_name }}</span>
+                                <div class="social-friend-row__actions">
+                                    <form method="post" action="{% url 'social_friends:cancel_friend_request' row.request_id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{% url 'social_friends:friend_requests' %}">
+                                        <button type="submit" class="btn btn-secondary btn-sm">
+                                            {% if LANGUAGE_CODE == "ru" %}Отозвать{% else %}Cancel{% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted empty-state">{% if LANGUAGE_CODE == "ru" %}Исходящих заявок нет.{% else %}No outgoing requests.{% endif %}</p>
+                {% endif %}
+            </div>
+        </article>
+    </div>
+</section>

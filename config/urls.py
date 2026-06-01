@@ -32,6 +32,7 @@ urlpatterns += i18n_patterns(
     path("store/", include("modules.v2.store.urls")),
     path("constructor/", include("modules.v2.web_constructor.urls")),
     path("social/", include("modules.v2.social.urls")),
+    path("social/", include("modules.v2.social_friends.urls")),
     path("", include("frontend.urls")),
     path("", include("modules.v2.profiles.urls")),
     prefix_default_language=False,

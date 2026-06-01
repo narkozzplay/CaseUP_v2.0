@@ -22,6 +22,7 @@ from modules.v2.profiles.services.faceit import sync_faceit_if_needed, sync_face
 from modules.v2.profiles.services.presence import is_profile_online
 from modules.v2.profiles.services.steam_profile import sync_profile_steam_meta_if_needed
 from modules.v2.social.services import build_space_url, get_or_create_direct_space
+from modules.v2.social_friends.services import get_friendship_context
 from modules.v2.store.services import save_user_theme_preferences
 from modules.v2.subscriptions.services import assign_user_subscription_plan, get_active_subscription, get_subscription_context
 from modules.v2.subscriptions.models import SubscriptionPlan
@@ -223,6 +224,12 @@ def _build_profile_context(*, request, target_user):
             current_preferences=profile.theme_preferences or {},
         )
 
+    friendship_ctx = (
+        get_friendship_context(request.user, target_user)
+        if not is_owner and getattr(request.user, "is_authenticated", False)
+        else {}
+    )
+
     return {
         "profile": profile,
         "profile_user": target_user,
@@ -234,6 +241,7 @@ def _build_profile_context(*, request, target_user):
         "viewer_role_access": viewer_role_access,
         "is_owner_profile": is_owner,
         "can_view_private_profile": can_view_private_profile,
+        "friendship_context": friendship_ctx,
         "active_telegram_connect_url": active_telegram_connect_url,
         "profile_subscription_context": target_site_subscription_context,
         "profile_active_subscription": active_site_subscription,
@@ -647,5 +655,9 @@ def profile_start_direct_chat_view(request, user_id: int):
     if target_user.pk == request.user.pk:
         return HttpResponseForbidden("Нельзя начать чат с самим собой.")
 
-    space = get_or_create_direct_space(request.user, target_user)
+    try:
+        space = get_or_create_direct_space(request.user, target_user)
+    except PermissionError as exc:
+        messages.error(request, str(exc))
+        return redirect(request.META.get("HTTP_REFERER") or "profiles:users_catalog")
     return redirect(build_space_url(space))

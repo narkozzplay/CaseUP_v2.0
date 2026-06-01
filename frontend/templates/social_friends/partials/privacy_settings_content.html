@@ -1,0 +1,71 @@
+<section class="section section--compact social-friends-privacy">
+    <div class="dashboard-hero card">
+        <div class="card-body dashboard-hero__body">
+            <div>
+                <span class="eyebrow">Social</span>
+                <h1 class="page-title page-title--sm">
+                    {% if LANGUAGE_CODE == "ru" %}Настройки приватности{% else %}Privacy Settings{% endif %}
+                </h1>
+                <p class="text-muted dashboard-hero__text">
+                    {% if LANGUAGE_CODE == "ru" %}Управляйте тем, кто может отправлять вам заявки в друзья, сообщения и видеть ваш статус.{% else %}Control who can send you friend requests, messages and see your status.{% endif %}
+                </p>
+            </div>
+            <div class="dashboard-hero__meta">
+                <a href="{% url 'social_friends:friends' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                    {% if LANGUAGE_CODE == "ru" %}← Друзья{% else %}← Friends{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <article class="card dashboard-panel">
+        <div class="card-body">
+            <form method="post" class="form-stack">
+                {% csrf_token %}
+                <div class="form-field">
+                    <label for="{{ form.who_can_send_friend_request.id_for_label }}">
+                        {% if LANGUAGE_CODE == "ru" %}Кто может отправлять заявки в друзья{% else %}Who can send friend requests{% endif %}
+                    </label>
+                    {{ form.who_can_send_friend_request }}
+                    {% if form.who_can_send_friend_request.errors %}
+                        <div class="form-errors">{{ form.who_can_send_friend_request.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-field">
+                    <label for="{{ form.who_can_send_direct.id_for_label }}">
+                        {% if LANGUAGE_CODE == "ru" %}Кто может писать личные сообщения{% else %}Who can send direct messages{% endif %}
+                    </label>
+                    {{ form.who_can_send_direct }}
+                    {% if form.who_can_send_direct.errors %}
+                        <div class="form-errors">{{ form.who_can_send_direct.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-field">
+                    <label for="{{ form.who_can_see_online.id_for_label }}">
+                        {% if LANGUAGE_CODE == "ru" %}Кто видит онлайн-статус{% else %}Who can see online status{% endif %}
+                    </label>
+                    {{ form.who_can_see_online }}
+                    {% if form.who_can_see_online.errors %}
+                        <div class="form-errors">{{ form.who_can_see_online.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-field">
+                    <label for="{{ form.who_can_see_profile.id_for_label }}">
+                        {% if LANGUAGE_CODE == "ru" %}Кто видит профиль полностью{% else %}Who can see full profile{% endif %}
+                    </label>
+                    {{ form.who_can_see_profile }}
+                    {% if form.who_can_see_profile.errors %}
+                        <div class="form-errors">{{ form.who_can_see_profile.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    {% if LANGUAGE_CODE == "ru" %}Сохранить{% else %}Save{% endif %}
+                </button>
+            </form>
+        </div>
+    </article>
+</section>

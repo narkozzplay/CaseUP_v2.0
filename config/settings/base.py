@@ -67,6 +67,7 @@ PROJECT_APPS = [
     "modules.v2.system.apps.SystemConfig",
     "modules.v2.profiles.apps.ProfilesConfig",
     "modules.v2.social.apps.SocialConfig",
+    "modules.v2.social_friends.apps.SocialFriendsConfig",
     "modules.v2.subscriptions.apps.SubscriptionsConfig",
     "modules.v2.steam_catalog.apps.SteamCatalogConfig",
     "modules.v2.farm.apps.FarmConfig",
