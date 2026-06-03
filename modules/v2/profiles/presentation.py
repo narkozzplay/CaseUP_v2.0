@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.templatetags.static import static
 
-from .models import UserProfile, UserRole
+from .models import UserProfile, UserRole, VerificationLevel
 from .rbac import get_user_role
 
 DEFAULT_NO_IMAGE_STATIC_PATH = "img/placeholders/no_image.svg"
@@ -84,6 +84,42 @@ def get_user_avatar_url(user) -> str:
             return get_default_no_image_url()
 
     return get_profile_avatar_url(profile)
+
+
+_VERIFICATION_BADGE_CONFIG: dict[str, dict[str, str]] = {
+    VerificationLevel.VERIFIED: {
+        "level": VerificationLevel.VERIFIED,
+        "label": "Verified",
+        "label_ru": "Верифицирован",
+        "title_ru": "Верифицированный пользователь",
+        "title_en": "Verified user",
+        "css_class": "vbadge--verified",
+    },
+    VerificationLevel.FARMER: {
+        "level": VerificationLevel.FARMER,
+        "label": "Farmer",
+        "label_ru": "Фермер",
+        "title_ru": "Верифицированный фермер",
+        "title_en": "Verified farmer",
+        "css_class": "vbadge--farmer",
+    },
+    VerificationLevel.LEGEND: {
+        "level": VerificationLevel.LEGEND,
+        "label": "Legend CaseUP",
+        "label_ru": "Легенда CaseUP",
+        "title_ru": "Легенда CaseUP",
+        "title_en": "CaseUP Legend",
+        "css_class": "vbadge--legend",
+    },
+}
+
+
+def get_verification_badge(profile: UserProfile | None) -> dict | None:
+    """Return badge config dict for template, or None if no verification."""
+    if profile is None:
+        return None
+    level = str(getattr(profile, "verification_level", VerificationLevel.NONE) or VerificationLevel.NONE)
+    return _VERIFICATION_BADGE_CONFIG.get(level)
 
 
 def get_user_role_prefix(user) -> str:

@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from modules.v2.profiles.models import UserProfile
-from modules.v2.profiles.presentation import get_profile_avatar_url, get_profile_display_name
+from modules.v2.profiles.presentation import get_profile_avatar_url, get_profile_display_name, get_verification_badge
 from modules.v2.profiles.services.presence import is_profile_online
 
 from .models import SocialMembership, SocialMessage, SocialSpace, generate_unique_social_space_slug
@@ -235,6 +235,7 @@ def _build_member_row(membership: SocialMembership, *, viewer=None) -> dict[str,
         "profile_url": reverse("profiles:profile_detail", args=[membership.user_id]),
         "message_url": reverse("profiles:profile_start_direct_chat", args=[membership.user_id]),
         "is_current_user": bool(getattr(viewer, "pk", None) == membership.user_id),
+        "verification_badge": get_verification_badge(profile),
         "actions": {},
     }
     if viewer is not None:
@@ -837,6 +838,7 @@ def _build_message_row(user, message: SocialMessage) -> dict[str, object]:
         "author_display_name": get_profile_display_name(profile, fallback_username=message.author.username),
         "author_avatar_url": get_profile_avatar_url(profile),
         "author_is_online": is_profile_online(profile),
+        "author_verification_badge": get_verification_badge(profile),
         "is_own": message.author_id == user.pk,
         "message_type": message.message_type,
     }

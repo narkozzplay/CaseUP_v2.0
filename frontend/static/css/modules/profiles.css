@@ -440,3 +440,142 @@
         width: 100%;
     }
 }
+
+/* ============================================================
+   VERIFICATION BADGES
+   ============================================================ */
+
+.vbadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    margin-left: 4px;
+    flex-shrink: 0;
+    position: relative;
+    cursor: default;
+}
+
+.vbadge svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* ---- VERIFIED (blue shield + checkmark) ---- */
+.vbadge--verified svg {
+    filter: drop-shadow(0 1px 3px rgba(37, 99, 235, 0.5));
+}
+
+/* ---- FARMER (gold hexagon + $) ---- */
+.vbadge--farmer svg {
+    filter: drop-shadow(0 1px 3px rgba(217, 119, 6, 0.5));
+}
+
+/* ---- LEGEND (neon crown + animation) ---- */
+.vbadge--legend svg {
+    animation:
+        legend-glow 2.5s ease-in-out infinite,
+        legend-spark 5s ease-in-out infinite;
+}
+
+@keyframes legend-glow {
+    0%, 100% {
+        filter:
+            drop-shadow(0 0 3px #A855F7)
+            drop-shadow(0 0 6px #F97316);
+    }
+    50% {
+        filter:
+            drop-shadow(0 0 6px #FBBF24)
+            drop-shadow(0 0 12px #F97316)
+            drop-shadow(0 0 18px #A855F7);
+    }
+}
+
+@keyframes legend-spark {
+    0%, 88%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    90% {
+        opacity: 0.65;
+        transform: scale(1.12);
+        filter:
+            drop-shadow(0 0 8px #fff)
+            drop-shadow(0 0 14px #A855F7);
+    }
+    92% {
+        opacity: 1;
+        transform: scale(1.04);
+    }
+    94% {
+        opacity: 0.75;
+        transform: scale(1.1);
+        filter:
+            drop-shadow(0 0 10px #FBBF24)
+            drop-shadow(0 0 20px #F97316);
+    }
+    96% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Tooltip on hover */
+.vbadge::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 20, 40, 0.95);
+    color: #e2e8f0;
+    font-size: 11px;
+    line-height: 1.3;
+    white-space: nowrap;
+    padding: 3px 8px;
+    border-radius: 4px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 100;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.vbadge:hover::after {
+    opacity: 1;
+}
+
+/* ---- Verification level picker ---- */
+.verification-level-option {
+    cursor: pointer;
+}
+.verification-level-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.verification-level-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .2rem;
+    padding: .75rem 1.25rem;
+    border: 2px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    background: rgba(255,255,255,.03);
+    min-width: 110px;
+    text-align: center;
+    transition: border-color .15s, background .15s;
+    font-size: .85rem;
+}
+.verification-level-option input:checked + .verification-level-card {
+    border-color: var(--color-accent, #7b61ff);
+    background: rgba(123,97,255,.1);
+}
+.verification-level-card:hover {
+    border-color: rgba(255,255,255,.25);
+}

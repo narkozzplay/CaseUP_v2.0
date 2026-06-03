@@ -62,7 +62,7 @@
                         <span class="presence-indicator {% if item.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if item.is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if item.is_online %}Online{% else %}Offline{% endif %}"></span>
                     </span>
                     <div class="users-list__identity">
-                        <a href="{{ item.profile_url }}" class="users-list__name" data-dashboard-nav="true">{{ item.display_name }}</a>
+                        <a href="{{ item.profile_url }}" class="users-list__name" data-dashboard-nav="true">{{ item.display_name }}{% if item.verification_badge %}{% include "components/verification_badge.html" with badge=item.verification_badge %}{% endif %}</a>
                         <span class="text-muted">{{ item.user.username }}</span>
                     </div>
                     <div class="users-list__meta">
@@ -117,7 +117,7 @@
                             </span>
                         </div>
                         <div class="users-card__content">
-                            <h2 class="users-card__name">{{ item.display_name }}</h2>
+                            <h2 class="users-card__name">{{ item.display_name }}{% if item.verification_badge %}{% include "components/verification_badge.html" with badge=item.verification_badge %}{% endif %}</h2>
                             <div class="text-muted users-card__username">{{ item.user.username }}</div>
                             <div class="users-card__badges">
                                 <span class="status-pill status-pill--sm">ID: {{ item.user_id }}</span>

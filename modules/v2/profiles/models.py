@@ -19,6 +19,13 @@ class UserRole(models.TextChoices):
     SUPER_ADMIN = "super_admin", "Super admin"
 
 
+class VerificationLevel(models.TextChoices):
+    NONE = "none", "—"
+    VERIFIED = "verified", "Verified"
+    FARMER = "farmer", "Farmer"
+    LEGEND = "legend", "Legend CaseUP"
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(
         User,
@@ -120,6 +127,13 @@ class UserProfile(models.Model):
     )
     is_store_author = models.BooleanField(default=False, db_index=True)
 
+    verification_level = models.CharField(
+        max_length=16,
+        choices=VerificationLevel.choices,
+        default=VerificationLevel.NONE,
+        db_index=True,
+    )
+
     # Customization cache — обновляется через profile_customization.services
     selected_avatar_url = models.URLField(
         blank=True,
@@ -215,3 +229,52 @@ class LedgerEntry(models.Model):
 
     def __str__(self) -> str:
         return f"LedgerEntry(user={self.user_id}, delta={self.delta}, reason={self.reason})"
+
+
+class VerificationRequest(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        APPROVED = "approved", "Approved"
+        DENIED = "denied", "Denied"
+
+    class RequestedLevel(models.TextChoices):
+        VERIFIED = "verified", "Verified"
+        FARMER = "farmer", "Farmer"
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="verification_requests",
+    )
+    requested_level = models.CharField(
+        max_length=16,
+        choices=RequestedLevel.choices,
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+    user_message = models.TextField(blank=True, default="")
+    admin_note = models.TextField(blank=True, default="")
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_verification_requests",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Verification request"
+        verbose_name_plural = "Verification requests"
+        indexes = [
+            models.Index(fields=["user", "status"], name="prf_verreq_user_status_idx"),
+            models.Index(fields=["status", "created_at"], name="prf_verreq_status_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"VerificationRequest({self.user_id}, {self.requested_level}, {self.status})"

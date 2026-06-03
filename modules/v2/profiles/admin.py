@@ -1,6 +1,7 @@
 from django.contrib import admin
+from django.utils import timezone
 
-from .models import LedgerEntry, UserProfile
+from .models import LedgerEntry, UserProfile, VerificationRequest
 
 
 @admin.register(UserProfile)
@@ -26,7 +27,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         "faceit_nickname",
         "faceit_player_id",
     )
-    list_filter = ("role", "is_store_author", "faceit_skill_level")
+    list_filter = ("role", "verification_level", "is_store_author", "faceit_skill_level")
     readonly_fields = (
         "balance_coins",
         "steam_id",
@@ -80,3 +81,46 @@ class LedgerEntryAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(VerificationRequest)
+class VerificationRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        "id", "user", "requested_level", "status",
+        "created_at", "reviewed_at", "reviewed_by",
+    )
+    list_filter = ("status", "requested_level")
+    search_fields = ("user__username", "user__email")
+    readonly_fields = (
+        "user", "requested_level", "user_message",
+        "created_at", "reviewed_at", "reviewed_by",
+    )
+    fields = (
+        "user", "requested_level", "status",
+        "user_message", "admin_note",
+        "reviewed_by", "reviewed_at", "created_at",
+    )
+    actions = ["approve_requests", "deny_requests"]
+
+    @admin.action(description="✅ Одобрить выбранные заявки")
+    def approve_requests(self, request, queryset):
+        approved = 0
+        for req in queryset.filter(status=VerificationRequest.Status.PENDING):
+            req.status = VerificationRequest.Status.APPROVED
+            req.reviewed_by = request.user
+            req.reviewed_at = timezone.now()
+            req.save(update_fields=["status", "reviewed_by", "reviewed_at"])
+            UserProfile.objects.filter(user=req.user).update(
+                verification_level=req.requested_level
+            )
+            approved += 1
+        self.message_user(request, f"Одобрено заявок: {approved}.")
+
+    @admin.action(description="❌ Отклонить выбранные заявки")
+    def deny_requests(self, request, queryset):
+        denied = queryset.filter(status=VerificationRequest.Status.PENDING).update(
+            status=VerificationRequest.Status.DENIED,
+            reviewed_by=request.user,
+            reviewed_at=timezone.now(),
+        )
+        self.message_user(request, f"Отклонено заявок: {denied}.")

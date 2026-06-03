@@ -116,6 +116,95 @@
         </article>
         {% endif %}
 
+        {# ===== ВЕРИФИКАЦИЯ (owner only) ===== #}
+        {% if is_owner_profile %}
+        <article class="card profile-card-accent" id="settings-verification">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">
+                        {% if LANGUAGE_CODE == "ru" %}Верификация профиля{% else %}Profile verification{% endif %}
+                    </h2>
+                    {% if profile_verification_badge %}
+                        {% include "components/verification_badge.html" with badge=profile_verification_badge %}
+                    {% endif %}
+                </div>
+
+                {% if profile.verification_level != "none" %}
+                    <p class="text-muted">
+                        {% if LANGUAGE_CODE == "ru" %}
+                            Ваш профиль верифицирован:
+                            <strong>{% if profile.verification_level == "verified" %}Verified{% elif profile.verification_level == "farmer" %}Farmer{% elif profile.verification_level == "legend" %}Легенда CaseUP{% endif %}</strong>
+                        {% else %}
+                            Your profile is verified:
+                            <strong>{{ profile.get_verification_level_display }}</strong>
+                        {% endif %}
+                    </p>
+
+                {% elif verification_pending_request %}
+                    <div class="faceit-error" style="background:rgba(251,191,36,.08); border-color:rgba(251,191,36,.3);">
+                        {% if LANGUAGE_CODE == "ru" %}
+                            ⏳ Заявка на <strong>{% if verification_pending_request.requested_level == "verified" %}Verified{% else %}Farmer{% endif %}</strong> рассматривается.
+                            Отправлена {{ verification_pending_request.created_at|date:"d.m.Y H:i" }}.
+                        {% else %}
+                            ⏳ Your <strong>{% if verification_pending_request.requested_level == "verified" %}Verified{% else %}Farmer{% endif %}</strong> request is pending review.
+                            Submitted {{ verification_pending_request.created_at|date:"d.m.Y H:i" }}.
+                        {% endif %}
+                    </div>
+
+                {% else %}
+                    <p class="text-muted" style="margin-bottom:.75rem;">
+                        {% if LANGUAGE_CODE == "ru" %}
+                            Верификация подтверждает статус вашего профиля на платформе.
+                            Выберите уровень и оставьте краткое сообщение — мы рассмотрим заявку вручную.
+                        {% else %}
+                            Verification confirms your profile status on the platform.
+                            Choose a level and leave a short message — we'll review it manually.
+                        {% endif %}
+                    </p>
+
+                    <form method="post" action="{% url 'profiles:profile_settings' %}" class="form-stack">
+                        {% csrf_token %}
+                        <input type="hidden" name="verification_request_submit" value="1">
+
+                        <div class="form-field">
+                            <label>{% if LANGUAGE_CODE == "ru" %}Уровень верификации{% else %}Verification level{% endif %}</label>
+                            <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:.35rem;">
+                                <label class="verification-level-option">
+                                    <input type="radio" name="requested_level" value="verified" required>
+                                    <span class="verification-level-card">
+                                        {% include "components/verification_badge.html" with badge_level="verified" badge=None %}
+                                        <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" width="22" height="22" style="margin-bottom:.25rem"><path d="M10 1.5 L3 5 V10.5 C3 15.3 6 19 10 20 C14 19 17 15.3 17 10.5 V5 Z" fill="#3B82F6"/><path d="M7 10.5 L9 12.5 L13.5 8" stroke="white" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        <strong>Verified</strong>
+                                        <span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Обычная верификация{% else %}Standard verification{% endif %}</span>
+                                    </span>
+                                </label>
+                                <label class="verification-level-option">
+                                    <input type="radio" name="requested_level" value="farmer">
+                                    <span class="verification-level-card">
+                                        <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" width="22" height="22" style="margin-bottom:.25rem"><defs><linearGradient id="vfgs" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#D97706"/><stop offset="100%" stop-color="#10B981"/></linearGradient></defs><polygon points="10,1.2 17.8,5.6 17.8,14.4 10,18.8 2.2,14.4 2.2,5.6" fill="url(#vfgs)"/><text x="10" y="13.5" text-anchor="middle" fill="white" font-size="8.5" font-weight="bold" font-family="Arial,sans-serif">$</text></svg>
+                                        <strong>Farmer</strong>
+                                        <span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Для фермеров платформы{% else %}For platform farmers{% endif %}</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="verification-msg">{% if LANGUAGE_CODE == "ru" %}Сообщение (необязательно){% else %}Message (optional){% endif %}</label>
+                            <textarea id="verification-msg" name="user_message" maxlength="500" rows="3"
+                                class="form-control"
+                                placeholder="{% if LANGUAGE_CODE == 'ru' %}Расскажите немного о себе, почему хотите верификацию…{% else %}Tell us a bit about yourself, why you want verification…{% endif %}"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            {% if LANGUAGE_CODE == "ru" %}Подать заявку{% else %}Submit request{% endif %}
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </article>
+        {% endif %}
+
         {# ===== КАСТОМИЗАЦИЯ ===== #}
         {% if viewer_can_customize %}
         <article class="card profile-card-accent" id="settings-customization">

@@ -92,7 +92,7 @@
                             </span>
                             <div class="social-message__bubble">
                                 <div class="social-message__meta">
-                                    <strong>{{ message.author_display_name }}</strong>
+                                    <strong>{{ message.author_display_name }}{% if message.author_verification_badge %}{% include "components/verification_badge.html" with badge=message.author_verification_badge %}{% endif %}</strong>
                                     <time datetime="{{ message.created_at|date:'c' }}">{{ message.created_at|date:"d.m.Y H:i" }}</time>
                                 </div>
                                 <div class="social-message__body">{{ message.body|linebreaksbr }}</div>
@@ -140,7 +140,7 @@
                                     <span class="presence-indicator {% if member.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if member.is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if member.is_online %}Online{% else %}Offline{% endif %}"></span>
                                 </span>
                                 <span class="social-detail__member-body">
-                                    <strong>{{ member.display_name }}</strong>
+                                    <strong>{{ member.display_name }}{% if member.verification_badge %}{% include "components/verification_badge.html" with badge=member.verification_badge %}{% endif %}</strong>
                                     <span class="text-muted">{{ member.role_label }}</span>
                                 </span>
                             </button>

@@ -44,8 +44,8 @@ from .forms import (
     UserAvatarUploadForm,
     UserThemePreferencesForm,
 )
-from .models import LedgerEntry, LedgerReason, UserProfile, UserRole
-from .presentation import get_profile_avatar_url, get_profile_display_name
+from .models import LedgerEntry, LedgerReason, UserProfile, UserRole, VerificationLevel, VerificationRequest
+from .presentation import get_profile_avatar_url, get_profile_display_name, get_verification_badge
 from .rbac import get_user_role
 
 User = get_user_model()
@@ -125,6 +125,7 @@ def _build_user_catalog_card(profile: UserProfile) -> dict[str, object]:
         "is_online": is_profile_online(profile),
         "activity_kind": activity_kind,
         "activity_at": activity_at,
+        "verification_badge": get_verification_badge(profile),
     }
 
 
@@ -143,10 +144,17 @@ def _apply_profile_role(*, target_user, profile: UserProfile, role: str) -> bool
     if not normalized_role:
         return False
 
+    _ADMIN_ROLES = {UserRole.ADMIN, UserRole.CHIEF_ADMIN, UserRole.SUPER_ADMIN}
+
     changed = False
     if profile.role != normalized_role:
         profile.role = normalized_role
-        profile.save(update_fields=["role", "updated_at"])
+        update_fields = ["role", "updated_at"]
+        # Auto-assign Legend verification to admin-level roles
+        if normalized_role in _ADMIN_ROLES and profile.verification_level != VerificationLevel.LEGEND:
+            profile.verification_level = VerificationLevel.LEGEND
+            update_fields.append("verification_level")
+        profile.save(update_fields=update_fields)
         changed = True
 
     desired_flags = ROLE_TO_FLAGS.get(normalized_role, ROLE_TO_FLAGS[UserRole.USER])
@@ -204,6 +212,7 @@ def _build_profile_context(*, request, target_user):
 
     profile_display_name = get_profile_display_name(profile, fallback_username=target_user.username)
     profile_avatar_url = get_profile_avatar_url(profile)
+    profile_verification_badge = get_verification_badge(profile)
 
     if viewer_role_access.is_admin_plus and can_view_private_profile:
         admin_identity_form = AdminProfileIdentityForm(
@@ -256,6 +265,7 @@ def _build_profile_context(*, request, target_user):
         "friendship_context": friendship_ctx,
         "effective_bg_static": effective_bg_static,
         "effective_bg_video": effective_bg_video,
+        "profile_verification_badge": profile_verification_badge,
         "active_telegram_connect_url": active_telegram_connect_url,
         "profile_subscription_context": target_site_subscription_context,
         "profile_active_subscription": active_site_subscription,
@@ -282,6 +292,16 @@ def _build_settings_context(*, request, target_user):
 
     profile_display_name = get_profile_display_name(profile, fallback_username=target_user.username)
     profile_avatar_url = get_profile_avatar_url(profile)
+    profile_verification_badge = get_verification_badge(profile)
+
+    # Verification request context (owner only)
+    verification_pending_request = None
+    if is_owner and profile.verification_level == VerificationLevel.NONE:
+        verification_pending_request = (
+            VerificationRequest.objects.filter(user=target_user, status=VerificationRequest.Status.PENDING)
+            .order_by("-created_at")
+            .first()
+        )
 
     # Avatar upload (owner only)
     avatar_upload_form = UserAvatarUploadForm(instance=profile) if is_owner else None
@@ -330,6 +350,7 @@ def _build_settings_context(*, request, target_user):
         "profile_user": target_user,
         "profile_display_name": profile_display_name,
         "profile_avatar_url": profile_avatar_url,
+        "profile_verification_badge": profile_verification_badge,
         "role_access": target_role_access,
         "viewer_role_access": viewer_role_access,
         "is_owner_profile": is_owner,
@@ -339,6 +360,7 @@ def _build_settings_context(*, request, target_user):
         "privacy_form": privacy_form,
         "viewer_can_customize": viewer_can_customize,
         "customization": customization,
+        "verification_pending_request": verification_pending_request,
         "admin_identity_form": admin_identity_form,
         "admin_site_subscription_form": admin_site_subscription_form,
         "admin_farmer_subscription_form": admin_farmer_subscription_form,
@@ -349,6 +371,26 @@ def _build_settings_context(*, request, target_user):
 @login_required
 def profile_settings_view(request):
     """Settings page for own profile. Privacy form handled here; admin forms go to profile_admin_update."""
+    if request.method == "POST" and "verification_request_submit" in request.POST:
+        requested_level = (request.POST.get("requested_level") or "").strip()
+        user_message = (request.POST.get("user_message") or "").strip()[:500]
+        valid_levels = {VerificationRequest.RequestedLevel.VERIFIED, VerificationRequest.RequestedLevel.FARMER}
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        if requested_level not in valid_levels:
+            messages.error(request, "Неверный уровень верификации.")
+        elif profile.verification_level != VerificationLevel.NONE:
+            messages.info(request, "У вас уже есть верификация.")
+        elif VerificationRequest.objects.filter(user=request.user, status=VerificationRequest.Status.PENDING).exists():
+            messages.warning(request, "У вас уже есть активная заявка на рассмотрении.")
+        else:
+            VerificationRequest.objects.create(
+                user=request.user,
+                requested_level=requested_level,
+                user_message=user_message,
+            )
+            messages.success(request, "Заявка на верификацию подана. Мы рассмотрим её в ближайшее время.")
+        return redirect("profiles:profile_settings")
+
     if request.method == "POST" and "privacy_settings_submit" in request.POST:
         privacy_settings_obj = get_or_create_privacy_settings(request.user)
         form = SocialPrivacySettingsForm(request.POST, instance=privacy_settings_obj)
