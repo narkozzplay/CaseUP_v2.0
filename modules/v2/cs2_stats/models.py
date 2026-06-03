@@ -104,6 +104,144 @@ class CS2MapStat(models.Model):
         return f"CS2MapStat({self.user_id}, {self.map_code})"
 
 
+class Cs2MatchSyncConfig(models.Model):
+    """Stores user's Steam Game Auth Code for automatic match import."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="cs2_match_sync_config",
+    )
+    auth_code = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        help_text="Steam Game Authentication Code from CS2 settings (e.g. XXXX-XXXXX-XXXX)",
+    )
+    last_known_match_token = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        help_text="Last synced match sharing code — starting point for next sync",
+    )
+    auto_sync_enabled = models.BooleanField(default=False)
+    last_sync_at = models.DateTimeField(null=True, blank=True)
+    last_sync_error = models.TextField(blank=True, default="")
+    matches_imported = models.PositiveIntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "CS2 match sync config"
+        verbose_name_plural = "CS2 match sync configs"
+
+    def __str__(self) -> str:
+        return f"MatchSyncConfig({self.user_id})"
+
+    @property
+    def has_auth_code(self) -> bool:
+        return bool(self.auth_code and self.auth_code.strip())
+
+
+class Cs2MatchRecord(models.Model):
+    """A single CS2 matchmaking match imported via share-code API."""
+
+    class Outcome(models.TextChoices):
+        WIN = "win", "Win"
+        LOSS = "loss", "Loss"
+        TIE = "tie", "Tie"
+        UNKNOWN = "unknown", "Unknown"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="cs2_matches",
+    )
+    match_id = models.BigIntegerField(db_index=True)
+    share_code = models.CharField(max_length=64, blank=True, default="")
+
+    # Match info
+    map_name = models.CharField(max_length=64, blank=True, default="")
+    played_at = models.DateTimeField(null=True, blank=True)
+    duration_seconds = models.PositiveIntegerField(default=0)
+    outcome = models.CharField(
+        max_length=10, choices=Outcome.choices, default=Outcome.UNKNOWN
+    )
+    score_own = models.SmallIntegerField(default=0)
+    score_opp = models.SmallIntegerField(default=0)
+
+    # Raw API response for future parsing
+    raw_data = models.JSONField(default=dict, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "CS2 match record"
+        verbose_name_plural = "CS2 match records"
+        constraints = [
+            models.UniqueConstraint(fields=["user", "match_id"], name="cs2_match_user_uniq"),
+        ]
+        indexes = [
+            models.Index(fields=["user", "-played_at"], name="cs2_match_user_played_idx"),
+        ]
+        ordering = ["-played_at"]
+
+    def __str__(self) -> str:
+        return f"Match({self.match_id}, {self.user_id})"
+
+    @property
+    def map_display(self) -> str:
+        return CS2_MAPS.get(self.map_name, {}).get("name", self.map_name.replace("de_", "").title())
+
+    @property
+    def outcome_color_class(self) -> str:
+        return {"win": "metric-positive", "loss": "metric-negative", "tie": "metric-neutral"}.get(
+            self.outcome, ""
+        )
+
+
+class Cs2MatchPlayerStat(models.Model):
+    """Per-player statistics for a single CS2 match."""
+
+    match = models.ForeignKey(
+        Cs2MatchRecord,
+        on_delete=models.CASCADE,
+        related_name="player_stats",
+    )
+    steam_id = models.CharField(max_length=24, db_index=True)
+    team = models.SmallIntegerField(default=0)   # 2 = CT start, 3 = T start in CS2
+
+    kills = models.SmallIntegerField(default=0)
+    deaths = models.SmallIntegerField(default=0)
+    assists = models.SmallIntegerField(default=0)
+    headshot_kills = models.SmallIntegerField(default=0)
+    score = models.SmallIntegerField(default=0)
+    mvps = models.SmallIntegerField(default=0)
+    ping = models.SmallIntegerField(default=0)
+    rank_after = models.SmallIntegerField(default=0, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "CS2 match player stat"
+        verbose_name_plural = "CS2 match player stats"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["match", "steam_id"], name="cs2_matchplayer_uniq"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"PlayerStat({self.match_id}, {self.steam_id})"
+
+    @property
+    def kd(self) -> float:
+        return round(self.kills / self.deaths, 2) if self.deaths else float(self.kills)
+
+    @property
+    def hs_percent(self) -> float:
+        return round(self.headshot_kills / self.kills * 100, 1) if self.kills else 0.0
+
+
 class FACEITExtendedStats(models.Model):
     """Extended FACEIT CS2 stats from Open Data API."""
 

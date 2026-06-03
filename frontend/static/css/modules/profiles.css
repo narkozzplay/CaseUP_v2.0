@@ -67,6 +67,155 @@
     height: 18px;
 }
 
+/* ---- Social action buttons ---- */
+.profile-social-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+    width: 100%;
+}
+
+.profile-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .5rem .9rem;
+    border-radius: 11px;
+    font-size: .82rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    line-height: 1;
+    transition: background .15s, border-color .15s, transform .15s, box-shadow .15s;
+}
+.profile-action-btn svg {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 auto;
+}
+.profile-action-btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Message — синий */
+.profile-action-btn--message {
+    background: rgba(96,165,250,.15);
+    border-color: rgba(96,165,250,.32);
+    color: #93c5fd;
+}
+.profile-action-btn--message:hover {
+    background: rgba(96,165,250,.25);
+    border-color: rgba(96,165,250,.52);
+    box-shadow: 0 3px 12px rgba(96,165,250,.18);
+}
+
+/* Add friend — зелёный */
+.profile-action-btn--friend {
+    background: rgba(34,197,94,.12);
+    border-color: rgba(34,197,94,.28);
+    color: #6ee7a0;
+}
+.profile-action-btn--friend:hover {
+    background: rgba(34,197,94,.22);
+    border-color: rgba(34,197,94,.48);
+    box-shadow: 0 3px 12px rgba(34,197,94,.16);
+}
+
+/* Accept — ярко-зелёный */
+.profile-action-btn--accept {
+    background: rgba(34,197,94,.18);
+    border-color: rgba(34,197,94,.38);
+    color: #4ade80;
+    font-weight: 700;
+}
+.profile-action-btn--accept:hover {
+    background: rgba(34,197,94,.28);
+    border-color: rgba(34,197,94,.58);
+}
+
+/* Neutral — cancel, decline */
+.profile-action-btn--neutral {
+    background: rgba(255,255,255,.06);
+    border-color: rgba(255,255,255,.1);
+    color: var(--text-soft);
+}
+.profile-action-btn--neutral:hover {
+    background: rgba(255,255,255,.11);
+    border-color: rgba(255,255,255,.18);
+    color: var(--text);
+}
+
+/* Danger — remove friend */
+.profile-action-btn--danger {
+    background: rgba(239,68,68,.1);
+    border-color: rgba(239,68,68,.22);
+    color: #fca5a5;
+}
+.profile-action-btn--danger:hover {
+    background: rgba(239,68,68,.2);
+    border-color: rgba(239,68,68,.4);
+    box-shadow: 0 3px 12px rgba(239,68,68,.14);
+}
+
+/* Block — тёмно-красный */
+.profile-action-btn--block {
+    background: rgba(220,38,38,.1);
+    border-color: rgba(220,38,38,.24);
+    color: #f87171;
+}
+.profile-action-btn--block:hover {
+    background: rgba(220,38,38,.2);
+    border-color: rgba(220,38,38,.44);
+    box-shadow: 0 3px 12px rgba(220,38,38,.16);
+}
+
+/* ---- Nav buttons (CS2 / Settings / Admin settings) ---- */
+.profile-nav-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+    width: 100%;
+}
+
+.profile-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .45rem .85rem;
+    border-radius: 10px;
+    font-size: .8rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.05);
+    color: var(--text-soft);
+    transition: background .15s, border-color .15s, transform .15s, color .15s;
+    white-space: nowrap;
+}
+.profile-nav-btn svg {
+    width: 13px;
+    height: 13px;
+    flex: 0 0 auto;
+}
+.profile-nav-btn:hover {
+    background: rgba(255,255,255,.1);
+    border-color: rgba(255,255,255,.18);
+    color: var(--text);
+    transform: translateY(-1px);
+}
+
+.profile-nav-btn--admin {
+    border-color: rgba(251,191,36,.22);
+    background: rgba(251,191,36,.06);
+    color: #fcd34d;
+}
+.profile-nav-btn--admin:hover {
+    background: rgba(251,191,36,.14);
+    border-color: rgba(251,191,36,.38);
+    color: #fde68a;
+}
+
 .avatar-upload {
     width: min(100%, 320px);
     padding: 14px;

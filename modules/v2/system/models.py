@@ -737,6 +737,15 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 55,
             },
             {
+                "key": "cs2_match_history",
+                "label_ru": "CS2 История матчей",
+                "label_en": "CS2 Match History",
+                "url_name": "cs2_stats:match_history",
+                "group": cls.Group.OVERVIEW,
+                "visibility_condition": cls.Visibility.AUTHENTICATED,
+                "sort_order": 56,
+            },
+            {
                 "key": "verification_requests",
                 "label_ru": "Заявки на верификацию",
                 "label_en": "Verification Requests",

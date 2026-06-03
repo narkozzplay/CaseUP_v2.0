@@ -1,6 +1,5 @@
-{% extends "layout/dashboard_shell.html" %}
+{% extends "layouts/base_dashboard.html" %}
 {% load static %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/modules/cs2_stats.css' %}">{% endblock %}
-{% block dashboard_page_content %}
+{% block content %}
 {% include "cs2_stats/partials/player_stats_content.html" %}
 {% endblock %}

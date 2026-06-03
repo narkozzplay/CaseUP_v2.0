@@ -22,4 +22,13 @@ app.conf.beat_schedule = {
         "task": "celery_tasks.dispatch_due_steam_trade_unlocks",
         "schedule": float(settings.CELERY_BEAT_STEAM_TRADING_UNLOCK_NOTIFIER_SECONDS),
     },
+    # CS2 stats auto-update — every 30 minutes (configurable via env)
+    "auto-sync-cs2-steam-stats": {
+        "task": "celery_tasks.auto_sync_cs2_steam_stats",
+        "schedule": float(settings.CELERY_BEAT_CS2_STEAM_STATS_SYNC_SECONDS),
+    },
+    "auto-sync-cs2-faceit-stats": {
+        "task": "celery_tasks.auto_sync_cs2_faceit_stats",
+        "schedule": float(settings.CELERY_BEAT_CS2_FACEIT_STATS_SYNC_SECONDS),
+    },
 }

@@ -1,0 +1,5 @@
+{% extends "layouts/base_dashboard.html" %}
+{% block title %}CS2 Match History | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
+{% block content %}
+{% include "cs2_stats/partials/match_history_content.html" %}
+{% endblock %}

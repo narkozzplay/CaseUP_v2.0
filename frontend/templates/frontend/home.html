@@ -9,51 +9,51 @@
     <section class="hero">
         <div class="container hero-grid">
             <div class="hero-copy">
-                <span class="eyebrow">Modular gaming platform</span>
+                <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Игровая SaaS-платформа{% else %}Gaming SaaS platform{% endif %}</span>
                 {% if LANGUAGE_CODE == "ru" %}
-                    <h1>Новая архитектурная база для {{ site_settings.site_name|default:"CaseUP" }}</h1>
+                    <h1>{{ site_settings.site_name|default:"CaseUP" }} — твоя платформа для CS2</h1>
                     <p class="hero-text">
-                        Платформа с разделением на core, legacy и плагины.
-                        Новый frontend shell уже поднят и готов к переносу доменных модулей.
+                        Статистика Steam и FACEIT, фарм скинов, торговля, социальный слой и подписки —
+                        всё в одном месте.
                     </p>
                 {% else %}
-                    <h1>New architectural base for {{ site_settings.site_name|default:"CaseUP" }}</h1>
+                    <h1>{{ site_settings.site_name|default:"CaseUP" }} — your CS2 platform</h1>
                     <p class="hero-text">
-                        Platform with separation into core, legacy and plugins.
-                        The new frontend shell is already up and ready for migration of domain modules.
+                        Steam &amp; FACEIT stats, skin farming, trading, social layer and subscriptions —
+                        all in one place.
                     </p>
                 {% endif %}
 
                 <div class="hero-actions">
-                    <a href="{% url 'frontend:dashboard_preview' %}" class="btn btn-primary">
-                        {% if LANGUAGE_CODE == "ru" %}Открыть dashboard preview{% else %}Open dashboard preview{% endif %}
-                    </a>
-                    <a href="{% url 'frontend:testing_preview' %}" class="btn btn-secondary">
-                        {% if LANGUAGE_CODE == "ru" %}Testing area{% else %}Testing area{% endif %}
-                    </a>
-                    {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}" class="btn btn-secondary">
-                        {% if LANGUAGE_CODE == "ru" %}Смотреть тарифы{% else %}View subscriptions{% endif %}
-                    </a>{% endif %}
+                    {% if request.user.is_authenticated %}
+                        <a href="{% url 'frontend:dashboard_preview' %}" class="btn btn-primary">
+                            {% if LANGUAGE_CODE == "ru" %}Перейти в Dashboard{% else %}Go to Dashboard{% endif %}
+                        </a>
+                    {% else %}
+                        <a href="{% url 'accounts:login' %}" class="btn btn-primary">
+                            {% if LANGUAGE_CODE == "ru" %}Войти через Steam{% else %}Sign in via Steam{% endif %}
+                        </a>
+                    {% endif %}
+                    {% if feature_flags.subscriptions %}
+                        <a href="{% url 'subscriptions:plans' %}" class="btn btn-secondary">
+                            {% if LANGUAGE_CODE == "ru" %}Тарифы{% else %}Subscriptions{% endif %}
+                        </a>
+                    {% endif %}
                 </div>
             </div>
 
             <div class="hero-card card">
                 <div class="card-header">
-                    <span class="badge">Current status</span>
+                    <span class="badge">{% if LANGUAGE_CODE == "ru" %}Активные модули{% else %}Active modules{% endif %}</span>
                 </div>
                 <div class="card-body">
                     <ul class="feature-list">
-                        {% if LANGUAGE_CODE == "ru" %}
-                            <li>Рабочий Django bootstrap</li>
-                            <li>Новая template-архитектура</li>
-                            <li>Разделение public / dashboard / testing</li>
-                            <li>Подготовка к переносу v2-модулей</li>
-                        {% else %}
-                            <li>Working Django bootstrap</li>
-                            <li>New template architecture</li>
-                            <li>Public / dashboard / testing separation</li>
-                            <li>Preparation for v2 modules migration</li>
-                        {% endif %}
+                        <li>{% if LANGUAGE_CODE == "ru" %}CS2 статистика Steam + FACEIT{% else %}CS2 stats — Steam + FACEIT{% endif %}</li>
+                        {% if feature_flags.farm %}<li>{% if LANGUAGE_CODE == "ru" %}Farm — фарм скинов и аккаунты{% else %}Farm — skin farming & accounts{% endif %}</li>{% endif %}
+                        {% if feature_flags.steam_catalog %}<li>{% if LANGUAGE_CODE == "ru" %}Steam Catalog — предметы и цены{% else %}Steam Catalog — items & prices{% endif %}</li>{% endif %}
+                        {% if feature_flags.subscriptions %}<li>{% if LANGUAGE_CODE == "ru" %}Подписки — тарифы и бонусы{% else %}Subscriptions — plans & bonuses{% endif %}</li>{% endif %}
+                        <li>{% if LANGUAGE_CODE == "ru" %}Социальный слой — чаты и группы{% else %}Social layer — chats & groups{% endif %}</li>
+                        <li>{% if LANGUAGE_CODE == "ru" %}Верификация и бейджи профиля{% else %}Profile verification & badges{% endif %}</li>
                     </ul>
                 </div>
             </div>
@@ -63,57 +63,68 @@
     <section class="section">
         <div class="container">
             <div class="section-heading">
-                <span class="eyebrow">Architecture</span>
+                <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Возможности{% else %}Features{% endif %}</span>
                 {% if LANGUAGE_CODE == "ru" %}
-                    <h2>Как теперь устроен проект</h2>
-                    <p class="text-muted">
-                        Новый каркас собирается вокруг модульности, управляемой миграции и
-                        более чистой frontend-оболочки.
-                    </p>
+                    <h2>Что умеет платформа</h2>
+                    <p class="text-muted">Единый дашборд объединяет все инструменты CS2-игрока в одном интерфейсе.</p>
                 {% else %}
-                    <h2>How the project is structured now</h2>
-                    <p class="text-muted">
-                        The new shell is built around modularity, controlled migration and
-                        a cleaner frontend layer.
-                    </p>
+                    <h2>What the platform can do</h2>
+                    <p class="text-muted">A single dashboard unites all CS2 player tools in one interface.</p>
                 {% endif %}
             </div>
 
             <div class="cards-grid">
                 <article class="card">
                     <div class="card-body">
-                        <h3>modules/legacy</h3>
+                        <h3>{% if LANGUAGE_CODE == "ru" %}CS2 Статистика{% else %}CS2 Stats{% endif %}</h3>
                         <p class="text-muted">
                             {% if LANGUAGE_CODE == "ru" %}
-                                Изолированная зона для старого кода, который переносится поэтапно.
+                                K/D, Win rate, карты, FACEIT ELO — всё в одном месте с синхронизацией по кнопке.
                             {% else %}
-                                Isolated zone for legacy code that is migrated step by step.
+                                K/D, win rate, maps, FACEIT ELO — all in one place with one-click sync.
                             {% endif %}
                         </p>
                     </div>
                 </article>
 
+                {% if feature_flags.farm %}
                 <article class="card">
                     <div class="card-body">
-                        <h3>modules/v2</h3>
+                        <h3>Farm</h3>
                         <p class="text-muted">
                             {% if LANGUAGE_CODE == "ru" %}
-                                Новое ядро проекта: чистые домены, новые сервисы и единый центр тяжести.
+                                Управляй фарм-аккаунтами, отслеживай дропы и продавай скины с минимальной комиссией.
                             {% else %}
-                                New core of the project: clean domains, new services and a single center of gravity.
+                                Manage farm accounts, track drops and sell skins with minimal commission.
                             {% endif %}
                         </p>
                     </div>
                 </article>
+                {% endif %}
+
+                {% if feature_flags.steam_catalog %}
+                <article class="card">
+                    <div class="card-body">
+                        <h3>Steam Catalog</h3>
+                        <p class="text-muted">
+                            {% if LANGUAGE_CODE == "ru" %}
+                                Каталог предметов с ценами, историей и алертами на изменение цены.
+                            {% else %}
+                                Item catalog with prices, history and price-change alerts.
+                            {% endif %}
+                        </p>
+                    </div>
+                </article>
+                {% endif %}
 
                 <article class="card">
                     <div class="card-body">
-                        <h3>modules/plugins</h3>
+                        <h3>{% if LANGUAGE_CODE == "ru" %}Социальный слой{% else %}Social layer{% endif %}</h3>
                         <p class="text-muted">
                             {% if LANGUAGE_CODE == "ru" %}
-                                Отключаемые и дополнительные подсистемы, которые не обязаны жить в core.
+                                Чаты, группы, друзья и система верификации профиля.
                             {% else %}
-                                Optional subsystems that do not have to live in the core.
+                                Chats, groups, friends and profile verification system.
                             {% endif %}
                         </p>
                     </div>

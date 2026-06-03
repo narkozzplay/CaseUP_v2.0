@@ -1,0 +1,142 @@
+{% load static %}
+<section class="section section--compact cs2-match-detail">
+
+    {# ===== HERO ===== #}
+    <div class="cs2-match-detail-hero card" style="--map-color:{{ map_color }};--map-color2:{{ map_color2 }};">
+        <div class="cs2-match-detail-hero__bg"></div>
+        <div class="card-body cs2-match-detail-hero__body">
+            <div class="cs2-match-detail-hero__left">
+                <a href="{% url 'cs2_stats:match_history' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                    ← {% if LANGUAGE_CODE == "ru" %}История матчей{% else %}Match History{% endif %}
+                </a>
+                <span class="eyebrow">{{ map_display }}</span>
+                <div class="cs2-match-detail-hero__score">
+                    <span class="cs2-match-detail-hero__score-own cs2-match-outcome--{{ record.outcome }}">{{ record.score_own }}</span>
+                    <span class="cs2-match-detail-hero__score-sep">:</span>
+                    <span class="cs2-match-detail-hero__score-opp">{{ record.score_opp }}</span>
+                </div>
+                <div class="cs2-match-detail-hero__meta">
+                    <span class="status-pill cs2-outcome-pill--{{ record.outcome }}">
+                        {% if record.outcome == "win" %}{% if LANGUAGE_CODE == "ru" %}ПОБЕДА{% else %}WIN{% endif %}
+                        {% elif record.outcome == "loss" %}{% if LANGUAGE_CODE == "ru" %}ПОРАЖЕНИЕ{% else %}LOSS{% endif %}
+                        {% elif record.outcome == "tie" %}{% if LANGUAGE_CODE == "ru" %}НИЧЬЯ{% else %}TIE{% endif %}
+                        {% else %}—{% endif %}
+                    </span>
+                    {% if record.played_at %}
+                        <span class="status-pill">{{ record.played_at|date:"d.m.Y H:i" }}</span>
+                    {% endif %}
+                    {% if record.duration_seconds %}
+                        <span class="status-pill">
+                            {% with mins=record.duration_seconds|divisibleby:60 %}
+                                {{ record.duration_seconds|floatformat:0 }}s
+                            {% endwith %}
+                        </span>
+                    {% endif %}
+                    {% if record.share_code %}
+                        <span class="status-pill status-pill--sm text-muted" style="font-size:.72rem;">{{ record.share_code }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ===== SCOREBOARD ===== #}
+    <div class="cs2-scoreboard">
+
+        {# Team A #}
+        <article class="card cs2-scoreboard__team">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title cs2-scoreboard__team-title cs2-scoreboard__team-title--a">
+                        {% if LANGUAGE_CODE == "ru" %}Команда 1{% else %}Team 1{% endif %}
+                    </h2>
+                    <span class="cs2-match-detail-hero__score-own cs2-match-outcome--{{ record.outcome }}">{{ record.score_own }}</span>
+                </div>
+                <div class="cs2-scoreboard__table-wrap">
+                    <table class="cs2-scoreboard__table">
+                        <thead>
+                            <tr>
+                                <th>{% if LANGUAGE_CODE == "ru" %}Игрок{% else %}Player{% endif %}</th>
+                                <th>K</th><th>D</th><th>A</th>
+                                <th>K/D</th><th>HS%</th>
+                                <th>MVP</th><th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in team_a %}
+                                <tr class="{% if p.steam_id == owner_steam_id %}cs2-scoreboard__row--own{% endif %}">
+                                    <td class="cs2-scoreboard__player">
+                                        <a href="https://steamcommunity.com/profiles/{{ p.steam_id }}" target="_blank" rel="noopener" class="cs2-scoreboard__steam-link">
+                                            {{ p.steam_id }}
+                                        </a>
+                                        {% if p.steam_id == owner_steam_id %}
+                                            <span class="cs2-scoreboard__you-tag">{% if LANGUAGE_CODE == "ru" %}Вы{% else %}You{% endif %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ p.kills }}</td>
+                                    <td>{{ p.deaths }}</td>
+                                    <td>{{ p.assists }}</td>
+                                    <td class="{% if p.kd >= 1 %}metric-positive{% else %}metric-negative{% endif %}">{{ p.kd }}</td>
+                                    <td>{{ p.hs_percent }}%</td>
+                                    <td>{{ p.mvps }}</td>
+                                    <td><strong>{{ p.score }}</strong></td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="8" class="text-muted">—</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </article>
+
+        {# Team B #}
+        <article class="card cs2-scoreboard__team">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title cs2-scoreboard__team-title cs2-scoreboard__team-title--b">
+                        {% if LANGUAGE_CODE == "ru" %}Команда 2{% else %}Team 2{% endif %}
+                    </h2>
+                    <span>{{ record.score_opp }}</span>
+                </div>
+                <div class="cs2-scoreboard__table-wrap">
+                    <table class="cs2-scoreboard__table">
+                        <thead>
+                            <tr>
+                                <th>{% if LANGUAGE_CODE == "ru" %}Игрок{% else %}Player{% endif %}</th>
+                                <th>K</th><th>D</th><th>A</th>
+                                <th>K/D</th><th>HS%</th>
+                                <th>MVP</th><th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in team_b %}
+                                <tr class="{% if p.steam_id == owner_steam_id %}cs2-scoreboard__row--own{% endif %}">
+                                    <td class="cs2-scoreboard__player">
+                                        <a href="https://steamcommunity.com/profiles/{{ p.steam_id }}" target="_blank" rel="noopener" class="cs2-scoreboard__steam-link">
+                                            {{ p.steam_id }}
+                                        </a>
+                                        {% if p.steam_id == owner_steam_id %}
+                                            <span class="cs2-scoreboard__you-tag">{% if LANGUAGE_CODE == "ru" %}Вы{% else %}You{% endif %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ p.kills }}</td>
+                                    <td>{{ p.deaths }}</td>
+                                    <td>{{ p.assists }}</td>
+                                    <td class="{% if p.kd >= 1 %}metric-positive{% else %}metric-negative{% endif %}">{{ p.kd }}</td>
+                                    <td>{{ p.hs_percent }}%</td>
+                                    <td>{{ p.mvps }}</td>
+                                    <td><strong>{{ p.score }}</strong></td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="8" class="text-muted">—</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </article>
+
+    </div>
+
+</section>

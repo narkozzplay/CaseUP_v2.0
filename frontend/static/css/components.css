@@ -127,6 +127,61 @@
     transform: translateY(-1px);
 }
 
+.dashboard-list__row-person {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.dashboard-list__avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    flex: 0 0 auto;
+}
+
+.dashboard-list__avatar-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(111, 124, 255, 0.18);
+    color: rgba(111, 124, 255, 0.9);
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex: 0 0 auto;
+    border: 1px solid rgba(111, 124, 255, 0.22);
+}
+
+.dashboard-list__item-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    object-fit: contain;
+    background: rgba(255, 255, 255, 0.04);
+    flex: 0 0 auto;
+}
+
+.dashboard-list__item-icon-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex: 0 0 auto;
+    border: 1px solid var(--border);
+}
+
 .quick-actions-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -179,6 +234,11 @@
 .presence-avatar-wrap--sm {
     width: 44px;
     height: 44px;
+}
+
+.presence-avatar-wrap--xs {
+    width: 32px;
+    height: 32px;
 }
 
 .presence-indicator {

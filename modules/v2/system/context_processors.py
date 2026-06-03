@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from modules.v2.profiles.presentation import get_verification_badge
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.store.services import (
     is_store_runtime_available,
@@ -36,6 +37,9 @@ def system_settings(request):
         "feature_flags": get_module_state_map(),
         "store_runtime_available": is_store_runtime_available(),
         "role_access": get_user_role(getattr(request, "user", None)),
+        "current_user_verification_badge": get_verification_badge(
+            getattr(getattr(request, "user", None), "profile_v2", None)
+        ),
         "dashboard_menu_groups": build_dashboard_menu(request),
         "active_theme": active_theme,
         "current_project_version": get_current_project_version(),

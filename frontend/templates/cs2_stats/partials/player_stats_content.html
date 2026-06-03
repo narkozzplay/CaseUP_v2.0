@@ -31,36 +31,87 @@
                 </div>
 
                 {% if not is_owner %}
-                    <a href="{% url 'profiles:profile_detail' target_user.id %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
-                        ← {% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}
+                    <a href="{% url 'profiles:profile_detail' target_user.id %}"
+                       class="cs2-history-action-btn cs2-history-action-btn--back"
+                       data-dashboard-nav="true">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <polyline points="12,4 6,10 12,16"/>
+                            <line x1="6" y1="10" x2="18" y2="10"/>
+                        </svg>
+                        <span>{% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}</span>
                     </a>
                 {% endif %}
             </div>
 
             {% if can_sync %}
-            <div class="dashboard-hero__meta cs2-stats-hero__actions">
-                <form method="post" action="{% url 'cs2_stats:own' %}" style="display:inline">
+            <div class="cs2-sync-cards">
+
+                {# ---- Steam sync card ---- #}
+                <form method="post" action="{% url 'cs2_stats:own' %}" class="cs2-sync-card cs2-sync-card--steam {% if not has_steam %}cs2-sync-card--disabled{% endif %}">
                     {% csrf_token %}
-                    <button type="submit" name="action" value="sync_steam"
-                        class="btn btn-secondary btn-sm"
-                        {% if not has_steam %}disabled title="Steam ID не привязан"{% endif %}>
-                        🔄 {% if LANGUAGE_CODE == "ru" %}Обновить Steam{% else %}Sync Steam{% endif %}
+                    <div class="cs2-sync-card__info">
+                        <span class="cs2-sync-card__platform">
+                            <svg class="cs2-sync-card__icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M12 2C6.48 2 2 6.48 2 12c0 4.24 2.65 7.86 6.39 9.29L12 12l-3.5-4.8C9.4 6.45 10.67 6 12 6c3.31 0 6 2.69 6 6s-2.69 6-6 6c-1.3 0-2.51-.41-3.5-1.12L5.71 19.9C7.28 21.21 9.55 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z"/>
+                            </svg>
+                            Steam MM
+                        </span>
+                        <span class="cs2-sync-card__date">
+                            {% if steam_stats and steam_stats.last_synced_at %}
+                                {{ steam_stats.last_synced_at|date:"d.m.Y H:i" }}
+                            {% else %}
+                                {% if LANGUAGE_CODE == "ru" %}не синхр.{% else %}not synced{% endif %}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <button
+                        type="submit"
+                        name="action"
+                        value="sync_steam"
+                        class="cs2-sync-card__btn"
+                        {% if not has_steam %}disabled title="{% if LANGUAGE_CODE == 'ru' %}Steam ID не привязан{% else %}Steam ID not linked{% endif %}"{% endif %}
+                    >
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M4 10a6 6 0 0 1 10.9-3.4"/>
+                            <path d="M16 10a6 6 0 0 1-10.9 3.4"/>
+                            <polyline points="15,6 17,3 19,6"/>
+                            <polyline points="1,14 3,17 5,14"/>
+                        </svg>
+                        {% if LANGUAGE_CODE == "ru" %}Обновить{% else %}Sync{% endif %}
                     </button>
                 </form>
+
+                {# ---- FACEIT sync card ---- #}
                 {% if has_faceit %}
-                <form method="post" action="{% url 'cs2_stats:own' %}" style="display:inline">
+                <form method="post" action="{% url 'cs2_stats:own' %}" class="cs2-sync-card cs2-sync-card--faceit">
                     {% csrf_token %}
-                    <button type="submit" name="action" value="sync_faceit" class="btn btn-secondary btn-sm">
-                        🔄 {% if LANGUAGE_CODE == "ru" %}Обновить FACEIT{% else %}Sync FACEIT{% endif %}
+                    <div class="cs2-sync-card__info">
+                        <span class="cs2-sync-card__platform">
+                            <svg class="cs2-sync-card__icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/>
+                            </svg>
+                            FACEIT
+                        </span>
+                        <span class="cs2-sync-card__date">
+                            {% if faceit_ext and faceit_ext.last_synced_at %}
+                                {{ faceit_ext.last_synced_at|date:"d.m.Y H:i" }}
+                            {% else %}
+                                {% if LANGUAGE_CODE == "ru" %}не синхр.{% else %}not synced{% endif %}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <button type="submit" name="action" value="sync_faceit" class="cs2-sync-card__btn">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M4 10a6 6 0 0 1 10.9-3.4"/>
+                            <path d="M16 10a6 6 0 0 1-10.9 3.4"/>
+                            <polyline points="15,6 17,3 19,6"/>
+                            <polyline points="1,14 3,17 5,14"/>
+                        </svg>
+                        {% if LANGUAGE_CODE == "ru" %}Обновить{% else %}Sync{% endif %}
                     </button>
                 </form>
                 {% endif %}
-                {% if steam_stats and steam_stats.last_synced_at %}
-                <span class="text-muted" style="font-size:.78rem;">
-                    {% if LANGUAGE_CODE == "ru" %}Данные:{% else %}Data:{% endif %}
-                    {{ steam_stats.last_synced_at|date:"d.m.Y H:i" }}
-                </span>
-                {% endif %}
+
             </div>
             {% endif %}
         </div>

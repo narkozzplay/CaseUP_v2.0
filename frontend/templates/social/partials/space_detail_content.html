@@ -36,7 +36,7 @@
                 {% if can_update_space_settings %}
                     <a
                         href="{{ settings_url }}"
-                        class="social-space-settings-button"
+                        class="social-space-settings-button social-space-settings-button--edit"
                         data-dashboard-nav="true"
                         title="{% if LANGUAGE_CODE == 'ru' %}Настройки пространства{% else %}Space settings{% endif %}"
                         aria-label="{% if LANGUAGE_CODE == 'ru' %}Настройки пространства{% else %}Space settings{% endif %}"
@@ -50,7 +50,7 @@
                 {% if can_manage_space %}
                     <a
                         href="{{ members_manage_url }}"
-                        class="social-space-settings-button"
+                        class="social-space-settings-button social-space-settings-button--gear"
                         data-dashboard-nav="true"
                         title="{% if LANGUAGE_CODE == 'ru' %}Управление участниками{% else %}Manage members{% endif %}"
                         aria-label="{% if LANGUAGE_CODE == 'ru' %}Управление участниками{% else %}Manage members{% endif %}"
@@ -83,39 +83,70 @@
                     {% endif %}
                 </div>
 
-                <div class="social-message-list">
+                <div class="social-message-list" id="social-msg-list">
                     {% for message in social_messages %}
                         <div class="social-message {% if message.is_own %}social-message--own{% endif %}">
-                            <span class="presence-avatar-wrap presence-avatar-wrap--sm">
+                            {# Avatar — скрываем для своих сообщений на мобилке, но оставляем в DOM #}
+                            <span class="presence-avatar-wrap presence-avatar-wrap--sm social-message__avatar-wrap {% if message.is_own %}social-message__avatar-wrap--own{% endif %}">
                                 <img src="{{ message.author_avatar_url }}" alt="{{ message.author_display_name }}" class="social-message__avatar">
-                                <span class="presence-indicator {% if message.author_is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if message.author_is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if message.author_is_online %}Online{% else %}Offline{% endif %}"></span>
+                                <span class="presence-indicator {% if message.author_is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" aria-label="{% if message.author_is_online %}Online{% else %}Offline{% endif %}"></span>
                             </span>
                             <div class="social-message__bubble">
                                 <div class="social-message__meta">
-                                    <strong>{{ message.author_display_name }}{% if message.author_verification_badge %}{% include "components/verification_badge.html" with badge=message.author_verification_badge %}{% endif %}</strong>
-                                    <time datetime="{{ message.created_at|date:'c' }}">{{ message.created_at|date:"d.m.Y H:i" }}</time>
+                                    <strong>
+                                        {{ message.author_display_name }}{% if message.author_verification_badge %}{% include "components/verification_badge.html" with badge=message.author_verification_badge %}{% endif %}
+                                    </strong>
+                                    <time datetime="{{ message.created_at|date:'c' }}" title="{{ message.created_at|date:'d.m.Y H:i' }}">
+                                        {{ message.created_at|date:"H:i" }}
+                                    </time>
                                 </div>
                                 <div class="social-message__body">{{ message.body|linebreaksbr }}</div>
                             </div>
                         </div>
                     {% empty %}
-                        <p class="text-muted empty-state">{% if LANGUAGE_CODE == "ru" %}Сообщений пока нет.{% else %}No messages yet.{% endif %}</p>
+                        <div class="social-empty-state">
+                            <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M34 4H6a2 2 0 0 0-2 2v18a2 2 0 0 0 2 2h6l5 8 5-8h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/>
+                            </svg>
+                            <p>{% if LANGUAGE_CODE == "ru" %}Сообщений пока нет. Начни диалог!{% else %}No messages yet. Start the conversation!{% endif %}</p>
+                        </div>
                     {% endfor %}
                 </div>
 
-                <form method="post" action="{{ message_send_url }}" class="social-message-form">
+                <form method="post" action="{{ message_send_url }}" class="social-message-form" id="social-msg-form">
                     {% csrf_token %}
                     {% if message_form.non_field_errors %}
-                        <div class="faceit-error">{{ message_form.non_field_errors }}</div>
+                        <div class="faceit-error" style="margin-bottom:8px;">{{ message_form.non_field_errors }}</div>
                     {% endif %}
-                    {{ message_form.body }}
                     {{ message_form.body.errors }}
-                    <div class="social-message-form__actions">
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            {% if LANGUAGE_CODE == "ru" %}Отправить{% else %}Send{% endif %}
+                    <div class="social-message-form__input-row">
+                        {{ message_form.body }}
+                        <button type="submit" class="social-send-btn" title="{% if LANGUAGE_CODE == 'ru' %}Отправить (Ctrl+Enter){% else %}Send (Ctrl+Enter){% endif %}">
+                            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path d="M2.5 3.5a.5.5 0 0 1 .5-.5h14a.5.5 0 0 1 .354.854l-7 7a.5.5 0 0 1-.708 0l-7-7A.5.5 0 0 1 2.5 3.5ZM3 15.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5Z"/>
+                            </svg>
                         </button>
                     </div>
                 </form>
+                <script>
+                (function(){
+                    // Scroll to bottom on load
+                    var list = document.getElementById('social-msg-list');
+                    if(list) list.scrollTop = list.scrollHeight;
+
+                    // Ctrl+Enter to submit
+                    var form = document.getElementById('social-msg-form');
+                    if(form){
+                        var ta = form.querySelector('textarea');
+                        if(ta) ta.addEventListener('keydown', function(e){
+                            if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+                                e.preventDefault();
+                                form.submit();
+                            }
+                        });
+                    }
+                })();
+                </script>
             </div>
         </article>
 

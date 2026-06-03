@@ -30,8 +30,8 @@
                             <span class="presence-indicator {% if current_user_is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if current_user_is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if current_user_is_online %}Online{% else %}Offline{% endif %}"></span>
                         </span>
                         <div>
-                            <p class="dashboard-user-card__name">{{ request.user.profile_v2.steam_personaname|default:request.user.username }}</p>
-                            <p class="dashboard-user-card__meta">{{ request.user.profile_v2.role|default:"user" }}</p>
+                            <p class="dashboard-user-card__name">{{ request.user.profile_v2.steam_personaname|default:request.user.username }}{% if current_user_verification_badge %}{% include "components/verification_badge.html" with badge=current_user_verification_badge %}{% endif %}</p>
+                            <p class="dashboard-user-card__meta">{{ request.user.profile_v2.get_role_display|default:request.user.profile_v2.role|default:"user" }}</p>
                         </div>
                     </a>
 

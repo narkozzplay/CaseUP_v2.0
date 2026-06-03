@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import logging
+import time
 
 from celery import shared_task
+from django.contrib.auth import get_user_model
 from django.db import OperationalError, ProgrammingError
+from django.db.models import Q
+from django.utils import timezone
 
 from modules.v2.steam_catalog.services import dispatch_pending_price_drop_alerts
 from modules.v2.steam_trading.services import dispatch_due_unlock_notifications
@@ -12,6 +16,15 @@ from .services import run_due_rules, run_price_auto_update_rule
 
 
 logger = logging.getLogger(__name__)
+
+User = get_user_model()
+
+# Max users to process per single task run (rate-limit safety)
+_CS2_BATCH_SIZE = 50
+# Only sync users whose stats are older than this many minutes
+_CS2_STALE_AFTER_MINUTES = 25
+# Pause between API calls to avoid hitting Steam / FACEIT rate limits
+_CS2_REQUEST_DELAY_SECONDS = 0.4
 
 
 @shared_task(name="celery_tasks.run_price_auto_update_rule")
@@ -65,6 +78,129 @@ def dispatch_pending_price_drop_alerts_task(limit: int = 20) -> dict:
         "sent_count": sent_count,
         "limit": limit,
     }
+
+
+@shared_task(name="celery_tasks.auto_sync_cs2_steam_stats", max_retries=0)
+def auto_sync_cs2_steam_stats_task() -> dict:
+    """Auto-update CS2 Steam stats for all users with linked Steam ID.
+
+    Skips users synced within the last _CS2_STALE_AFTER_MINUTES minutes.
+    Processes at most _CS2_BATCH_SIZE users per run (ordered by oldest sync first).
+    """
+    from datetime import timedelta
+
+    from modules.v2.cs2_stats.services import sync_cs2_steam_stats
+    from modules.v2.profiles.models import UserProfile
+
+    try:
+        stale_threshold = timezone.now() - timedelta(minutes=_CS2_STALE_AFTER_MINUTES)
+
+        # Users with non-empty steam_id
+        user_ids_with_steam = (
+            UserProfile.objects
+            .filter(steam_id__isnull=False)
+            .exclude(steam_id="")
+            .values_list("user_id", flat=True)
+        )
+
+        # Among them — those with no stats OR stale stats
+        users_qs = (
+            User.objects
+            .filter(id__in=user_ids_with_steam)
+            .filter(
+                Q(cs2_player_stats__isnull=True)
+                | Q(cs2_player_stats__last_synced_at__isnull=True)
+                | Q(cs2_player_stats__last_synced_at__lt=stale_threshold)
+            )
+            .distinct()
+            .order_by("cs2_player_stats__last_synced_at")  # oldest first
+        )[:_CS2_BATCH_SIZE]
+
+    except (OperationalError, ProgrammingError) as exc:
+        logger.warning("auto_sync_cs2_steam_stats: DB not ready — %s", exc)
+        return {"synced": 0, "skipped": 0, "errors": 0, "skipped_reason": "db_not_ready"}
+
+    synced = skipped = errors = 0
+
+    for user in users_qs:
+        try:
+            result = sync_cs2_steam_stats(user)
+            if result.ok:
+                synced += 1
+                logger.debug("auto_sync_cs2_steam_stats: synced user=%s", user.id)
+            else:
+                skipped += 1
+        except Exception as exc:
+            errors += 1
+            logger.error("auto_sync_cs2_steam_stats: user=%s error=%s", user.id, exc)
+
+        time.sleep(_CS2_REQUEST_DELAY_SECONDS)
+
+    logger.info(
+        "auto_sync_cs2_steam_stats done: synced=%d skipped=%d errors=%d",
+        synced, skipped, errors,
+    )
+    return {"synced": synced, "skipped": skipped, "errors": errors}
+
+
+@shared_task(name="celery_tasks.auto_sync_cs2_faceit_stats", max_retries=0)
+def auto_sync_cs2_faceit_stats_task() -> dict:
+    """Auto-update FACEIT CS2 stats for all users with linked FACEIT account.
+
+    Same batching and stale-threshold logic as the Steam task.
+    """
+    from datetime import timedelta
+
+    from modules.v2.cs2_stats.services import sync_faceit_extended_stats
+    from modules.v2.profiles.models import UserProfile
+
+    try:
+        stale_threshold = timezone.now() - timedelta(minutes=_CS2_STALE_AFTER_MINUTES)
+
+        user_ids_with_faceit = (
+            UserProfile.objects
+            .filter(faceit_player_id__isnull=False)
+            .exclude(faceit_player_id="")
+            .values_list("user_id", flat=True)
+        )
+
+        users_qs = (
+            User.objects
+            .filter(id__in=user_ids_with_faceit)
+            .filter(
+                Q(faceit_extended_stats__isnull=True)
+                | Q(faceit_extended_stats__last_synced_at__isnull=True)
+                | Q(faceit_extended_stats__last_synced_at__lt=stale_threshold)
+            )
+            .distinct()
+            .order_by("faceit_extended_stats__last_synced_at")  # oldest first
+        )[:_CS2_BATCH_SIZE]
+
+    except (OperationalError, ProgrammingError) as exc:
+        logger.warning("auto_sync_cs2_faceit_stats: DB not ready — %s", exc)
+        return {"synced": 0, "skipped": 0, "errors": 0, "skipped_reason": "db_not_ready"}
+
+    synced = skipped = errors = 0
+
+    for user in users_qs:
+        try:
+            result = sync_faceit_extended_stats(user)
+            if result.ok:
+                synced += 1
+                logger.debug("auto_sync_cs2_faceit_stats: synced user=%s", user.id)
+            else:
+                skipped += 1
+        except Exception as exc:
+            errors += 1
+            logger.error("auto_sync_cs2_faceit_stats: user=%s error=%s", user.id, exc)
+
+        time.sleep(_CS2_REQUEST_DELAY_SECONDS)
+
+    logger.info(
+        "auto_sync_cs2_faceit_stats done: synced=%d skipped=%d errors=%d",
+        synced, skipped, errors,
+    )
+    return {"synced": synced, "skipped": skipped, "errors": errors}
 
 
 @shared_task(name="celery_tasks.dispatch_due_steam_trade_unlocks")

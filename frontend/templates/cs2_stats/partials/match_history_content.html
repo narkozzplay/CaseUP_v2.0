@@ -1,0 +1,295 @@
+{% load static %}
+<section class="section section--compact cs2-match-history">
+
+    {# ===== HERO ===== #}
+    <div class="dashboard-hero card cs2-history-hero">
+        <div class="card-body dashboard-hero__body">
+            <div>
+                <span class="eyebrow">CS2 Match History</span>
+                <h1 class="page-title page-title--sm">
+                    {% if LANGUAGE_CODE == "ru" %}История матчей{% else %}Match History{% endif %}
+                </h1>
+                <div class="cs2-history-hero__meta">
+                    <span class="status-pill status-pill--sm">
+                        {% if LANGUAGE_CODE == "ru" %}Матчей:{% else %}Matches:{% endif %}
+                        <strong>{{ total_matches }}</strong>
+                    </span>
+                    {% if sync_cfg and sync_cfg.matches_imported %}
+                        <span class="status-pill status-pill--sm">
+                            {% if LANGUAGE_CODE == "ru" %}Импортировано:{% else %}Imported:{% endif %}
+                            {{ sync_cfg.matches_imported }}
+                        </span>
+                    {% endif %}
+                    {% if sync_cfg and sync_cfg.last_sync_at %}
+                        <span class="status-pill status-pill--sm text-muted">
+                            {{ sync_cfg.last_sync_at|date:"d.m.Y H:i" }}
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="cs2-history-hero__actions">
+
+                {# Back button #}
+                <a href="{% url 'cs2_stats:own' %}"
+                   class="cs2-history-action-btn cs2-history-action-btn--back"
+                   data-dashboard-nav="true"
+                   title="{% if LANGUAGE_CODE == 'ru' %}CS2 Статистика{% else %}CS2 Stats{% endif %}">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="12,4 6,10 12,16"/>
+                        <line x1="6" y1="10" x2="18" y2="10"/>
+                    </svg>
+                    <span>{% if LANGUAGE_CODE == "ru" %}CS2 Статистика{% else %}CS2 Stats{% endif %}</span>
+                </a>
+
+                {# Sync button — shown only when auth code is set #}
+                {% if sync_cfg and sync_cfg.has_auth_code %}
+                    <form method="post" action="{% url 'cs2_stats:match_history' %}" class="inline-form">
+                        {% csrf_token %}
+                        <button type="submit" name="action" value="sync_matches"
+                                class="cs2-history-action-btn cs2-history-action-btn--sync">
+                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M4 10a6 6 0 0 1 10.9-3.4"/>
+                                <path d="M16 10a6 6 0 0 1-10.9 3.4"/>
+                                <polyline points="15,6 17,3 19,6"/>
+                                <polyline points="1,14 3,17 5,14"/>
+                            </svg>
+                            <span>{% if LANGUAGE_CODE == "ru" %}Синхронизировать{% else %}Sync Matches{% endif %}</span>
+                        </button>
+                    </form>
+                {% else %}
+                    {# Disabled state — auth code not set yet #}
+                    <span class="cs2-history-action-btn cs2-history-action-btn--sync cs2-history-action-btn--locked"
+                          title="{% if LANGUAGE_CODE == 'ru' %}Сначала сохраните Auth Code{% else %}Save Auth Code first{% endif %}">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="5" y="9" width="10" height="8" rx="2"/>
+                            <path d="M8 9V6a4 4 0 0 1 4-4v0a4 4 0 0 1 4 4v3"/>
+                        </svg>
+                        <span>{% if LANGUAGE_CODE == "ru" %}Синхронизировать{% else %}Sync Matches{% endif %}</span>
+                    </span>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+    {# ===== AUTH CODE SETUP ===== #}
+    <article class="card">
+        <div class="card-body">
+            <div class="section-head-inline">
+                <h2 class="section-title">
+                    {% if LANGUAGE_CODE == "ru" %}Настройка синхронизации{% else %}Sync Settings{% endif %}
+                </h2>
+                {% if sync_cfg and sync_cfg.has_auth_code %}
+                    <span class="status-pill status-pill--sm" style="color:#22c55e;border-color:rgba(34,197,94,.3);">
+                        ✓ {% if LANGUAGE_CODE == "ru" %}Код задан{% else %}Code set{% endif %}
+                    </span>
+                {% endif %}
+            </div>
+
+            {% if sync_cfg and sync_cfg.last_sync_error %}
+                <div class="faceit-error" style="margin-bottom:12px;">{{ sync_cfg.last_sync_error }}</div>
+            {% endif %}
+
+            <p class="text-muted" style="margin-bottom:16px;">
+                {% if LANGUAGE_CODE == "ru" %}
+                    Получите <strong>Game Authentication Code</strong> в CS2:
+                    Настройки → Game → <em>Разрешить сторонним сервисам экспортировать данные</em> → скопируйте код.
+                    Укажите также <strong>Last Known Match Token</strong> — share-код последнего известного матча
+                    (например, <code>CSGO-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX</code>), с которого начнётся импорт.
+                {% else %}
+                    Get your <strong>Game Authentication Code</strong> in CS2:
+                    Settings → Game → <em>Enable third-party data export</em> → copy the code.
+                    Also provide a <strong>Last Known Match Token</strong> — the share code of the last known match
+                    (e.g. <code>CSGO-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX</code>) to start import from.
+                {% endif %}
+            </p>
+
+            {# Helper links #}
+            <div class="cs2-auth-links">
+                <p class="cs2-auth-links__title">
+                    {% if LANGUAGE_CODE == "ru" %}Где взять коды:{% else %}Where to find codes:{% endif %}
+                </p>
+                <div class="cs2-auth-links__grid">
+
+                    {# Steam Support — обе строчки сразу на одной странице #}
+                    <a href="https://help.steampowered.com/en/wizard/HelpWithGameIssue/?appid=730&issueid=128"
+                       target="_blank" rel="noopener"
+                       class="cs2-auth-link-card cs2-auth-link-card--primary">
+                        <span class="cs2-auth-link-card__icon">⭐</span>
+                        <div>
+                            <strong>Steam Support — CS2 Auth Codes</strong>
+                            <span class="text-muted">
+                                {% if LANGUAGE_CODE == "ru" %}
+                                    Здесь сразу <em>оба кода</em>: Authentication Code и Most Recently Completed Match Token
+                                {% else %}
+                                    Both codes in one place: Authentication Code + Most Recently Completed Match Token
+                                {% endif %}
+                            </span>
+                        </div>
+                    </a>
+
+                    {# csgostats.gg settings #}
+                    <a href="https://csgostats.gg/settings" target="_blank" rel="noopener" class="cs2-auth-link-card">
+                        <span class="cs2-auth-link-card__icon">🔑</span>
+                        <div>
+                            <strong>csgostats.gg → Settings</strong>
+                            <span class="text-muted">
+                                {% if LANGUAGE_CODE == "ru" %}
+                                    Автоматическое отслеживание матчей + Auth Code
+                                {% else %}
+                                    Automatic Match Tracking + Auth Code
+                                {% endif %}
+                            </span>
+                        </div>
+                    </a>
+
+                    {# csstats.gg #}
+                    <a href="https://csstats.gg/" target="_blank" rel="noopener" class="cs2-auth-link-card">
+                        <span class="cs2-auth-link-card__icon">📊</span>
+                        <div>
+                            <strong>csstats.gg</strong>
+                            <span class="text-muted">
+                                {% if LANGUAGE_CODE == "ru" %}
+                                    История матчей, рейтинги, Share Codes
+                                {% else %}
+                                    Match history, ratings, Share Codes
+                                {% endif %}
+                            </span>
+                        </div>
+                    </a>
+
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'cs2_stats:match_history' %}" class="cs2-auth-form">
+                {% csrf_token %}
+                <div class="cs2-auth-form__fields">
+                    <div class="cs2-auth-form__field">
+                        <label class="cs2-auth-form__label">
+                            {% if LANGUAGE_CODE == "ru" %}Game Authentication Code{% else %}Game Authentication Code{% endif %}
+                        </label>
+                        <input
+                            type="text"
+                            name="auth_code"
+                            class="form-control"
+                            placeholder="XXXX-XXXXX-XXXX"
+                            value="{{ sync_cfg.auth_code|default:'' }}"
+                            autocomplete="off"
+                            spellcheck="false"
+                        >
+                    </div>
+                    <div class="cs2-auth-form__field">
+                        <label class="cs2-auth-form__label">
+                            {% if LANGUAGE_CODE == "ru" %}Last Known Match Token (начало импорта){% else %}Last Known Match Token (import start){% endif %}
+                        </label>
+                        <input
+                            type="text"
+                            name="last_known_token"
+                            class="form-control"
+                            placeholder="CSGO-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
+                            value="{{ sync_cfg.last_known_match_token|default:'' }}"
+                            autocomplete="off"
+                            spellcheck="false"
+                        >
+                    </div>
+                </div>
+                <button type="submit" name="action" value="save_auth_code" class="btn btn-primary btn-sm">
+                    {% if LANGUAGE_CODE == "ru" %}Сохранить{% else %}Save{% endif %}
+                </button>
+            </form>
+        </div>
+    </article>
+
+    {# ===== MATCH LIST ===== #}
+    {% if matches %}
+        <div class="cs2-match-list">
+            {% for row in matches %}
+                {% with m=row.record stat=row.own_stat %}
+                <a href="{% url 'cs2_stats:match_detail' m.id %}" class="cs2-match-row card cs2-match-row--{{ m.outcome }}" data-dashboard-nav="true">
+                    {# Map color strip #}
+                    <span class="cs2-match-row__map-strip" style="background:{{ row.map_color }};"></span>
+
+                    <div class="card-body cs2-match-row__body">
+                        {# Outcome badge #}
+                        <span class="cs2-match-row__outcome cs2-match-row__outcome--{{ m.outcome }}">
+                            {% if m.outcome == "win" %}
+                                {% if LANGUAGE_CODE == "ru" %}ПОБЕДА{% else %}WIN{% endif %}
+                            {% elif m.outcome == "loss" %}
+                                {% if LANGUAGE_CODE == "ru" %}ПОРАЖЕНИЕ{% else %}LOSS{% endif %}
+                            {% elif m.outcome == "tie" %}
+                                {% if LANGUAGE_CODE == "ru" %}НИЧЬЯ{% else %}TIE{% endif %}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </span>
+
+                        {# Score #}
+                        <div class="cs2-match-row__score">
+                            <span class="{{ m.outcome_color_class }}">{{ m.score_own }}</span>
+                            <span class="text-muted">:</span>
+                            <span>{{ m.score_opp }}</span>
+                        </div>
+
+                        {# Map #}
+                        <div class="cs2-match-row__map">
+                            <strong>{{ row.map_display }}</strong>
+                            {% if m.played_at %}
+                                <span class="text-muted">{{ m.played_at|date:"d.m.Y" }}</span>
+                            {% endif %}
+                        </div>
+
+                        {# Own stats #}
+                        {% if stat %}
+                            <div class="cs2-match-row__stats">
+                                <span class="cs2-match-row__stat">
+                                    <span class="cs2-match-row__stat-val">{{ stat.kills }}/{{ stat.deaths }}/{{ stat.assists }}</span>
+                                    <span class="cs2-match-row__stat-lbl">K/D/A</span>
+                                </span>
+                                <span class="cs2-match-row__stat">
+                                    <span class="cs2-match-row__stat-val">{{ stat.kd }}</span>
+                                    <span class="cs2-match-row__stat-lbl">K/D</span>
+                                </span>
+                                <span class="cs2-match-row__stat">
+                                    <span class="cs2-match-row__stat-val">{{ stat.hs_percent }}%</span>
+                                    <span class="cs2-match-row__stat-lbl">HS</span>
+                                </span>
+                                <span class="cs2-match-row__stat">
+                                    <span class="cs2-match-row__stat-val">{{ stat.mvps }}</span>
+                                    <span class="cs2-match-row__stat-lbl">MVP</span>
+                                </span>
+                            </div>
+                        {% else %}
+                            <div class="cs2-match-row__stats">
+                                <span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Статистика загружается{% else %}Stats loading{% endif %}</span>
+                            </div>
+                        {% endif %}
+
+                        {# Duration #}
+                        {% if m.duration_seconds %}
+                            <span class="cs2-match-row__duration text-muted">
+                                {{ m.duration_seconds|floatformat:0 }}s
+                            </span>
+                        {% endif %}
+
+                        <span class="cs2-match-row__arrow">›</span>
+                    </div>
+                </a>
+                {% endwith %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <article class="card">
+            <div class="card-body">
+                <p class="text-muted empty-state">
+                    {% if LANGUAGE_CODE == "ru" %}
+                        Матчей пока нет. Сохраните Game Auth Code и нажмите «Синхронизировать».
+                    {% else %}
+                        No matches yet. Save your Game Auth Code and click Sync Matches.
+                    {% endif %}
+                </p>
+            </div>
+        </article>
+    {% endif %}
+
+</section>

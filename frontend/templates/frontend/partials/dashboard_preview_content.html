@@ -127,17 +127,39 @@
                     {% for profile in latest_users %}
                         {% if role_access.is_moder_plus or request.user.is_staff or request.user.is_superuser %}
                             <a href="{% url 'profiles:profile_detail' profile.user_id %}" class="dashboard-list__row dashboard-list__row--link">
-                                <div>
-                                    <strong>{{ profile.steam_personaname|default:profile.user.username }}</strong>
-                                    <div class="text-muted">{{ profile.get_role_display }}</div>
+                                <div class="dashboard-list__row-person">
+                                    <span class="presence-avatar-wrap presence-avatar-wrap--xs">
+                                        {% if profile.uploaded_avatar %}
+                                            <img src="{{ profile.uploaded_avatar.url }}" alt="{{ profile.steam_personaname|default:profile.user.username }}" class="dashboard-list__avatar">
+                                        {% elif profile.steam_avatar %}
+                                            <img src="{{ profile.steam_avatar }}" alt="{{ profile.steam_personaname|default:profile.user.username }}" class="dashboard-list__avatar">
+                                        {% else %}
+                                            <span class="dashboard-list__avatar-fallback">{{ profile.steam_personaname|default:profile.user.username|slice:":1"|upper }}</span>
+                                        {% endif %}
+                                    </span>
+                                    <div>
+                                        <strong>{{ profile.steam_personaname|default:profile.user.username }}</strong>
+                                        <div class="text-muted">{{ profile.get_role_display }}</div>
+                                    </div>
                                 </div>
                                 <span class="text-muted">{{ profile.created_at|date:"d.m.Y H:i" }}</span>
                             </a>
                         {% else %}
                             <div class="dashboard-list__row">
-                                <div>
-                                    <strong>{{ profile.steam_personaname|default:profile.user.username }}</strong>
-                                    <div class="text-muted">{{ profile.get_role_display }}</div>
+                                <div class="dashboard-list__row-person">
+                                    <span class="presence-avatar-wrap presence-avatar-wrap--xs">
+                                        {% if profile.uploaded_avatar %}
+                                            <img src="{{ profile.uploaded_avatar.url }}" alt="{{ profile.steam_personaname|default:profile.user.username }}" class="dashboard-list__avatar">
+                                        {% elif profile.steam_avatar %}
+                                            <img src="{{ profile.steam_avatar }}" alt="{{ profile.steam_personaname|default:profile.user.username }}" class="dashboard-list__avatar">
+                                        {% else %}
+                                            <span class="dashboard-list__avatar-fallback">{{ profile.steam_personaname|default:profile.user.username|slice:":1"|upper }}</span>
+                                        {% endif %}
+                                    </span>
+                                    <div>
+                                        <strong>{{ profile.steam_personaname|default:profile.user.username }}</strong>
+                                        <div class="text-muted">{{ profile.get_role_display }}</div>
+                                    </div>
                                 </div>
                                 <span class="text-muted">{{ profile.created_at|date:"d.m.Y H:i" }}</span>
                             </div>
@@ -159,9 +181,16 @@
                     <div class="dashboard-list">
                         {% for item in latest_items %}
                             <a href="{% url 'steam_catalog:detail' item.id %}" class="dashboard-list__row dashboard-list__row--link">
-                                <div>
-                                    <strong>{{ item.group_name }}</strong>
-                                    <div class="text-muted">{{ item.get_item_type_display }}</div>
+                                <div class="dashboard-list__row-person">
+                                    {% if item.icon_url %}
+                                        <img src="{{ item.icon_cdn }}" alt="{{ item.group_name }}" class="dashboard-list__item-icon">
+                                    {% else %}
+                                        <span class="dashboard-list__item-icon-fallback">?</span>
+                                    {% endif %}
+                                    <div>
+                                        <strong>{{ item.group_name }}</strong>
+                                        <div class="text-muted">{{ item.get_item_type_display }}</div>
+                                    </div>
                                 </div>
                                 <span class="text-muted">{{ item.updated_at|date:"d.m.Y H:i" }}</span>
                             </a>
