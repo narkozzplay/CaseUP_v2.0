@@ -833,3 +833,100 @@ def profile_start_direct_chat_view(request, user_id: int):
         messages.error(request, str(exc))
         return redirect(request.META.get("HTTP_REFERER") or "profiles:users_catalog")
     return redirect(build_space_url(space))
+
+
+@login_required
+def verification_requests_view(request):
+    """Страница рассмотрения заявок на верификацию. Доступна mod+."""
+    from django.utils import timezone as tz
+
+    role_access = get_user_role(request.user)
+    if not role_access.is_moder_plus:
+        return HttpResponseForbidden("Доступ закрыт. Требуется роль Модератора или выше.")
+
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip()
+        req_id = (request.POST.get("request_id") or "").strip()
+        admin_note = (request.POST.get("admin_note") or "").strip()[:500]
+
+        try:
+            ver_req = VerificationRequest.objects.select_for_update().get(
+                pk=req_id,
+                status=VerificationRequest.Status.PENDING,
+            )
+        except VerificationRequest.DoesNotExist:
+            messages.error(request, "Заявка не найдена или уже обработана.")
+            return redirect("profiles:verification_requests")
+
+        if action == "approve":
+            ver_req.status = VerificationRequest.Status.APPROVED
+            ver_req.admin_note = admin_note
+            ver_req.reviewed_by = request.user
+            ver_req.reviewed_at = tz.now()
+            ver_req.save(update_fields=["status", "admin_note", "reviewed_by", "reviewed_at"])
+            UserProfile.objects.filter(user=ver_req.user).update(
+                verification_level=ver_req.requested_level,
+                updated_at=tz.now(),
+            )
+            messages.success(request, f"Заявка одобрена — {ver_req.user.username} верифицирован как {ver_req.get_requested_level_display()}.")
+        elif action == "deny":
+            ver_req.status = VerificationRequest.Status.DENIED
+            ver_req.admin_note = admin_note
+            ver_req.reviewed_by = request.user
+            ver_req.reviewed_at = tz.now()
+            ver_req.save(update_fields=["status", "admin_note", "reviewed_by", "reviewed_at"])
+            messages.info(request, f"Заявка {ver_req.user.username} отклонена.")
+        else:
+            messages.error(request, "Неизвестное действие.")
+
+        return redirect("profiles:verification_requests")
+
+    # GET — список
+    tab = (request.GET.get("tab") or "pending").strip()
+    if tab not in ("pending", "all"):
+        tab = "pending"
+
+    if tab == "all":
+        qs = (
+            VerificationRequest.objects
+            .select_related("user", "user__profile_v2", "reviewed_by")
+            .order_by("-created_at")[:200]
+        )
+    else:
+        qs = (
+            VerificationRequest.objects
+            .filter(status=VerificationRequest.Status.PENDING)
+            .select_related("user", "user__profile_v2", "reviewed_by")
+            .order_by("created_at")
+        )
+
+    rows = []
+    for req in qs:
+        profile = getattr(req.user, "profile_v2", None)
+        rows.append({
+            "request": req,
+            "user": req.user,
+            "user_id": req.user_id,
+            "display_name": get_profile_display_name(profile, fallback_username=req.user.username),
+            "avatar_url": get_profile_avatar_url(profile),
+            "role_label": profile.get_role_display() if profile else "—",
+            "verification_badge": get_verification_badge(profile),
+            "profile_url": reverse("profiles:profile_detail", args=[req.user_id]),
+            "reviewed_by_name": req.reviewed_by.username if req.reviewed_by else "—",
+        })
+
+    pending_count = VerificationRequest.objects.filter(status=VerificationRequest.Status.PENDING).count()
+
+    return render_dashboard_page(
+        request,
+        full_template="profiles/verification_requests.html",
+        partial_template="profiles/partials/verification_requests_content.html",
+        context={
+            "rows": rows,
+            "tab": tab,
+            "pending_count": pending_count,
+            "viewer_is_admin": role_access.is_admin_plus,
+        },
+        page_title=build_page_title("Заявки на верификацию"),
+        active_menu_key="verification_requests",
+    )

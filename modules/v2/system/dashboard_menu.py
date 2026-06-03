@@ -53,6 +53,7 @@ ACTIVE_VIEW_ALIASES = {
         "profiles:profile_settings",
         "profiles:profile_user_settings",
     },
+    "verification_requests": {"profiles:verification_requests"},
     "customization_catalog": {
         "profile_customization:catalog",
         "profile_customization:admin_add_background",
@@ -139,6 +140,7 @@ def _visibility_map(request, *, feature_flags: dict[str, bool] | None = None) ->
             feature_flags.get("steam_trading", False) and farm_access.has_access
         ),
         DashboardMenuItem.Visibility.TG_USER_ACCESS: tg_allowed,
+        DashboardMenuItem.Visibility.MODER_PLUS: bool(getattr(user, "is_authenticated", False) and role_access.is_moder_plus),
         DashboardMenuItem.Visibility.ADMIN_PLUS: bool(getattr(user, "is_authenticated", False) and role_access.is_admin_plus),
         DashboardMenuItem.Visibility.SUBSCRIPTIONS_ENABLED: bool(feature_flags.get("subscriptions", False)),
         DashboardMenuItem.Visibility.STORE_ENABLED: bool(feature_flags.get("store", False)),

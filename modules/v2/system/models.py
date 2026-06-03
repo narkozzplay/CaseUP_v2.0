@@ -454,6 +454,7 @@ class DashboardMenuItem(models.Model):
         STEAM_CATALOG_ACCESS = "steam_catalog_access", "Steam Catalog access"
         STEAM_INVESTOR_ACCESS = "steam_investor_access", "Steam investor access"
         TG_USER_ACCESS = "tg_user_access", "TG user access"
+        MODER_PLUS = "moder_plus", "Moder+"
         ADMIN_PLUS = "admin_plus", "Admin+"
         SUBSCRIPTIONS_ENABLED = "subscriptions_enabled", "Subscriptions enabled"
         STORE_ENABLED = "store_enabled", "Store enabled"
@@ -725,6 +726,15 @@ class DashboardMenuItem(models.Model):
                 "group": cls.Group.ADMIN,
                 "visibility_condition": cls.Visibility.ADMIN_PLUS,
                 "sort_order": 65,
+            },
+            {
+                "key": "verification_requests",
+                "label_ru": "Заявки на верификацию",
+                "label_en": "Verification Requests",
+                "url_name": "profiles:verification_requests",
+                "group": cls.Group.ADMIN,
+                "visibility_condition": cls.Visibility.MODER_PLUS,
+                "sort_order": 16,
             },
             {
                 "key": "customization_catalog",

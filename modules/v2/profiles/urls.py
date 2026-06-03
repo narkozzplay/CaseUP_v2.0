@@ -14,6 +14,7 @@ from .views import (
     telegram_connect_view,
     telegram_disconnect_view,
     users_catalog_view,
+    verification_requests_view,
 )
 
 app_name = "profiles"
@@ -23,6 +24,7 @@ urlpatterns = [
     path("cabinet/", profile_view, name="cabinet"),
     path("profile/settings/", profile_settings_view, name="profile_settings"),
     path("users/", users_catalog_view, name="users_catalog"),
+    path("verification-requests/", verification_requests_view, name="verification_requests"),
     path("profile/user/<int:user_id>/", profile_detail_view, name="profile_detail"),
     path("profile/user/<int:user_id>/settings/", profile_user_settings_view, name="profile_user_settings"),
     path("profile/user/<int:user_id>/start-chat/", profile_start_direct_chat_view, name="profile_start_direct_chat"),

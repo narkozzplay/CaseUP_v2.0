@@ -1,0 +1,210 @@
+<section class="section section--compact verification-requests-page">
+
+    {# ===== HEADER ===== #}
+    <div class="dashboard-hero card">
+        <div class="card-body dashboard-hero__body">
+            <div>
+                <span class="eyebrow">Admin</span>
+                <h1 class="page-title page-title--sm">
+                    {% if LANGUAGE_CODE == "ru" %}Заявки на верификацию{% else %}Verification Requests{% endif %}
+                    {% if pending_count %}
+                        <span class="status-pill" style="font-size:.6em; vertical-align:middle; margin-left:.5rem; background:rgba(239,68,68,.15); color:#EF4444;">
+                            {{ pending_count }}
+                        </span>
+                    {% endif %}
+                </h1>
+            </div>
+            <div class="dashboard-hero__meta">
+                <a href="?tab=pending" class="btn {% if tab == 'pending' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm" data-dashboard-nav="true">
+                    {% if LANGUAGE_CODE == "ru" %}Ожидают ({{ pending_count }}){% else %}Pending ({{ pending_count }}){% endif %}
+                </a>
+                <a href="?tab=all" class="btn {% if tab == 'all' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm" data-dashboard-nav="true">
+                    {% if LANGUAGE_CODE == "ru" %}Все заявки{% else %}All requests{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {# ===== LIST ===== #}
+    {% if rows %}
+        <div class="verreq-list">
+            {% for row in rows %}
+            <article class="card verreq-card {% if row.request.status == 'approved' %}verreq-card--approved{% elif row.request.status == 'denied' %}verreq-card--denied{% else %}verreq-card--pending{% endif %}">
+                <div class="card-body">
+
+                    {# User info #}
+                    <div class="verreq-card__user">
+                        <span class="presence-avatar-wrap presence-avatar-wrap--sm">
+                            <img src="{{ row.avatar_url }}" alt="{{ row.display_name }}" class="verreq-card__avatar">
+                        </span>
+                        <div class="verreq-card__identity">
+                            <a href="{{ row.profile_url }}" class="verreq-card__name" data-dashboard-nav="true">
+                                {{ row.display_name }}
+                                {% if row.verification_badge %}
+                                    {% include "components/verification_badge.html" with badge=row.verification_badge %}
+                                {% endif %}
+                            </a>
+                            <span class="text-muted">
+                                {{ row.user.username }} · {{ row.role_label }}
+                            </span>
+                        </div>
+                    </div>
+
+                    {# Request details #}
+                    <div class="verreq-card__details">
+                        <div class="verreq-card__level">
+                            {% if row.request.requested_level == "verified" %}
+                                <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M10 1.5 L3 5 V10.5 C3 15.3 6 19 10 20 C14 19 17 15.3 17 10.5 V5 Z" fill="#3B82F6"/><path d="M7 10.5 L9 12.5 L13.5 8" stroke="white" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                <strong>Verified</strong>
+                            {% else %}
+                                <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" width="20" height="20"><defs><linearGradient id="vfgr{{ row.request.pk }}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#D97706"/><stop offset="100%" stop-color="#10B981"/></linearGradient></defs><polygon points="10,1.2 17.8,5.6 17.8,14.4 10,18.8 2.2,14.4 2.2,5.6" fill="url(#vfgr{{ row.request.pk }})"/><text x="10" y="13.5" text-anchor="middle" fill="white" font-size="8.5" font-weight="bold" font-family="Arial,sans-serif">$</text></svg>
+                                <strong>Farmer</strong>
+                            {% endif %}
+                        </div>
+
+                        <div class="verreq-card__meta text-muted">
+                            <span>
+                                {% if LANGUAGE_CODE == "ru" %}Подана:{% else %}Submitted:{% endif %}
+                                {{ row.request.created_at|date:"d.m.Y H:i" }}
+                            </span>
+                            {% if row.request.status != "pending" %}
+                                <span>
+                                    {% if LANGUAGE_CODE == "ru" %}Рассмотрена:{% else %}Reviewed:{% endif %}
+                                    {{ row.request.reviewed_at|date:"d.m.Y H:i" }}
+                                    {% if LANGUAGE_CODE == "ru" %}(@{{ row.reviewed_by_name }}){% else %}(by {{ row.reviewed_by_name }}){% endif %}
+                                </span>
+                                <span class="verreq-card__status verreq-card__status--{{ row.request.status }}">
+                                    {% if row.request.status == "approved" %}
+                                        ✓ {% if LANGUAGE_CODE == "ru" %}Одобрено{% else %}Approved{% endif %}
+                                    {% else %}
+                                        ✗ {% if LANGUAGE_CODE == "ru" %}Отклонено{% else %}Denied{% endif %}
+                                    {% endif %}
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        {% if row.request.user_message %}
+                        <blockquote class="verreq-card__message">
+                            {{ row.request.user_message|linebreaksbr }}
+                        </blockquote>
+                        {% endif %}
+
+                        {% if row.request.admin_note %}
+                        <div class="verreq-card__admin-note text-muted">
+                            <strong>{% if LANGUAGE_CODE == "ru" %}Заметка:{% else %}Note:{% endif %}</strong>
+                            {{ row.request.admin_note }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {# Actions — pending only #}
+                    {% if row.request.status == "pending" %}
+                    <div class="verreq-card__actions">
+                        <form method="post" action="{% url 'profiles:verification_requests' %}" class="verreq-action-form" id="vform-{{ row.request.pk }}">
+                            {% csrf_token %}
+                            <input type="hidden" name="request_id" value="{{ row.request.pk }}">
+                            <div class="form-field" style="margin-bottom:.5rem">
+                                <label for="note-{{ row.request.pk }}" style="font-size:.8rem; color:var(--color-muted,#888);">
+                                    {% if LANGUAGE_CODE == "ru" %}Заметка (необязательно){% else %}Note (optional){% endif %}
+                                </label>
+                                <input type="text" id="note-{{ row.request.pk }}" name="admin_note" maxlength="500"
+                                    class="form-control"
+                                    placeholder="{% if LANGUAGE_CODE == 'ru' %}Причина или комментарий…{% else %}Reason or comment…{% endif %}">
+                            </div>
+                            <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+                                <button type="submit" name="action" value="approve" class="btn btn-primary btn-sm">
+                                    ✓ {% if LANGUAGE_CODE == "ru" %}Одобрить{% else %}Approve{% endif %}
+                                </button>
+                                <button type="submit" name="action" value="deny" class="btn btn-secondary btn-sm">
+                                    ✗ {% if LANGUAGE_CODE == "ru" %}Отклонить{% else %}Deny{% endif %}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    {% endif %}
+
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+    {% else %}
+        <article class="card dashboard-panel">
+            <div class="card-body">
+                <p class="text-muted empty-state">
+                    {% if tab == "pending" %}
+                        {% if LANGUAGE_CODE == "ru" %}Нет ожидающих заявок.{% else %}No pending requests.{% endif %}
+                    {% else %}
+                        {% if LANGUAGE_CODE == "ru" %}Заявок ещё не было.{% else %}No requests yet.{% endif %}
+                    {% endif %}
+                </p>
+            </div>
+        </article>
+    {% endif %}
+
+</section>
+
+<style>
+.verreq-list { display: flex; flex-direction: column; gap: 1rem; }
+
+.verreq-card { border-left: 3px solid transparent; }
+.verreq-card--pending  { border-left-color: #F59E0B; }
+.verreq-card--approved { border-left-color: #10B981; }
+.verreq-card--denied   { border-left-color: #6B7280; }
+
+.verreq-card__user {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: .75rem;
+}
+.verreq-card__avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+.verreq-card__identity { display: flex; flex-direction: column; gap: .1rem; }
+.verreq-card__name { font-weight: 600; text-decoration: none; color: inherit; }
+.verreq-card__name:hover { text-decoration: underline; }
+
+.verreq-card__details { display: flex; flex-direction: column; gap: .4rem; margin-bottom: .75rem; }
+
+.verreq-card__level {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .9rem;
+}
+
+.verreq-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1.5rem;
+    font-size: .8rem;
+}
+
+.verreq-card__status {
+    font-weight: 600;
+    padding: .1rem .5rem;
+    border-radius: 4px;
+    font-size: .78rem;
+}
+.verreq-card__status--approved { background: rgba(16,185,129,.12); color: #10B981; }
+.verreq-card__status--denied   { background: rgba(107,114,128,.12); color: #9CA3AF; }
+
+.verreq-card__message {
+    margin: .25rem 0 0;
+    padding: .5rem .75rem;
+    border-left: 2px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.03);
+    border-radius: 0 6px 6px 0;
+    font-size: .85rem;
+    color: var(--color-muted, #9CA3AF);
+}
+
+.verreq-card__admin-note {
+    font-size: .8rem;
+    padding: .35rem .5rem;
+    background: rgba(255,255,255,.03);
+    border-radius: 4px;
+}
+
+.verreq-card__actions { border-top: 1px solid rgba(255,255,255,.06); padding-top: .75rem; }
+.verreq-action-form .form-control { font-size: .85rem; padding: .3rem .6rem; }
+</style>
