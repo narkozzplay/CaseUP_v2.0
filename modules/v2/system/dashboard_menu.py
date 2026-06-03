@@ -46,7 +46,18 @@ SHELL_DISABLED_URL_NAMES = {
 
 ACTIVE_VIEW_ALIASES = {
     "dashboard_preview": {"frontend:dashboard_preview"},
-    "profile": {"profiles:profile", "profiles:profile_detail", "profiles:profile_admin_update"},
+    "profile": {
+        "profiles:profile",
+        "profiles:profile_detail",
+        "profiles:profile_admin_update",
+        "profiles:profile_settings",
+        "profiles:profile_user_settings",
+    },
+    "customization_catalog": {
+        "profile_customization:catalog",
+        "profile_customization:admin_add_background",
+        "profile_customization:admin_add_avatar",
+    },
     "users_catalog": {"profiles:users_catalog"},
     "game_servers": {"game_servers:list", "game_servers:detail"},
     "notification_center": {"tg_notifier:center"},

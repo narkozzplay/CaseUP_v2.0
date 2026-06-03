@@ -1,0 +1,190 @@
+<section class="section section--compact profile-customization-catalog">
+    <div class="dashboard-hero card">
+        <div class="card-body dashboard-hero__body">
+            <div>
+                <span class="eyebrow">Профиль</span>
+                <h1 class="page-title page-title--sm">
+                    {% if LANGUAGE_CODE == "ru" %}Каталог кастомизации{% else %}Customization Catalog{% endif %}
+                </h1>
+                <p class="text-muted dashboard-hero__text">
+                    {% if LANGUAGE_CODE == "ru" %}
+                        Выберите анимированный фон или аватарку для своего профиля.
+                        {% if not can_customize %}Доступно при активном Level 5 Pro, для admin+ и авторов магазина.{% endif %}
+                    {% else %}
+                        Choose an animated background or avatar for your profile.
+                        {% if not can_customize %}Available with active Level 5 Pro, for admin+ and store authors.{% endif %}
+                    {% endif %}
+                </p>
+            </div>
+            <div class="dashboard-hero__meta">
+                {% if is_admin %}
+                    <a href="{% url 'profile_customization:admin_add_background' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                        + {% if LANGUAGE_CODE == "ru" %}Добавить фон{% else %}Add background{% endif %}
+                    </a>
+                    <a href="{% url 'profile_customization:admin_add_avatar' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                        + {% if LANGUAGE_CODE == "ru" %}Добавить аватарку{% else %}Add avatar{% endif %}
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# ===== BACKGROUNDS ===== #}
+    <div class="section-head-inline" style="margin-bottom:.75rem;">
+        <h2 class="section-title">
+            {% if LANGUAGE_CODE == "ru" %}Анимированные фоны{% else %}Animated backgrounds{% endif %}
+        </h2>
+        {% if selected_bg_id and can_customize %}
+            <form method="post" action="{% url 'profile_customization:clear_background' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary btn-sm">
+                    {% if LANGUAGE_CODE == "ru" %}Сбросить фон{% else %}Clear background{% endif %}
+                </button>
+            </form>
+        {% endif %}
+    </div>
+
+    {% if backgrounds %}
+        <div class="customization-grid customization-grid--backgrounds">
+            {% for bg in backgrounds %}
+                <article class="card customization-card {% if bg.pk == selected_bg_id %}customization-card--selected{% endif %}">
+                    <div class="customization-card__preview customization-card__preview--bg">
+                        <img src="{{ bg.static_url }}" alt="{{ bg.title }}" class="customization-card__img" loading="lazy">
+                        <video
+                            class="customization-card__video"
+                            autoplay muted loop playsinline
+                            poster="{{ bg.static_url }}">
+                            <source src="{{ bg.video_url }}" type="video/webm">
+                        </video>
+                        {% if bg.pk == selected_bg_id %}
+                            <span class="customization-card__badge">
+                                {% if LANGUAGE_CODE == "ru" %}Выбрано{% else %}Selected{% endif %}
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="customization-card__body">
+                        <span class="customization-card__title">{{ bg.title }}</span>
+                        {% if bg.source_item_id %}
+                            <span class="customization-card__meta text-muted">Item #{{ bg.source_item_id }}</span>
+                        {% endif %}
+                        <div class="customization-card__actions">
+                            {% if can_customize and bg.pk != selected_bg_id %}
+                                <form method="post" action="{% url 'profile_customization:select_background' bg.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        {% if LANGUAGE_CODE == "ru" %}Выбрать{% else %}Select{% endif %}
+                                    </button>
+                                </form>
+                            {% endif %}
+                            {% if is_admin %}
+                                <form method="post" action="{% url 'profile_customization:admin_delete_background' bg.pk %}" style="display:inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-secondary btn-sm">
+                                        {% if LANGUAGE_CODE == "ru" %}Убрать{% else %}Remove{% endif %}
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-muted empty-state">
+            {% if LANGUAGE_CODE == "ru" %}Фонов в каталоге пока нет.{% else %}No backgrounds in catalog yet.{% endif %}
+        </p>
+    {% endif %}
+
+    {# ===== AVATARS ===== #}
+    <div class="section-head-inline" style="margin-top:2rem; margin-bottom:.75rem;">
+        <h2 class="section-title">
+            {% if LANGUAGE_CODE == "ru" %}Аватарки{% else %}Avatars{% endif %}
+        </h2>
+        {% if selected_av_id and can_customize %}
+            <form method="post" action="{% url 'profile_customization:clear_avatar' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary btn-sm">
+                    {% if LANGUAGE_CODE == "ru" %}Сбросить аватарку{% else %}Clear avatar{% endif %}
+                </button>
+            </form>
+        {% endif %}
+    </div>
+
+    {% if avatars %}
+        <div class="customization-grid customization-grid--avatars">
+            {% for av in avatars %}
+                <article class="card customization-card customization-card--avatar {% if av.pk == selected_av_id %}customization-card--selected{% endif %}">
+                    <div class="customization-card__preview customization-card__preview--avatar">
+                        <img src="{{ av.avatar_url }}" alt="{{ av.title }}" class="customization-card__avatar-img" loading="lazy">
+                        {% if av.pk == selected_av_id %}
+                            <span class="customization-card__badge">
+                                {% if LANGUAGE_CODE == "ru" %}Выбрано{% else %}Selected{% endif %}
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="customization-card__body">
+                        <span class="customization-card__title">{{ av.title }}</span>
+                        <div class="customization-card__actions">
+                            {% if can_customize and av.pk != selected_av_id %}
+                                <form method="post" action="{% url 'profile_customization:select_avatar' av.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        {% if LANGUAGE_CODE == "ru" %}Выбрать{% else %}Select{% endif %}
+                                    </button>
+                                </form>
+                            {% endif %}
+                            {% if is_admin %}
+                                <form method="post" action="{% url 'profile_customization:admin_delete_avatar' av.pk %}" style="display:inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-secondary btn-sm">
+                                        {% if LANGUAGE_CODE == "ru" %}Убрать{% else %}Remove{% endif %}
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-muted empty-state">
+            {% if LANGUAGE_CODE == "ru" %}Аватарок в каталоге пока нет.{% else %}No avatars in catalog yet.{% endif %}
+        </p>
+    {% endif %}
+</section>
+
+<style>
+.customization-grid {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.customization-grid--backgrounds {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+.customization-grid--avatars {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+.customization-card { overflow: hidden; }
+.customization-card--selected { outline: 2px solid var(--color-accent, #7b61ff); }
+.customization-card__preview { position: relative; overflow: hidden; border-radius: 6px 6px 0 0; }
+.customization-card__preview--bg { aspect-ratio: 16/9; background: #111; }
+.customization-card__preview--avatar { aspect-ratio: 1/1; background: #111; max-width: 160px; margin: 0 auto; }
+.customization-card__img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.customization-card__video {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: cover;
+    opacity: 0; transition: opacity .3s;
+}
+.customization-card:hover .customization-card__video { opacity: 1; }
+.customization-card__avatar-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.customization-card__badge {
+    position: absolute; top: .4rem; right: .4rem;
+    background: var(--color-accent, #7b61ff); color: #fff;
+    padding: .15rem .5rem; border-radius: 4px; font-size: .75rem;
+}
+.customization-card__body { padding: .5rem .75rem; }
+.customization-card__title { font-weight: 600; font-size: .9rem; display: block; margin-bottom: .25rem; }
+.customization-card__meta { font-size: .75rem; display: block; margin-bottom: .35rem; }
+.customization-card__actions { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .4rem; }
+</style>

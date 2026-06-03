@@ -99,6 +99,13 @@ MODULE_REGISTRY: dict[str, ModuleDefinition] = {
         addon_targets=("subscriptions",),
         default_enabled=False,
     ),
+    "profile_customization": ModuleDefinition(
+        key="profile_customization",
+        label="Profile Customization",
+        description="Каталог анимированных фонов и аватарок Steam для кастомизации профиля.",
+        namespaces=("profile_customization",),
+        default_enabled=True,
+    ),
 }
 
 NAMESPACE_TO_MODULE_KEY = {

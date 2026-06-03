@@ -21,8 +21,10 @@ from modules.v2.profiles.services.balance import BalanceError, adjust_balance
 from modules.v2.profiles.services.faceit import sync_faceit_if_needed, sync_faceit_profile
 from modules.v2.profiles.services.presence import is_profile_online
 from modules.v2.profiles.services.steam_profile import sync_profile_steam_meta_if_needed
+from modules.v2.profile_customization.services import can_customize_profile, get_or_create_customization
 from modules.v2.social.services import build_space_url, get_or_create_direct_space
-from modules.v2.social_friends.services import get_friendship_context
+from modules.v2.social_friends.forms import PrivacySettingsForm as SocialPrivacySettingsForm
+from modules.v2.social_friends.services import get_friendship_context, get_or_create_privacy_settings, update_privacy_settings
 from modules.v2.store.services import save_user_theme_preferences
 from modules.v2.subscriptions.services import assign_user_subscription_plan, get_active_subscription, get_subscription_context
 from modules.v2.subscriptions.models import SubscriptionPlan
@@ -230,6 +232,16 @@ def _build_profile_context(*, request, target_user):
         else {}
     )
 
+    # Effective background: catalog override takes priority over Steam background
+    effective_bg_static = (
+        str(profile.selected_bg_static_url or "").strip()
+        or str(profile.steam_profile_background or "").strip()
+    )
+    effective_bg_video = (
+        str(profile.selected_bg_video_url or "").strip()
+        or str(profile.steam_profile_background_video or "").strip()
+    )
+
     return {
         "profile": profile,
         "profile_user": target_user,
@@ -242,6 +254,8 @@ def _build_profile_context(*, request, target_user):
         "is_owner_profile": is_owner,
         "can_view_private_profile": can_view_private_profile,
         "friendship_context": friendship_ctx,
+        "effective_bg_static": effective_bg_static,
+        "effective_bg_video": effective_bg_video,
         "active_telegram_connect_url": active_telegram_connect_url,
         "profile_subscription_context": target_site_subscription_context,
         "profile_active_subscription": active_site_subscription,
@@ -256,6 +270,132 @@ def _build_profile_context(*, request, target_user):
         "avatar_upload_form": avatar_upload_form,
         "user_theme_preferences_form": user_theme_preferences_form,
     }
+
+
+def _build_settings_context(*, request, target_user):
+    """Build context for profile settings page (avatar, themes, privacy, customization, admin)."""
+    profile, _ = UserProfile.objects.get_or_create(user=target_user)
+    is_owner = request.user.id == target_user.id
+    viewer_role_access = get_user_role(request.user)
+    target_role_access = get_user_role(target_user)
+    can_view_private = _can_view_private_profile(request_user=request.user, target_user=target_user)
+
+    profile_display_name = get_profile_display_name(profile, fallback_username=target_user.username)
+    profile_avatar_url = get_profile_avatar_url(profile)
+
+    # Avatar upload (owner only)
+    avatar_upload_form = UserAvatarUploadForm(instance=profile) if is_owner else None
+
+    # Theme preferences (owner only)
+    user_theme_preferences_form = None
+    if is_owner:
+        user_theme_preferences_form = UserThemePreferencesForm(
+            user=target_user,
+            current_preferences=profile.theme_preferences or {},
+        )
+
+    # Privacy settings (owner only)
+    privacy_form = None
+    if is_owner:
+        privacy_settings_obj = get_or_create_privacy_settings(target_user)
+        privacy_form = SocialPrivacySettingsForm(instance=privacy_settings_obj)
+
+    # Customization
+    viewer_can_customize = can_customize_profile(request.user)
+    customization = get_or_create_customization(target_user) if viewer_can_customize or viewer_role_access.is_admin_plus else None
+
+    # Admin forms
+    admin_identity_form = None
+    admin_site_subscription_form = None
+    admin_farmer_subscription_form = None
+    if viewer_role_access.is_admin_plus and can_view_private:
+        active_site_subscription = get_active_subscription(target_user, family=SubscriptionPlan.Family.SITE)
+        active_farmer_subscription = get_active_subscription(target_user, family=SubscriptionPlan.Family.FARMER)
+        admin_identity_form = AdminProfileIdentityForm(
+            target_user=target_user,
+            target_profile=profile,
+            actor_user=request.user,
+        )
+        admin_site_subscription_form = AdminSiteSubscriptionForm(
+            active_site_subscription=active_site_subscription,
+        )
+        show_farmer = target_role_access.is_farmer_plus
+        if show_farmer:
+            admin_farmer_subscription_form = AdminFarmerSubscriptionForm(
+                active_farmer_subscription=active_farmer_subscription,
+            )
+
+    return {
+        "profile": profile,
+        "profile_user": target_user,
+        "profile_display_name": profile_display_name,
+        "profile_avatar_url": profile_avatar_url,
+        "role_access": target_role_access,
+        "viewer_role_access": viewer_role_access,
+        "is_owner_profile": is_owner,
+        "can_view_private_profile": can_view_private,
+        "avatar_upload_form": avatar_upload_form,
+        "user_theme_preferences_form": user_theme_preferences_form,
+        "privacy_form": privacy_form,
+        "viewer_can_customize": viewer_can_customize,
+        "customization": customization,
+        "admin_identity_form": admin_identity_form,
+        "admin_site_subscription_form": admin_site_subscription_form,
+        "admin_farmer_subscription_form": admin_farmer_subscription_form,
+        "show_farmer_subscription_zone": target_role_access.is_farmer_plus,
+    }
+
+
+@login_required
+def profile_settings_view(request):
+    """Settings page for own profile. Privacy form handled here; admin forms go to profile_admin_update."""
+    if request.method == "POST" and "privacy_settings_submit" in request.POST:
+        privacy_settings_obj = get_or_create_privacy_settings(request.user)
+        form = SocialPrivacySettingsForm(request.POST, instance=privacy_settings_obj)
+        if form.is_valid():
+            update_privacy_settings(
+                request.user,
+                who_can_send_friend_request=form.cleaned_data["who_can_send_friend_request"],
+                who_can_send_direct=form.cleaned_data["who_can_send_direct"],
+                who_can_see_online=form.cleaned_data["who_can_see_online"],
+                who_can_see_profile=form.cleaned_data["who_can_see_profile"],
+            )
+            messages.success(request, "Настройки приватности сохранены.")
+        else:
+            messages.error(request, "Ошибка сохранения настроек приватности.")
+        return redirect("profiles:profile_settings")
+
+    context = _build_settings_context(request=request, target_user=request.user)
+    profile_display_name = context["profile_display_name"]
+    return render_dashboard_page(
+        request,
+        full_template="profiles/settings.html",
+        partial_template="profiles/partials/settings_content.html",
+        context=context,
+        page_title=build_page_title(f"Настройки — {profile_display_name}"),
+        active_menu_key="profile",
+    )
+
+
+@login_required
+def profile_user_settings_view(request, user_id: int):
+    """Admin settings page for another user's profile."""
+    if not get_user_role(request.user).is_admin_plus:
+        return HttpResponseForbidden("Настройки чужого профиля доступны только admin+.")
+    target_user = get_object_or_404(
+        UserProfile.objects.select_related("user"),
+        user_id=user_id,
+    ).user
+    context = _build_settings_context(request=request, target_user=target_user)
+    profile_display_name = context["profile_display_name"]
+    return render_dashboard_page(
+        request,
+        full_template="profiles/settings.html",
+        partial_template="profiles/partials/settings_content.html",
+        context=context,
+        page_title=build_page_title(f"Настройки — {profile_display_name}"),
+        active_menu_key="profile",
+    )
 
 
 @login_required
@@ -545,17 +685,7 @@ def profile_avatar_upload_view(request):
         return redirect("profiles:profile")
 
     messages.error(request, "Не удалось обновить аватар.")
-    context = _build_profile_context(request=request, target_user=request.user)
-    context["avatar_upload_form"] = form
-    return render_dashboard_page(
-        request,
-        full_template="profiles/profile.html",
-        partial_template="profiles/partials/profile_content.html",
-        context=context,
-        page_title=build_page_title(context["profile_display_name"]),
-        active_menu_key="profile",
-        current_url=reverse("profiles:profile"),
-    )
+    return redirect("profiles:profile_settings")
 
 
 @login_required

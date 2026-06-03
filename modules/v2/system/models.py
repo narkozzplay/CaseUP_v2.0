@@ -727,6 +727,15 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 65,
             },
             {
+                "key": "customization_catalog",
+                "label_ru": "Каталог кастомизации",
+                "label_en": "Customization Catalog",
+                "url_name": "profile_customization:catalog",
+                "group": cls.Group.ADMIN,
+                "visibility_condition": cls.Visibility.ADMIN_PLUS,
+                "sort_order": 67,
+            },
+            {
                 "key": "django_admin",
                 "label_ru": "Django Admin",
                 "label_en": "Django Admin",

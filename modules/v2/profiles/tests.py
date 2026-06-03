@@ -377,7 +377,8 @@ class UsersCatalogTests(TestCase):
         response = self.client.get(reverse("profiles:profile_detail", args=[target.id]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "target11@example.com")
+        # Email removed from profile page UI (moved to settings)
+        self.assertContains(response, "target11")  # username still shown
         self.assertContains(response, "7151390596")
         self.assertContains(response, 'recent-operations')
 
@@ -397,7 +398,8 @@ class UsersCatalogTests(TestCase):
         response = self.client.get(reverse("profiles:profile_detail", args=[target.id]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "target_mod_view@example.com")
+        # Email removed from profile page UI (moved to settings page)
+        self.assertContains(response, "target_mod_view")  # username still shown
         self.assertContains(response, "7151390596")
 
     def test_profile_detail_view_uses_target_subscription_context(self):
@@ -552,6 +554,7 @@ class UsersCatalogTests(TestCase):
         self.assertEqual(list(form.fields["role"].choices), [])
 
     def test_profile_theme_preferences_show_only_purchased_or_public_themes(self):
+        # Theme preferences moved from profile page to settings page
         update_module_states({"store": True})
         user = User.objects.create_user(username="theme_profile_user", password="StrongPass123")
         plan = SubscriptionPlan.objects.get(level=1)
@@ -559,7 +562,7 @@ class UsersCatalogTests(TestCase):
         listing = ThemeStoreListing.objects.get(key="steam-catalog-price-graph-theme")
         self.client.login(username="theme_profile_user", password="StrongPass123")
 
-        response = self.client.get(reverse("profiles:profile"))
+        response = self.client.get(reverse("profiles:profile_settings"), HTTP_X_DASHBOARD_PARTIAL="1")
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, listing.title)
 
@@ -569,7 +572,7 @@ class UsersCatalogTests(TestCase):
             theme_key=listing.theme_key,
             amount_rub=listing.price_rub,
         )
-        response = self.client.get(reverse("profiles:profile"))
+        response = self.client.get(reverse("profiles:profile_settings"), HTTP_X_DASHBOARD_PARTIAL="1")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, listing.title)
 
@@ -1047,8 +1050,9 @@ class ProfileAvatarPatchTests(TestCase):
         self.assertContains(response, "img/placeholders/no_image.svg")
 
     def test_profile_page_contains_custom_avatar_upload_ui(self):
+        # Avatar upload UI moved from profile page to settings page
         self.client.login(username="avatar_patch_user", password="StrongPass123")
-        response = self.client.get(reverse("profiles:profile"))
+        response = self.client.get(reverse("profiles:profile_settings"), HTTP_X_DASHBOARD_PARTIAL="1")
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "data-avatar-upload")
@@ -1092,11 +1096,14 @@ class ProfileAvatarPatchTests(TestCase):
                 {"uploaded_avatar": uploaded_file},
             )
 
-            self.assertEqual(response.status_code, 200)
+            # Invalid file → redirect to settings with error message
+            self.assertEqual(response.status_code, 302)
             self.user.profile_v2.refresh_from_db()
             self.assertFalse(bool(self.user.profile_v2.uploaded_avatar))
-            self.assertContains(response, "Не удалось обновить аватар.")
-            self.assertContains(response, "Загрузите правильное изображение")
+            # Check error message stored in session
+            from django.contrib.messages import get_messages
+            msgs = [str(m) for m in get_messages(response.wsgi_request)]
+            self.assertTrue(any("Не удалось обновить аватар." in m for m in msgs))
 
     def test_avatar_source_priority_uploaded_then_steam_then_default(self):
         profile = self.user.profile_v2

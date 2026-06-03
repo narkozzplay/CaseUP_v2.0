@@ -1,0 +1,286 @@
+<section class="section section--compact profile-settings">
+    <div class="dashboard-hero card">
+        <div class="card-body dashboard-hero__body">
+            <div>
+                <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}</span>
+                <h1 class="page-title page-title--sm">
+                    {% if LANGUAGE_CODE == "ru" %}Настройки профиля{% else %}Profile Settings{% endif %}
+                    <span class="text-muted" style="font-size:.6em; font-weight:400;">{{ profile_display_name }}</span>
+                </h1>
+            </div>
+            <div class="dashboard-hero__meta">
+                {% if is_owner_profile %}
+                    <a href="{% url 'profiles:profile' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                        ← {% if LANGUAGE_CODE == "ru" %}Мой профиль{% else %}My profile{% endif %}
+                    </a>
+                {% else %}
+                    <a href="{% url 'profiles:profile_detail' profile_user.id %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                        ← {% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-grid profile-grid--settings">
+
+        {# ===== АВАТАРКА (owner only) ===== #}
+        {% if is_owner_profile and avatar_upload_form %}
+        <article class="card profile-card-accent" id="settings-avatar">
+            <div class="card-body">
+                <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Своя аватарка{% else %}Custom avatar{% endif %}</h2>
+                <form method="post" action="{% url 'profiles:profile_avatar_upload' %}" enctype="multipart/form-data"
+                      class="form-stack avatar-upload"
+                      data-avatar-upload
+                      data-avatar-upload-empty="{% if LANGUAGE_CODE == 'ru' %}Файл не выбран{% else %}No file selected{% endif %}">
+                    {% csrf_token %}
+                    <div class="form-field">
+                        <label for="{{ avatar_upload_form.uploaded_avatar.id_for_label }}">
+                            {% if LANGUAGE_CODE == "ru" %}Загрузить аватарку{% else %}Upload avatar{% endif %}
+                        </label>
+                        <div class="avatar-upload__control">
+                            {{ avatar_upload_form.uploaded_avatar }}
+                            <label class="btn btn-secondary btn-sm avatar-upload__button"
+                                   for="{{ avatar_upload_form.uploaded_avatar.id_for_label }}">
+                                {% if LANGUAGE_CODE == "ru" %}Выбрать файл{% else %}Choose file{% endif %}
+                            </label>
+                            <span class="avatar-upload__file-name" data-avatar-upload-file-name aria-live="polite">
+                                {% if LANGUAGE_CODE == "ru" %}Файл не выбран{% else %}No file selected{% endif %}
+                            </span>
+                        </div>
+                        <div class="avatar-upload__preview" data-avatar-upload-preview-wrap hidden>
+                            <img src="" alt="" data-avatar-upload-preview>
+                        </div>
+                        <div class="avatar-upload__errors">{{ avatar_upload_form.uploaded_avatar.errors }}</div>
+                    </div>
+                    <button type="submit" class="btn btn-secondary btn-sm">
+                        {% if LANGUAGE_CODE == "ru" %}Сохранить аватар{% else %}Save avatar{% endif %}
+                    </button>
+                </form>
+            </div>
+        </article>
+        {% endif %}
+
+        {# ===== ТЕМЫ (owner only) ===== #}
+        {% if is_owner_profile and user_theme_preferences_form %}
+        <article class="card profile-card-accent" id="settings-themes">
+            <div class="card-body">
+                <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Локальные темы{% else %}Local themes{% endif %}</h2>
+                <p class="text-muted" style="margin-bottom:.75rem;">
+                    {% if LANGUAGE_CODE == "ru" %}
+                        Покупка темы в Store выдаёт доступ, а здесь выбираешь применение по scope.
+                    {% else %}
+                        Buying a theme in Store grants access. Here you choose per-scope activation.
+                    {% endif %}
+                </p>
+                <form method="post" action="{% url 'profiles:profile_theme_preferences_update' %}" class="form-stack">
+                    {% csrf_token %}
+                    {% for field in user_theme_preferences_form %}
+                        <div class="form-field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {{ field.errors }}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary btn-block">
+                        {% if LANGUAGE_CODE == "ru" %}Сохранить выбор тем{% else %}Save theme selection{% endif %}
+                    </button>
+                </form>
+            </div>
+        </article>
+        {% endif %}
+
+        {# ===== ПРИВАТНОСТЬ (owner only) ===== #}
+        {% if is_owner_profile and privacy_form %}
+        <article class="card profile-card-accent" id="settings-privacy">
+            <div class="card-body">
+                <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Приватность{% else %}Privacy{% endif %}</h2>
+                <p class="text-muted" style="margin-bottom:.75rem;">
+                    {% if LANGUAGE_CODE == "ru" %}Управление тем, кто может писать вам в личку и отправлять заявки в друзья.{% else %}Control who can message you and send friend requests.{% endif %}
+                </p>
+                <form method="post" action="{% url 'profiles:profile_settings' %}" class="form-stack">
+                    {% csrf_token %}
+                    <input type="hidden" name="privacy_settings_submit" value="1">
+                    {% for field in privacy_form %}
+                        <div class="form-field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {{ field.errors }}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary btn-block">
+                        {% if LANGUAGE_CODE == "ru" %}Сохранить{% else %}Save{% endif %}
+                    </button>
+                </form>
+            </div>
+        </article>
+        {% endif %}
+
+        {# ===== КАСТОМИЗАЦИЯ ===== #}
+        {% if viewer_can_customize %}
+        <article class="card profile-card-accent" id="settings-customization">
+            <div class="card-body">
+                <div class="section-head-inline">
+                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Кастомизация профиля{% else %}Profile customization{% endif %}</h2>
+                    <a href="{% url 'profile_customization:catalog' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                        {% if LANGUAGE_CODE == "ru" %}Открыть каталог{% else %}Open catalog{% endif %}
+                    </a>
+                </div>
+                {% if customization %}
+                    <dl class="details-list details-list--compact">
+                        <div>
+                            <dt>{% if LANGUAGE_CODE == "ru" %}Фон{% else %}Background{% endif %}</dt>
+                            <dd>
+                                {% if customization.selected_background %}
+                                    {{ customization.selected_background.title }}
+                                    <form method="post" action="{% url 'profile_customization:clear_background' %}" style="display:inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.path }}">
+                                        <button type="submit" class="btn btn-secondary btn-sm" style="margin-left:.5rem">
+                                            {% if LANGUAGE_CODE == "ru" %}Сбросить{% else %}Clear{% endif %}
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Не выбран (используется Steam-фон){% else %}Not selected (using Steam background){% endif %}</span>
+                                {% endif %}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>{% if LANGUAGE_CODE == "ru" %}Аватарка{% else %}Avatar{% endif %}</dt>
+                            <dd>
+                                {% if customization.selected_avatar %}
+                                    {{ customization.selected_avatar.title }}
+                                    <form method="post" action="{% url 'profile_customization:clear_avatar' %}" style="display:inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.path }}">
+                                        <button type="submit" class="btn btn-secondary btn-sm" style="margin-left:.5rem">
+                                            {% if LANGUAGE_CODE == "ru" %}Сбросить{% else %}Clear{% endif %}
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Не выбрана (Steam/своя){% else %}Not selected (Steam/uploaded){% endif %}</span>
+                                {% endif %}
+                            </dd>
+                        </div>
+                    </dl>
+                {% endif %}
+            </div>
+        </article>
+        {% endif %}
+
+        {# ===== ADMIN MANAGEMENT ===== #}
+        {% if viewer_role_access.is_admin_plus and admin_identity_form %}
+        <article class="card profile-card-accent" id="settings-admin-identity">
+            <div class="card-body">
+                <h2 class="section-title">Admin management</h2>
+                <form method="post" action="{% url 'profiles:profile_admin_update' profile_user.id %}" class="form-stack">
+                    {% csrf_token %}
+                    <input type="hidden" name="admin_section" value="identity">
+                    <div class="form-field">
+                        <label for="{{ admin_identity_form.username.id_for_label }}">
+                            {% if LANGUAGE_CODE == "ru" %}Внутренний username{% else %}Internal username{% endif %}
+                        </label>
+                        {{ admin_identity_form.username }}
+                        {{ admin_identity_form.username.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ admin_identity_form.balance_coins.id_for_label }}">
+                            {% if LANGUAGE_CODE == "ru" %}Баланс{% else %}Balance{% endif %}
+                        </label>
+                        {{ admin_identity_form.balance_coins }}
+                        {{ admin_identity_form.balance_coins.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ admin_identity_form.role.id_for_label }}">
+                            {% if LANGUAGE_CODE == "ru" %}Роль пользователя{% else %}User role{% endif %}
+                        </label>
+                        {{ admin_identity_form.role }}
+                        {{ admin_identity_form.role.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ admin_identity_form.is_store_author.id_for_label }}">Store author</label>
+                        {{ admin_identity_form.is_store_author }}
+                        {{ admin_identity_form.is_store_author.errors }}
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        {% if LANGUAGE_CODE == "ru" %}Сохранить основные данные{% else %}Save profile data{% endif %}
+                    </button>
+                </form>
+            </div>
+        </article>
+        {% endif %}
+
+        {% if viewer_role_access.is_admin_plus and admin_site_subscription_form %}
+        <article class="card profile-card-accent" id="settings-site-sub">
+            <div class="card-body">
+                <h2 class="section-title">Site subscription</h2>
+                <form method="post" action="{% url 'profiles:profile_admin_update' profile_user.id %}" class="form-stack">
+                    {% csrf_token %}
+                    <input type="hidden" name="admin_section" value="site_subscription">
+                    <div class="form-field">
+                        <label for="{{ admin_site_subscription_form.site_subscription_plan.id_for_label }}">
+                            {% if LANGUAGE_CODE == "ru" %}Site-подписка{% else %}Site subscription{% endif %}
+                        </label>
+                        {{ admin_site_subscription_form.site_subscription_plan }}
+                        {{ admin_site_subscription_form.site_subscription_plan.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ admin_site_subscription_form.site_subscription_expires_at.id_for_label }}">
+                            {% if LANGUAGE_CODE == "ru" %}Дата окончания{% else %}Expires at{% endif %}
+                        </label>
+                        {{ admin_site_subscription_form.site_subscription_expires_at }}
+                        {{ admin_site_subscription_form.site_subscription_expires_at.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ admin_site_subscription_form.site_subscription_notes.id_for_label }}">
+                            {% if LANGUAGE_CODE == "ru" %}Примечание{% else %}Notes{% endif %}
+                        </label>
+                        {{ admin_site_subscription_form.site_subscription_notes }}
+                        {{ admin_site_subscription_form.site_subscription_notes.errors }}
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        {% if LANGUAGE_CODE == "ru" %}Сохранить site-подписку{% else %}Save site subscription{% endif %}
+                    </button>
+                </form>
+            </div>
+        </article>
+        {% endif %}
+
+        {% if viewer_role_access.is_admin_plus and admin_farmer_subscription_form and show_farmer_subscription_zone %}
+        <article class="card profile-card-accent" id="settings-farmer-sub">
+            <div class="card-body">
+                <h2 class="section-title">Farmer subscription</h2>
+                <form method="post" action="{% url 'profiles:profile_admin_update' profile_user.id %}" class="form-stack">
+                    {% csrf_token %}
+                    <input type="hidden" name="admin_section" value="farmer_subscription">
+                    <div class="form-field">
+                        <label for="{{ admin_farmer_subscription_form.farmer_subscription_plan.id_for_label }}">
+                            {% if LANGUAGE_CODE == "ru" %}Farmer-подписка{% else %}Farmer subscription{% endif %}
+                        </label>
+                        {{ admin_farmer_subscription_form.farmer_subscription_plan }}
+                        {{ admin_farmer_subscription_form.farmer_subscription_plan.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ admin_farmer_subscription_form.farmer_subscription_expires_at.id_for_label }}">
+                            {% if LANGUAGE_CODE == "ru" %}Дата окончания{% else %}Expires at{% endif %}
+                        </label>
+                        {{ admin_farmer_subscription_form.farmer_subscription_expires_at }}
+                        {{ admin_farmer_subscription_form.farmer_subscription_expires_at.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ admin_farmer_subscription_form.farmer_subscription_notes.id_for_label }}">
+                            {% if LANGUAGE_CODE == "ru" %}Примечание{% else %}Notes{% endif %}
+                        </label>
+                        {{ admin_farmer_subscription_form.farmer_subscription_notes }}
+                        {{ admin_farmer_subscription_form.farmer_subscription_notes.errors }}
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        {% if LANGUAGE_CODE == "ru" %}Сохранить farmer-подписку{% else %}Save farmer subscription{% endif %}
+                    </button>
+                </form>
+            </div>
+        </article>
+        {% endif %}
+
+    </div>
+</section>

@@ -54,10 +54,17 @@ def get_profile_avatar_url(profile: UserProfile | None) -> str:
     if profile is None:
         return get_default_no_image_url()
 
+    # 1. Catalog selection (denormalized cache from profile_customization)
+    selected_avatar = str(getattr(profile, "selected_avatar_url", "") or "").strip()
+    if selected_avatar:
+        return selected_avatar
+
+    # 2. Uploaded avatar
     uploaded_avatar_url = _safe_file_url(getattr(profile, "uploaded_avatar", None))
     if uploaded_avatar_url:
         return uploaded_avatar_url
 
+    # 3. Steam avatar
     steam_avatar_url = str(getattr(profile, "steam_avatar", "") or "").strip()
     if steam_avatar_url:
         return steam_avatar_url

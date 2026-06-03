@@ -120,6 +120,23 @@ class UserProfile(models.Model):
     )
     is_store_author = models.BooleanField(default=False, db_index=True)
 
+    # Customization cache — обновляется через profile_customization.services
+    selected_avatar_url = models.URLField(
+        blank=True,
+        default="",
+        help_text="Кешированный URL аватарки из каталога кастомизации",
+    )
+    selected_bg_static_url = models.URLField(
+        blank=True,
+        default="",
+        help_text="Кешированный URL статичного фона из каталога",
+    )
+    selected_bg_video_url = models.URLField(
+        blank=True,
+        default="",
+        help_text="Кешированный URL видео-фона из каталога",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
