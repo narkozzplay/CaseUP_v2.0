@@ -1,0 +1,8 @@
+<div class="cs2-big-stat {% if highlight %}cs2-big-stat--highlight{% endif %}">
+    <span class="cs2-big-stat__label">{% if LANGUAGE_CODE == "ru" and label_ru %}{{ label_ru }}{% elif label_en %}{{ label_en }}{% elif label %}{{ label }}{% endif %}</span>
+    {% if value_date %}
+        <span class="cs2-big-stat__value">{{ value_date|date:"d.m.Y" }}</span>
+    {% else %}
+        <span class="cs2-big-stat__value">{{ value|floatformat:"-2" }}{% if unit %}{{ unit }}{% endif %}</span>
+    {% endif %}
+</div>

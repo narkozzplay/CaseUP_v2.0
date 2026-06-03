@@ -99,6 +99,13 @@ MODULE_REGISTRY: dict[str, ModuleDefinition] = {
         addon_targets=("subscriptions",),
         default_enabled=False,
     ),
+    "cs2_stats": ModuleDefinition(
+        key="cs2_stats",
+        label="CS2 Stats",
+        description="Статистика CS2 из Steam API и FACEIT: K/D, HS%, per-map, сравнение.",
+        namespaces=("cs2_stats",),
+        default_enabled=True,
+    ),
     "profile_customization": ModuleDefinition(
         key="profile_customization",
         label="Profile Customization",

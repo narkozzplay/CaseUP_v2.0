@@ -1,0 +1,4 @@
+<div class="cs2-stat-row {% if highlight %}cs2-stat-row--highlight{% endif %}">
+    <span class="cs2-stat-row__label">{% if LANGUAGE_CODE == "ru" and label_ru %}{{ label_ru }}{% else %}{{ label }}{% endif %}</span>
+    <span class="cs2-stat-row__value">{{ value|floatformat:2 }}{% if unit %}{{ unit }}{% endif %}</span>
+</div>

@@ -164,15 +164,20 @@
                         {% endif %}
                     </div>
                 {% endif %}
-                {% if is_owner_profile %}
-                    <a href="{% url 'profiles:profile_settings' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
-                        ⚙ {% if LANGUAGE_CODE == "ru" %}Настройки{% else %}Settings{% endif %}
+                <div style="display:flex; gap:.4rem; flex-wrap:wrap;">
+                    <a href="{% url 'cs2_stats:user' profile_user.id %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                        🎮 CS2
                     </a>
-                {% elif viewer_role_access.is_admin_plus %}
-                    <a href="{% url 'profiles:profile_user_settings' profile_user.id %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
-                        ⚙ Admin settings
-                    </a>
-                {% endif %}
+                    {% if is_owner_profile %}
+                        <a href="{% url 'profiles:profile_settings' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                            ⚙ {% if LANGUAGE_CODE == "ru" %}Настройки{% else %}Settings{% endif %}
+                        </a>
+                    {% elif viewer_role_access.is_admin_plus %}
+                        <a href="{% url 'profiles:profile_user_settings' profile_user.id %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                            ⚙ Admin settings
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>

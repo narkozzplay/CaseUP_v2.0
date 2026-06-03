@@ -53,6 +53,7 @@ ACTIVE_VIEW_ALIASES = {
         "profiles:profile_settings",
         "profiles:profile_user_settings",
     },
+    "cs2_stats": {"cs2_stats:own", "cs2_stats:user"},
     "verification_requests": {"profiles:verification_requests"},
     "customization_catalog": {
         "profile_customization:catalog",
