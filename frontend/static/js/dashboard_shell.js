@@ -590,6 +590,7 @@
             profitField.textContent = formatSignedMoney(profit);
             profitPercentField.textContent = formatSignedPercent(profitPercent);
             resultField.textContent = resultLabel;
+            previewGrid.dataset.result = profit > 0 ? 'up' : (profit < 0 ? 'down' : 'flat');
         }
 
         quantityField.addEventListener('input', updatePreview);

@@ -108,6 +108,32 @@ class UserPriceAlertRuleForm(forms.ModelForm):
             "delivery_target": forms.Select(attrs={"class": "form-control"}),
             "status": forms.Select(attrs={"class": "form-control"}),
         })
+        labels = {
+            "name": "Название правила",
+            "scope_type": "Что отслеживаем",
+            "item": "Предмет",
+            "family_name": "Семейство",
+            "item_type": "Тип предметов",
+            "direction": "Направление",
+            "reference_point": "От чего считать",
+            "threshold_mode": "Как сравнивать порог",
+            "window_kind": "Окно анализа",
+            "window_value": "Размер окна",
+            "min_change_rub": "Порог, ₽",
+            "min_change_percent": "Порог, %",
+            "cooldown_minutes": "Пауза между уведомлениями, мин",
+            "repeat_step_rub": "Шаг повтора, ₽",
+            "repeat_step_percent": "Шаг повтора, %",
+            "repeat_mode": "Повтор",
+            "transport": "Канал",
+            "delivery_target": "Куда отправлять",
+            "status": "Статус",
+        }
+        help_texts = {
+            "family_name": "Например, AK-47 | Redline. Сработает на любой износ.",
+            "window_value": "Число часов, дней или точек истории.",
+            "repeat_step_rub": "Для режима «Повторно по шагам».",
+        }
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user", None)

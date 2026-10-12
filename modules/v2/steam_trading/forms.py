@@ -27,6 +27,12 @@ class SteamPurchaseForm(forms.ModelForm):
             "quantity": forms.NumberInput(attrs={"class": "form-control", "min": 1}),
             "purchase_price_rub": forms.NumberInput(attrs={"class": "form-control", "min": 0, "step": "0.01"}),
         }
+        labels = {
+            "item": "Кейс",
+            "purchased_at": "Дата покупки",
+            "quantity": "Количество",
+            "purchase_price_rub": "Цена за штуку, ₽",
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -72,6 +78,11 @@ class SteamPurchaseSaleForm(forms.ModelForm):
             "sold_at": forms.DateTimeInput(attrs={"class": "form-control", "type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
             "quantity": forms.NumberInput(attrs={"class": "form-control", "min": 1}),
             "sale_price_rub": forms.NumberInput(attrs={"class": "form-control", "min": 0, "step": "0.01"}),
+        }
+        labels = {
+            "sold_at": "Дата продажи",
+            "quantity": "Количество",
+            "sale_price_rub": "Цена продажи за штуку, ₽",
         }
 
     def __init__(self, *args, purchase: SteamPurchase, **kwargs):

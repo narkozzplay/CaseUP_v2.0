@@ -2,4 +2,66 @@
 {% load static %}
 {% block title %}Price Alerts | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 {% block dashboard_extra_head %}<link rel="stylesheet" href="{% static 'css/modules/steam_catalog.css' %}">{% endblock %}
-{% block content %}<section class="section section--compact"><div class="section-heading"><span class="eyebrow">Steam Catalog</span><h1>Мои правила уведомлений</h1><p class="text-muted">Пользовательские правила по движению цены. Старые системные PriceDropAlertRule не трогаем.</p></div><div class="section-head-inline"><a href="{% url 'steam_catalog:alert_rule_create' %}" class="btn btn-primary">Создать правило</a><div><a href="{% url 'steam_catalog:alert_history' %}" class="btn btn-secondary">История</a> <a href="{% url 'steam_catalog:alert_help' %}" class="btn btn-secondary">Как это считается</a></div></div><article class="card"><div class="card-body">{% if rules %}<div class="table-wrap"><table class="table table--dark"><thead><tr><th>Название</th><th>Scope</th><th>Направление</th><th>Reference</th><th>Порог</th><th>Окно</th><th>Повтор</th><th>Доставка</th><th>Статус</th><th></th></tr></thead><tbody>{% for rule in rules %}<tr><td><strong>{{ rule.name }}</strong><div class="text-muted">{{ rule.item.market_hash_name|default:rule.family_name|default:rule.item_type }}</div></td><td>{{ rule.get_scope_type_display }}</td><td>{{ rule.get_direction_display }}</td><td>{{ rule.get_reference_point_display }}</td><td>{% money rule.min_change_rub %} / {{ rule.min_change_percent }}%</td><td>{{ rule.get_window_kind_display }}: {{ rule.window_value }}</td><td>{{ rule.get_repeat_mode_display }}</td><td>{{ rule.get_delivery_target_display }}</td><td>{{ rule.get_status_display }}</td><td><a href="{% url 'steam_catalog:alert_rule_edit' rule.id %}" class="btn btn-secondary">Редактировать</a> <form method="post" action="{% url 'steam_catalog:alert_rule_toggle' rule.id %}" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-secondary">{% if rule.is_enabled %}Выключить{% else %}Включить{% endif %}</button></form> <a href="{% url 'steam_catalog:alert_rule_history' rule.id %}" class="btn btn-secondary">События</a></td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="text-muted empty-state">Правил пока нет.</p>{% endif %}</div></article></section>{% endblock %}
+{% block content %}
+<section class="section section--compact">
+    <div class="page-header page-header--compact">
+        <div>
+            <span class="eyebrow">Price alerts</span>
+            <h1>Мои правила уведомлений</h1>
+            <p class="text-muted">Правила следят за движением цены и пишут в Telegram, когда порог пройден.</p>
+        </div>
+        <div class="hero-actions">
+            <a href="{% url 'steam_catalog:alert_rule_create' %}" class="btn btn-primary">+ Создать правило</a>
+        </div>
+    </div>
+
+    <div class="alert-subnav chip-tabs">
+        <a href="{% url 'steam_catalog:alert_rules' %}" class="chip-tab is-active">Правила <span class="chip-tab__count">{{ rules|length }}</span></a>
+        <a href="{% url 'steam_catalog:alert_history' %}" class="chip-tab">История</a>
+        <a href="{% url 'steam_catalog:alert_help' %}" class="chip-tab">Как это считается</a>
+    </div>
+
+    {% if rules %}
+        <div class="alert-rules">
+            {% for rule in rules %}
+                <article class="alert-rule alert-rule--{{ rule.status }}{% if not rule.is_enabled %} is-disabled{% endif %}">
+                    <div class="alert-rule__head">
+                        <span class="alert-rule__direction alert-rule__direction--{{ rule.direction }}" title="{{ rule.get_direction_display }}">{% if rule.direction == "up" %}▲{% elif rule.direction == "down" %}▼{% else %}▲▼{% endif %}</span>
+                        <div class="alert-rule__title">
+                            <strong>{{ rule.name }}</strong>
+                            <span>{{ rule.item.market_hash_name|default:rule.family_name|default:rule.item_type }} · {{ rule.get_scope_type_display }}</span>
+                        </div>
+                        <span class="alert-rule__status">{{ rule.get_status_display }}</span>
+                    </div>
+
+                    <dl class="alert-rule__facts">
+                        <div><dt>Порог</dt><dd>{% money rule.min_change_rub %} / {{ rule.min_change_percent }}%</dd></div>
+                        <div><dt>Окно</dt><dd>{{ rule.get_window_kind_display }}: {{ rule.window_value }}</dd></div>
+                        <div><dt>От чего</dt><dd>{{ rule.get_reference_point_display }}</dd></div>
+                        <div><dt>Повтор</dt><dd>{{ rule.get_repeat_mode_display }}</dd></div>
+                        <div><dt>Доставка</dt><dd>{{ rule.get_delivery_target_display }}</dd></div>
+                    </dl>
+
+                    <div class="alert-rule__actions">
+                        <a href="{% url 'steam_catalog:alert_rule_edit' rule.id %}" class="btn btn-secondary btn-sm">Редактировать</a>
+                        <form method="post" action="{% url 'steam_catalog:alert_rule_toggle' rule.id %}" class="inline-form">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-ghost btn-sm">{% if rule.is_enabled %}Выключить{% else %}Включить{% endif %}</button>
+                        </form>
+                        <a href="{% url 'steam_catalog:alert_rule_history' rule.id %}" class="btn btn-ghost btn-sm">События</a>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-panel">
+            <strong>Правил пока нет</strong>
+            <p class="text-muted">Создай первое правило или открой предмет в каталоге и нажми «Поставить алерт».</p>
+            <div class="hero-actions">
+                <a href="{% url 'steam_catalog:alert_rule_create' %}" class="btn btn-primary">Создать правило</a>
+                <a href="{% url 'steam_catalog:list' %}" class="btn btn-secondary">Открыть каталог</a>
+            </div>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

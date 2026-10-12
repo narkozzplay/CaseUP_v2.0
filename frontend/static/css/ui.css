@@ -217,3 +217,10 @@
         flex: none;
     }
 }
+
+.chip-tab__count {
+    margin-left: 6px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+}

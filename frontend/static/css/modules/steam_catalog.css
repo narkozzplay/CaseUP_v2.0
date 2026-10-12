@@ -799,3 +799,192 @@
         height: 170px;
     }
 }
+
+/* ===== Price alerts ===== */
+
+.alert-subnav {
+    margin: 4px 0 18px;
+}
+
+.alert-rules {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+}
+
+.alert-rule {
+    --rule-accent: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--rule-accent);
+    background: var(--panel);
+}
+
+.alert-rule--active { --rule-accent: var(--up); }
+.alert-rule--draft { --rule-accent: var(--accent); }
+.alert-rule.is-disabled { opacity: 0.72; }
+
+.alert-rule__head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.alert-rule__direction {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border-strong);
+    font-size: 0.72rem;
+    color: var(--accent);
+    background: rgba(245, 166, 35, 0.08);
+}
+
+.alert-rule__direction--up { color: var(--up); background: rgba(61, 220, 132, 0.08); }
+.alert-rule__direction--down { color: var(--down); background: rgba(255, 99, 99, 0.08); }
+
+.alert-rule__title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.alert-rule__title strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.alert-rule__title span {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.alert-rule__status {
+    flex: none;
+    padding: 2px 8px;
+    border: 1px solid var(--rule-accent);
+    color: var(--rule-accent);
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.alert-rule__facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 14px;
+    margin: 0;
+}
+
+.alert-rule__facts dt {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.alert-rule__facts dd {
+    margin: 2px 0 0;
+    font-size: 0.85rem;
+    color: var(--text-soft);
+}
+
+.alert-rule__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+}
+
+.alert-rule__actions .inline-form { margin: 0; }
+
+/* Rule form */
+.alert-form {
+    display: grid;
+    gap: 14px;
+}
+
+.alert-form__group {
+    margin: 0;
+    padding: 18px 20px 20px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    min-width: 0;
+}
+
+.alert-form__group legend {
+    float: left;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 16px;
+    padding: 0;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.alert-form__step {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--accent);
+}
+
+.alert-form__grid {
+    clear: both;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px 16px;
+}
+
+.alert-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.alert-form__field label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-soft);
+}
+
+.alert-form__field--wide {
+    grid-column: 1 / -1;
+}
+
+.alert-form__help {
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    line-height: 1.35;
+}
+
+.alert-form__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* Show only the target field that matches the chosen scope */
+.alert-form:has(#id_scope_type) .alert-form__scope { display: none; }
+.alert-form:has(#id_scope_type option[value="item"]:checked) .alert-form__scope--item,
+.alert-form:has(#id_scope_type option[value="family"]:checked) .alert-form__scope--family,
+.alert-form:has(#id_scope_type option[value="item_type"]:checked) .alert-form__scope--item_type { display: flex; }
+
+.alert-form:has(#id_repeat_mode option[value="step"]:not(:checked)) .alert-form__repeat-step { display: none; }

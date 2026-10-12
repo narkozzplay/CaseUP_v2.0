@@ -47,7 +47,7 @@
                         <button type="submit" class="btn btn-primary">Обновить цену</button>
                     </form>
                 {% endif %}
-                <a href="{% url 'steam_catalog:alert_rule_create' %}" class="btn btn-secondary">Поставить алерт</a>
+                <a href="{% url 'steam_catalog:alert_rule_create' %}?item={{ item.id }}" class="btn btn-secondary">Поставить алерт</a>
                 {% if steam_market_url %}<a href="{{ steam_market_url }}" class="btn btn-ghost" target="_blank" rel="noopener" data-dashboard-nav="false">Steam Market ↗</a>{% endif %}
             </div>
             {% if catalog_can_edit %}

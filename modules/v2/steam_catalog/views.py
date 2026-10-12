@@ -753,7 +753,16 @@ def user_alert_rule_create(request):
             messages.success(request, "Правило уведомлений сохранено.")
             return redirect("steam_catalog:alert_rules")
     else:
-        form = UserPriceAlertRuleForm(user=request.user)
+        initial = {}
+        item_param = request.GET.get("item", "")
+        prefill_item = SteamItem.objects.filter(pk=int(item_param), is_active=True).first() if item_param.isdigit() else None
+        if prefill_item is not None:
+            initial = {
+                "scope_type": UserPriceAlertRule.ScopeType.ITEM,
+                "item": prefill_item.pk,
+                "name": prefill_item.market_hash_name,
+            }
+        form = UserPriceAlertRuleForm(user=request.user, initial=initial)
     return render(request, "steam_catalog/alert_rule_form.html", {"form": form, "role_access": get_user_role(request.user), "is_create": True})
 
 

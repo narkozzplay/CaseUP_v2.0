@@ -1,1 +1,68 @@
-{% extends "layouts/base_dashboard.html" %}{% load static %}{% block title %}Настройка price alert | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}{% block dashboard_extra_head %}<link rel="stylesheet" href="{% static 'css/modules/steam_catalog.css' %}">{% endblock %}{% block content %}<section class="section section--compact"><div class="section-heading"><span class="eyebrow">Steam Catalog</span><h1>{% if is_create %}Новое{% else %}Редактирование{% endif %} правила</h1></div><article class="card"><div class="card-body"><form method="post">{% csrf_token %}<div class="toolbar-grid">{% for field in form %}<div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<div class="faceit-error">{{ error }}</div>{% endfor %}</div>{% endfor %}</div>{% for error in form.non_field_errors %}<div class="faceit-error">{{ error }}</div>{% endfor %}<div class="toolbar-actions"><button type="submit" class="btn btn-primary">Сохранить</button><a href="{% url 'steam_catalog:alert_rules' %}" class="btn btn-secondary">Назад</a></div></form></div></article></section>{% endblock %}
+{% extends "layouts/base_dashboard.html" %}
+{% load static %}
+{% block title %}Настройка price alert | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
+{% block dashboard_extra_head %}<link rel="stylesheet" href="{% static 'css/modules/steam_catalog.css' %}">{% endblock %}
+{% block content %}
+<section class="section section--compact">
+    <a href="{% url 'steam_catalog:alert_rules' %}" class="back-link">← Мои алерты</a>
+    <div class="section-heading">
+        <span class="eyebrow">Price alerts</span>
+        <h1>{% if is_create %}Новое правило{% else %}Редактирование правила{% endif %}</h1>
+        <p class="text-muted">Уведомление придёт в Telegram, когда цена изменится сильнее порога.</p>
+    </div>
+
+    <form method="post" class="alert-form">
+        {% csrf_token %}
+        {% for error in form.non_field_errors %}<div class="flash flash--error">{{ error }}</div>{% endfor %}
+
+        <fieldset class="alert-form__group">
+            <legend><span class="alert-form__step">01</span> Что отслеживаем</legend>
+            <div class="alert-form__grid">
+                {% include "steam_catalog/partials/alert_field.html" with field=form.name extra_class="alert-form__field--wide" %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.scope_type %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.item extra_class="alert-form__scope alert-form__scope--item" %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.family_name extra_class="alert-form__scope alert-form__scope--family" %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.item_type extra_class="alert-form__scope alert-form__scope--item_type" %}
+            </div>
+        </fieldset>
+
+        <fieldset class="alert-form__group">
+            <legend><span class="alert-form__step">02</span> Условие срабатывания</legend>
+            <div class="alert-form__grid">
+                {% include "steam_catalog/partials/alert_field.html" with field=form.direction %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.reference_point %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.window_kind %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.window_value %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.threshold_mode %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.min_change_rub %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.min_change_percent %}
+            </div>
+        </fieldset>
+
+        <fieldset class="alert-form__group">
+            <legend><span class="alert-form__step">03</span> Повтор</legend>
+            <div class="alert-form__grid">
+                {% include "steam_catalog/partials/alert_field.html" with field=form.repeat_mode %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.cooldown_minutes %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.repeat_step_rub extra_class="alert-form__repeat-step" %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.repeat_step_percent extra_class="alert-form__repeat-step" %}
+            </div>
+        </fieldset>
+
+        <fieldset class="alert-form__group">
+            <legend><span class="alert-form__step">04</span> Доставка</legend>
+            <div class="alert-form__grid">
+                {% include "steam_catalog/partials/alert_field.html" with field=form.transport %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.delivery_target %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.status %}
+            </div>
+        </fieldset>
+
+        <div class="alert-form__actions">
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+            <a href="{% url 'steam_catalog:alert_rules' %}" class="btn btn-secondary">Назад</a>
+            <a href="{% url 'steam_catalog:alert_help' %}" class="btn btn-ghost">Как это считается</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

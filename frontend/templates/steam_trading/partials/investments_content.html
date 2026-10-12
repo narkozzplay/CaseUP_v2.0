@@ -11,110 +11,47 @@
     </div>
 
     {% if investment_can_view_advanced_analytics %}
-    <div class="investment-kpi-grid">
-        <article class="card investment-kpi investment-kpi--primary">
-            <div class="card-body">
-                <div class="investment-kpi__head">
-                    <span class="investment-kpi__label">Общая сумма закупок</span>
-                    <span class="investment-kpi__badge">Всего</span>
-                </div>
+    <div class="investment-summary">
+        <div class="investment-kpi-grid">
+            <article class="investment-kpi investment-kpi--primary">
+                <span class="investment-kpi__label">Общая сумма закупок</span>
                 <div class="investment-kpi__value">{% money analytics.kpi.total_spent_sum %}</div>
-                <div class="investment-kpi__meta">Сумма всех закупок из Steam Trading.</div>
-            </div>
-        </article>
-
-        <article class="card investment-kpi investment-kpi--value">
-            <div class="card-body">
-                <div class="investment-kpi__head">
-                    <span class="investment-kpi__label">Текущая стоимость активных позиций</span>
-                    <span class="investment-kpi__badge">Активы</span>
-                </div>
+                <div class="investment-kpi__meta">Все закупки за всё время</div>
+            </article>
+            <article class="investment-kpi investment-kpi--value">
+                <span class="investment-kpi__label">Стоимость сейчас</span>
                 <div class="investment-kpi__value">{% money analytics.kpi.current_active_value_sum %}</div>
-                <div class="investment-kpi__meta">Оценка только по remaining quantity.</div>
+                <div class="investment-kpi__meta">Активные позиции по цене каталога</div>
+            </article>
+            <article class="investment-kpi {% if analytics.kpi.unrealized_pnl_sum >= 0 %}investment-kpi--positive{% else %}investment-kpi--negative{% endif %}">
+                <span class="investment-kpi__label">Нереализованный PnL</span>
+                <div class="investment-kpi__value">{% if analytics.kpi.unrealized_pnl_sum > 0 %}+{% endif %}{% money analytics.kpi.unrealized_pnl_sum %}</div>
+                <div class="investment-kpi__meta">По открытым позициям</div>
+            </article>
+            <article class="investment-kpi {% if analytics.kpi.realized_pnl_sum >= 0 %}investment-kpi--positive{% else %}investment-kpi--negative{% endif %}">
+                <span class="investment-kpi__label">Реализованный PnL</span>
+                <div class="investment-kpi__value">{% if analytics.kpi.realized_pnl_sum > 0 %}+{% endif %}{% money analytics.kpi.realized_pnl_sum %}</div>
+                <div class="investment-kpi__meta">По оформленным продажам</div>
+            </article>
+        </div>
+        <div class="investment-counters">
+            <div class="investment-counter">
+                <span class="investment-counter__value">{{ analytics.kpi.active_purchases_count }}</span>
+                <span class="investment-counter__label">активных закупок</span>
             </div>
-        </article>
-
-        <article class="card investment-kpi {% if analytics.kpi.unrealized_pnl_sum >= 0 %}investment-kpi--positive{% else %}investment-kpi--negative{% endif %}">
-            <div class="card-body">
-                <div class="investment-kpi__head">
-                    <span class="investment-kpi__label">Нереализованный PnL</span>
-                    <span class="investment-kpi__badge">Open</span>
-                </div>
-                <div class="investment-kpi__value">
-                    {% if analytics.kpi.unrealized_pnl_sum > 0 %}+{% endif %}{% money analytics.kpi.unrealized_pnl_sum %}
-                </div>
-                <div class="investment-kpi__meta">По активным позициям, которые ещё не закрыты.</div>
+            <div class="investment-counter investment-counter--ready">
+                <span class="investment-counter__value">{{ analytics.kpi.ready_count }}</span>
+                <span class="investment-counter__label">готово к продаже</span>
             </div>
-        </article>
-
-        <article class="card investment-kpi {% if analytics.kpi.realized_pnl_sum >= 0 %}investment-kpi--positive{% else %}investment-kpi--negative{% endif %}">
-            <div class="card-body">
-                <div class="investment-kpi__head">
-                    <span class="investment-kpi__label">Реализованный PnL</span>
-                    <span class="investment-kpi__badge">Closed</span>
-                </div>
-                <div class="investment-kpi__value">
-                    {% if analytics.kpi.realized_pnl_sum > 0 %}+{% endif %}{% money analytics.kpi.realized_pnl_sum %}
-                </div>
-                <div class="investment-kpi__meta">Только по уже оформленным продажам.</div>
+            <div class="investment-counter investment-counter--hold">
+                <span class="investment-counter__value">{{ analytics.kpi.hold_count }}</span>
+                <span class="investment-counter__label">в трейд-бане</span>
             </div>
-        </article>
-
-        <article class="card investment-kpi investment-kpi--count">
-            <div class="card-body">
-                <div class="investment-kpi__head">
-                    <span class="investment-kpi__label">Активные закупки</span>
-                    <span class="investment-kpi__badge">Count</span>
-                </div>
-                <div class="investment-kpi__value">{{ analytics.kpi.active_purchases_count }}</div>
-                <div class="investment-kpi__meta">Закупки с остатком больше нуля.</div>
+            <div class="investment-counter investment-counter--unlock">
+                <span class="investment-counter__value">{% if analytics.kpi.nearest_unlock_at %}{{ analytics.kpi.nearest_unlock_at|date:"d.m H:i" }}{% else %}—{% endif %}</span>
+                <span class="investment-counter__label">ближайшая разблокировка</span>
             </div>
-        </article>
-
-        <article class="card investment-kpi investment-kpi--ready">
-            <div class="card-body">
-                <div class="investment-kpi__head">
-                    <span class="investment-kpi__label">Готово к продаже</span>
-                    <span class="investment-kpi__badge">Ready</span>
-                </div>
-                <div class="investment-kpi__value">{{ analytics.kpi.ready_count }}</div>
-                <div class="investment-kpi__meta">Можно переходить к продаже без ожидания hold.</div>
-            </div>
-        </article>
-
-        <article class="card investment-kpi investment-kpi--hold">
-            <div class="card-body">
-                <div class="investment-kpi__head">
-                    <span class="investment-kpi__label">В hold</span>
-                    <span class="investment-kpi__badge">Hold</span>
-                </div>
-                <div class="investment-kpi__value">{{ analytics.kpi.hold_count }}</div>
-                <div class="investment-kpi__meta">Позиции, которые ещё не разблокировались.</div>
-            </div>
-        </article>
-
-        <article class="card investment-kpi investment-kpi--unlock">
-            <div class="card-body">
-                <div class="investment-kpi__head">
-                    <span class="investment-kpi__label">Ближайшая разблокировка</span>
-                    <span class="investment-kpi__badge">Next</span>
-                </div>
-                <div class="investment-kpi__value investment-kpi__value--datetime">
-                    {% if analytics.kpi.nearest_unlock_at %}
-                        {{ analytics.kpi.nearest_unlock_at|date:"d.m.Y" }}
-                    {% else %}
-                        —
-                    {% endif %}
-                </div>
-                <div class="investment-kpi__meta">
-                    {% if analytics.kpi.nearest_unlock_at %}
-                        {{ analytics.kpi.nearest_unlock_at|date:"H:i" }}
-                    {% else %}
-                        Нет предстоящих разблокировок.
-                    {% endif %}
-                </div>
-            </div>
-        </article>
+        </div>
     </div>
     {% else %}
         <article class="card dashboard-panel">
@@ -170,7 +107,7 @@
                     </div>
                 
                     <div class="investment-toolbar__actions">
-                        <button type="submit" class="btn btn-primary">Применить</button>
+                        <button type="submit" class="btn btn-secondary">Применить</button>
                         {% if has_investment_filters %}
                             <a href="{% url 'steam_trading:investments' %}" class="btn btn-secondary">Сбросить</a>
                         {% endif %}
@@ -189,185 +126,98 @@
                 </div>
             </div>
 
-            <div class="investment-quick-filters">
+            <div class="investment-quick-filters chip-tabs">
                 <a href="{% url 'steam_trading:investments' %}?status=all&sort={{ investment_filter_state.sort }}&q={{ investment_filter_state.query|urlencode }}"
-                   class="investment-quick-filter{% if investment_filter_state.status == 'all' %} investment-quick-filter--active{% endif %}">
+                   class="chip-tab investment-quick-filter{% if investment_filter_state.status == 'all' %} investment-quick-filter--active is-active{% endif %}">
                     Все
                 </a>
                 <a href="{% url 'steam_trading:investments' %}?status=ready&sort={{ investment_filter_state.sort }}&q={{ investment_filter_state.query|urlencode }}"
-                   class="investment-quick-filter{% if investment_filter_state.status == 'ready' %} investment-quick-filter--active{% endif %}">
+                   class="chip-tab investment-quick-filter{% if investment_filter_state.status == 'ready' %} investment-quick-filter--active is-active{% endif %}">
                     Ready
                 </a>
                 <a href="{% url 'steam_trading:investments' %}?status=hold&sort={{ investment_filter_state.sort }}&q={{ investment_filter_state.query|urlencode }}"
-                   class="investment-quick-filter{% if investment_filter_state.status == 'hold' %} investment-quick-filter--active{% endif %}">
+                   class="chip-tab investment-quick-filter{% if investment_filter_state.status == 'hold' %} investment-quick-filter--active is-active{% endif %}">
                     Hold
                 </a>
                 <a href="{% url 'steam_trading:investments' %}?status=partial&sort={{ investment_filter_state.sort }}&q={{ investment_filter_state.query|urlencode }}"
-                   class="investment-quick-filter{% if investment_filter_state.status == 'partial' %} investment-quick-filter--active{% endif %}">
+                   class="chip-tab investment-quick-filter{% if investment_filter_state.status == 'partial' %} investment-quick-filter--active is-active{% endif %}">
                     Partial
                 </a>
             </div>
 
             {% if filtered_active_rows %}
-                <div class="table-responsive investment-table-wrap">
-                    <table class="table investment-table align-middle">
-                        <thead>
-                            <tr>
-                                <th>Предмет</th>
-                                <th>Закупка</th>
-                                <th>Кол-во</th>
-                                <th>Вложено</th>
-                                <th>Оценка</th>
-                                <th>PnL</th>
-                                <th>Статус</th>
-                                <th>Разблокировка</th>
-                                <th class="investment-table__actions-col"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in filtered_active_rows %}
-                                <tr>
-                                    <td>
-                                        <div class="investment-cell investment-cell--item">
-                                            <a href="{% url 'steam_catalog:detail' row.purchase.item_id %}" class="investment-item__name">
-                                                {{ row.purchase.item.group_name }}
-                                            </a>
-                                            <div class="investment-item__meta">
-                                                ID #{{ row.purchase.id }}
-                                            </div>
-                                            {% if row.is_price_missing %}
-                                                <div class="investment-item__warning">Цена каталога не задана</div>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                
-                                    <td>
-                                        <div class="investment-cell">
-                                            <div class="investment-main-value">{% money row.purchase.purchase_price_rub %}</div>
-                                            <div class="investment-sub-value">
-                                                {{ row.purchase.purchased_at|date:"d.m.Y" }} · {{ row.purchase.purchased_at|date:"H:i" }}
-                                            </div>
-                                        </div>
-                                    </td>
-                                
-                                    <td>
-                                        <div class="investment-cell">
-                                            <div class="investment-main-value">{{ row.remaining_quantity }}</div>
-                                            <div class="investment-sub-value">
-                                                из {{ row.purchase.quantity }} шт.
-                                            </div>
-                                        </div>
-                                    </td>
-                                
-                                    <td>
-                                        <div class="investment-cell">
-                                            {% if investment_can_view_advanced_analytics %}
-                                                <div class="investment-main-value">{% money row.invested_active_rub %}</div>
-                                                <div class="investment-sub-value">активный cost basis</div>
-                                            {% else %}
-                                                <div class="investment-lock-inline">
-                                                    <strong>Upgrade</strong>
-                                                    <span>cost basis доступен с Level 4</span>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                
-                                    <td>
-                                        <div class="investment-cell">
-                                            {% if investment_can_view_advanced_analytics %}
-                                                <div class="investment-main-value">{% money row.current_value_rub %}</div>
-                                                <div class="investment-sub-value">
-                                                    текущая цена: {% money row.current_price_rub %}
-                                                </div>
-                                            {% else %}
-                                                <div class="investment-lock-inline">
-                                                    <strong>Upgrade</strong>
-                                                    <span>оценка позиции доступна с Level 4</span>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                
-                                    <td>
-                                        <div class="investment-cell {% if investment_can_view_advanced_analytics %}investment-pnl {% if row.unrealized_pnl_rub > 0 %}investment-pnl--positive{% elif row.unrealized_pnl_rub < 0 %}investment-pnl--negative{% endif %}{% endif %}">
-                                            {% if investment_can_view_advanced_analytics %}
-                                                <div class="investment-main-value">
-                                                    {% if row.unrealized_pnl_rub > 0 %}+{% endif %}{% money row.unrealized_pnl_rub %} 
-                                                </div>
-                                                <div class="investment-sub-value">
-                                                    {% if row.unrealized_pnl_percent > 0 %}+{% endif %}{% money row.unrealized_pnl_percent %}%
-                                                </div>
-                                            {% else %}
-                                                <div class="investment-lock-inline">
-                                                    <strong>Upgrade</strong>
-                                                    <span>PnL и доходность доступны с Level 4</span>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                
-                                    <td>
-                                        <div class="investment-cell">
-                                            <span class="investment-status investment-status--{{ row.status_code }}">
-                                                {{ row.status_label }}
-                                            </span>
-                                        </div>
-                                    </td>
-                                
-                                    <td>
-                                        <div class="investment-cell">
-                                            {% if row.purchase.unlocked_at %}
-                                                <div class="investment-main-value investment-main-value--date">
-                                                    {{ row.purchase.unlocked_at|date:"d.m.Y" }}
-                                                </div>
-                                                <div class="investment-sub-value">
-                                                    {{ row.purchase.unlocked_at|date:"H:i" }}
-                                                    ·
-                                                    {% if row.days_to_unlock is None %}
-                                                        доступно
-                                                    {% elif row.days_to_unlock == 0 %}
-                                                        сегодня
-                                                    {% else %}
-                                                        через {{ row.days_to_unlock }} дн.
-                                                    {% endif %}
-                                                </div>
-                                            {% else %}
-                                                <div class="investment-main-value">—</div>
-                                                <div class="investment-sub-value">нет даты</div>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                
-                                    <td class="investment-table__actions">
-                                        <div class="investment-action-group">
-                                            {% if row.purchase.can_sell %}
-                                                <a href="{% url 'steam_trading:sell' row.purchase.id %}" class="btn btn-secondary investment-action-btn">
-                                                    Продать
-                                                </a>
-                                            {% endif %}
-                                            
-                                            {% if investment_can_send_tg %}
-                                                <form method="post" action="{% url 'steam_trading:send_tg' row.purchase.id %}" class="inline-form">
-                                                    {% csrf_token %}
-                                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                                                    <button type="submit" class="btn btn-primary investment-action-btn">TG</button>
-                                                </form>
-                                            {% else %}
-                                                {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}" class="btn btn-secondary investment-action-btn investment-action-btn--ghost">
-                                                    TG · Upgrade
-                                                </a>{% endif %}
-                                            {% endif %}
-                                        
-                                            <a href="{% url 'steam_catalog:detail' row.purchase.item_id %}" class="btn btn-secondary investment-action-btn investment-action-btn--ghost">
-                                                В каталог
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="investment-positions">
+                    {% for row in filtered_active_rows %}
+                        <article class="investment-position investment-position--{{ row.status_code }}">
+                            <div class="investment-position__item">
+                                <div class="investment-position__title-row">
+                                    <a href="{% url 'steam_catalog:detail' row.purchase.item_id %}" class="investment-item__name">{{ row.purchase.item.group_name }}</a>
+                                    <span class="investment-status investment-status--{{ row.status_code }}">{{ row.status_label }}</span>
+                                </div>
+                                <div class="investment-item__meta">
+                                    #{{ row.purchase.id }} · {{ row.remaining_quantity }} из {{ row.purchase.quantity }} шт. · по {% money row.purchase.purchase_price_rub %} · {{ row.purchase.purchased_at|date:"d.m.Y" }}
+                                </div>
+                                {% if row.is_price_missing %}
+                                    <div class="investment-item__warning">Цена каталога не задана</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="investment-position__metric">
+                                <span class="investment-position__label">Вложено → сейчас</span>
+                                {% if investment_can_view_advanced_analytics %}
+                                    <div class="investment-main-value">{% money row.invested_active_rub %} → {% money row.current_value_rub %}</div>
+                                    <div class="investment-sub-value">цена сейчас {% money row.current_price_rub %}</div>
+                                {% else %}
+                                    <div class="investment-lock-inline">
+                                        <strong>Upgrade</strong>
+                                        <span>cost basis доступен с Level 4</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="investment-position__metric {% if investment_can_view_advanced_analytics %}investment-pnl {% if row.unrealized_pnl_rub > 0 %}investment-pnl--positive{% elif row.unrealized_pnl_rub < 0 %}investment-pnl--negative{% endif %}{% endif %}">
+                                <span class="investment-position__label">PnL</span>
+                                {% if investment_can_view_advanced_analytics %}
+                                    <div class="investment-main-value">{% if row.unrealized_pnl_rub > 0 %}+{% endif %}{% money row.unrealized_pnl_rub %}</div>
+                                    <div class="investment-sub-value">{% if row.unrealized_pnl_percent > 0 %}+{% endif %}{{ row.unrealized_pnl_percent|floatformat:2 }}%</div>
+                                {% else %}
+                                    <div class="investment-lock-inline">
+                                        <strong>Upgrade</strong>
+                                        <span>PnL и доходность доступны с Level 4</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="investment-position__metric">
+                                <span class="investment-position__label">Разблокировка</span>
+                                {% if row.purchase.unlocked_at %}
+                                    <div class="investment-main-value investment-main-value--date">{{ row.purchase.unlocked_at|date:"d.m.Y" }}</div>
+                                    <div class="investment-sub-value">
+                                        {{ row.purchase.unlocked_at|date:"H:i" }} · {% if row.days_to_unlock is None %}доступно{% elif row.days_to_unlock == 0 %}сегодня{% else %}через {{ row.days_to_unlock }} дн.{% endif %}
+                                    </div>
+                                {% else %}
+                                    <div class="investment-main-value">—</div>
+                                    <div class="investment-sub-value">нет даты</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="investment-action-group">
+                                {% if row.purchase.can_sell %}
+                                    <a href="{% url 'steam_trading:sell' row.purchase.id %}" class="btn btn-primary btn-sm investment-action-btn">Продать</a>
+                                {% endif %}
+                                {% if investment_can_send_tg %}
+                                    <form method="post" action="{% url 'steam_trading:send_tg' row.purchase.id %}" class="inline-form">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button type="submit" class="btn btn-secondary btn-sm investment-action-btn">TG</button>
+                                    </form>
+                                {% else %}
+                                    {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}" class="btn btn-ghost btn-sm investment-action-btn investment-action-btn--ghost">TG · Upgrade</a>{% endif %}
+                                {% endif %}
+                                <a href="{% url 'steam_catalog:detail' row.purchase.item_id %}" class="btn btn-ghost btn-sm investment-action-btn investment-action-btn--ghost">В каталог</a>
+                            </div>
+                        </article>
+                    {% endfor %}
                 </div>
             {% else %}
                 <div class="investment-empty-state">

@@ -3,7 +3,7 @@
         <div>
             <span class="eyebrow">Farmer zone</span>
             <h1 class="page-title page-title--sm">Продажа закупки</h1>
-            <p class="text-muted">Продажа идёт от конкретной закупки. Частичные продажи поддерживаются, oversell — нет, потому что backend не спит.</p>
+            <p class="text-muted">Продаём из конкретной закупки. Можно продать часть, но не больше остатка.</p>
         </div>
         <a href="{% url 'steam_trading:investments' %}" class="btn btn-secondary">К журналу</a>
     </div>
@@ -21,7 +21,7 @@
                     </div>
                 </div>
 
-                <dl class="details-list">
+                <dl class="details-list sale-facts">
                     <div>
                         <dt>Дата закупки</dt>
                         <dd>{{ purchase.purchased_at|date:"d.m.Y H:i" }}</dd>
@@ -55,7 +55,7 @@
                         <dd>{{ purchase_row.sale_status_label }}</dd>
                     </div>
                     <div>
-                        <dt>Realized PnL</dt>
+                        <dt>Реализованный PnL</dt>
                         <dd>{% if purchase_row.realized_profit_rub > 0 %}+{% endif %}{% money purchase_row.realized_profit_rub %}</dd>
                     </div>
                 </dl>
@@ -91,40 +91,30 @@
                             <div class="faceit-error">{{ form.non_field_errors }}</div>
                         {% endif %}
 
-                        <div class="cards-grid farm-mini-stats" id="sale-preview-grid" data-purchase-price="{{ purchase.purchase_price_rub|floatformat:2 }}">
-                            <article class="card card--soft">
-                                <div class="card-body">
-                                    <p class="text-muted">Сумма продажи</p>
-                                    <strong id="sale-total-preview">{{ preview.total_sale_rub|floatformat:2 }}</strong>
-                                </div>
-                            </article>
-                            <article class="card card--soft">
-                                <div class="card-body">
-                                    <p class="text-muted">Себестоимость</p>
-                                    <strong id="sale-cost-preview">{{ preview.cost_basis_rub|floatformat:2 }}</strong>
-                                </div>
-                            </article>
-                            <article class="card card--soft">
-                                <div class="card-body">
-                                    <p class="text-muted">PnL {{ site_settings.site_currency_symbol|default:"₽" }}</p>
-                                    <strong id="sale-profit-preview">{% if preview.profit_rub > 0 %}+{% endif %}{{ preview.profit_rub|floatformat:2 }}</strong>
-                                </div>
-                            </article>
-                            <article class="card card--soft">
-                                <div class="card-body">
-                                    <p class="text-muted">PnL %</p>
-                                    <strong id="sale-profit-percent-preview">{% if preview.profit_percent > 0 %}+{% endif %}{{ preview.profit_percent|floatformat:2 }}%</strong>
-                                </div>
-                            </article>
-                            <article class="card card--soft">
-                                <div class="card-body">
-                                    <p class="text-muted">Результат</p>
-                                    <strong id="sale-result-preview">{{ preview.result_label }}</strong>
-                                </div>
-                            </article>
-                        </div>
+                        <dl class="sale-receipt" id="sale-preview-grid" data-purchase-price="{{ purchase.purchase_price_rub|floatformat:2 }}">
+                            <div class="sale-receipt__row">
+                                <dt>Сумма продажи</dt>
+                                <dd id="sale-total-preview">{{ preview.total_sale_rub|floatformat:2 }}</dd>
+                            </div>
+                            <div class="sale-receipt__row">
+                                <dt>Себестоимость</dt>
+                                <dd id="sale-cost-preview">{{ preview.cost_basis_rub|floatformat:2 }}</dd>
+                            </div>
+                            <div class="sale-receipt__row sale-receipt__row--pnl">
+                                <dt>PnL {{ site_settings.site_currency_symbol|default:"₽" }}</dt>
+                                <dd id="sale-profit-preview">{% if preview.profit_rub > 0 %}+{% endif %}{{ preview.profit_rub|floatformat:2 }}</dd>
+                            </div>
+                            <div class="sale-receipt__row sale-receipt__row--pnl">
+                                <dt>PnL %</dt>
+                                <dd id="sale-profit-percent-preview">{% if preview.profit_percent > 0 %}+{% endif %}{{ preview.profit_percent|floatformat:2 }}%</dd>
+                            </div>
+                            <div class="sale-receipt__row sale-receipt__row--result">
+                                <dt>Результат</dt>
+                                <dd id="sale-result-preview">{{ preview.result_label }}</dd>
+                            </div>
+                        </dl>
 
-                        <button type="submit" class="btn btn-primary btn-block">Сохранить продажу</button>
+                        <button type="submit" class="btn btn-primary">Сохранить продажу</button>
                     </form>
                 {% else %}
                     <div class="faceit-error">

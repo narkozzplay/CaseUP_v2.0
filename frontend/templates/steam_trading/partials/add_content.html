@@ -3,7 +3,7 @@
         <div>
             <span class="eyebrow">Farmer zone</span>
             <h1 class="page-title page-title--sm">Добавить закупку</h1>
-            <p class="text-muted">Цена по умолчанию берётся из Steam Catalog. Итог всё равно пересчитывается на backend — фронту доверяем ровно настолько, насколько доверяют лотерейному билету.</p>
+            <p class="text-muted">Выбери кейс, и цена подставится из каталога. Итоговая сумма считается автоматически. Трейд-бан снимется через 7 дней в 10:00.</p>
         </div>
         <a href="{% url 'steam_trading:investments' %}" class="btn btn-secondary">К журналу</a>
     </div>
@@ -50,7 +50,7 @@
                     <div class="faceit-error">{{ form.non_field_errors }}</div>
                 {% endif %}
 
-                <button type="submit" class="btn btn-primary btn-block">Сохранить закупку</button>
+                <div class="toolbar-actions"><button type="submit" class="btn btn-primary">Сохранить закупку</button><a href="{% url 'steam_trading:investments' %}" class="btn btn-ghost">Отмена</a></div>
             </form>
         </div>
     </article>
