@@ -55,75 +55,57 @@
 
 <section class="section section--compact">
     <div class="container">
-        <div class="pricing-stack">
+        <div class="plan-grid">
             {% for plan in plans %}
-                <article class="card pricing-plan-card{% if current_subscription.active_plan and current_subscription.active_plan.id == plan.id %} pricing-plan-card--current{% endif %}">
-                    <div class="card-body pricing-plan-card__body">
-                        <div class="pricing-plan-card__main">
-                            <div class="pricing-plan-card__head">
-                                <div>
-                                    <div class="pricing-plan-card__meta-row">
-                                        <span class="pricing-card__level">Site · Level {{ plan.level }}</span>
-                                        {% if plan.ui_badge %}<span class="badge">{{ plan.ui_badge }}</span>{% endif %}
-                                    </div>
-                                    <h2 class="section-title pricing-card__title">{{ plan.name }}</h2>
-                                </div>
-                                <div class="pricing-price-box">
-                                    <strong>{% money plan.price_rub %}</strong>
-                                    <span>/ {{ plan.billing_period_days }} дн.</span>
-                                </div>
-                            </div>
+                                <article class="plan-card plan-card--l{{ plan.level }}{% if current_subscription.active_plan and current_subscription.active_plan.id == plan.id %} plan-card--current{% endif %}">
+                    <header class="plan-card__head">
+                        <span class="plan-card__level">L{{ plan.level }}</span>
+                        {% if plan.ui_badge %}<span class="plan-card__badge">{{ plan.ui_badge }}</span>{% endif %}
+                        {% if current_subscription.active_plan and current_subscription.active_plan.id == plan.id %}<span class="plan-card__badge plan-card__badge--current">Ваш тариф</span>{% endif %}
+                    </header>
+                    <h2 class="plan-card__name">{{ plan.name }}</h2>
+                    <div class="plan-card__price">
+                        <strong>{% money plan.price_rub %}</strong>
+                        <span>/ {{ plan.billing_period_days }} дн.</span>
+                    </div>
+                    <p class="plan-card__description">{{ plan.description }}</p>
 
-                            <p class="pricing-card__description">{{ plan.description }}</p>
+                    <ul class="plan-card__features">
+                        {% for item in plan.ui_feature_list %}
+                            <li>{{ item }}</li>
+                        {% empty %}
+                            <li>Описание тарифа будет заполнено в админке.</li>
+                        {% endfor %}
+                    </ul>
 
-                            <div class="pricing-plan-card__columns">
-                                <div class="pricing-plan-card__section">
-                                    <h3>Что входит</h3>
-                                    <ul class="pricing-benefits">
-                                        {% for item in plan.ui_feature_list %}
-                                            <li>{{ item }}</li>
-                                        {% empty %}
-                                            <li>Описание тарифа будет заполнено в админке.</li>
-                                        {% endfor %}
-                                    </ul>
-                                </div>
-                                <div class="pricing-plan-card__section">
-                                    <h3>Feature gates</h3>
-                                    <div class="pricing-feature-chips">
-                                        {% for feature in plan.features.all %}
-                                            {% if feature.is_active %}
-                                                <span class="status-pill status-pill--sm">{{ feature.name }}</span>
-                                            {% endif %}
-                                        {% empty %}
-                                            <span class="status-pill status-pill--sm">Нет привязанных feature codes</span>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
+                    <details class="plan-card__gates">
+                        <summary>Модули тарифа</summary>
+                        <div class="pricing-feature-chips">
+                            {% for feature in plan.features.all %}
+                                {% if feature.is_active %}
+                                    <span class="status-pill status-pill--sm">{{ feature.name }}</span>
+                                {% endif %}
+                            {% empty %}
+                                <span class="status-pill status-pill--sm">Нет привязанных feature codes</span>
+                            {% endfor %}
                         </div>
+                    </details>
 
-                        <div class="pricing-plan-card__aside">
-                            {% if plan.purchase_ui.state == "current" or plan.purchase_ui.state == "blocked_higher" %}
-                                <span class="btn btn-secondary btn-block disabled">{{ plan.purchase_ui.button_label }}</span>
-                            {% elif plan.purchase_ui.state == "login" or plan.purchase_ui.state == "topup" %}
-                                <a href="{{ plan.purchase_ui.href }}" class="btn btn-secondary btn-block">{{ plan.purchase_ui.button_label }}</a>
-                            {% else %}
-                                <form method="post" action="{% url 'subscriptions:purchase_plan' plan.id %}" class="inline-form inline-form--block">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-primary btn-block">
-                                        {{ plan.purchase_ui.button_label }}
-                                    </button>
-                                </form>
-                            {% endif %}
-                            
-                            {% if plan.purchase_ui.show_amount %}
-                                <p class="pricing-action-hint">
-                                    К списанию: {% money plan.purchase_ui.quote_amount %}
-                                </p>
-                            {% endif %}
-                            
-                            <p class="pricing-action-hint">{{ plan.purchase_ui.hint }}</p>
-                        </div>
+                    <div class="plan-card__action">
+                        {% if plan.purchase_ui.state == "current" or plan.purchase_ui.state == "blocked_higher" %}
+                            <span class="btn btn-secondary btn-block disabled">{{ plan.purchase_ui.button_label }}</span>
+                        {% elif plan.purchase_ui.state == "login" or plan.purchase_ui.state == "topup" %}
+                            <a href="{{ plan.purchase_ui.href }}" class="btn btn-secondary btn-block">{{ plan.purchase_ui.button_label }}</a>
+                        {% else %}
+                            <form method="post" action="{% url 'subscriptions:purchase_plan' plan.id %}" class="inline-form inline-form--block">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-block">{{ plan.purchase_ui.button_label }}</button>
+                            </form>
+                        {% endif %}
+                        {% if plan.purchase_ui.show_amount %}
+                            <p class="pricing-action-hint">К списанию: {% money plan.purchase_ui.quote_amount %}</p>
+                        {% endif %}
+                        <p class="pricing-action-hint">{{ plan.purchase_ui.hint }}</p>
                     </div>
                 </article>
             {% endfor %}

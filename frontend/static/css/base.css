@@ -942,37 +942,40 @@ textarea.form-control,
 
 .details-list {
     display: grid;
-    gap: 16px;
+    gap: 0;
     margin: 0;
 }
 
 .details-list div {
-    padding-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    padding: 10px 0;
     border-bottom: 1px solid var(--border);
 }
 
 .details-list div:last-child {
-    padding-bottom: 0;
     border-bottom: 0;
 }
 
 .details-list dt {
-    margin-bottom: 6px;
+    flex: none;
     color: var(--text-muted);
+    font-size: 0.86rem;
 }
 
 .details-list dd {
+    min-width: 0;
     margin: 0;
-    font-size: 1rem;
+    font-size: 0.92rem;
     font-weight: 600;
-}
-
-.details-list--compact {
-    gap: 12px;
+    text-align: right;
+    overflow-wrap: anywhere;
 }
 
 .details-list--compact div {
-    padding-bottom: 12px;
+    padding: 8px 0;
 }
 
 .dashboard-actions,

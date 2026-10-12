@@ -26,76 +26,33 @@
         </span>
     </div>
 
-    <div class="cards-grid farm-overview-grid">
-        <article class="card card--soft farm-stat-card farm-stat-card--accounts">
-            <div class="card-body">
-                <div class="farm-stat-label">Farm accounts</div>
-                <p class="metric">{{ accounts_total }}</p>
-                <p class="text-muted">active: {{ accounts_active }} · review: {{ accounts_review }}</p>
-            </div>
-        </article>
-        <article class="card card--soft farm-stat-card farm-stat-card--drops">
-            <div class="card-body">
-                <div class="farm-stat-label">Farm drops</div>
-                <p class="metric">{{ drop_sessions_total }}</p>
-                <p class="text-muted">сессии дропов на аккаунтах</p>
-            </div>
-        </article>
-        <article class="card card--soft farm-stat-card farm-stat-card--sales">
-            <div class="card-body">
-                <div class="farm-stat-label">Продажи</div>
-                <p class="metric">{{ sales_total }}</p>
-                <p class="text-muted">{{ site_settings.site_name|default:"CaseUP" }}: {{ caseup_sales_total }}</p>
-            </div>
-        </article>
-        <article class="card card--soft farm-stat-card farm-stat-card--commission">
-            <div class="card-body">
-                <div class="farm-stat-label">{{ site_settings.site_name|default:"CaseUP" }} fee</div>
-                <p class="metric">{{ current_caseup_fee_percent|floatformat:2 }}%</p>
-                <p class="text-muted">базовая: {{ default_caseup_fee_percent|floatformat:2 }}% · по плану: {{ subscribed_caseup_fee_percent|floatformat:2 }}%</p>
-            </div>
-        </article>
+    <div class="stat-tiles farm-overview-grid">
+        <a href="{% url 'farm:accounts_list' %}" class="stat-tile farm-stat-card farm-stat-card--accounts">
+            <span class="stat-tile__label">Farm accounts</span>
+            <span class="stat-tile__value">{{ accounts_total }}</span>
+            <span class="stat-tile__meta">active: {{ accounts_active }} · review: {{ accounts_review }}</span>
+        </a>
+        <a href="{% url 'farm:sessions_list' %}" class="stat-tile farm-stat-card farm-stat-card--drops">
+            <span class="stat-tile__label">Farm drops</span>
+            <span class="stat-tile__value">{{ drop_sessions_total }}</span>
+            <span class="stat-tile__meta">сессии дропов на аккаунтах</span>
+        </a>
+        <div class="stat-tile farm-stat-card farm-stat-card--sales">
+            <span class="stat-tile__label">Продажи</span>
+            <span class="stat-tile__value">{{ sales_total }}</span>
+            <span class="stat-tile__meta">{{ site_settings.site_name|default:"CaseUP" }}: {{ caseup_sales_total }}</span>
+        </div>
+        <div class="stat-tile farm-stat-card farm-stat-card--commission">
+            <span class="stat-tile__label">{{ site_settings.site_name|default:"CaseUP" }} fee</span>
+            <span class="stat-tile__value">{{ current_caseup_fee_percent|floatformat:2 }}%</span>
+            <span class="stat-tile__meta">базовая {{ default_caseup_fee_percent|floatformat:2 }}% · по плану {{ subscribed_caseup_fee_percent|floatformat:2 }}%</span>
+        </div>
     </div>
 
     <div class="farm-locked-stack">
         {% include "farm/partials/analytics_summary.html" with analytics=dashboard_analytics analytics_locked=analytics_locked analytics_plan_name=analytics_plan_name %}
 
         {% if analytics_locked %}
-            <div class="profile-grid farm-dashboard-grid">
-                <article class="card">
-                    <div class="card-body">
-                        <div class="section-head-inline">
-                            <h2 class="section-title">Лучшие позиции</h2>
-                            <a href="{% url 'farm:sessions_list' %}" class="btn btn-secondary btn-sm">Все дропы</a>
-                        </div>
-                        <p class="text-muted empty-state">Рейтинг позиций доступен только с deep analytics.</p>
-                    </div>
-                </article>
-
-                <article class="card">
-                    <div class="card-body">
-                        <h2 class="section-title">Худшие позиции</h2>
-                        <p class="text-muted empty-state">Антирейтинг и сравнение PnL открываются после апгрейда.</p>
-                    </div>
-                </article>
-            </div>
-
-            <div class="profile-grid farm-dashboard-grid">
-                <article class="card">
-                    <div class="card-body">
-                        <h2 class="section-title">Продажи по площадкам</h2>
-                        <p class="text-muted empty-state">Breakdown по площадкам скрыт на текущем плане.</p>
-                    </div>
-                </article>
-
-                <article class="card">
-                    <div class="card-body">
-                        <h2 class="section-title">Farmer bonus progress</h2>
-                        <p class="text-muted empty-state">Прогресс бонусной программы и экономия комиссии доступны по farmer-плану.</p>
-                    </div>
-                </article>
-            </div>
-
             {% include "farm/partials/analytics_locked_cta.html" %}
         {% else %}
             <div class="profile-grid farm-dashboard-grid">

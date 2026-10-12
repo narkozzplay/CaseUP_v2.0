@@ -525,3 +525,157 @@ select.form-control option {
         grid-template-columns: 1fr;
     }
 }
+
+/* ===== CaseUP Tactical: plan cards ===== */
+.plan-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    align-items: stretch;
+}
+
+.plan-card {
+    --plan-accent: var(--rarity-milspec, #4b69ff);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--plan-accent);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--plan-accent) 10%, transparent), transparent 140px),
+        var(--panel);
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.plan-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+    border-top-color: var(--plan-accent);
+}
+
+.plan-card--l1 { --plan-accent: var(--rarity-consumer, #b0c3d9); }
+.plan-card--l2 { --plan-accent: var(--rarity-milspec, #4b69ff); }
+.plan-card--l3 { --plan-accent: var(--rarity-restricted, #8847ff); }
+.plan-card--l4 { --plan-accent: var(--rarity-classified, #d32ce6); }
+.plan-card--l5 { --plan-accent: var(--rarity-covert, #eb4b4b); }
+
+.plan-card--current {
+    box-shadow: 0 0 0 1px var(--accent), 0 0 32px rgba(245, 166, 35, 0.12);
+}
+
+.plan-card__head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.plan-card__level {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 800;
+    font-style: italic;
+    line-height: 1;
+    color: var(--plan-accent);
+}
+
+.plan-card__badge {
+    padding: 2px 8px;
+    border: 1px solid var(--border-strong);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+}
+
+.plan-card__badge--current {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.plan-card__name {
+    margin: 0;
+    font-size: 1.1rem;
+    letter-spacing: 0.02em;
+}
+
+.plan-card__price {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.plan-card__price strong {
+    font-family: var(--font-mono);
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.plan-card__price span {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.plan-card__description {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.86rem;
+    line-height: 1.45;
+}
+
+.plan-card__features {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 14px 0 0;
+    border-top: 1px dashed var(--border);
+    list-style: none;
+}
+
+.plan-card__features li {
+    position: relative;
+    padding-left: 18px;
+    font-size: 0.86rem;
+    line-height: 1.4;
+    color: var(--text-soft);
+}
+
+.plan-card__features li::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 0.5em;
+    width: 7px;
+    height: 7px;
+    background: var(--plan-accent);
+    transform: rotate(45deg);
+}
+
+.plan-card__gates summary {
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.plan-card__gates .pricing-feature-chips {
+    margin-top: 10px;
+}
+
+.plan-card__action {
+    margin-top: auto;
+    display: grid;
+    gap: 6px;
+}
+
+.plan-card__action .pricing-action-hint {
+    margin: 0;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+}

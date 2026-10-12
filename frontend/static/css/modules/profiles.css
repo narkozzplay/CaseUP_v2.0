@@ -941,3 +941,50 @@
 .verification-level-card:hover {
     border-color: rgba(255,255,255,.25);
 }
+
+/* ===== CaseUP Tactical: profile hero ===== */
+@media (min-width: 961px) {
+    .profile-hero__body--enhanced {
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        gap: 28px;
+    }
+
+    .profile-hero__body--enhanced .profile-hero__aside {
+        flex: none;
+        width: 220px;
+        align-items: flex-start;
+    }
+
+    .profile-hero__body--enhanced .profile-hero__main {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+.profile-hero__aside .profile-avatar--xl {
+    width: 120px;
+    height: 120px;
+    border: 2px solid var(--accent);
+    border-radius: 0;
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+
+.profile-hero__aside .profile-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.profile-hero__aside .profile-badges .status-pill,
+.profile-hero__quick-meta .status-pill {
+    min-height: 26px;
+    padding: 0 10px;
+    font-size: 0.72rem;
+}
+
+.profile-hero__quick-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}

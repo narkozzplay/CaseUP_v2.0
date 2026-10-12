@@ -286,3 +286,9 @@
         align-items: flex-start;
     }
 }
+
+.stat-tile.farm-stat-card { border-top-width: 2px; }
+.stat-tile.farm-stat-card--accounts { border-top-color: var(--accent); }
+.stat-tile.farm-stat-card--drops { border-top-color: var(--rarity-restricted, #8847ff); }
+.stat-tile.farm-stat-card--sales { border-top-color: var(--up); }
+.stat-tile.farm-stat-card--commission { border-top-color: var(--rarity-milspec, #4b69ff); }
