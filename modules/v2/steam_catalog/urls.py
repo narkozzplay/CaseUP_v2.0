@@ -7,6 +7,7 @@ app_name = "steam_catalog"
 urlpatterns = [
     path("", views.catalog_list, name="list"),
     path("add/", views.catalog_add, name="add"),
+    path("market-search/", views.catalog_market_search, name="market_search"),
     path("<int:item_id>/", views.catalog_detail, name="detail"),
     path("<int:item_id>/name-ru/", views.update_name_ru, name="update_name_ru"),
     path("<int:item_id>/price-update/", views.update_price, name="update_price"),

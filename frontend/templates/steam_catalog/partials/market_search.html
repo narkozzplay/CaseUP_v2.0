@@ -1,0 +1,10 @@
+<div class="market-search" data-market-search data-endpoint="{% url 'steam_catalog:market_search' %}" data-add-url="{% url 'steam_catalog:add' %}">
+    {% csrf_token %}
+    <label class="catalog-search market-search__field">
+        {% include "components/icon.html" with name="search" %}
+        <span class="visually-hidden">Поиск в Steam Market</span>
+        <input type="search" data-market-search-input placeholder="Например: Redline, Kilowatt Case, Karambit Doppler" autocomplete="off" spellcheck="false">
+    </label>
+    <p class="market-search__status" data-market-search-status>Введи название на английском, как в Steam Market. Скины добавятся сразу со всеми вариантами износа и StatTrak™.</p>
+    <div class="market-search__results" data-market-search-results></div>
+</div>

@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -36,7 +36,7 @@ from modules.v2.system.services import build_page_title
 
 from .forms import AddSteamItemForm, SteamItemNameRuForm, StockMovementCreateForm, UserPriceAlertRuleForm
 from .models import SteamItem, UserPriceAlertEvent, UserPriceAlertRule
-from .services import refresh_item_prices, upsert_from_market_input
+from .services import MarketSearchError, refresh_item_prices, search_market_items, upsert_from_market_input
 from .services.helpers import canonical_listing_url
 
 
@@ -557,6 +557,29 @@ def catalog_add(request):
         form = AddSteamItemForm()
 
     return render(request, "steam_catalog/add.html", {"form": form})
+
+
+@login_required
+def catalog_market_search(request):
+    if not _catalog_staff_access(request.user):
+        return JsonResponse({"error": "Поиск по Steam Market доступен только staff/admin."}, status=403)
+
+    query = (request.GET.get("q") or "").strip()
+    try:
+        results = search_market_items(query=query)
+    except MarketSearchError as exc:
+        return JsonResponse({"query": query, "results": [], "error": str(exc)}, status=502)
+
+    return JsonResponse({
+        "query": query,
+        "results": [
+            {
+                **result.as_dict(),
+                "catalog_url": reverse("steam_catalog:detail", args=[result.catalog_item_id]) if result.catalog_item_id else "",
+            }
+            for result in results
+        ],
+    })
 
 
 @login_required

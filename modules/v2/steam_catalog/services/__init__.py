@@ -30,11 +30,14 @@ from .helpers import (
     rarity_ru_label_from_key,
     weapon_from_base_name,
 )
+from .market_search import MarketSearchError, MarketSearchResult, search_market_items
 from .telegram import _telegram_send_message, dispatch_pending_price_drop_alerts
 from .user_alerts import dispatch_pending_user_price_alerts, evaluate_user_price_alerts_for_item_type
 
 __all__ = [
     "CreateCatalogResult",
+    "MarketSearchError",
+    "MarketSearchResult",
     "RefreshPriceResult",
     "_build_price_drop_alert_message",
     "_telegram_send_message",
@@ -53,6 +56,7 @@ __all__ = [
     "normalize_rarity_key",
     "parse_skin_market_hash_name",
     "rarity_ru_label_from_key",
+    "search_market_items",
     "record_price_snapshot",
     "refresh_item_prices",
     "try_fetch_listing_metadata",

@@ -1217,3 +1217,111 @@ class SteamCatalogStoreModuleSlotTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Steam Catalog 2.0 foundation")
+
+
+class SteamMarketSearchTests(TestCase):
+    PAYLOAD = {
+        "success": True,
+        "results": [
+            {
+                "name": "AK-47 | Redline (Field-Tested)",
+                "hash_name": "AK-47 | Redline (Field-Tested)",
+                "sell_listings": 812,
+                "sell_price_text": "$12.40",
+                "asset_description": {"icon_url": "abc123", "type": "Classified Rifle"},
+            },
+            {
+                "name": "Kilowatt Case",
+                "hash_name": "Kilowatt Case",
+                "sell_listings": 40210,
+                "sell_price_text": "$0.62",
+                "asset_description": {"icon_url": "case42", "type": "Base Grade Container"},
+            },
+        ],
+    }
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        User = get_user_model()
+        self.staff = User.objects.create_user(username="market_staff", password="StrongPass123", is_staff=True)
+        self.user = User.objects.create_user(username="market_user", password="StrongPass123")
+        self.existing = SteamItem.objects.create(
+            market_hash_name="AK-47 | Redline (Minimal Wear)",
+            family_name="AK-47 | Redline",
+            name="AK-47 | Redline",
+            item_type=SteamItem.ItemType.SKIN,
+            price_rub=Decimal("1500.00"),
+        )
+
+    @patch("modules.v2.steam_catalog.services.market_search._fetch_search_payload")
+    def test_search_returns_results_and_marks_existing_family(self, fetch_mock):
+        fetch_mock.return_value = self.PAYLOAD
+        self.client.force_login(self.staff)
+
+        response = self.client.get(reverse("steam_catalog:market_search"), {"q": "redline"})
+
+        self.assertEqual(response.status_code, 200)
+        results = response.json()["results"]
+        self.assertEqual([row["hash_name"] for row in results], ["AK-47 | Redline (Field-Tested)", "Kilowatt Case"])
+        self.assertEqual(results[0]["rarity_key"], "classified")
+        self.assertEqual(results[0]["catalog_item_id"], self.existing.id)
+        self.assertEqual(results[0]["catalog_url"], reverse("steam_catalog:detail", args=[self.existing.id]))
+        self.assertIn("abc123", results[0]["icon"])
+        self.assertIsNone(results[1]["catalog_item_id"])
+        self.assertEqual(results[1]["catalog_url"], "")
+
+    @patch("modules.v2.steam_catalog.services.market_search._fetch_search_payload")
+    def test_search_is_cached_per_query(self, fetch_mock):
+        fetch_mock.return_value = self.PAYLOAD
+        self.client.force_login(self.staff)
+
+        self.client.get(reverse("steam_catalog:market_search"), {"q": "redline"})
+        self.client.get(reverse("steam_catalog:market_search"), {"q": "Redline"})
+
+        self.assertEqual(fetch_mock.call_count, 1)
+
+    @patch("modules.v2.steam_catalog.services.market_search._fetch_search_payload")
+    def test_short_query_skips_steam(self, fetch_mock):
+        self.client.force_login(self.staff)
+
+        response = self.client.get(reverse("steam_catalog:market_search"), {"q": "a"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["results"], [])
+        fetch_mock.assert_not_called()
+
+    @patch("modules.v2.steam_catalog.services.market_search._fetch_search_payload", side_effect=OSError("down"))
+    def test_steam_failure_returns_readable_error(self, fetch_mock):
+        self.client.force_login(self.staff)
+
+        response = self.client.get(reverse("steam_catalog:market_search"), {"q": "redline"})
+
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("Steam Market", response.json()["error"])
+
+    def test_search_requires_staff(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("steam_catalog:market_search"), {"q": "redline"})
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_add_page_renders_market_search(self):
+        self.client.force_login(self.staff)
+
+        response = self.client.get(reverse("steam_catalog:add"))
+
+        self.assertContains(response, "Поиск в Steam Market")
+        self.assertContains(response, reverse("steam_catalog:market_search"))
+
+    def test_alert_create_prefills_item(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("steam_catalog:alert_rule_create"), {"item": self.existing.id})
+
+        self.assertEqual(response.status_code, 200)
+        form = response.context["form"]
+        self.assertEqual(form.initial["item"], self.existing.id)
+        self.assertEqual(form.initial["scope_type"], UserPriceAlertRule.ScopeType.ITEM)

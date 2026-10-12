@@ -3,44 +3,46 @@
 
 {% block title %}Добавить предмет | Steam Catalog{% endblock %}
 
-
 {% block dashboard_extra_head %}
     <link rel="stylesheet" href="{% static 'css/modules/steam_catalog.css' %}">
 {% endblock %}
 
 {% block content %}
-<section class="auth-section">
-    <div class="container auth-grid auth-grid--single">
-        <div class="auth-card card">
-            <div class="card-body auth-card__body">
-                <span class="eyebrow">Steam Catalog</span>
-                <h1 class="auth-title">Добавить предмет по market_hash_name</h1>
+<section class="section section--compact">
+    <a href="{% url 'steam_catalog:list' %}" class="back-link">← Steam Catalog</a>
+    <div class="section-heading">
+        <span class="eyebrow">Steam Catalog</span>
+        <h1>Добавить предмет</h1>
+        <p class="text-muted">Найди предмет в Steam Market и добавь его одной кнопкой. Тип, оружие, редкость, картинку и цену система подтянет сама.</p>
+    </div>
 
-                <p class="text-muted auth-description">
-                    Вводишь только market_hash_name или Steam listing URL.
-                    Система сама подтянет тип предмета, оружие, редкость, rarity key, цену, icon_url
-                    и для скинов создаст все 10 вариантов поношенности + StatTrak™.
-                </p>
+    <div class="add-item-layout">
+        <article class="add-item-panel add-item-panel--search">
+            <h2 class="add-item-panel__title"><span class="alert-form__step">01</span> Поиск в Steam Market</h2>
+            {% include "steam_catalog/partials/market_search.html" %}
+        </article>
 
-                <form method="post" class="form-stack">
-                    {% csrf_token %}
+        <article class="add-item-panel">
+            <h2 class="add-item-panel__title"><span class="alert-form__step">02</span> Или вручную</h2>
+            <p class="text-muted add-item-panel__hint">Вставь market_hash_name или ссылку на лот в Steam Market.</p>
+            <form method="post" class="form-stack">
+                {% csrf_token %}
 
-                    <div class="form-field">
-                        <label for="{{ form.value.id_for_label }}">{{ form.value.label }}</label>
-                        {{ form.value }}
-                        {{ form.value.errors }}
-                    </div>
+                <div class="form-field">
+                    <label for="{{ form.value.id_for_label }}">{{ form.value.label }}</label>
+                    {{ form.value }}
+                    {{ form.value.errors }}
+                </div>
 
-                    <div class="form-field">
-                        <label for="{{ form.stock.id_for_label }}">{{ form.stock.label }}</label>
-                        {{ form.stock }}
-                        {{ form.stock.errors }}
-                    </div>
+                <div class="form-field">
+                    <label for="{{ form.stock.id_for_label }}">{{ form.stock.label }}</label>
+                    {{ form.stock }}
+                    {{ form.stock.errors }}
+                </div>
 
-                    <button type="submit" class="btn btn-primary btn-block">Добавить</button>
-                </form>
-            </div>
-        </div>
+                <button type="submit" class="btn btn-primary">Добавить</button>
+            </form>
+        </article>
     </div>
 </section>
 {% endblock %}

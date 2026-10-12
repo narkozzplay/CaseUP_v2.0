@@ -39,7 +39,7 @@
             <div class="toolbar-actions">
                 <button type="submit" class="btn btn-secondary">Фильтровать</button>
                 {% if catalog_can_edit %}
-                    <a href="{% url 'steam_catalog:add' %}" class="btn btn-primary">+ Добавить предмет</a>
+                    <a href="{% url 'steam_catalog:add' %}" class="btn btn-primary" data-market-search-open>+ Добавить предмет</a>
                 {% else %}
                     {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}" class="btn btn-ghost">Тарифы</a>{% endif %}
                 {% endif %}
@@ -112,7 +112,7 @@
             <div class="empty-panel">
                 <strong>Каталог пока пуст</strong>
                 <p class="text-muted">{% if catalog_can_edit %}Добавь первый предмет, и он появится здесь вместе с ценой.{% else %}Предметы появятся, когда команда добавит их в каталог.{% endif %}</p>
-                {% if catalog_can_edit %}<a href="{% url 'steam_catalog:add' %}" class="btn btn-primary btn-sm">+ Добавить предмет</a>{% endif %}
+                {% if catalog_can_edit %}<a href="{% url 'steam_catalog:add' %}" class="btn btn-primary btn-sm" data-market-search-open>+ Добавить предмет</a>{% endif %}
             </div>
         {% endfor %}
     </div>
@@ -129,3 +129,17 @@
         </div>
     {% endif %}
 </section>
+
+{% if catalog_can_edit %}
+<dialog class="market-dialog" id="market-search-dialog" aria-labelledby="market-dialog-title">
+    <div class="market-dialog__head">
+        <div>
+            <span class="eyebrow">Steam Market</span>
+            <h2 id="market-dialog-title">Добавить предмет</h2>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" data-market-search-close aria-label="Закрыть">✕</button>
+    </div>
+    {% include "steam_catalog/partials/market_search.html" %}
+    <p class="market-dialog__foot">Не нашёл? <a href="{% url 'steam_catalog:add' %}">Добавь по ссылке или market_hash_name</a>.</p>
+</dialog>
+{% endif %}
