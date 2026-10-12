@@ -1,0 +1,10 @@
+{% load site_formatters %}
+<div class="sim-drop rarity--{{ opening.item.rarity_css }}" title="{{ opening.display_name }}">
+    <div class="sim-drop__media">{% if opening.item.image_url %}<img src="{{ opening.item.image_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}</div>
+    <div class="sim-drop__body">
+        <span class="sim-drop__weapon">{% if opening.is_stattrak %}<b class="sim-st">ST</b> {% endif %}{{ opening.item.weapon_label }}</span>
+        <strong class="sim-drop__name">{{ opening.item.skin_name }}</strong>
+        <span class="sim-drop__meta">{% if show_user %}{{ opening.user.username }} · {% endif %}{{ opening.case.name }}</span>
+    </div>
+    <span class="sim-drop__value">{% money opening.item_value %}</span>
+</div>

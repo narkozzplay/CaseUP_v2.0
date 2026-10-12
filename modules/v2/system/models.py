@@ -530,6 +530,15 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 35,
             },
             {
+                "key": "case_simulator",
+                "label_ru": "Кейсы",
+                "label_en": "Cases",
+                "url_name": "case_simulator:list",
+                "group": cls.Group.OVERVIEW,
+                "visibility_condition": cls.Visibility.AUTHENTICATED,
+                "sort_order": 33,
+            },
+            {
                 "key": "store",
                 "label_ru": "Магазин",
                 "label_en": "Store",

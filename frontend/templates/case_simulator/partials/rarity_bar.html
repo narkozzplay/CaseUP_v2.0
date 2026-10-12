@@ -1,0 +1,10 @@
+<div class="sim-odds">
+    <div class="sim-odds__bar" aria-hidden="true">
+        {% for row in rarity_summary %}<span class="rarity--{{ row.css }}" style="flex-grow: {{ row.chance|stringformat:'f' }}"></span>{% endfor %}
+    </div>
+    <ul class="sim-odds__legend">
+        {% for row in rarity_summary %}
+            <li class="rarity--{{ row.css }}"><i></i>{{ row.label }}<b>{{ row.chance }}%</b></li>
+        {% endfor %}
+    </ul>
+</div>

@@ -83,6 +83,13 @@ MODULE_REGISTRY: dict[str, ModuleDefinition] = {
         addon_targets=("subscriptions",),
         default_enabled=True,
     ),
+    "case_simulator": ModuleDefinition(
+        key="case_simulator",
+        label="Case Simulator",
+        description="Симуляция открытия кейсов CS2 и своих кейсов CaseUP за внутренний баланс, терминал с предложениями.",
+        namespaces=("case_simulator",),
+        default_enabled=True,
+    ),
     "web_constructor": ModuleDefinition(
         key="web_constructor",
         label="Web Constructor",

@@ -19,7 +19,7 @@
                             {% elif request.user.profile_v2.steam_avatar %}
                                 <img src="{{ request.user.profile_v2.steam_avatar }}" alt="Steam avatar" class="dashboard-user-card__avatar">
                             {% else %}
-                                <img src="{% static 'img/placeholders/no_image.svg' %}" alt="Profile avatar" class="dashboard-user-card__avatar">
+                                <img src="{% static 'img/placeholders/no_image.jpg' %}" alt="Profile avatar" class="dashboard-user-card__avatar">
                             {% endif %}
                             <span class="presence-indicator {% if current_user_is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if current_user_is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if current_user_is_online %}Online{% else %}Offline{% endif %}"></span>
                         </span>
@@ -31,7 +31,7 @@
 
                     <div class="dashboard-user-card__wallet">
                         <span class="dashboard-user-card__wallet-label">{% if LANGUAGE_CODE == "ru" %}Баланс{% else %}Balance{% endif %}</span>
-                        <strong class="dashboard-user-card__wallet-value">{% money coins %}</strong>
+                        <strong class="dashboard-user-card__wallet-value" data-sim-balance>{% money coins %}</strong>
                     </div>
 
                     <dl class="dashboard-user-card__stats">

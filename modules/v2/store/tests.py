@@ -97,7 +97,7 @@ class StorePresentationPatchTests(TestCase):
 
     def test_product_preview_url_fallback_and_cover_priority(self):
         fallback_url = get_product_preview_url(self.listing)
-        self.assertTrue(fallback_url.endswith("img/placeholders/no_image.svg"))
+        self.assertTrue(fallback_url.endswith("img/placeholders/no_image.jpg"))
 
         self.listing.cover_image = "https://cdn.example.com/store/preview.webp"
         explicit_url = get_product_preview_url(self.listing)
@@ -133,7 +133,7 @@ class StorePresentationPatchTests(TestCase):
         self.assertEqual(presenter["display_name"], "Steam Display Name")
         self.assertEqual(presenter["role_prefix"], "[ADMIN]")
         self.assertEqual(presenter["access_badges"], ("Куплено",))
-        self.assertTrue(str(presenter["avatar_url"]).endswith("img/placeholders/no_image.svg"))
+        self.assertTrue(str(presenter["avatar_url"]).endswith("img/placeholders/no_image.jpg"))
 
 
 class StoreRuntimeModuleDiscoveryTests(TestCase):
@@ -628,7 +628,7 @@ class StoreViewsPatchUxTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.listing.title)
-        self.assertContains(response, "img/placeholders/no_image.svg")
+        self.assertContains(response, "img/placeholders/no_image.jpg")
         self.assertNotContains(response, "category=")
         self.assertNotContains(response, "runtime_key=")
 

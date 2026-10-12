@@ -1,0 +1,10 @@
+<div class="sim-cover{% if case.is_terminal %} sim-cover--terminal{% endif %}" style="--case-accent: {{ case.accent_color|default:'#f5a623' }}">
+    <div class="sim-cover__stack" aria-hidden="true">
+        {% for item in case.preview_items %}
+            <img src="{{ item.image_url }}" alt="" loading="lazy" class="sim-cover__item sim-cover__item--{{ forloop.counter }}" onerror="this.remove()">
+        {% endfor %}
+    </div>
+    {% if case.cover_url %}
+        <img src="{{ case.cover_url }}" alt="{{ case.name }}" loading="lazy" class="sim-cover__image" onerror="this.remove()">
+    {% endif %}
+</div>

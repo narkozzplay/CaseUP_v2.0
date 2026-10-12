@@ -33,6 +33,7 @@ _DASHBOARD_NAMESPACES = {
     "tradehub",
     "steam_trading",
     "game_servers",
+    "case_simulator",
     "celery_tasks",
     "tg_notifier",
     "store",

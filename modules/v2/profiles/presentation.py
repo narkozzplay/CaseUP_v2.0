@@ -5,7 +5,7 @@ from django.templatetags.static import static
 from .models import UserProfile, UserRole, VerificationLevel
 from .rbac import get_user_role
 
-DEFAULT_NO_IMAGE_STATIC_PATH = "img/placeholders/no_image.svg"
+DEFAULT_NO_IMAGE_STATIC_PATH = "img/placeholders/no_image.jpg"
 
 ROLE_PREFIX_BY_CODE = {
     UserRole.SUPER_ADMIN: "SUPER ADMIN",

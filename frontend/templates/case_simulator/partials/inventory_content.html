@@ -1,0 +1,55 @@
+{% load site_formatters %}
+<section class="section section--compact sim-page">
+    <a href="{% url 'case_simulator:list' %}" class="back-link" data-dashboard-nav="true">← Все кейсы</a>
+    <div class="page-header page-header--compact">
+        <div>
+            <span class="eyebrow">Case simulator</span>
+            <h1>Инвентарь симулятора</h1>
+            <p class="text-muted">Всё, что выпало из кейсов и терминала. Это симуляция: предметы остаются здесь и не выводятся в Steam.</p>
+        </div>
+    </div>
+
+    <div class="stat-tiles sim-stats">
+        <div class="stat-tile"><span class="stat-tile__label">Предметов</span><span class="stat-tile__value">{{ stats.count }}</span></div>
+        <div class="stat-tile"><span class="stat-tile__label">Потрачено</span><span class="stat-tile__value">{% money stats.spent %}</span></div>
+        <div class="stat-tile"><span class="stat-tile__label">Оценка инвентаря</span><span class="stat-tile__value">{% money stats.value %}</span></div>
+        {% if best_drop %}
+            <div class="stat-tile rarity--{{ best_drop.item.rarity_css }} sim-best"><span class="stat-tile__label">Лучший дроп</span><span class="stat-tile__value">{% money best_drop.item_value %}</span><span class="stat-tile__meta">{{ best_drop.display_name }}</span></div>
+        {% endif %}
+    </div>
+
+    {% if rarity_tabs %}
+        <div class="chip-tabs sim-tabs">
+            <a href="{% url 'case_simulator:inventory' %}" class="chip-tab{% if not selected_rarity %} is-active{% endif %}" data-dashboard-nav="true">Все<span class="chip-tabs__count">{{ stats.count }}</span></a>
+            {% for key, label, count in rarity_tabs %}
+                <a href="?rarity={{ key }}" class="chip-tab rarity--{{ key }}{% if selected_rarity == key %} is-active{% endif %}" data-dashboard-nav="true">{{ label }}<span class="chip-tabs__count">{{ count }}</span></a>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="sim-inventory">
+        {% for opening in openings %}
+            <div class="sim-inv rarity--{{ opening.item.rarity_css }}">
+                <div class="sim-inv__media">{% if opening.item.image_url %}<img src="{{ opening.item.image_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}</div>
+                <span class="sim-inv__weapon">{% if opening.is_stattrak %}<b class="sim-st">StatTrak™</b> {% endif %}{{ opening.item.weapon_label }}</span>
+                <strong class="sim-inv__name">{{ opening.item.skin_name }}</strong>
+                <span class="sim-inv__wear">{{ opening.exterior|default:"—" }}{% if opening.float_value is not None %} · {{ opening.float_value|floatformat:4 }}{% endif %}</span>
+                <span class="sim-inv__foot"><span>{% if opening.source == "terminal" %}Терминал{% else %}{{ opening.case.name }}{% endif %}</span><b>{% money opening.item_value %}</b></span>
+            </div>
+        {% empty %}
+            <div class="empty-panel">
+                <strong>Пока пусто</strong>
+                <p class="text-muted">Открой первый кейс, и выпавший предмет появится здесь.</p>
+                <a href="{% url 'case_simulator:list' %}" class="btn btn-primary btn-sm" data-dashboard-nav="true">К кейсам</a>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+        <nav class="pagination-wrap">
+            {% if page_obj.has_previous %}<a class="btn btn-ghost btn-sm" href="?page={{ page_obj.previous_page_number }}{% if selected_rarity %}&rarity={{ selected_rarity }}{% endif %}" data-dashboard-nav="true">← Назад</a>{% endif %}
+            <span class="text-muted">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}<a class="btn btn-ghost btn-sm" href="?page={{ page_obj.next_page_number }}{% if selected_rarity %}&rarity={{ selected_rarity }}{% endif %}" data-dashboard-nav="true">Дальше →</a>{% endif %}
+        </nav>
+    {% endif %}
+</section>

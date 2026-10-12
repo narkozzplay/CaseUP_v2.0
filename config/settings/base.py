@@ -78,6 +78,7 @@ PROJECT_APPS = [
     "modules.v2.celery_tasks.apps.CeleryTasksConfig",
     "modules.v2.tg_notifier.apps.TgNotifierConfig",
     "modules.v2.game_servers.apps.GameServersConfig",
+    "modules.v2.case_simulator.apps.CaseSimulatorConfig",
     "modules.v2.store.apps.StoreConfig",
     "modules.v2.web_constructor.apps.WebConstructorConfig",
 ]

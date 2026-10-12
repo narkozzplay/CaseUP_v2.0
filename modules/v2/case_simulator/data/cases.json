@@ -1,0 +1,4167 @@
+[
+ {
+  "slug": "kilowatt",
+  "name": "Kilowatt Case",
+  "kind": "official",
+  "description": "Официальный кейс CS2. Ключ продаётся отдельно.",
+  "case_price": 45,
+  "key_price": 219,
+  "accent": "#3ddc84",
+  "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frnEVvqf_a6VoIfGSXz7Hlbwg57QwSS_mxhl15jiGyN37c3_GZw91W8BwRflK7EfKsa2sfw",
+  "collection": "Kilowatt Case",
+  "items": [
+   {
+    "name": "Dual Berettas | Hideout",
+    "weapon": "Dual Berettas",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL0kp_0-B1f-vOiV6ZoMvWHGmaD_uJzpOloQxa0hxQpjDGMnYftb3-WbQ92WcZ4EeFZs0TtxIfvZr_m7wXW2I0TySv93ywd5yxu5-0FAPE7uvqA-FxXgtE",
+    "min_float": 0,
+    "max_float": 0.698529,
+    "stattrak": true,
+    "value": 21
+   },
+   {
+    "name": "MAC-10 | Light Box",
+    "weapon": "MAC-10",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5WxrR1W7vH_OJtkLPyGHW6fz9F6ueZhW2e2lBsk4WvXw974diiSblV1DMBxRrEJu0PrwNy1Mruw4gKK3d0TynmskGoXuUBgCcQQ",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 36
+   },
+   {
+    "name": "Nova | Dark Sigil",
+    "weapon": "Nova",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL_kYDhwixU-fORbLZsK_uSHFicyOl-pK8xG3q1lk0l4m2HmI6odXiRbwF1CJchQbEI4RK8kNPiMb-24A3W3YoX02yg2YjfpjSA",
+    "min_float": 0,
+    "max_float": 0.698529,
+    "stattrak": true,
+    "value": 28
+   },
+   {
+    "name": "SSG 08 | Dezastre",
+    "weapon": "SSG 08",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLijZGwpR1I_PX-MJtpJeqSHXOCxNF6ueZhW2exwEp2tmmEw9epdCjCalQhX5ImQOZbtRixxNTgN-u24AHb2okTmX2vkGoXuacR7BX3",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 56
+   },
+   {
+    "name": "Tec-9 | Slag",
+    "weapon": "Tec-9",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLlm5W5wjZe7KuRYrFjK-mSHGOvxOBxue9sSju6mxoYvzSCkpu3eHPFZwMkWZBzR-cDsEbpm9DvY-yx51fajd8WyXn4hntBvX465OkBVL1lpPMDDuBGag",
+    "min_float": 0,
+    "max_float": 0.9,
+    "stattrak": true,
+    "value": 23
+   },
+   {
+    "name": "UMP-45 | Motorized",
+    "weapon": "UMP-45",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkk4a0qB1O4uL6PZtsM-OWA2WcxOpJte9uRie2qhEutDWR1N2gcy7DalAhCMd3QucO5EPukN2yN-iw5QyN2IkRzSr6iXtO6StrsL0cEf1y62CUsqE",
+    "min_float": 0,
+    "max_float": 0.801418,
+    "stattrak": true,
+    "value": 70
+   },
+   {
+    "name": "XM1014 | Irezumi",
+    "weapon": "XM1014",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLpk8ewrHZk9___OPU5H_mBC32FzOdJvOhuRz39k0h14juBztapc3-fPVIjWZomFucMtxe9m9zmNOjltQ2N2dgTnCr_3zQJsHjkNdtnHQ",
+    "min_float": 0,
+    "max_float": 0.799353,
+    "stattrak": true,
+    "value": 45
+   },
+   {
+    "name": "Glock-18 | Block-18",
+    "weapon": "Glock-18",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1c4_2tY5tvMvmQBVidzuByouhoQRa_nBovp3PXzov9cyjDbwckXMMkF7IIthOwwNDmY-rq4AzfjItMyH_9iC0YuC04_a9cBk5_kH3q",
+    "min_float": 0,
+    "max_float": 0.671875,
+    "stattrak": true,
+    "value": 283
+   },
+   {
+    "name": "M4A4 | Etch Lord",
+    "weapon": "M4A4",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwi8P7qaRe6psK_WRB3OV_uJ_t-l9AXjnw0Qh5GqGn9b_dH3Cbg4nCcAhRLIM4BW7mtXmM7jjtAXai40WmHngznQeK6EUrpc",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 102
+   },
+   {
+    "name": "Five-SeveN | Hybrid",
+    "weapon": "Five-SeveN",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL3l4Dl7idN6vyRbq17JeOWGGKe_uZvsvNgSxa_nBovp3OBmd6oJXyeaQ9yCsZxEOICsUO7kdK0Y-qxtFCN2YsQnCv7i39N7ixp_a9cBsh2vVQD",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 92
+   },
+   {
+    "name": "MP7 | Just Smile",
+    "weapon": "MP7",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8jsHf8DIM0Pi7e7BSM_2aAmKvzedxuPUnHXrkzU4i4z-Dno6sci3BaQApDpN4R-cCthnqx4W2MunhtgCI3d0QmzK-0H0MYFOvtA",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 251
+   },
+   {
+    "name": "Sawed-Off | Analog Input",
+    "weapon": "Sawed-Off",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLin4Hl-S1d6c29abNoJP-VCFiXwONzot5lRi67gVN3tWTdyNipdCiQPwdxCJV2RuBY4xa_wILgMLu37leK3otMzHmo3H5J8G81tFoL-ETi",
+    "min_float": 0,
+    "max_float": 0.61886,
+    "stattrak": true,
+    "value": 94
+   },
+   {
+    "name": "M4A1-S | Black Lotus",
+    "weapon": "M4A1-S",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_3HDzaD_ux6seJicCW8gQg0jDGMnYftb3-eOgEpDcFyQuMMtRG8kIbhMuK051ba2IMQyH6r3yof5ilv4bwLWfU7uvqA7qRNHGA",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": true,
+    "value": 1459
+   },
+   {
+    "name": "Zeus x27 | Olympus",
+    "weapon": "Zeus x27",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLln4Xl7x1B6ue9V7BlNf6XC3WvxuFyj-1gSCGn2xl2sm7XnI6hdC-XPAcmXsF2RLIP4xbslty2NLvqswePjYlEySn33S9XrnE8cYTqlUY",
+    "min_float": 0,
+    "max_float": 0.67,
+    "stattrak": true,
+    "value": 675
+   },
+   {
+    "name": "USP-S | Jawbreaker",
+    "weapon": "USP-S",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSNeODHViUzulxqd5lRi67gVMl62nUyd2scnOVPAcgA5J2TOFY5xLrlN22YbzgsQaI2IlHyiWojnwa8G81tErOD-_J",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 510
+   },
+   {
+    "name": "AWP | Chrome Cannon",
+    "weapon": "AWP",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_DVL0OarZbRoMvWXMWuZxuZi_uM6SXngxR5-smTXw4ugIi6RbVcpXsN1ELUDtxPrktOyNL7h4g2P2tpbjXKpKIbjbD4",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 4172
+   },
+   {
+    "name": "AK-47 | Inheritance",
+    "weapon": "AK-47",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiNQ0OKheqdoLPGaAFicyOl-pK8xGH_nwUt1sGrSz9ivcHKQOAcjXMYkRu5Yuxe4lYCyZOq25VSM2oMT02yg2UxBSEgA",
+    "min_float": 0,
+    "max_float": 0.797346,
+    "stattrak": true,
+    "value": 2624
+   },
+   {
+    "name": "★ Kukri Knife",
+    "weapon": "Kukri Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XuWbwcuyMESA4Fdl-4nnpU7iQA3-kKnr8ytd6s2lfa9_Kb6VXmPGwuogsbNvSyi3zR4jsTnQztyqdS6QP1IoXpoiEeAC5Be5l9CxKaq8sIvgdE5J",
+    "min_float": null,
+    "max_float": null,
+    "stattrak": true,
+    "value": 19106
+   },
+   {
+    "name": "★ Kukri Knife | Fade",
+    "weapon": "Kukri Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q-vm8YZtsIc-VD2OV_uJ_t-l9AXyyzEohsGvVn4moIi-VO1N2CJR1E-UD4BXtkIXhMe2x7lbej4tEnyzgznQeN9c5PgA",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 14075
+   },
+   {
+    "name": "★ Kukri Knife | Slaughter",
+    "weapon": "Kukri Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q-vm8YZtsLc-JC2WCwNF6ueZhW2fmwkwj62TWmdyuc3nEOFB1Csd5ReFZtUTpxtXvYb_k4waPj4wXxXitkGoXuVwivb-T",
+    "min_float": 0.01,
+    "max_float": 0.26,
+    "stattrak": true,
+    "value": 30822
+   },
+   {
+    "name": "★ Kukri Knife | Blue Steel",
+    "weapon": "Kukri Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q-vm8YZtsMc-RAnKVxdF6ueZhW2exzE0h62nVyd6qeXjEbgF0X8EiEbZesRS_wIXkPujq7wPWjNpDyn6vkGoXudm1ivk1",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 42164
+   },
+   {
+    "name": "★ Kukri Knife | Stained",
+    "weapon": "Kukri Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q-vm8YZtsMc-VAXWTxOpJvOhuRz39lkgl52TXzdiscH2TOgAkX8QiRuFftxW6kNW1Yrzr7wOK2YkWxXr43zQJsHia9a0bCA",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 28973
+   },
+   {
+    "name": "★ Kukri Knife | Case Hardened",
+    "weapon": "Kukri Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q-vm8YZtsMc-cB2uVxdF6ueZhW2fizRsk4G_dzY39eCrCaA51W8QlF-ZZtRK6m4XlPunn71TbjY0QzimokGoXuR84GhWV",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 16945
+   },
+   {
+    "name": "★ Kukri Knife | Forest DDPAT",
+    "weapon": "Kukri Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q-vm8YZtlOc-XCneR1dF6ueZhW2eyw0wk4TuDnI6pdS7BOAcnWMFyEbNYtEa6x9HjPurj4lHajYIWny6vkGoXuZN4gz37",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 51507
+   },
+   {
+    "name": "★ Kukri Knife | Boreal Forest",
+    "weapon": "Kukri Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q-vm8YZtlOc-VAXWV0vpJsu57Sii_qhEutDWR1N2vIH7Dbw8jXMZwTecNsEPsmoKzP-Kx5QHZ2YtAniyoi3kb6yht5-ocEf1yVn7b_ls",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 41455
+   },
+   {
+    "name": "★ Kukri Knife | Crimson Web",
+    "weapon": "Kukri Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q-vm8YZtlOc-EC2WD_uJ_t-l9AS-3x0x15m2Hw4z9eS-QbgQnA5ElFu8OtBfqwIK2NLjg4gbciN8UzirgznQebo7XmtM",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 45071
+   },
+   {
+    "name": "★ Kukri Knife | Scorched",
+    "weapon": "Kukri Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q-vm8YZt-MM-XD3eAzetJvOhuRz39kUpw42zRnoz7InOeOAd2XpQiQ7Ve5xixm9HhMe3l5wCI2YxHxS_2iDQJsHhKp4l7vg",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 33713
+   },
+   {
+    "name": "★ Kukri Knife | Safari Mesh",
+    "weapon": "Kukri Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q-vm8YZt-MM-eC3SY_vp3vt5lRi67gVMit2vVyt-sc3qSalUjAsR1QOQLthKwk9HhYri34gzXg4wXmHmvjiNA8G81tJ681NhB",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 34224
+   },
+   {
+    "name": "★ Kukri Knife | Night Stripe",
+    "weapon": "Kukri Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q-vm8YZt-MM-dB2CY1f1iouh5Sha_nBovp3OHz9ahIynFPQUoDZZ2TbINtRK8lYXuM-nksQbago1FyS_23CNB5ihu_a9cBvtwqC7R",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 32082
+   },
+   {
+    "name": "★ Kukri Knife | Urban Masked",
+    "weapon": "Kukri Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q-vm8YZt-MM-HD3eV_vtksuBncCW6khUz_W2GmdupJ3mfPA8jW5ZwR-QN4UKxmtOyN7y25lfW2YtNziX8jCtN7Xp1o7FVXby906g",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 18381
+   }
+  ]
+ },
+ {
+  "slug": "revolution",
+  "name": "Revolution Case",
+  "kind": "official",
+  "description": "Официальный кейс CS2. Ключ продаётся отдельно.",
+  "case_price": 62,
+  "key_price": 219,
+  "accent": "#eb4b4b",
+  "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frnAVvfb6aqduc_TFVjTCxbx05OU4S3jilE9w4DzRnImtIy2Sa1JzDJEhRPlK7EcO4U8gfA",
+  "collection": "Revolution Case",
+  "items": [
+   {
+    "name": "MAG-7 | Insomnia",
+    "weapon": "MAG-7",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5G3wiFO0P-vb_NSKf6AAWqeyO9JvOhuRz39wh4k4TzUnN_9cC6WO1J2DJdyROcI4BC9x9XmN-vj71eN34xAzC33hzQJsHiziLtbUA",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 65
+   },
+   {
+    "name": "MP9 | Featherweight",
+    "weapon": "MP9",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f_jdk4uL3V7d4MPWBAm6XyfpJvOhuRz39wB9x6jncwtyvd3jBPw8gCJFwR7YItRW8kNK0P--27wLe391NzCyq3zQJsHiOu4WQDA",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 37
+   },
+   {
+    "name": "SCAR-20 | Fragments",
+    "weapon": "SCAR-20",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLinZfyr3Jk6OGRe6dsMs-VHGaXzOt4pPJWTSWylhYYvzSCkpu3dnmXbAZyX5pzQLQO4Ri_lIbgMOzktg2P3t8Uni32iHwc7i856r1UAL1lpPP6-FL_6g",
+    "min_float": 0,
+    "max_float": 0.78,
+    "stattrak": true,
+    "value": 17
+   },
+   {
+    "name": "P250 | Re.built",
+    "weapon": "P250",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwiFO0OL8PfRSMvWRG26c1dF6ueZhW2flkRh_sjjXmNb8cCnDPVUnW5ByQ-JZ5hG_xN3gZuPltAHegogWzH7-kGoXuSIylluX",
+    "min_float": 0,
+    "max_float": 0.9,
+    "stattrak": true,
+    "value": 44
+   },
+   {
+    "name": "MP5-SD | Liquidation",
+    "weapon": "MP5-SD",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8jsPz-R1Y-s2jePF-JM-CG26TytF6ufB8Ri2ygRQovQKJk4jxNWXBOgUmDsN5FrIM5xi4lIHgNe7q51Pdi4pGni-t2ntA5ids5LxRVPUj5OSJ2Kcl14st",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 48
+   },
+   {
+    "name": "SG 553 | Cyberforce",
+    "weapon": "SG 553",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLimcO1qx1Y-s29b_E4c8-QF2WV0-h5ouJscCW6khUz_Wjdntr6Iy6WbgEjA5MlRedctxG5kNKyNbi3sgTfi9oUnyj9234b5n51o7FVairOMAY",
+    "min_float": 0,
+    "max_float": 0.9,
+    "stattrak": true,
+    "value": 15
+   },
+   {
+    "name": "Tec-9 | Rebel",
+    "weapon": "Tec-9",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLlm5W5wiFO0Oara_1SJuKWC2OfzNF6ueZhW2fgkU0k5GmBzIn6eHjBagBxDZMhReYN5hC5ldbgNb7jtFbfgt5Ey3_3kGoXuRiiuNrn",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 70
+   },
+   {
+    "name": "M4A1-S | Emphorosaur-S",
+    "weapon": "M4A1-S",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_OGMWrEwL9lj-dsSi26mxoYtS-AlJXgHifOOV5kFJt4F-8KukXtldyyMLjjtVOIjIsWzXj8iylJ5ig6tbsKV_ItqaaB3gHfcepq28_00F4",
+    "min_float": 0,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 170
+   },
+   {
+    "name": "Glock-18 | Umbral Rabbit",
+    "weapon": "Glock-18",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1Y-s2pZKtuK8-eAWie_vx3suNgWxa_nBovp3PXyo76Ii_FPAQmDMYiTLYDthm_kdbmZry2slCLjoMQzC7_3y1J7nts_a9cBi_qumx0",
+    "min_float": 0,
+    "max_float": 0.75,
+    "stattrak": true,
+    "value": 90
+   },
+   {
+    "name": "MAC-10 | Sakkaku",
+    "weapon": "MAC-10",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5WxrR1Y-s2jaac8cM-AD2ybwOVjj-xsSyCmmFMk5mnRzdeqdSnCPVN2DpV3QeELtELrlIbiPrzqsVOMjdlBnySvjH5O8G81tOTP5a5f",
+    "min_float": 0.21,
+    "max_float": 0.79,
+    "stattrak": true,
+    "value": 110
+   },
+   {
+    "name": "R8 Revolver | Banana Cannon",
+    "weapon": "R8 Revolver",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLjm4Dv8TRe_c2pe5t_eM-RD2mRz-9JvOhuRz39kU4msjzdmd6peXKTOFd2DcchEOEP40btlt3lN7iz5FbeiNpFzi_83zQJsHgWY2btRg",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 94
+   },
+   {
+    "name": "P90 | Neoqueen",
+    "weapon": "P90",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhx8bf-jFk_6v-V6poL-GGC2Ke_uJ_t-l9ASyyxhl04zuDn4muInOXPAF2W5shQOAMs0G7xNfkZOuwswbej4JDnyvgznQe6S6_YqA",
+    "min_float": 0,
+    "max_float": 0.6,
+    "stattrak": true,
+    "value": 95
+   },
+   {
+    "name": "AWP | Duality",
+    "weapon": "AWP",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf-jFk7uW-V6hkLfKcMXSewOVzj-1gSCGn20p_62-HnN7_cH-XblQjDZYhR-FZsETqmoXjYry2s1DX3d5AyyT62ipXrnE8bpg5yZk",
+    "min_float": 0,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 450
+   },
+   {
+    "name": "UMP-45 | Wild Child",
+    "weapon": "UMP-45",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkk4a0qB1Y-s27ZbRSI_yGGmSY_uV_s-pWQyC0nQlpt2iHmNyqd3KVOlB0D5YlTeZb5xjsx9PjZOjl4VCNgt1EnC77iSMf7jErvbhWyVIDbA",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 462
+   },
+   {
+    "name": "P2000 | Wicked Sick",
+    "weapon": "P2000",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0PG7V7Q_cKDDMWOVwuJ_vuRWQyC0nQlp4jnTyNqodHyXOlQkDZtzF-UN4BjukYeyZuLn5Qbaj4NEzy3_3ywd5zErvbh-3lU8Iw",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 672
+   },
+   {
+    "name": "M4A4 | Temukau",
+    "weapon": "M4A4",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiFO0P_6afBSNPWeG2yR1NF6ueZhW2ewlBtx5W6AmYv9JS6XaAV1CJEmTeUL4UTpxNzjZO3jtgaIjN9ExCuskGoXuRnyRhBA",
+    "min_float": 0,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 8683
+   },
+   {
+    "name": "AK-47 | Head Shot",
+    "weapon": "AK-47",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiFO0POlV6xoIfSsHW-f1dF-v-1mcCW6khUz_TzRnNigd3-SOg4lAsF1QOQN4xS4wdHnMu-0swaMjIxExSSoiyof6ih1o7FVGHIdVhw",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 7560
+   },
+   {
+    "name": "★ Driver Gloves | Imperial Plaid",
+    "weapon": "Driver Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5T441rsfhr9kYDl7h1I4_utY5t9LPGaCliA1PxmvORWQyC0nQlp4W-Hw9-ocy2fbwB2X8YkFucCtRe4xNzhYrjl4Fff39lMyn78iiJLuzErvbgqDAMwGQ",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 14034
+   },
+   {
+    "name": "★ Driver Gloves | King Snake",
+    "weapon": "Driver Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5T441rsfhr9kYDl7h1I4_utY5t-LvGYC3SbyOBJp-lgWyyMmRQguynLz4r6Iy7EbFchApNyR-dbtEbuw4XkN7jq7gHdjtoQzi37hiwYvytvt_FCD_Ql24JgJg",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 26771
+   },
+   {
+    "name": "★ Driver Gloves | Racing Green",
+    "weapon": "Driver Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5T441rsfhr9kYDl7h1I4_utY5t-NPmHDW-VxdFxouRsQRa0hxg-jDGMnYftb3mXblQnWJclRuNYtETux9DlYr-wtVaK2IsTmCT-jC4Y6ihjtr0FUaA7uvqAQikoKDk",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 15046
+   },
+   {
+    "name": "★ Driver Gloves | Overtake",
+    "weapon": "Driver Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5T441rsfhr9kYDl7h1I4_utY5t-NPmHDW-VxdF0vOBqRBa8hxwptDi6lob-KT-JOwYkXppzQO4OsRbqltfiMOvm41TYi44XySqqj35OvS4_57oKA6cl_LqX0V9d-bhOMA",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 14044
+   },
+   {
+    "name": "★ Hand Wraps | Cobalt Skulls",
+    "weapon": "Hand Wraps",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu4vx603vRA_Olpfu-TVJ7uK9V6xsLvSEHGaA_uJzsfVhSjuqqhsmsS-MmbD7LT7CAUV7T84sBohW60fg1srnZb6zsw2Ng41MmST43C1L7is9574CBKIh_q2Big_IMOdutcNRd_iuU13QD7PQAmaY",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 14650
+   },
+   {
+    "name": "★ Hand Wraps | Overprint",
+    "weapon": "Hand Wraps",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu4vx603vRA_Olpfu-TVJ7uK9V6xsLvSEHGaA_uJzsfVhSjuqqhsmsS-MmbD-JCTKO0JiU8EfF7tP53_ky4O_c_Ti4wTe3t4Uy3j6jSxM5ic-4usBA6Mj-qTejAzJMbc14MRWd_v0SE-PRlxR734mHNkv",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 31576
+   },
+   {
+    "name": "★ Hand Wraps | Arboreal",
+    "weapon": "Hand Wraps",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu4vx603vRA_Olpfu-TVJ7uK9V6xsLvSEHGaA_uJzsfVhSjuqqhsmsS-MmbD-My7CMGlzW88vKrtT5Uj8jIblMbnksQfb2IlAzXqojCpP6ylp67kLAKBz_6aFjFnCN-I66ZQHdv-5DUPZjQpqjqQ",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 21580
+   },
+   {
+    "name": "★ Hand Wraps | Duct Tape",
+    "weapon": "Hand Wraps",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu4vx603vRA_Olpfu-TVJ7uK9V6xsLvSEHGaA_uJzsfVhSjuqqhkysCmRm5_8HifOOV5kFJF5R7IIskW_kIXnNriz7w3eg4hMzCX-2nxP6SZo4u0LBKAi-aXV2V7fcepqgxTHW6A",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 48090
+   },
+   {
+    "name": "★ Hydra Gloves | Case Hardened",
+    "weapon": "Hydra Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tg_13jRBnOlo_k7yNk6P6hfqF-H_KfAWiUyeFjvuVWRzC3hxwYsDyWn7DxIDnDO1h1Xv0sHLBS9g7ul9zmMbi35FHYgolMmSj9jS8fvC5jte9RAqctqKCC2QHBYrU64MMCOr_5GlPhveuZ",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 18700
+   },
+   {
+    "name": "★ Hydra Gloves | Emerald",
+    "weapon": "Hydra Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tg_13jRBnOlo_k7yNk6P6hfqF-H_KfAWiUyeFjvuVWRzC3hxwYsTGEmYTGJjnCO1hPVssnHaMU4EG6ktGyPryz5A3fiIwUyin3h3lJ5nlq5-xQVPIk-6HWjVmQOeFptI5DeqjsQUewWg",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 18618
+   },
+   {
+    "name": "★ Hydra Gloves | Rattler",
+    "weapon": "Hydra Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tg_13jRBnOlo_k7yNk6P6hfqF-H_KfAWiUyeFjvuVWRzC3hxwYoDOEkYrqKiLJAVRiW9EzKrtT5Uj8jNOyZb_i5QHcg40Unyz-ji5LvX1v6-kEV_Ek8vCFjguUYOU_tJVWd6y5DUPZHBGjgbE",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 26937
+   },
+   {
+    "name": "★ Hydra Gloves | Mangrove",
+    "weapon": "Hydra Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tg_13jRBnOlo_k7yNk6P6hfqF-H_KfAWiUyeFjvuVWRzC3hxwYtC-An4HGLS7GKl51SP0tEKRS3UL6w5ekWLa7sF2alY9MzyX92ixAvCs-sutWWKd08qDRh17CZOI86JcBcffyH0iGUR9asfh8BNe0yN2QCJM",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 22670
+   },
+   {
+    "name": "★ Moto Gloves | POW!",
+    "weapon": "Moto Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu4r7_lb1QgTykpPf-i5U-fe9V6liNP-BDX6TzetJs-lmTCaMlxIovgKJk4jxNWXBPAZ2CpYmTOAO4UWwltOxP-3qswPdgopMzXiviSwavytpsO4FUvEh5OSJ2LE4Jnt4",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 26290
+   },
+   {
+    "name": "★ Moto Gloves | Polygon",
+    "weapon": "Moto Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu4r7_lb1QgTykpPf-i5U-fe9V6liNP-BDX6TzetJpPNgSDu6kSIlvyiApYPwJiPTcA92A5QlFu4N4ES4ktblMrvg5lSN34hEmHitinhLvHo64uhUUvVwqPDJz1aWhdr_Brk",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 24778
+   },
+   {
+    "name": "★ Moto Gloves | Turtle",
+    "weapon": "Moto Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu4r7_lb1QgTykpPf-i5U-fe9V6liNP-BDX6TzetJsuB6RiqMkg8itjO6lZ34LyzCAVp5Xco0W7VftBjqxILkZbvi4FfYitpEynj6jSgc5i4_tegLV_F0q6SFhwDJMuUjoc5UdYAe6j0",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 44475
+   },
+   {
+    "name": "★ Moto Gloves | Transport",
+    "weapon": "Moto Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu4r7_lb1QgTykpPf-i5U-fe9V6liNP-BDX6TzetJqeRlQyakqh4mvjK6lob-KT-JbwZzCsR0RrYK4ETrwIbkYe_l4gSM2YNEniv73XxKvyhj4u0DVKMi_rqX0V9cNOIfoA",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 14364
+   },
+   {
+    "name": "★ Specialist Gloves | Crimson Web",
+    "weapon": "Specialist Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tk71ruQBH4jYLf-i5U-fe9V7d9JfOaD2uZ0vpJp-RrXBahkBkYvzSCkpu3JyiSbAQkC8d1E7YJtEXtkIazMruz4lOP3dpGmCyt23hA731v4LkKAL1lpPOyoS0Ibw",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 14100
+   },
+   {
+    "name": "★ Specialist Gloves | Mogul",
+    "weapon": "Specialist Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tk71ruQBH4jYLf-i5U-fe9V7d9JfOaD2uZ0vpJp-hnWyyhnRg_jDGMnYftb3qWagQlX8EjF7YIuhK9m9XiNO2x7gOPjY5HzHj7iiwcv3xi4-pQAPc7uvqAbB4ER4o",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 18925
+   },
+   {
+    "name": "★ Specialist Gloves | Fade",
+    "weapon": "Specialist Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tk71ruQBH4jYLf-i5U-fe9V7d9JfOaD2uZ0vpJtuBtSha_nBovp3PQy42sdX6eagIjW5AlQOVetBXuk92xNLvg4gOMjd5AmC2ointB53w__a9cBqntWBk3",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 41157
+   },
+   {
+    "name": "★ Specialist Gloves | Buckshot",
+    "weapon": "Specialist Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tk71ruQBH4jYLf-i5U-fe9V7d9JfOaD2uZ0vpJtu57Sjqnqh81vCqLpYPwJiPTcFQhAsd5TOcDsxLqwN22ZrjqslDZg4gXnCj2jnlA7Sg54udWB_dz-qbJz1aWpqUo0Nk",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 31990
+   },
+   {
+    "name": "★ Sport Gloves | Vice",
+    "weapon": "Sport Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tk5UvzWCL2kpn2-DFk_OKherB0H_KfG2Kv0ed4u95lRi67gVNx4T-Bw434IHyVb1QlAsd1FOUDthG4xNznMu3m4QXXg90Wzn_33C1I8G81tLaDi_rK",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 32390
+   },
+   {
+    "name": "★ Sport Gloves | Amphibious",
+    "weapon": "Sport Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tk5UvzWCL2kpn2-DFk_OKherB0H-CcB3Sfz9Fwou5ucCu_gBgYpDWMjorGLSLANkI-W5R4E7JZtxbskNWxZeLi4QPejdgTmSn62iwbvyw957kDAqog_fXWjBaBb-Pahe96zA",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 26311
+   },
+   {
+    "name": "★ Sport Gloves | Omega",
+    "weapon": "Sport Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tk5UvzWCL2kpn2-DFk_OKherB0H_KfD2Sb_vlzsuNgQS6MjBgrvzKSpYPwJiPTcFAkC5UiRrRZ5BO9ktDnM-q37wCMjN5GxCqvhngb6Chj6u0CVvAj-6fJz1aW3nluLgw",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 40037
+   },
+   {
+    "name": "★ Sport Gloves | Bronze Morph",
+    "weapon": "Sport Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tk5UvzWCL2kpn2-DFk_OKherB0H-CcB3Sfz9Fwou5ucDu2kSIgoTiAlLD1KCzPKhghDJBzTLMCukW6kNblNe-2tlGKj45GyCWrii8f73k95e4HA_AjrvbSkUifZkDjXxpJ",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 29328
+   }
+  ]
+ },
+ {
+  "slug": "dreams-nightmares",
+  "name": "Dreams & Nightmares Case",
+  "kind": "official",
+  "description": "Официальный кейс CS2. Ключ продаётся отдельно.",
+  "case_price": 95,
+  "key_price": 219,
+  "accent": "#8847ff",
+  "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frnIV7Kb5OaU-JqfHDzXFle0u4LY8Gy_kkRgisGzcm4v4J3vDOAQmDMdyRvlK7EcmeCU3yw",
+  "collection": "Dreams & Nightmares Case",
+  "items": [
+   {
+    "name": "Five-SeveN | Scrawl",
+    "weapon": "Five-SeveN",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL3l4Dl7idN6vyRa7FSJvmFC3SV1-t4j-BlXyGyqhIqtjqEpYPwJiPTcAInA5J0FO9csBSww4bhZruzswLcjIsXmCusjCsbuno_57tXUqB386HJz1aW2pI_m5Q",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 31
+   },
+   {
+    "name": "MAC-10 | Ensnared",
+    "weapon": "MAC-10",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5WxrR1Y-s2jaac8cM-DB3-ZxNF6ueZhW2fikB935ziGztj7JHyQbgIkWZsmFrJY4xTpwdOzP-Oz7laNj4lFyy2tkGoXudbL5uIf",
+    "min_float": 0,
+    "max_float": 0.9,
+    "stattrak": true,
+    "value": 56
+   },
+   {
+    "name": "MAG-7 | Foresight",
+    "weapon": "MAG-7",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5G3wiFO0P-vb_NSMOKWCm6T1eFkj-1gSCGn2xgmsWvRm96seXOfbFMjXJR1R-NY4xjukNLlYurn4QeN3t5CmCT7jHxXrnE8UENGXls",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": true,
+    "value": 22
+   },
+   {
+    "name": "MP5-SD | Necro Jr.",
+    "weapon": "MP5-SD",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8jsPz-R1c_M2jePFSK_mXMWmVwvx5vu5kRiq8myIrujqNjsH8JXqXPVAhDZVyR7YO4ETrxtLvZbmxtAXfiIpCzHr5h3tB635j4-gCT-N7reJfmdfh",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 58
+   },
+   {
+    "name": "P2000 | Lifted Spirits",
+    "weapon": "P2000",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0PG7V7Q_K8-VAn6Zz-lJtPNsTiSMmRQguynLydatcHrEOgIhXJZxReINtRO7ltexZuiwtQPd34lFxXqqjisYun444fFCD_R1ajI6RQ",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 25
+   },
+   {
+    "name": "SCAR-20 | Poultrygeist",
+    "weapon": "SCAR-20",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLinZfyr3Jk_OKRe6dsMs-QBm6Tyut4tuhuRz2MmRQguynLno2pdnnGOw9xWcFwEbMCtkHsmoXuNe23tVGNiINCyyv6iylJuyZi5_FCD_Tlwp1EIg",
+    "min_float": 0,
+    "max_float": 0.57,
+    "stattrak": true,
+    "value": 21
+   },
+   {
+    "name": "Sawed-Off | Spirit Board",
+    "weapon": "Sawed-Off",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLin4Hl-S1d6c2tfZt-IeeWCmiWx9F5pehjTha_nBovp3OEyN-ocCmWPwYkCpoiE-QMt0bsxNbnNLm25waK345DyST23CpP5ytp_a9cBm4mGqdG",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 23
+   },
+   {
+    "name": "PP-Bizon | Space Cat",
+    "weapon": "PP-Bizon",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLzl4zv8x1Y-s2sYb5iLs-AHmaTxO13pN5lRi67gVN04jvcmYv6IHnGbw51XsYmQO5ftBG9xoexNrix4gPYjIJEzX_2iX9I8G81tOIzQC5J",
+    "min_float": 0,
+    "max_float": 0.67,
+    "stattrak": true,
+    "value": 222
+   },
+   {
+    "name": "G3SG1 | Dream Glade",
+    "weapon": "G3SG1",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2zYXnrB1Y-s2pO7dqcc-UAmaUxNF6ueZhW2e3wkl162TVmdqvd3mUPw9yDJZ4FOYJ4UKxkNfiNrvn4QCMjdlHmHj6kGoXub9gXKkW",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 216
+   },
+   {
+    "name": "M4A1-S | Night Terror",
+    "weapon": "M4A1-S",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_eAMWrEwL9lj-hnXCa-mxQmjDGMnYftby3FPFVxA5ZwRecOtUXuxtPiNL_jsQLc2NkTzS38jC5L7ydj5u8EUKo7uvqAgGSM4LM",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": true,
+    "value": 278
+   },
+   {
+    "name": "XM1014 | Zombie Offensive",
+    "weapon": "XM1014",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLpk8ewrHZk7v-RcKlSOv-eDG6V_uFwtuRnXCClkCIrujqNjsGqdnzEOFUjW5omROQNt0LuwNKyYeKwslfYiN0Qmyr83Hsd6iZj5esAT-N7rRccpDyZ",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 266
+   },
+   {
+    "name": "USP-S | Ticket to Hell",
+    "weapon": "USP-S",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSI-WsG3SA_vp5j-lsQyWMmRQguynLzt_8JXiVOwF2AsF4R-ECshftltKxZe6x41CKjotExST8jn8f7ilr5PFCD_TZVvgG5g",
+    "min_float": 0,
+    "max_float": 0.76,
+    "stattrak": true,
+    "value": 248
+   },
+   {
+    "name": "Dual Berettas | Melondrama",
+    "weapon": "Dual Berettas",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL0kp_0-B1Y-s2rZK15JeOsDGKHwPxzj-1gSCGn20t_5TiBmdf9Jy-QaQIiW5F1E-BesxG9lIaxNuLj41He340Ryi79ii5XrnE8Xl7Qhlk",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 488
+   },
+   {
+    "name": "FAMAS | Rapid Eye Movement",
+    "weapon": "FAMAS",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL3n5vh7h1c_M2oaalsM8-BD3eZxdFzqeR6cCW6khUz_WjRmN79JXmePABxDsB1QeZetxnqx9XhN-nk4A3f399CzX2qiCsa7yd1o7FVINiMH98",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 618
+   },
+   {
+    "name": "MP7 | Abyssal Apparition",
+    "weapon": "MP7",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8jsHf_jdk4uL5V6JoIeKsAm6Xyfo45uc9GnnnzBh-5zzTw9n9I3mQPAEgD5YlFuIOthC6wNK1MeKwsgHeiZUFk3vcOiyhPQ",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 974
+   },
+   {
+    "name": "AK-47 | Nightwish",
+    "weapon": "AK-47",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiFO0POlPPNSLvmUBnOHyP1-j-1gSCGn20glt2nXnt78cnKUbwN2XJp2R-ZbuxHqlNXlMLiw5AHc3toWnCur23hXrnE8p0T2bx4",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 2286
+   },
+   {
+    "name": "MP9 | Starlight Protector",
+    "weapon": "MP9",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f-jFk4uL3V7d5IeKfB2CY1dF6ueZhW2flkUtztz_SzYypJSqRalUhDJNwQO4PsBXtx9HkN-K37w3bgohGmHn3kGoXuZ3lRdvF",
+    "min_float": 0,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 8681
+   },
+   {
+    "name": "★ Bowie Knife | Gamma Doppler",
+    "weapon": "Bowie Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I-uC4YbJsLM-RAXCZxNF3vd5sQiyhlBEjjDCEiI31JCLdO1JPVssnHaMU4EG-ltyyPuLq5gHYj9lMzyz7hyxNuCs-5OoDVKImrKTe21mXZ-Zu5I5Deqhh5Zn_hA",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 22807
+   },
+   {
+    "name": "★ Bowie Knife | Lore",
+    "weapon": "Bowie Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I-uC4YbJsLM-RAXCZxNF1pd5rQD66kCIrvC-ApYPwJiPTcAJyAsZ3FrINuhK-l9O2Yei35wTago9NyCj4iHtP5n5itbsGA6FwqaTJz1aWiYxmw3g",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 34117
+   },
+   {
+    "name": "★ Bowie Knife | Autotronic",
+    "weapon": "Bowie Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I-uC4YbJsLM-RAXCZxNFxo95rQD66kCImpimKjp32LyLEAVp5Xco0W-cIsEW9xty1Zb-z7gHd3o8UzSv3hypNvX0-tu5QWKMk-6XUjAiUYLAjoc5UIuuJ8AY",
+    "min_float": 0,
+    "max_float": 0.85,
+    "stattrak": true,
+    "value": 49535
+   },
+   {
+    "name": "★ Bowie Knife | Black Laminate",
+    "weapon": "Bowie Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I-uC4YbJsLM-RAXCZxNFxo95rQD66kCIlvzyGkbD1ICbOMFdkX_0sHLBS9g7qx9HhMuyxtA3b3o0Tyij92H4fuy5q675XAPBxrvHVh1nBOeFo5ZYAOr_5Gl4TXifL",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 59550
+   },
+   {
+    "name": "★ Bowie Knife | Freehand",
+    "weapon": "Bowie Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I-uC4YbJsLM-RAXCZxNF3vd5kTju4kBkYpi26w9_GLSLANkI-CcFyQbResEbuxIa0Nunr7wSMj95GxH77i39N6Hlitu4LB6oj8vHfjxaBb-PSbjYTRA",
+    "min_float": 0,
+    "max_float": 0.48,
+    "stattrak": true,
+    "value": 17665
+   },
+   {
+    "name": "★ Bowie Knife | Bright Water",
+    "weapon": "Bowie Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I-uC4YbJsLM-RAXCZxNF-qd5mTCyymyIsvTSDn7CgcRTLN1F4Tox3E7RY4BW8l4CyMLvq5gSL2oMXzCyqin5I5nttsrsGA_Ihq6LX2lnAL_Rjtv1VSd_s",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 31379
+   },
+   {
+    "name": "★ Butterfly Knife | Gamma Doppler",
+    "weapon": "Butterfly Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Z-ua6bbZrLOmsD2qvxONzouBlSxa-lA8lvziMgIr9HifOOV5kFJp2Ee9b4Rntm4GxY7_ntQHc2o1DmH6r3Hgcv3w4t-pXU6ZzrPHQjQnfcepq0dwfRJw",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 54575
+   },
+   {
+    "name": "★ Butterfly Knife | Lore",
+    "weapon": "Butterfly Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Z-ua6bbZrLOmsDXKvw_tipOR7SSWqqhEooTi6lob-KT-JZw90XJMiTO8PukW4wIXmN-zq5gXf2tpBm37_2y4auylv5exUAKAi_7qX0V8Ly4BE2w",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 63378
+   },
+   {
+    "name": "★ Butterfly Knife | Autotronic",
+    "weapon": "Butterfly Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Z-ua6bbZrLOmsCXSvw_tipOR7SSWqqhwypzKRiID3KCj4Ml93UtZuROIDtUawltG1N-Pj4gaMg98Xyy2q2CxN63k54uwHBfd0-_GEhwHBOap9v8dVISN0PQ",
+    "min_float": 0,
+    "max_float": 0.85,
+    "stattrak": true,
+    "value": 20647
+   },
+   {
+    "name": "★ Butterfly Knife | Black Laminate",
+    "weapon": "Butterfly Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Z-ua6bbZrLOmsCXSvw_tipOR7SSWqqh8rsj6OpYP4LCLJP0J1Zc4pEr9OrBC7xtOyN-vjtFDZjYNAnH6qiS9J73s56u4BWPJxqK3U2gDDYLU-t5YdZKHw7iAX8js",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 14623
+   },
+   {
+    "name": "★ Butterfly Knife | Freehand",
+    "weapon": "Butterfly Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Z-ua6bbZrLOmsD2qvzO9ku-RtcDyjqkR3jDGMnYftbyqSZlcgCMd5RLEItBe9koXhZbzi4AyK34tNmXn4i3hO6SxttuoBAKI7uvqA0_B7rlE",
+    "min_float": 0,
+    "max_float": 0.48,
+    "stattrak": true,
+    "value": 46435
+   },
+   {
+    "name": "★ Butterfly Knife | Bright Water",
+    "weapon": "Butterfly Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Z-ua6bbZrLOmsBn6vzu1zse9WRCe6kxgY6m26lob-KT-JbgckDsR5TeRftkKwxN3mY7nq7wbci4hBzy783X5P7iZp67sEWaV0qbqX0V8sk0fSOA",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 28133
+   },
+   {
+    "name": "★ Falchion Knife | Gamma Doppler",
+    "weapon": "Falchion Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1d7v6tYK1iLs-SA1iVzOtkse1tcCSyhx8rtjSfn4vGLSLANkI-WZEiR-cOu0Hrm9S1Nunm41PejopGny_-iStBuys5sukBVvYjrqTV2RaBb-OVFNXjzg",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 23688
+   },
+   {
+    "name": "★ Falchion Knife | Lore",
+    "weapon": "Falchion Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1d7v6tYK1iLs-QG1iWwOJ1uOhmQRa_mg8ijDGMnYftby-SalJ1AsQiEecC4xiwlobjMLnjsQffjtkQzSj2iS9I63xj4OwDVqo7uvqAGhE4d3k",
+    "min_float": 0,
+    "max_float": 0.65,
+    "stattrak": true,
+    "value": 46507
+   },
+   {
+    "name": "★ Falchion Knife | Autotronic",
+    "weapon": "Falchion Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1d7v6tYK1iLs-UHViWwOJ1uOhmQRaygAkopy-KlIb6HifOOV5kFJAkRO5esxC-w4LjNezg5ASIgtkTyn76jHkc7XxisOcFWaUg8_LQi1nfcepqdp_zzW8",
+    "min_float": 0,
+    "max_float": 0.85,
+    "stattrak": true,
+    "value": 15201
+   },
+   {
+    "name": "★ Falchion Knife | Black Laminate",
+    "weapon": "Falchion Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1d7v6tYK1iLs-UHViWwOJ1uOhmQRaxmRwkuAKJm4LwLyrTO2l8U8UoAfkMtkKxwdTkY-m34ADfjoJNyiWs3ypN6ylp5bsAWaUi-KTWjQ-TNOI8_9BdcxUxepgb",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 15980
+   },
+   {
+    "name": "★ Falchion Knife | Freehand",
+    "weapon": "Falchion Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1d7v6tYK1iLs-SA1idwPx9teVWWjmMzE0YvzSCkpu3eX6RbVN0D5t5F-MCtRjpl9DgYerq7lHb2t1Nynj_3C5I6ik5tr5TB71lpPOmEPqDwA",
+    "min_float": 0,
+    "max_float": 0.48,
+    "stattrak": true,
+    "value": 43166
+   },
+   {
+    "name": "★ Falchion Knife | Bright Water",
+    "weapon": "Falchion Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1d7v6tYK1iLs-bF1ifwut3vt5iQSC1kCJ-4wKJk4jxNWXCPA4kAsBxReFbt0S9xtCyNuq35lTfio8XxHmqh39O6S5rsL1QV_Uh5OSJ2JvTxrZB",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 36356
+   },
+   {
+    "name": "★ Huntsman Knife | Gamma Doppler",
+    "weapon": "Huntsman Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpovbSsLQJfx_LLZTRB7dCJlY20kvrxIbrdklRc6ddzhuzI74nxt1i9rBsofWD2IIDDcFQ9MwvV-FO5xejngpK16c6bmyZguiUj7HqMnRfjhBhOOOJxxavJeVUN3dA",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 22386
+   },
+   {
+    "name": "★ Huntsman Knife | Lore",
+    "weapon": "Huntsman Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1P7vG6YadsLM-QG1iY1OBio-xoQRa_mg8ijDGMnYftb3qfPQZyWJtyFuNe4BG5ktDuY-ritleIid1Hynir3H9KvH055btRV6s7uvqAU_ahZxI",
+    "min_float": 0,
+    "max_float": 0.65,
+    "stattrak": true,
+    "value": 18925
+   },
+   {
+    "name": "★ Huntsman Knife | Autotronic",
+    "weapon": "Huntsman Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1P7vG6YadsLM-UHViY1OBio-xoQRaygAkopy-KlIb6HifOOV5kFMF1QrMNu0Puw4DvYbnk5Qfc2d5Azyv_3C1O7Hlq4ulRAvcn_qKBiFvfcepq3JPpPWw",
+    "min_float": 0,
+    "max_float": 0.85,
+    "stattrak": true,
+    "value": 14250
+   },
+   {
+    "name": "★ Huntsman Knife | Black Laminate",
+    "weapon": "Huntsman Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1P7vG6YadsLM-UHViY1OBio-xoQRaxmRwkuAKJm4LwLyrTO2l8U8UoAfkJ5kTsmtfvNe7mswOL3YNByX_9338Y7ig44-cEV_Yk_PGBjgnCZeY7_9Bdc4dD_RHM",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 39458
+   },
+   {
+    "name": "★ Huntsman Knife | Freehand",
+    "weapon": "Huntsman Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1P7vG6YadsLM-SA1idwPx9teVWWjmMzE0YvzSCkpu3cC-Wald2A5tyFu9esxDpktO2Nrzq4wzaiYlGzXmo3SxIuHw65bsLU71lpPPkJkZySA",
+    "min_float": 0,
+    "max_float": 0.48,
+    "stattrak": true,
+    "value": 46011
+   },
+   {
+    "name": "★ Huntsman Knife | Bright Water",
+    "weapon": "Huntsman Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1P7vG6YadsLM-bF1ifwut3vt5iQSC1kCJ-4wKJk4jxNWWVOA4hA5MjQONbtRGwkYHlP77l5FaLj9gTxS76hn4avXo-t-tTV_Uk5OSJ2DtQY32N",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 26864
+   }
+  ]
+ },
+ {
+  "slug": "fever",
+  "name": "Fever Case",
+  "kind": "official",
+  "description": "Официальный кейс CS2. Ключ продаётся отдельно.",
+  "case_price": 55,
+  "key_price": 219,
+  "accent": "#f5a623",
+  "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XsnXwtmkJjSU91dh8bj35VTqVBP4io_frncVtqv7MPE8JaHHCj_Dl-wk4-NtFirikURy4jiGwo2udHqVaAEjDZp3EflK7EeSMnMs4w",
+  "collection": "Fever Case",
+  "items": [
+   {
+    "name": "M4A4 | Choppa",
+    "weapon": "M4A4",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwi8P7qaRb7ZoJf6sDWadztF6ueZhW2fjl05-6mzVmdmgcHOTZgIhXpJ1RO5c4Bjql9DjMunhsgOL34gUnnr-kGoXuTonsfJ3",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 26
+   },
+   {
+    "name": "MAG-7 | Resupply",
+    "weapon": "MAG-7",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5G3wi9a6KWRaalgL8-RAX-vzedxuPUnTHjgkxwj52SHyImqcX2fO1AhDMNxEe4I4RWwkIXgMO60sQPeiYgQmTK-0H2GsAjMqQ",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 15
+   },
+   {
+    "name": "SSG 08 | Memorial",
+    "weapon": "SSG 08",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLijZGwpR1I_PX-MJtvMuWHD2uZ0vpJvOhuRz39x0UlsWmEnt37IHyfaFAkWZR5RuALtRKxlYKxMLnn4leL3t5FmSv9ijQJsHj6GwByAQ",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 58
+   },
+   {
+    "name": "P2000 | Sure Grip",
+    "weapon": "P2000",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0OL8Y5trMvGQGmac_uJ_t-l9AS2wwxx06mTUw9b7JH2RZlQoDZYkRLQD5hW4lNPiYePktgzWj45CmSzgznQeV1pFuQ0",
+    "min_float": 0,
+    "max_float": 0.9,
+    "stattrak": true,
+    "value": 17
+   },
+   {
+    "name": "USP-S | PC-GRN",
+    "weapon": "USP-S",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSNeODHViS0_titedmXSq2qho1tjiLpYPwJiPTcFcoCpV2F-Nc4xXpwNPhZeLg5AffiIxNynj2jylP53xp6ugHU6Ig__XJz1aWMWkGKhU",
+    "min_float": 0,
+    "max_float": 0.9,
+    "stattrak": true,
+    "value": 39
+   },
+   {
+    "name": "MP9 | Nexus",
+    "weapon": "MP9",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f8DIC0PyrcLF-H_yaCW-Ej7ohs7Q5FnDqx0t152XdzI36cCnDaAZyDJNzRuVYsBa4kYHgZbyx4ALAy9USEWUfUe0",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 25
+   },
+   {
+    "name": "XM1014 | Mockingbird",
+    "weapon": "XM1014",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLpk8ewrHZk9___OPU5H_2cDWyZz-l0ufNtcCW6khUz_T-AnNagJH3FbwQnCsEmTeEMs0aww9biMby3tleKjtkQmSX-2yMfv311o7FVNa3OfdQ",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 60
+   },
+   {
+    "name": "Desert Eagle | Serpent Strike",
+    "weapon": "Desert Eagle",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk6_evb6hoH-OdD2yV_v53pPVsXSeMmRQguynLzdmsIHOVPVciXMN3QuVeuxexmtHuP77m7gDd34kRxXj_3ChKvS9p5fFCD_SJMmxOXA",
+    "min_float": 0,
+    "max_float": 0.57,
+    "stattrak": true,
+    "value": 225
+   },
+   {
+    "name": "Zeus x27 | Tosai",
+    "weapon": "Zeus x27",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLln4Xl7x1B6ue9V7BiM_GaMWuZxuZi_uM6GXC3xUh05D7WmY36IHuUZ1AjXpVwR-FZu0OxltHlN-_gsQ3Z34NbjXKpEIQyv90",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": true,
+    "value": 313
+   },
+   {
+    "name": "Nova | Rising Sun",
+    "weapon": "Nova",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL_kYDhwixU-fOReq1-Kf6UMXSFz9F6ueZhW2eyzB9z4WjTzt77JXKVaQcnC5sjTLEMthDpwdzkMr_lsVbW34lGmyj5kGoXuV-iSbwM",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 226
+   },
+   {
+    "name": "Galil AR | Control",
+    "weapon": "Galil AR",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2n5rp8SNJ0PWvZK1hH_OcAHOCzuJJo_V7RiK2qhEutDWR1Nmvcn6RPFVxW5txTbRZuxDuxNKzZu2x7wCMiNpExCSshyof7Xlt5-scEf1y6paUA5M",
+    "min_float": 0,
+    "max_float": 0.798995,
+    "stattrak": true,
+    "value": 90
+   },
+   {
+    "name": "P90 | Wave Breaker",
+    "weapon": "P90",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhx8bf7XsL0PChZ7d5H_KfG2KvzedxuPUnTHrlzU9xt2qHzd-rJ3yQb1cmXJNzF-Vc5BS6wdLjMe60tAyP3dhNzTK-0H3NvEQllg",
+    "min_float": 0,
+    "max_float": 0.950549,
+    "stattrak": true,
+    "value": 264
+   },
+   {
+    "name": "AK-47 | Searing Rage",
+    "weapon": "AK-47",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiNQu6WRbbx9LP-AB3GV_uJ_t-l9AXu2lk1xsD-EnI3_JHmeaAV1CZB1RbEJtxfuxNHuMuq251PY3o4UxXjgznQeg4Qz-rg",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 781
+   },
+   {
+    "name": "Glock-18 | Shinobu",
+    "weapon": "Glock-18",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1c4_2tY5t-KPmdAWWF_uJ_t-l9AX6ylh5w4mTcwtahdS2VOgRzWJsjEOQL5EWxwNblZeK2tVPXitlDmyvgznQeC7fvQL8",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 997
+   },
+   {
+    "name": "UMP-45 | K.O. Factory",
+    "weapon": "UMP-45",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkk4a0qB1O4uL6PZtiLPSsDWaC1eF5vt5lRi67gVN2tWXTzI6tc3rGPQ4kWJUiQrJf4RPskIW2ZO3r4VaKi9hFyX-qhy0a8G81tA_18T9p",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 624
+   },
+   {
+    "name": "FAMAS | Bad Trip",
+    "weapon": "FAMAS",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL3n5vh7h1d7v-ve5tvIfSHHG6A_uJ_t-l9AX6xzExytWndzdj6eCrGb1MkWZB2TOBc4xK8mtHkZezrsQOPjoITyi_gznQezHhrR0c",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 6005
+   },
+   {
+    "name": "AWP | Printstream",
+    "weapon": "AWP",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_DVL0OK8Yap5M-SBC2ad_uJ_t-l9AX_qlk4k5GyAzo6ocC-QZgZxX8AjEbZY5xnrxtPjM7vnsgGIj9oTmXngznQeg3pfcPs",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 3617
+   },
+   {
+    "name": "★ Survival Knife",
+    "weapon": "Survival Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XuWbwcuyMESA4Fdl-4nnpU7iQA3-kKnr8ytd6s2taapkM77CDzbIlrsms-NsHHGxzUwj5G6En4yuIy_BbQAjC5VxQLRc5hm8x4HvKaq8sEukLuHu",
+    "min_float": null,
+    "max_float": null,
+    "stattrak": true,
+    "value": 63474
+   },
+   {
+    "name": "★ Survival Knife | Marble Fade",
+    "weapon": "Survival Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y7vyne5tsLc-eD3WSzetJtuBtSha_nBovp3OGztqtIH-RbwV1X5Z5QuEPshGwl9TuY-vrsQPd3d0QmSz72nwY5ilo_a9cBrKGUnAZ",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 45701
+   },
+   {
+    "name": "★ Survival Knife | Tiger Tooth",
+    "weapon": "Survival Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y7vyne5tsLs-HB2CV09F5ouBnSCyMmRQguynLy42tdSnBOFcgC8EjF-ECtBi6x9fuY-3n4w2P2YsWyiX42iMd7Clp4vFCD_R6ZwboAg",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 22672
+   },
+   {
+    "name": "★ Survival Knife | Doppler",
+    "weapon": "Survival Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y7vyne5tsLc-BG2WJ_uN3ouNlSiCpkBkYvzSCkpu3dnLGOFMmXJJ5FLMC5Ba-w4CzP763tFHZ3Y8Xnir73yJB6So4sOtUU71lpPMvbRQrHg",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 45531
+   },
+   {
+    "name": "★ Survival Knife | Damascus Steel",
+    "weapon": "Survival Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y7vyne5tsMc-XD2qR0u1jo95lRi67gVNw6myGnN6teHyTbFV1DMQhTeFYsBa7xtHhZb-z5gfejN4Un3-si3wf8G81tKX6O3VS",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 41126
+   },
+   {
+    "name": "★ Survival Knife | Ultraviolet",
+    "weapon": "Survival Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y7vyne5t-L8-DG3WAzetJvOhuRz39k0104GnVzor_InqfPQ9xDZJ0E7JfuxDql4XhPryxtg2MiI5An3-r2zQJsHhQRDEjrg",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 36211
+   },
+   {
+    "name": "★ Survival Knife | Rust Coat",
+    "weapon": "Survival Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y7vyne5tsMc-AGmKVzdF9vuhvSha-kBkupjDLn9ytc36QZwByCJpwE-4I4UW9kNy0NO3mtQHdj4xFxSr6j35Lu35s6vFCD_SeoZUIGw",
+    "min_float": 0.4,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 22660
+   },
+   {
+    "name": "★ Skeleton Knife",
+    "weapon": "Skeleton Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XuWbwcuyMESA4Fdl-4nnpU7iQA3-kKnr8ytd6s29Y6FhJeScACnDkL8j6LU8GS3mwUh24G-Bno2tIymeblMgC5R3F-ECsBK6k4XuN-Lh-UWA3P3GyEv9",
+    "min_float": null,
+    "max_float": null,
+    "stattrak": true,
+    "value": 44836
+   },
+   {
+    "name": "★ Skeleton Knife | Marble Fade",
+    "weapon": "Skeleton Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I5PeibbBiLs-SA1idwPx0vORWSSi3kCIrujqNjsGtdy-SbFUhApd1QbZbsUa7l9LmMurktgza3tgQxC38iS0Y6Hlo4rsKT-N7rTdSaj39",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 60580
+   },
+   {
+    "name": "★ Skeleton Knife | Tiger Tooth",
+    "weapon": "Skeleton Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I5PeibbBiLs-SAFiEyOlzot5mXSi9khgYvzSCkpu3dyjBagAlXMB4R-YOt0OxlIe2ZuuztQXdjNhAySn52i5Mv3tj5rlRUb1lpPPHmhG_Tw",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 17106
+   },
+   {
+    "name": "★ Skeleton Knife | Doppler",
+    "weapon": "Skeleton Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I5PeibbBiLs-SA1iC1Oxvj-xoXSu_kBQ9tjm6lob-KT-JPVAnCJojELJetUG5wIC1ZLjr7wXXgolFmCivjXhN7Hxi4-YEUKok87qX0V8jai52PA",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 14260
+   },
+   {
+    "name": "★ Skeleton Knife | Damascus Steel",
+    "weapon": "Skeleton Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I5PeibbBiLs-SH1iUwON3o-J8XBa_nBovp3PUm9_7JHOWZ1QjAsN0ELUD5EHpwdGxP7nksQTbgoxEyXj833gf7S1j_a9cBoUrfx8l",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 20182
+   },
+   {
+    "name": "★ Skeleton Knife | Ultraviolet",
+    "weapon": "Skeleton Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I5PeibbBiLs-AAViA1PxmvORWQyC0nQlp4WTSnN74J3PCOAF0A5V3R-ACsUS6kYCzYrzk7geI2YlMzS2r2i1NvzErvbhVpSdBEA",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 15471
+   },
+   {
+    "name": "★ Skeleton Knife | Rust Coat",
+    "weapon": "Skeleton Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I5PeibbBiLs-SH1iD1etzvN5iQSC1kCIqtjmMj4K3d37COgAhXJEkQedc4ETuk4fkP7jq4VON3otFnCz_iHwdvH5qteZRA71lpPNCX9mpHA",
+    "min_float": 0.4,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 22493
+   },
+   {
+    "name": "★ Paracord Knife",
+    "weapon": "Paracord Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XuWbwcuyMESA4Fdl-4nnpU7iQA3-kKnr8ytd6s2tZ7ZpbqWRXmWTmbsm5bU5TXu3lkR_5j_Swor8JC_BPFVxWJd1FuID4RW7w9b5d7S1z-U4Rao",
+    "min_float": null,
+    "max_float": null,
+    "stattrak": true,
+    "value": 22950
+   },
+   {
+    "name": "★ Paracord Knife | Marble Fade",
+    "weapon": "Paracord Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y4OCqV6VgH_2SHGWcxNFwseVscCW6khUz_TnXw9-qdyiWbQEiA8FxROQMtxPqlILjM7vk4waIjoxNmSr9iyxK6yh1o7FVj-pHDZk",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 32928
+   },
+   {
+    "name": "★ Paracord Knife | Tiger Tooth",
+    "weapon": "Paracord Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y4OCqV6VjH-SaCWKC_uFkse9uSha_nBovp3OGnon7dXufZwcnC5cjEO8M5BDrw4LlNuvq5ADWid4XnCX63yxM5i8-_a9cBvWv3FY7",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 58913
+   },
+   {
+    "name": "★ Paracord Knife | Doppler",
+    "weapon": "Paracord Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpovbSsLQJf0PzadQJD4eOkgYKSqPr1Ibndk2JL7cFOhuDG_Zi7iwfjrkdpN22mdtPGJ1Q5Zw3XrAPsxb3p0Z_o7c_KzHBj6XEjsH-MmAv3308TscgGJg",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 37382
+   },
+   {
+    "name": "★ Paracord Knife | Damascus Steel",
+    "weapon": "Paracord Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y4OCqV6V8H_SSA2aDwvtlj-1gSCGn2xh0sG_VmNz9cS7CaAcgW8MkTOdftxS4wNexPu3n4QPbj9hHyH72jy5XrnE819bSoUk",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 17820
+   },
+   {
+    "name": "★ Paracord Knife | Ultraviolet",
+    "weapon": "Paracord Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y4OCqV7diH-CGHHecxNFwse1qRyC8myIrujqNjsGrJXjEPwAiC5pwEeAC40brkNzvPuLgsgHY2oMWyiv9jCxIvChr4egHT-N7rbYjcxXs",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 16659
+   },
+   {
+    "name": "★ Paracord Knife | Rust Coat",
+    "weapon": "Paracord Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y4OCqV6V8H-OHC2Kc_uV4uedscCS2kRQyvnPUzo2qIHjEaFQhC5dyF-ZbsxPpx9C1Y-nq4ACPiIJFzn_-hntJ6yxr_a9cBo1AYhy6",
+    "min_float": 0.4,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 23961
+   },
+   {
+    "name": "★ Nomad Knife",
+    "weapon": "Nomad Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XuWbwcuyMESA4Fdl-4nnpU7iQA3-kKnr8ytd6s2hfbBpL_-BQDPEw-hz57cxTnCxkEh_5jnVzor8dymXbgAiAsFyEOEMsBW8l9O1Ne38p1uJmh0Kkm0",
+    "min_float": null,
+    "max_float": null,
+    "stattrak": true,
+    "value": 15095
+   },
+   {
+    "name": "★ Nomad Knife | Marble Fade",
+    "weapon": "Nomad Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1U-uaqZ6t_H_GeMWqR0-x6td5vTi22qhEutDWR1NqsdS6Wa1UpC8cjQ7QJ5BHqx9zjZurgsgfZiYgXn3r7hy8b6yo_5OocEf1y7tM7KOE",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 14130
+   },
+   {
+    "name": "★ Nomad Knife | Tiger Tooth",
+    "weapon": "Nomad Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1U-uaqZ6t_H_GdMXOZxutkj-57Tie0kCIrujqNjsGsIH-WOlUnCpp3FOAMshe-xNHgZe20slPX2YNFn336iy1L6Stp47oET-N7rXiT8mY0",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 26441
+   }
+  ]
+ },
+ {
+  "slug": "inferno",
+  "name": "Inferno",
+  "kind": "custom",
+  "description": "Огненная коллекция: пламя, лава и раскалённый металл.",
+  "case_price": 149,
+  "key_price": 0,
+  "accent": "#ff5a1f",
+  "image": "",
+  "collection": "CaseUP Inferno Collection",
+  "items": [
+   {
+    "name": "Nova | Blaze Orange",
+    "weapon": "Nova",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL_kYDhwipC0Pq7ZrBoMs-RAmaKxNF5ouBnSCyMmRQguynLz9v7In7CbFd2XpciRLUL4EHumoCyM-Lh5gXeiYtAzC-tiH8c6Ctu6_FCD_RtjAd6hA",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 65
+   },
+   {
+    "name": "XM1014 | Oxide Blaze",
+    "weapon": "XM1014",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLpk8ewrHZk7OeRcKk8cKHHMWiIyOpzj-NlTjO2qhEutDWR1N-tJ3zDOFAoDZMhRrNbsUa_x9fuMrvrsgDW3YJGxHn22ixO6C9j5uscEf1ygXv9Ksw",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": true,
+    "value": 33
+   },
+   {
+    "name": "UMP-45 | Blaze",
+    "weapon": "UMP-45",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkk4a0qB1a7s2oZKVgJeOsAm6Xyfo4srhvSi21wUoi4j_Xzt7_di6RaQ4mA5YhRuIMtEbswIDmMbzg5ACN35UFk3uW8e_n9A",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": false,
+    "value": 40
+   },
+   {
+    "name": "Glock-18 | Oxide Blaze",
+    "weapon": "Glock-18",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1Y-s2pZKtuK6HLMWSf0_x5tORncCW6khUz_T_Xn9f6dnvDb1UkDsdwF7IItES6kYK1M-7k7wSI3YwQm3_63XlAvH51o7FVwJirs7M",
+    "min_float": 0,
+    "max_float": 0.85,
+    "stattrak": true,
+    "value": 56
+   },
+   {
+    "name": "R8 Revolver | Blaze",
+    "weapon": "R8 Revolver",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLjm4Dv8TRe_c2vaZtrLPGeC3SvzedxuPUnTCznkR9xsGiHzomgIn-UPwN1DZZyELNe5xDrlNTgY-jm5FeM3tkUnDK-0H3jUXrCJQ",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": false,
+    "value": 61
+   },
+   {
+    "name": "SCAR-20 | Trail Blazer",
+    "weapon": "SCAR-20",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLinZfyr3Jk_PGvevY9H_aGHH6v1eFmv95lRi67gVN_5D6Bzo38cXOVOA52DZolReBbt0K5k9DvM-Pr4VHXjI9Enn6sjHkb8G81tIsMy8R0",
+    "min_float": 0,
+    "max_float": 0.702614,
+    "stattrak": true,
+    "value": 21
+   },
+   {
+    "name": "MAG-7 | Heat",
+    "weapon": "MAG-7",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5G3wiFO0P-vb_NSMvWXBmiE_uJ_t-l9AX7nzBsk623dm46odHmUbFd1Dcd2RbINtBXtkNDjMbzj5AGKjt4UyijgznQe8JftFTE",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 114
+   },
+   {
+    "name": "Galil AR | Phoenix Blacklight",
+    "weapon": "Galil AR",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2n5rp8SNJ0OG-V7RlL_WdB3-v1e9xo955WjujmRgYvzSCkpu3JyqTblQhX5dxTeMJ40Pux4C2MOyw51DXjYtAyH7_jy9JuCk45LpWWL1lpPNjwyLnRw",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": false,
+    "value": 158
+   },
+   {
+    "name": "Desert Eagle | Blaze",
+    "weapon": "Desert Eagle",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk7vORbqhsLfWAMWuZxuZi_uI_TX6wxxkjsGXXnImsJ37COlUoWcByEOMOtxa5kdXmNu3htVPZjN1bjXKpkHLRfQU",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": false,
+    "value": 103
+   },
+   {
+    "name": "P250 | Inferno",
+    "weapon": "P250",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwiVI0OL8PfRSKf6VC3WeztF6ueZhW2e3wUgi6z7WmI6gc3LDPQAgXsB2E7Veshbpl4DiNL_htQDZ2NlHy3qvkGoXuXYeEedL",
+    "min_float": 0,
+    "max_float": 0.68,
+    "stattrak": true,
+    "value": 126
+   },
+   {
+    "name": "M4A4 | Hellfire",
+    "weapon": "M4A4",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiFO0P_6afBSKPWfAmGZ0-tJvOhuRz39zEp24GTXmImsInqWP1AkXpBwE7FetUTswdfkPu7h5QXXithBy32t2DQJsHhDPmtuAA",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 833
+   },
+   {
+    "name": "Desert Eagle | Heat Treated",
+    "weapon": "Desert Eagle",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk7uORbKFsJ_yWMWSR0utJuOB7Syy9kBkY4QKJk4jxNWXGbQZ0CZpyTeBf4xO4m9y1Nuy05wHYg4lNySWr3C1Luyhu4LkKA6As5OSJ2JAJXn6j",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": false,
+    "value": 1283
+   },
+   {
+    "name": "Zeus x27 | Dragon Snore",
+    "weapon": "Zeus x27",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLln4Xl7x1Y-s2hfqF_MPGAHViU0-9xv-9WVSymhiIrujqNjsH6dH7FOA8pXJZ0Q-MPshe-lte0Pu6z7lbXio5GmSv83yNJ73k54rlWT-N7rWv6YDXa",
+    "min_float": 0,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 537
+   },
+   {
+    "name": "AWP | Sovereign Flame",
+    "weapon": "AWP",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_DVL0OGhfqF_JfmUAFiWze97td5lRi67gVNz5zvRnN-qcHKfPFcjXpUmRuILukW9ldHlNOjn5Q2PitoWmSiv3C0a8G81tAj27FZA",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": false,
+    "value": 8472
+   },
+   {
+    "name": "P2000 | Fire Elemental",
+    "weapon": "P2000",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0PG7V7Q_cKDDMWGZ0-tJte1sQiy9gRwrjDGMnYftb3-RZldxWJVyF-QLsUG5mofnML_qtg3cjd4TyCr4jXsf63lr4-5TVvA7uvqA-y0nTh8",
+    "min_float": 0,
+    "max_float": 0.6,
+    "stattrak": true,
+    "value": 3872
+   },
+   {
+    "name": "★ Bayonet | Scorched",
+    "weapon": "Bayonet",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLzn4_v8ydP0OG-V6BsMOCfC1icyOl-pK86HS_gwEx3sT_Ryon7c3ySO1UkCpt3Q7EL4BGxwd3lNeq24QTYiI1H02yg2fqRNo8T",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 38651
+   },
+   {
+    "name": "★ Gut Knife | Scorched",
+    "weapon": "Gut Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1c-uaRe7RSJPGDHmuV_uJ_t-l9AX-yl0Uj6jvQnoyrcy-TPQd1ApB2E7UIuxWwkoHkMOzjsgXei4pAyXngznQeOP3RS-8",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 42613
+   },
+   {
+    "name": "★ Survival Knife | Scorched",
+    "weapon": "Survival Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y7vyne5t-MM-XD3eAzetJvOhuRz39k09w5WnVyI34cnqUb1R2AsN5FuAPtha-m4CyMejitlfYiYpNmH392jQJsHiJvqHvqQ",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 39170
+   },
+   {
+    "name": "★ Huntsman Knife | Scorched",
+    "weapon": "Huntsman Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1P7vG6YadsLM-AHliUwP5mvORWQyC0nQlp5GiDnIqseHPGalMnXJMhQ-cDtkPrm93jZe7l5wbb2YsTyy352CpP7TErvbiCPrzwVA",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 24982
+   }
+  ]
+ },
+ {
+  "slug": "frostbite",
+  "name": "Frostbite",
+  "kind": "custom",
+  "description": "Холодные скины: лёд, снег и северное сияние.",
+  "case_price": 129,
+  "key_price": 0,
+  "accent": "#5ecbff",
+  "image": "",
+  "collection": "CaseUP Frostbite Collection",
+  "items": [
+   {
+    "name": "MP9 | Cobalt Paisley",
+    "weapon": "MP9",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f9Tte0PCifaFSMPGaHWuV2NF6ueZhW2ewwhwmtmmDmdz_eH-RaQZ1CcB3E-BcukKwmoXlNerk5wHY3tkRmX74kGoXuZ6yLkO1",
+    "min_float": 0,
+    "max_float": 0.65,
+    "stattrak": false,
+    "value": 43
+   },
+   {
+    "name": "XM1014 | Frost Borre",
+    "weapon": "XM1014",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLpk8ewrHZk7v-RY6piNOOsHW6c1-tkj-1gSCGn20V05W2Dw9v8ICjGbQMkWJd4TedZtRGxkNDnNOjqsgGN34MXxX76jH9XrnE82FMLyIU",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": false,
+    "value": 19
+   },
+   {
+    "name": "P90 | Glacier Mesh",
+    "weapon": "P90",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhx8bf7jJk4ve9YJtqLPGQB2KC_uJ_t-l9AX3ikERzsGiDmYuucijGbVNzXpMhELEOsEG9ldDnM-7n5QfW2dkUmHngznQeLgH7yAw",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 70
+   },
+   {
+    "name": "MAG-7 | Cobalt Core",
+    "weapon": "MAG-7",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5G3wiFO0P-vb_NSLemBDWKexNF6ueZhW2fkwBshsT-DntuscSiVbABzD5Z2QuRftRXuwYblY-_i5AePj49Emyn7kGoXuSUXTp8T",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 27
+   },
+   {
+    "name": "Glock-18 | Winterized",
+    "weapon": "Glock-18",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1c_M2pZKtuK8-WAm6ExNF1sexmcCW6khUz_W6Azdn6eCrBalcjXJpzE7EO5xa_l4DuNu6ws1Hb2IgUn32si39B5y11o7FVC5qcAFg",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 16
+   },
+   {
+    "name": "AK-47 | Wintergreen",
+    "weapon": "AK-47",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wjFU6s2jbbBsLPyaDViX0-tzvt47cCW6khUz_W-Ay96seSrBaQcnDJRyTbMDuxTsw9bmNLy0sQPb34JNyn_-jS9N6n51o7FVK4Nkj6A",
+    "min_float": 0,
+    "max_float": 0.75,
+    "stattrak": false,
+    "value": 18
+   },
+   {
+    "name": "CZ75-Auto | Chalice",
+    "weapon": "CZ75-Auto",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLyhMG1_B1a4s28Z71sLM-fB2CY1aBzsrQ5HnyyzBh25jzcyI3_dyqXaFcmC8ByReBZuxi-lYXlMei05FSPlcsbmsOlfuvI",
+    "min_float": 0,
+    "max_float": 0.1,
+    "stattrak": false,
+    "value": 107
+   },
+   {
+    "name": "Glock-18 | Ifrit Lattice",
+    "weapon": "Glock-18",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1c4_2tY5tkJuKaGlicwPpiueJscCW6khUz_WrdzI37InjBawYlCpIlQO9e40W_ktWzY-zltQPW2I9CmyX83XlJ5id1o7FVZ8jkHbM",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": false,
+    "value": 108
+   },
+   {
+    "name": "AUG | Arctic Wolf",
+    "weapon": "AUG",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwi5Hf_jdk7uepV7NlKeSWCGaextF6ueZhW2frxxtxsGrTw46sI33BOAUiXMElFO4L50O9xNLvNOyz4lDd3olMzX6skGoXude_sLiC",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": true,
+    "value": 141
+   },
+   {
+    "name": "MP9 | Arctic Tri-Tone",
+    "weapon": "MP9",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f-jFk7uCtfK1uH_2DV1icyOl-pK86HHrrwE5ztWSGydv_eCifOAF2DMB5Fu5etEK9lt3hMuLh5gWPitgX02yg2dKG9WA-",
+    "min_float": 0,
+    "max_float": 0.6,
+    "stattrak": false,
+    "value": 117
+   },
+   {
+    "name": "P250 | Epicenter",
+    "weapon": "P250",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwjIJuqKRYal9IfOHMWuZxuZi_rg5TnvmzB916m_dm92pdH6eOwJ2DpVyQ7JftUXtwIK2MLiz7wTXjYtbjXKpkd0OdLY",
+    "min_float": 0,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 451
+   },
+   {
+    "name": "AK-47 | Ice Coaled",
+    "weapon": "AK-47",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiFO0POlPPNSI_-UGm-Zz-llj-1gSCGn2x4l5z_RyNj6JXnEbgFzXMYjEOUIsBe5m9exP-zg4leMj4pGxXn7jCJXrnE84asPq_0",
+    "min_float": 0,
+    "max_float": 0.77,
+    "stattrak": true,
+    "value": 1416
+   },
+   {
+    "name": "P2000 | Corticera",
+    "weapon": "P2000",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0PG7V6JsNvWfD1iAk74m4N5lRi67gVNzt2TTyo6gdH6XPwEiCcZ2RucC5BG9kdTvZe-24QSIidhHyimoiC0b8G81tLsWWhFO",
+    "min_float": 0.06,
+    "max_float": 0.3,
+    "stattrak": true,
+    "value": 552
+   },
+   {
+    "name": "MP9 | Starlight Protector",
+    "weapon": "MP9",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f-jFk4uL3V7d5IeKfB2CY1dF6ueZhW2flkUtztz_SzYypJSqRalUhDJNwQO4PsBXtx9HkN-K37w3bgohGmHn3kGoXuZ3lRdvF",
+    "min_float": 0,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 8681
+   },
+   {
+    "name": "AK-47 | Vulcan",
+    "weapon": "AK-47",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiFO0POlPPNSMuWRDGKC_uJ_t-l9AXCxxEh14zjTztivci2ePQZ2W8NzTecD4BKwloLiYeqxtAOIj9gUyyngznQeF7I6QE8",
+    "min_float": 0,
+    "max_float": 0.9,
+    "stattrak": true,
+    "value": 7221
+   },
+   {
+    "name": "★ Falchion Knife | Boreal Forest",
+    "weapon": "Falchion Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1d7v6tYK1iLs-bF1iWzvxzo_VWTSahkBwrjDGMnYftbyjDPVQgCJEhELMOtRG9mtfkP-jr7wyMjoMWny2vjSxMvCc9suxWAqU7uvqAOEaxeJw",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 61959
+   },
+   {
+    "name": "★ Stiletto Knife | Boreal Forest",
+    "weapon": "Stiletto Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I-_uibbB5L8-bF1iWzvxzo_VWTSahkBwrjDGMnYftb3zCa1cgCZMhFONf4BDukofkZe7i5wPbid8Wniqtji5B6iptseoFAvI7uvqA6NgizlQ",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 21711
+   },
+   {
+    "name": "★ Skeleton Knife | Boreal Forest",
+    "weapon": "Skeleton Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I5PeibbBiLs-bF1iWzvxzo_VWTSahkBwrjDGMnYftb32fPFIkDZV4EeJbskTpxt2yN-6wtQCIjY1GnyWriyIauCxv4LtQAvY7uvqAMerubhQ",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 15171
+   },
+   {
+    "name": "★ Kukri Knife | Boreal Forest",
+    "weapon": "Kukri Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q-vm8YZtlOc-VAXWV0vpJsu57Sii_qhEutDWR1N2vIH7Dbw8jXMZwTecNsEPsmoKzP-Kx5QHZ2YtAniyoi3kb6yht5-ocEf1yVn7b_ls",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 41455
+   }
+  ]
+ },
+ {
+  "slug": "neon-pulse",
+  "name": "Neon Pulse",
+  "kind": "custom",
+  "description": "Кибер-неон, лазеры и цифровые глитчи.",
+  "case_price": 199,
+  "key_price": 99,
+  "accent": "#d32ce6",
+  "image": "",
+  "collection": "CaseUP Neon Pulse Collection",
+  "items": [
+   {
+    "name": "SG 553 | Cyberforce",
+    "weapon": "SG 553",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLimcO1qx1Y-s29b_E4c8-QF2WV0-h5ouJscCW6khUz_Wjdntr6Iy6WbgEjA5MlRedctxG5kNKyNbi3sgTfi9oUnyj9234b5n51o7FVairOMAY",
+    "min_float": 0,
+    "max_float": 0.9,
+    "stattrak": true,
+    "value": 15
+   },
+   {
+    "name": "G3SG1 | Digital Mesh",
+    "weapon": "G3SG1",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2zYXnrB1c_M2pO7dqcc-XB3SC1P5ij-1gSCGn20wh4m-By9-qIC7COA8jWcNxRuUPshe6kNfnYe62tQ2K2NpHmXj2iC9XrnE82YBIy5I",
+    "min_float": 0,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 37
+   },
+   {
+    "name": "P2000 | Pulse",
+    "weapon": "P2000",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0PG7V7Q_cKDDMXeFzf1zj-1gSCGn201wsTnRm9egcS7DaABxDZckQe5Ys0S6xtKxZO-wsQDbi9lMxSv-jS5XrnE8fJdFk9o",
+    "min_float": 0,
+    "max_float": 0.6,
+    "stattrak": true,
+    "value": 15
+   },
+   {
+    "name": "Galil AR | Sandstorm",
+    "weapon": "Galil AR",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2n5rp8SNJ0PG7V7dsLvSAGmiCzNF6ueZhW2exkx4m6mrcmd6heS-XZgB1ApZ3FLUI5xm6ktezMuzh7gTeiYpFnCr-kGoXuTw2UKiI",
+    "min_float": 0.1,
+    "max_float": 0.6,
+    "stattrak": true,
+    "value": 30
+   },
+   {
+    "name": "Tec-9 | Jambiya",
+    "weapon": "Tec-9",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLlm5W5wiVI0Oara_1SKvGeDG6JwNF6ueZhW2ewwhhw5WnXy4v_dnqXOwMnAsQmF-IMtxDql9LmP-mw51feiIhDnn78kGoXuTq6iJ_X",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 59
+   },
+   {
+    "name": "M249 | Deep Relief",
+    "weapon": "M249",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8zMK5wiFO0P_8PP1SJPWWHliCxOJ_tedWQyC0nQlp5DzUzIyqcnyQOAckWJckQu8KuhnpkdPgNu-0tgTYio5Eny2shnsd7TErvbi9QVp9bQ",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 55
+   },
+   {
+    "name": "M4A1-S | Glitched Paint",
+    "weapon": "M4A1-S",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_iHMWaS0vpkseJ9cD66mxkYvzSCkpu3dSnCPFJxXJZ2RrEP4Ri8k4a1Yu_j7w3e3okTzXr92ytA5ilrsroDUr1lpPMn2xt0Zg",
+    "min_float": 0,
+    "max_float": 0.67,
+    "stattrak": false,
+    "value": 136
+   },
+   {
+    "name": "P250 | Cyber Shell",
+    "weapon": "P250",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwiVI0OL8PfRSI-mRC3WDyet6vN5lRi67gVMl6mzUm9n8IHzCaQUmA5Z3RLJb4xC9m4bhMbzn7lOL2Y5Am3j73HxI8G81tOdaiAQT",
+    "min_float": 0,
+    "max_float": 0.85,
+    "stattrak": true,
+    "value": 267
+   },
+   {
+    "name": "USP-S | Cyrex",
+    "weapon": "USP-S",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSI-WsG3SA_u1vouRxcCW6khUz_TjdzdmsJyiTZg8kX8N4ELUP5EPsw9G1YeLn5VTXjY0WxS6rhiIYuCd1o7FV2N83Spg",
+    "min_float": 0,
+    "max_float": 0.55,
+    "stattrak": true,
+    "value": 117
+   },
+   {
+    "name": "P250 | Digital Architect",
+    "weapon": "P250",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwiNa0OSrerBkJ_-UC2ivz-t5vt5lRi67gVMk4mXQntr7JC_GPQNxApFxF7NethXqktfvMuLktAaKjd9Cyy_9iH8f8G81tGeD0jsi",
+    "min_float": 0,
+    "max_float": 0.49,
+    "stattrak": false,
+    "value": 185
+   },
+   {
+    "name": "USP-S | Spiral Glitch",
+    "weapon": "USP-S",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSNeODHViD0edkse1WSCW6gR4vjDSXk4v8MijCMEJPVssnHaMUskG4ltXvPr7j7lTfjo4QyS762Coa7y5u5rsCV6NwrKfTjlySMOFstY5DeqjJbNurDA",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": false,
+    "value": 478
+   },
+   {
+    "name": "M4A4 | Cyber Security",
+    "weapon": "M4A4",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiFO0P_6afBSI-mRC3WA1OB9j-1gSCGn2x9-527Tyt-pcnyUagQlW5JxEOIOuhjrw9XlMrixtQTd2NhNmH_5jCNXrnE8Cu1wa6c",
+    "min_float": 0,
+    "max_float": 0.98,
+    "stattrak": true,
+    "value": 1370
+   },
+   {
+    "name": "SCAR-20 | Cyrex",
+    "weapon": "SCAR-20",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLinZfyr3Jk7OeRe6dsMs-QF3WV2dF6ueZhW2fgzUR_52nUzYugICnCPVImApYkRO8NtkLtw4a1Nbzn7lSN2oITnCr5kGoXuXXxbesR",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 1050
+   },
+   {
+    "name": "M4A1-S | Hyper Beast",
+    "weapon": "M4A1-S",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_OGMWrEwL9JuPh5SjuMlxgmoCm6lob-KT-JbwF1WZEjR-YJskK9k9XiYePltAeNjYlAxSn5j34dvCZstb4LB6Ut-7qX0V8Xkv5_2A",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 3541
+   },
+   {
+    "name": "MAC-10 | Neon Rider",
+    "weapon": "MAC-10",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5WxrR1Y-s2jaac8cM-dC2ie0-dytfNWQyC0nQlp5DzTntmgdC7COABxX5NxQrUOtUS5w4LgMu6zsVCK2IJCmyisjitM6DErvbicsEA0SQ",
+    "min_float": 0,
+    "max_float": 0.45,
+    "stattrak": true,
+    "value": 3151
+   },
+   {
+    "name": "★ Survival Knife | Rust Coat",
+    "weapon": "Survival Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y7vyne5tsMc-AGmKVzdF9vuhvSha-kBkupjDLn9ytc36QZwByCJpwE-4I4UW9kNy0NO3mtQHdj4xFxSr6j35Lu35s6vFCD_SeoZUIGw",
+    "min_float": 0.4,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 22660
+   },
+   {
+    "name": "★ Flip Knife | Freehand",
+    "weapon": "Flip Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1d4_u-V6VgH_2SHGyVxdFjoN5lRi67gVMk4Wzdm4r7cCiWPwUjXpt2QrZZ5ESxktLiNbmx4VPdiogTyi_42CxO8G81tO8hlF8A",
+    "min_float": 0,
+    "max_float": 0.48,
+    "stattrak": true,
+    "value": 33046
+   },
+   {
+    "name": "★ Huntsman Knife | Bright Water",
+    "weapon": "Huntsman Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1P7vG6YadsLM-bF1ifwut3vt5iQSC1kCJ-4wKJk4jxNWWVOA4hA5MjQONbtRGwkYHlP77l5FaLj9gTxS76hn4avXo-t-tTV_Uk5OSJ2DtQY32N",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 26864
+   },
+   {
+    "name": "★ Flip Knife | Stained",
+    "weapon": "Flip Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1d4_u-V6V8H_acHGSVxdF6ueZhW2fjkUUk4GzRmNuvcSnFO1MlW5RxR7MItUbskIHnZurl5ALf341Gmy-rkGoXuTDvkImE",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 46776
+   }
+  ]
+ },
+ {
+  "slug": "toxic",
+  "name": "Toxic Zone",
+  "kind": "custom",
+  "description": "Кислотные цвета и знаки биологической опасности.",
+  "case_price": 99,
+  "key_price": 0,
+  "accent": "#9be22d",
+  "image": "",
+  "collection": "CaseUP Toxic Zone Collection",
+  "items": [
+   {
+    "name": "MAG-7 | Hazard",
+    "weapon": "MAG-7",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5G3wjFL0PqvcqV_JM-RHGaGztF6ueZhW2flxR8ksDvcnt_7JC7DaQUgA5FxQe8I50TsmobhMe2041SI2dpFySWrkGoXuaG6AS0C",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 32
+   },
+   {
+    "name": "P2000 | Urban Hazard",
+    "weapon": "P2000",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0PG7V7Q_cKDDMXKCw-94j-loVSihkSIrujqNjsGsJXnFPw4gCcZ1TOIPt0LukoG2ZuqxtAXaj4sTzy6q3SpN7C9u6-YCT-N7rcTI-daA",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 30
+   },
+   {
+    "name": "Tec-9 | Toxic",
+    "weapon": "Tec-9",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLlm5W5wipC0Py7a6hoIeKsHWyFzeJl5d59SirqqhEutDWR1N2pc3PFbgYgDMF5TbVZ5hfsk93hP7u2tQzf2t0RxSuviiJN5ydo5bwcEf1yPyH7PX0",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": false,
+    "value": 60
+   },
+   {
+    "name": "MP9 | Deadly Poison",
+    "weapon": "MP9",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f_jdk4uL3V6BoIfSfF1iAzudlv-9WQyC0nQlpsm3Vy9f4eXvEPwcoCcNyQOBY5EWxwN3gNru0tFGK2d5Mny__iS8c5zErvbjRwweEJA",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 31
+   },
+   {
+    "name": "CZ75-Auto | Emerald",
+    "weapon": "CZ75-Auto",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLyhMG1_B1a4c2rZaF_IfyXMWuZxuZi_rNsFyzqzUhy4zzWmdqvdnPFbQYoCpolQeMOuxHum4HnMbjl4FCM2I1bjXKpBQcUgmo",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": false,
+    "value": 18
+   },
+   {
+    "name": "MP7 | Urban Hazard",
+    "weapon": "MP7",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8jsHf_jdk4uL5JadiLf2SAGOV09F6ueZhW2fgx0gl4WTczdj7I3LFaQYjDcQiE-Beuhe6xIXnP-_l41eKi9pEyH79kGoXuW6iY_I1",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 30
+   },
+   {
+    "name": "MP9 | Ruby Poison Dart",
+    "weapon": "MP9",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f_C9k4uL3V6pkNOKcCWKe_uJ_t-l9AXzhkEsm527Xy9r_JynEP1IiWJZ3FOYP4xTqmtznNO-34VCKiYJExSjgznQeVzj6siQ",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 172
+   },
+   {
+    "name": "SCAR-20 | Emerald",
+    "weapon": "SCAR-20",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLinZfyr3Jk7vyRbaloMvGfCliS0-9gv95lRi67gVMh5WuDyY2qeH7CbQ8jDMR0RuQDuhOwxtCzZL_ksVTe3otByyz3inkY8G81tKuEs31W",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": false,
+    "value": 92
+   },
+   {
+    "name": "Tec-9 | Nuclear Threat",
+    "weapon": "Tec-9",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLlm5W5wjFL0Py7Y6F-NOKaHmKvxvxzte9WWyywzCIrujqNjsGtIyjEbQR1A8Z1QLVZtha_k9HvNbu04wTei4sWxCX93SJP7nw_4rtWT-N7rTdwfM9W",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 112
+   },
+   {
+    "name": "M249 | Emerald Poison Dart",
+    "weapon": "M249",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8zMK5wjFL0P_8PP1SJuKcCVif0-dxue9oQxa_nBovp3PRzNb8JX2VO1IpDsclRrEPtxXtxNSxYuuw4QHai9gWyCT2j3gYuHlt_a9cBlcR8wa2",
+    "min_float": 0,
+    "max_float": 0.45,
+    "stattrak": true,
+    "value": 316
+   },
+   {
+    "name": "SG 553 | Hazard Pay",
+    "weapon": "SG 553",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLimcO1qx1Y-s29b_E4c8-QD3KEyOF4j-1gSCGn20Qj52vXw9z6c32RbAV2XpF1Q-UN4Ra7x4bkPuy0tFTciYpCxC37jC1XrnE8Zorh1bo",
+    "min_float": 0,
+    "max_float": 0.48,
+    "stattrak": false,
+    "value": 506
+   },
+   {
+    "name": "P90 | Emerald Dragon",
+    "weapon": "P90",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhx8bf_jdk6-Cvb6tjH-DKXliS0-9gv95lRi67gVMm4m3Vzdmqci-SO1clX8Z1QeYO5xi5mtTuPu7l4FDc2o4TmH32jC1P8G81tLxM49od",
+    "min_float": 0.06,
+    "max_float": 0.52,
+    "stattrak": true,
+    "value": 1068
+   },
+   {
+    "name": "M4A1-S | Atomic Alloy",
+    "weapon": "M4A1-S",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_GeMWrEwL87o95oQyW8jCIooTyLnYrGLSLANkI-D5d2FrENtRG7wNDvZe-3slfci9pFmHj8jSof6yZjtugEB6QtrKTXhxaBb-PhITXxPA",
+    "min_float": 0,
+    "max_float": 0.9,
+    "stattrak": true,
+    "value": 523
+   },
+   {
+    "name": "AK-47 | Bloodsport",
+    "weapon": "AK-47",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiVI0POlPPNSIvycAWOD0eFkpN5lRi67gVN15mmDw9egci_EPFAkDMQlTeZe4EXplNa0Yrvr5wbd345GyHioiC4b8G81tFuqg_k_",
+    "min_float": 0,
+    "max_float": 0.45,
+    "stattrak": true,
+    "value": 2452
+   },
+   {
+    "name": "Glock-18 | Ghost Protocol",
+    "weapon": "Glock-18",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1c4_2tY5tqKP-AGliA0-Fiv-JmQxahkBkYvzSCkpu3cinCaAAoD8AiEbVftRTrktCyNLi3sVTei4pAznj92ikY6Xk9t-cCBL1lpPO4SDexIA",
+    "min_float": 0,
+    "max_float": 0.9,
+    "stattrak": false,
+    "value": 2290
+   },
+   {
+    "name": "★ Specialist Gloves | Emerald Web",
+    "weapon": "Specialist Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tk71ruQBH4jYLf-i5U-fe9V7d9JfOaD2uZ0vpJtexsXSi_kSIwtj-6lob-KT-Jbw4kA8d4QOBb5hnqmoHuMLmx4AWK341Bnyr93CxN6itjsb1XUfAgqLqX0V92--w69A",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 59118
+   },
+   {
+    "name": "★ Hydra Gloves | Emerald",
+    "weapon": "Hydra Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tg_13jRBnOlo_k7yNk6P6hfqF-H_KfAWiUyeFjvuVWRzC3hxwYsTGEmYTGJjnCO1hPVssnHaMU4EG6ktGyPryz5A3fiIwUyin3h3lJ5nlq5-xQVPIk-6HWjVmQOeFptI5DeqjsQUewWg",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 18618
+   }
+  ]
+ },
+ {
+  "slug": "beast-mode",
+  "name": "Beast Mode",
+  "kind": "custom",
+  "description": "Драконы, волки и хищники со всех карт.",
+  "case_price": 299,
+  "key_price": 149,
+  "accent": "#eb4b4b",
+  "image": "",
+  "collection": "CaseUP Beast Mode Collection",
+  "items": [
+   {
+    "name": "P250 | Bengal Tiger",
+    "weapon": "P250",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwipC0OL8PfRSNPmUC3WvzedxuPUnSX7llhghsGjQnNv7I36SZlAjDZMmE-VYskS_kYfkNO2w4QffiItNyjK-0H3QIgynUA",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 25
+   },
+   {
+    "name": "M4A1-S | Blood Tiger",
+    "weapon": "M4A1-S",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_iKMXWVxfp_t-R7cCW6khUz_WXWmdmpeXOWbA4jDJolQeMNthnrlIbiMO7m71TfjIpFxH-vjClO6CZ1o7FVlF3bnRA",
+    "min_float": 0,
+    "max_float": 0.3,
+    "stattrak": true,
+    "value": 59
+   },
+   {
+    "name": "Dual Berettas | Dualing Dragons",
+    "weapon": "Dual Berettas",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL0kp_0-B1Y-s2qfaVhIvWBHGKE1e9JtPNoSCa9hiIrujqNjsGqcn-VZ1JyXMR3RuMK5xDswNXkYbjitgePj91Bynn32y5N7ydtsLoET-N7rXzpOmeh",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 19
+   },
+   {
+    "name": "USP-S | Blood Tiger",
+    "weapon": "USP-S",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSKOmsHGKU1edxtfNWQyC0nQlptWWEzd-qd3mVbgR2WZYiFuUMtUG7x4HhYeLhs1fZiN1DnC6viH4Y7TErvbgp6HjWjQ",
+    "min_float": 0,
+    "max_float": 0.3,
+    "stattrak": true,
+    "value": 30
+   },
+   {
+    "name": "P90 | Tiger Pit",
+    "weapon": "P90",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhx8bf_C9k-_upbbZ-H_KBAXCe_uJ_t-l9AX6wxERy4W_UyYytIn2RPQYjDpp2F-Vc4xi8x9e1Pu7n5gfcjYoWzCrgznQeZAcpQ5E",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": false,
+    "value": 21
+   },
+   {
+    "name": "Dual Berettas | Panther",
+    "weapon": "Dual Berettas",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL0kp_0-B1I4M2-aap5KPWBMWuZxuZi_uA4Si-3kRx-sDzUn4r_cnPGa1AiApJwReRc4RXrwIHjMLu25AGP2otbjXKpeGQaAco",
+    "min_float": 0,
+    "max_float": 0.58,
+    "stattrak": true,
+    "value": 25
+   },
+   {
+    "name": "Negev | Lionfish",
+    "weapon": "Negev",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL_m5Hl6x1I_82gbaNoNs-fB2iex-dluN5lRi67gVNx62XXzI74InPGbQMpDpMiRLMOsRG4lNXvPuritFeN3YpMzSSo2yhN8G81tOHyHega",
+    "min_float": 0,
+    "max_float": 0.55,
+    "stattrak": true,
+    "value": 90
+   },
+   {
+    "name": "CZ75-Auto | Hydraulics",
+    "weapon": "CZ75-Auto",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLyhMG1_B1Y9aX7V6x0JOKSG2uZwv1JvOhuRz39kE135DzRyN2hIHyea1AkA8BwTOYJ4RG6kNzlZOm0sgXX2doRmS6riTQJsHilInmzoA",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": false,
+    "value": 197
+   },
+   {
+    "name": "MAG-7 | Monster Call",
+    "weapon": "MAG-7",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5G3wiFO0P-vb_NSLf-dHXOV09F1se1lcCW6khUz_WncmIz8JHmTa1JyApd5FLEMsES-kNDhM-3i5QKM2Y5AzSr9jngY6Cp1o7FV7cAHRyI",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 211
+   },
+   {
+    "name": "Desert Eagle | Serpent Strike",
+    "weapon": "Desert Eagle",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk6_evb6hoH-OdD2yV_v53pPVsXSeMmRQguynLzdmsIHOVPVciXMN3QuVeuxexmtHuP77m7gDd34kRxXj_3ChKvS9p5fFCD_SJMmxOXA",
+    "min_float": 0,
+    "max_float": 0.57,
+    "stattrak": true,
+    "value": 225
+   },
+   {
+    "name": "AWP | Silk Tiger",
+    "weapon": "AWP",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_C9k-_upbbZ-H_KfG2KvzedxuPUnTXywkU1x4DvXztz_dH2WZlQkXMEhFrFY5BDrm9HhMurq4AfdiYxAnDK-0H0fPMTeBA",
+    "min_float": 0,
+    "max_float": 0.6,
+    "stattrak": false,
+    "value": 488
+   },
+   {
+    "name": "M4A4 | 龍王 (Dragon King)",
+    "weapon": "M4A4",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiFO0P_6afBSIf6QC3SE0-96j-1gSCGn20x062mAwtb8cX3CaAMoApV3EeFZ50Wwk9fuM-vqtAHW3opHn3iqiSxXrnE8PytIGFg",
+    "min_float": 0,
+    "max_float": 0.75,
+    "stattrak": true,
+    "value": 1308
+   },
+   {
+    "name": "AK-47 | Panthera onca",
+    "weapon": "AK-47",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiFO0POlV65sJ-WSHFicyOl-pK9sSS-2wEV25z_Qw4mqcn3EOgclCpJ3TbRctELtm9HmNLix4wHc3o5H02yg2Q50xEQx",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": false,
+    "value": 500
+   },
+   {
+    "name": "AWP | Hyper Beast",
+    "weapon": "AWP",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk7uW-V6x0MPWBMWWVwP1ij-1gSCGn20pxtm_WzNuoeHKeaFAnCZUiTe5bt0HqxofmZOrm5Q2IjoMQzS_5iShXrnE8NzWs__c",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 3702
+   },
+   {
+    "name": "SSG 08 | Dragonfire",
+    "weapon": "SSG 08",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLijZGwpR1Y-s29e6M9eM-XHGaXzuBwufNscDqwmg0ijDGMnYftbyrFPVAoWcQjELQOuxO4k4e1N-nnsQfW2I5Mz3ivi3wb7Stj5ukAUKY7uvqAqS55_Pw",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 5723
+   },
+   {
+    "name": "★ Huntsman Knife | Tiger Tooth",
+    "weapon": "Huntsman Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1P7vG6YadsLM-SAFiEyOlzot5mXSi9khgYvzSCkpu3JHmWZwFzWZB1R-RbtxC_kofvMLzg51SLj41Nmyuqjyoc5nxi5ekLUr1lpPOee5ognQ",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 37686
+   },
+   {
+    "name": "★ Karambit | Tiger Tooth",
+    "weapon": "Karambit",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q7uCvZaZkNM-SAFiEyOlzot5mXSi9khgYvzSCkpu3eC3BbwUmCcMlQbMD4xG_w9zkPu7gsQXe2YJFzHqqjixL5ylr4ukAWb1lpPNV9oeSnQ",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 30135
+   },
+   {
+    "name": "★ Paracord Knife | Tiger Tooth",
+    "weapon": "Paracord Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y4OCqV6VjH-SaCWKC_uFkse9uSha_nBovp3OGnon7dXufZwcnC5cjEO8M5BDrw4LlNuvq5ADWid4XnCX63yxM5i8-_a9cBvWv3FY7",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 58913
+   },
+   {
+    "name": "★ Bayonet | Tiger Tooth",
+    "weapon": "Bayonet",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLzn4_v8ydP0POgV7BkJ_WBMWiCwOBxtd5lRi67gVMhsGrTntn4ci-ROAYlXMBwE7YL5BaxxIHjY-vq7w3X398RxS78iylK8G81tBow9RWL",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 14094
+   }
+  ]
+ },
+ {
+  "slug": "ocean-depths",
+  "name": "Ocean Depths",
+  "kind": "custom",
+  "description": "Морские глубины: волны, кораллы и акулы.",
+  "case_price": 119,
+  "key_price": 0,
+  "accent": "#2ba3c8",
+  "image": "",
+  "collection": "CaseUP Ocean Depths Collection",
+  "items": [
+   {
+    "name": "SG 553 | Wave Spray",
+    "weapon": "SG 553",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLimcO1qx1I_829eLZsOc-ED3GV0tF0ouB_QBa_nBovp3PcwoqtdC3BOwQkCZB3QOIIsxm_kNyyZuzg7w3f2YNEnn6qjS0Y6Clq_a9cBmkkHSs4",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 16
+   },
+   {
+    "name": "FAMAS | Dark Water",
+    "weapon": "FAMAS",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL3n5vh7h1a4s20baZ_Ic-XD3Wb_uJ_t-l9ASywkUsmsjzdmdiqIiqXaQ4oDJF0RuNZukO-ltflNu_mslffg9gTnC3gznQeYZiQwTg",
+    "min_float": 0.1,
+    "max_float": 0.26,
+    "stattrak": false,
+    "value": 20
+   },
+   {
+    "name": "Galil AR | Aqua Terrace",
+    "weapon": "Galil AR",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2n5rp8SNJ0POjV6NoL_2WGnWZwtFlpOR5XBa_nBovp3Pdzo6hcH6Ta1RxWZslRuYC4xG9x4bgP-zj4wfY2YoQzyT43XhA7Shq_a9cBkjd5CSZ",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": false,
+    "value": 40
+   },
+   {
+    "name": "P90 | Reef Grief",
+    "weapon": "P90",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhx8bf9Tte0PGheqVhH_yaCW-Ej7wu6bhsHy3rlEQi4DvUy9_6JXjGa1JxCpUmQ7MPsxLukoLmYrvr4lPAy9USG-O6-8A",
+    "min_float": 0,
+    "max_float": 0.6,
+    "stattrak": false,
+    "value": 15
+   },
+   {
+    "name": "P250 | Red Tide",
+    "weapon": "P250",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwipC6s2-YapmH_OcHGac_uJ_t-l9AXznkUV35WiGy4yhcX6ROgYnCcd3F-AJ4RG_wNXvZOjm7wXWj9lFnCrgznQexaJMRP4",
+    "min_float": 0,
+    "max_float": 0.75,
+    "stattrak": false,
+    "value": 49
+   },
+   {
+    "name": "SSG 08 | Abyss",
+    "weapon": "SSG 08",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLijZGwpR1a_s2ibbJkIeSbD2mvzedxuPUnH3_jzE1y4TvQyIr9JyieZlckCsRxF-8K50bsxN3gZOzktAzc2IJEzDK-0H1XlSI8xg",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 21
+   },
+   {
+    "name": "SSG 08 | Sea Calico",
+    "weapon": "SSG 08",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLijZGwpR1T9s2oZKt6JeKAMXSEzO9ks95lRi67gVMl5DuEm9ereCmVawImWZMhRLIDu0a7ktKzN7nq5lePi41Bn3r83H8b8G81tNArbz2X",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": false,
+    "value": 263
+   },
+   {
+    "name": "M4A1-S | Dark Water",
+    "weapon": "M4A1-S",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_GeMX2Vw_x3j-VoXSKMmRQguynLzI6td3-TPQAlD5slR-EJ5hDux9XmMe7i71CI2t8UzSuthi9OvSlo6vFCD_TltxSe0A",
+    "min_float": 0.1,
+    "max_float": 0.26,
+    "stattrak": true,
+    "value": 162
+   },
+   {
+    "name": "G3SG1 | High Seas",
+    "weapon": "G3SG1",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2zYXnrB1c_M2pO7dqcc-RG2STwOBztfNWQyC0nQlp4j7Syt-rdHPEOAIjCpV5TLQK40K5wdLjY-_r7wfeio1AySiriCIf6DErvbj1Mwus0A",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": true,
+    "value": 281
+   },
+   {
+    "name": "XM1014 | Seasons",
+    "weapon": "XM1014",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLpk8ewrHZk7uORcKlSLPWSCFiWwOpzj-1gSCGn200i6mvRn4mpdCiVblRxDJd3FuILuxi7ktHuNb-04wzW2dpGzin-2ihXrnE8PcTco88",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 233
+   },
+   {
+    "name": "FAMAS | Waters of Nephthys",
+    "weapon": "FAMAS",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL3n5vh7h1Y-s2oaalsM8-bAWuf_uF1teBncCW6khUz_W3WmYv_JSmSZgZ0WJRwEeRbtUS5kIKyZejmsQHciN5AxHj8intK6il1o7FV74niokA",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": false,
+    "value": 1016
+   },
+   {
+    "name": "P2000 | Ocean Foam",
+    "weapon": "P2000",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0POjV6t-M_mVF1iSzftzj_E7H3njqh81siuKpYPwJiPTcA91W5N0EOMNskGwkt3gP-vh41GNiNpDn3r83ShL6itj4bsKA6Im-_XJz1aWVAZrXOc",
+    "min_float": 0,
+    "max_float": 0.12,
+    "stattrak": true,
+    "value": 1117
+   },
+   {
+    "name": "MP7 | Abyssal Apparition",
+    "weapon": "MP7",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8jsHf_jdk4uL5V6JoIeKsAm6Xyfo45uc9GnnnzBh-5zzTw9n9I3mQPAEgD5YlFuIOthC6wNK1MeKwsgHeiZUFk3vcOiyhPQ",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 974
+   },
+   {
+    "name": "AK-47 | Aquamarine Revenge",
+    "weapon": "AK-47",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiFO0POlPPNSI_-GHGaXxNF3vPVWQyC0nQlp4WvVzturJ3qVb1B1DMd3Q7EO5xW_l9O2ZOLg5gyP2N9BxST_jXwY7TErvbj-FmM1dA",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 7753
+   },
+   {
+    "name": "SSG 08 | Blood in the Water",
+    "weapon": "SSG 08",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLijZGwpR1Y-s29YKV_K8-fB2CY1aAmsbFtFnDilkUl5j7UzoqsInmVaFd0XMMlELYDshbuxNPvP-yxtlCMlcsbmlWiixNl",
+    "min_float": 0.06,
+    "max_float": 0.2,
+    "stattrak": true,
+    "value": 6228
+   },
+   {
+    "name": "★ Driver Gloves | Wave Chaser",
+    "weapon": "Driver Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5T441rsfhr9kYDl7h1c4_24bZtpMvmFC3Wv0ud6u95tXSi0mhMYpDWMjorGLSLANkI-ApsmQrFbtkPux4bgMuvg7gzWjI0Xnyz-23lI6i5s4bpWUqMl-6PQ2xaBb-Mdlpgj5g",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 63322
+   },
+   {
+    "name": "★ Huntsman Knife | Bright Water",
+    "weapon": "Huntsman Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1P7vG6YadsLM-bF1ifwut3vt5iQSC1kCJ-4wKJk4jxNWWVOA4hA5MjQONbtRGwkYHlP77l5FaLj9gTxS76hn4avXo-t-tTV_Uk5OSJ2DtQY32N",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 26864
+   },
+   {
+    "name": "★ Bowie Knife | Bright Water",
+    "weapon": "Bowie Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I-uC4YbJsLM-RAXCZxNF-qd5mTCyymyIsvTSDn7CgcRTLN1F4Tox3E7RY4BW8l4CyMLvq5gSL2oMXzCyqin5I5nttsrsGA_Ihq6LX2lnAL_Rjtv1VSd_s",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 31379
+   },
+   {
+    "name": "★ M9 Bayonet | Bright Water",
+    "weapon": "M9 Bayonet",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Wts2sab1iLvWHMW-J_uF1teBncCK9nBsijGTVpYPwJiPTcFUmC5p3FO5YsRO_lIG2Me3rsVOM3tpAmSv_33ka5i5r5upWV6Qsq_HJz1aWbk46ROo",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 34621
+   }
+  ]
+ },
+ {
+  "slug": "golden-hour",
+  "name": "Golden Hour",
+  "kind": "custom",
+  "description": "Золото, короны и королевская роскошь.",
+  "case_price": 499,
+  "key_price": 199,
+  "accent": "#ffd24a",
+  "image": "",
+  "collection": "CaseUP Golden Hour Collection",
+  "items": [
+   {
+    "name": "XM1014 | Mockingbird",
+    "weapon": "XM1014",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLpk8ewrHZk9___OPU5H_2cDWyZz-l0ufNtcCW6khUz_T-AnNagJH3FbwQnCsEmTeEMs0aww9biMby3tleKjtkQmSX-2yMfv311o7FVNa3OfdQ",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 60
+   },
+   {
+    "name": "P2000 | Imperial",
+    "weapon": "P2000",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0POjV7Q_cKDDMW6d0etkueBlcDu2kSIrujqNjsGrJH6XPQ9xAsZ5FLIDtBG5mtfhY7nl4gGNiosTzH792ntOvC1stbsDT-N7ra_mVv2F",
+    "min_float": 0,
+    "max_float": 0.2,
+    "stattrak": true,
+    "value": 66
+   },
+   {
+    "name": "R8 Revolver | Monarch",
+    "weapon": "R8 Revolver",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLjm4Dv8TRe_c28MJtgL_6SHGSY_utupORnSyy3qhEutDWR1Nb7dnvBOFApWZp4RrQM4UO_ldOzZOKx7gDdiYhCyyz23ytK7ihu67ocEf1ygxNUTvE",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": false,
+    "value": 37
+   },
+   {
+    "name": "MP5-SD | Gold Leaf",
+    "weapon": "MP5-SD",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8jsPz-R1T9veRb6thJM-QD2qf_uJ_t-l9ASvgwUghsGndmdyoI36TPA9xX8R5EOQOuhe8m920Mujq7wDY3YwTzn3gznQe4R7J2J0",
+    "min_float": 0,
+    "max_float": 0.6,
+    "stattrak": false,
+    "value": 38
+   },
+   {
+    "name": "P2000 | Royal Baroque",
+    "weapon": "P2000",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0OG-bZt-I_GBCFiA0-d4pN5lRi67gVMk4GzVzNz9I32RawMoD5shR-ZeuhGxwIeyNuPntgWIjt5Ani33jC0Y8G81tMIEN1xi",
+    "min_float": 0,
+    "max_float": 0.6,
+    "stattrak": false,
+    "value": 19
+   },
+   {
+    "name": "Dual Berettas | Emerald",
+    "weapon": "Dual Berettas",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL0kp_0-B1a4c2rZaF_IfyXMWuZxuZi_uBrF3u3zE5xsWjTzIr7eHKeaVIpCpd5QOIC5xi_w9PjY-2x4QDd3opbjXKpzqjop3Y",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": false,
+    "value": 30
+   },
+   {
+    "name": "Dual Berettas | Royal Consorts",
+    "weapon": "Dual Berettas",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL0kp_0-B1c_M2qfaVhH_KWHGKE1e9lj-ZmQy22myIxtjOMmYrGLSLANkI-C5AjFOcM5EaxxtTmPrnl4Q2Ki91Eyyz32y1Luyk44u4LUqEjr_ff3BaBb-MmOWu8Lw",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 199
+   },
+   {
+    "name": "UMP-45 | Gold Bismuth",
+    "weapon": "UMP-45",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkk4a0qB1c_M27ZbRSJ_-fCliSyP17pfVhcCW6khUz_Wrczt__dn3GbVR0D8dxEOAMsxW9lofkMum04w3eg4kXzy6q339BvHx1o7FVa_qMENU",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": true,
+    "value": 159
+   },
+   {
+    "name": "MAC-10 | Gold Brick",
+    "weapon": "MAC-10",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5WxrR1a4s2pZ6hpH_KBB2Sb_uJ_t-l9AX2wwhl35jzRw4yodymWO1R0X5V0FrRc4Bi-m4DuY-2xsgzY39oRmSTgznQe6Q1Q_KE",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": false,
+    "value": 316
+   },
+   {
+    "name": "Glock-18 | Royal Legion",
+    "weapon": "Glock-18",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1c_M2pZKtuK6HLMWaHwPxyj-1gSCGn20gksm_Uyo7_JSmeOARyXsEhFLQMsUW_wIXuP-rj71CIiotAzCqoinhXrnE8DvG09t0",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 111
+   },
+   {
+    "name": "MP7 | Smoking Kills",
+    "weapon": "MP7",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8jsHf8DIM0OGjZ69kLvesBW6czf1JprNWQyC0nQlp4z7QmI2pdyjEP1ByD5BwTLQDsRXrktXjP-ri5FHYjIpExCX73CJJ6zErvbgKbpbVdg",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 570
+   },
+   {
+    "name": "P2000 | Imperial Dragon",
+    "weapon": "P2000",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0PW9V7Q_cKDDMW6d0etkueBlcC2hlBoovQKJk4jxNWXEbAQmDsQmRbNYsxGwxoC1YrvrsQXXg40QxCX533tJ7Xs-4eYKWKAl5OSJ2JuLIVNl",
+    "min_float": 0,
+    "max_float": 0.63,
+    "stattrak": true,
+    "value": 810
+   },
+   {
+    "name": "M4A1-S | Master Piece",
+    "weapon": "M4A1-S",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_OGMWrEwL87o956RiW2mx4ijDGMnYftby3FbFdyXpZxQ-AP5hi7wILkZOzg5ASNgt4WmCv833hKuntvsLxWAKE7uvqATAFok6E",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": false,
+    "value": 489
+   },
+   {
+    "name": "AWP | Queen's Gambit",
+    "weapon": "AWP",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_DVL0OO7baFjM8-UD2qSyPpJvOhuRz39kUpw42zWntiteSiVaQYhCJJzEeIOukSwl4XmPrmw4VHXjtpExC_33zQJsHjNnJgjQA",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 7140
+   },
+   {
+    "name": "M4A4 | The Emperor",
+    "weapon": "M4A4",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiVI0P_6afBSJf2DC3Wf09F6ueZhW2exwBh_6m3dnt36InjDPQ4oXJt1TbJeshW_mtfjN-vrsgaKiokWy333kGoXuRj4z9Nd",
+    "min_float": 0,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 5205
+   },
+   {
+    "name": "★ Driver Gloves | Queen Jaguar",
+    "weapon": "Driver Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5T441rsfhr9kYDl7h1I4_utY5tnIfeGD3Wv2Ot6vO5-cCW6khUz_WSHm4qteC2XOg4jDcN0EOZbthDsxoDnN7m24laI3d8QnCv6hn5PvHx1o7FVsUpsiR4",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 34100
+   },
+   {
+    "name": "★ Driver Gloves | Imperial Plaid",
+    "weapon": "Driver Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5T441rsfhr9kYDl7h1I4_utY5t9LPGaCliA1PxmvORWQyC0nQlp4W-Hw9-ocy2fbwB2X8YkFucCtRe4xNzhYrjl4Fff39lMyn78iiJLuzErvbgqDAMwGQ",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 14034
+   },
+   {
+    "name": "★ Driver Gloves | King Snake",
+    "weapon": "Driver Gloves",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5T441rsfhr9kYDl7h1I4_utY5t-LvGYC3SbyOBJp-lgWyyMmRQguynLz4r6Iy7EbFchApNyR-dbtEbuw4XkN7jq7gHdjtoQzi37hiwYvytvt_FCD_Ql24JgJg",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 26771
+   }
+  ]
+ },
+ {
+  "slug": "ghost-protocol",
+  "name": "Ghost Protocol",
+  "kind": "custom",
+  "description": "Тени, призраки и ночные операции.",
+  "case_price": 179,
+  "key_price": 99,
+  "accent": "#9aa6b8",
+  "image": "",
+  "collection": "CaseUP Ghost Protocol Collection",
+  "items": [
+   {
+    "name": "Sawed-Off | Black Sand",
+    "weapon": "Sawed-Off",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLin4Hl-S1d6c2tfZt-IeeWCmiWx9F0vOBqRBaglBMjjDGMnYftb3qSOAF2XpV0ELMJsUS_ldGzMO_isVHagt9Az32ojiob6Hk9sbtXB6o7uvqARF8zTjE",
+    "min_float": 0,
+    "max_float": 0.9,
+    "stattrak": true,
+    "value": 22
+   },
+   {
+    "name": "MP9 | Dark Age",
+    "weapon": "MP9",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f_C9k4ve6aahSKf6fD36vzedxuPUnG3uwxxkk6jnWmdqsJy-UbFV0DZV4FLRctUXqwIWyNb_r5Qbdg4lGzzK-0H2q-xqNvQ",
+    "min_float": 0,
+    "max_float": 0.22,
+    "stattrak": false,
+    "value": 43
+   },
+   {
+    "name": "Nova | Dark Sigil",
+    "weapon": "Nova",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL_kYDhwixU-fORbLZsK_uSHFicyOl-pK8xG3q1lk0l4m2HmI6odXiRbwF1CJchQbEI4RK8kNPiMb-24A3W3YoX02yg2YjfpjSA",
+    "min_float": 0,
+    "max_float": 0.698529,
+    "stattrak": true,
+    "value": 28
+   },
+   {
+    "name": "Desert Eagle | Night Heist",
+    "weapon": "Desert Eagle",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk7v-RYKFkM-SsHmuRz_1JoPR7XyW2qhEutDWR1I6uJH-RPQInXJB0F-Vb50bqxt3kN-Kw4VCMjYxCyXmvj3hO6X05t-8cEf1yxd2V6Eg",
+    "min_float": 0,
+    "max_float": 0.65,
+    "stattrak": false,
+    "value": 58
+   },
+   {
+    "name": "AWP | Black Nile",
+    "weapon": "AWP",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf-jFk7uW-V7d5Mv-dC1icyOl-pK89Gyvhlhsit2-BwoyrICmWPQcmDpEkQOdeskOxwNKzN7vm4VeP2oMR02yg2Z2CmmVC",
+    "min_float": 0,
+    "max_float": 0.75,
+    "stattrak": false,
+    "value": 22
+   },
+   {
+    "name": "SSG 08 | Dark Water",
+    "weapon": "SSG 08",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLijZGwpR1a4s20baZ_Ic-XD3Wb_uJ_t-l9AXriwk1y6mqDyov9eXyTaAFzD5R4RrFYsRC4k9fhML7itQGPio9EyX_gznQeRZeU19w",
+    "min_float": 0.1,
+    "max_float": 0.26,
+    "stattrak": true,
+    "value": 63
+   },
+   {
+    "name": "XM1014 | Black Tie",
+    "weapon": "XM1014",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLpk8ewrHZk7OeRcKk8cKHHMXSAxO1iovRkcCW6khUz_Wncm4v6dnuVawImXsZzTONcsRK5xofkYeywtgWKioNDxCX9in8cvy91o7FVLrGdyvk",
+    "min_float": 0,
+    "max_float": 0.75,
+    "stattrak": true,
+    "value": 315
+   },
+   {
+    "name": "M4A1-S | Night Terror",
+    "weapon": "M4A1-S",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_eAMWrEwL9lj-hnXCa-mxQmjDGMnYftby3FPFVxA5ZwRecOtUXuxtPiNL_jsQLc2NkTzS38jC5L7ydj5u8EUKo7uvqAgGSM4LM",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": true,
+    "value": 278
+   },
+   {
+    "name": "SSG 08 | Ghost Crusader",
+    "weapon": "SSG 08",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLijZGwpR1c_M29e6M9eM-SHGqRwuFktd5lRi67gVN_6jnQzYmhc3jFbgUoA5J3ReYIsRO8ktGyM-iz4AaMi4hDzyqsiSJJ8G81tKe_wmAg",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 245
+   },
+   {
+    "name": "USP-S | Dark Water",
+    "weapon": "USP-S",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSIf2sFGKS0-9JtOB7RBa_nBovp3OHy9v8J3vFbgIhC5UmQ7UIsxm7wNDnNr_rswOMiNlGmCWoiH9Juis9_a9cBl2xnYuj",
+    "min_float": 0.1,
+    "max_float": 0.26,
+    "stattrak": true,
+    "value": 265
+   },
+   {
+    "name": "SSG 08 | Death Strike",
+    "weapon": "SSG 08",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLijZGwpR1Y-s29e6M9eM-ADWiC0ed5vt5lRi67gVMh6jjTn9ygJSieaAEiAsB2F7Jfshe-xtHkPuvisQLXgt8UmCz523lM8G81tFON4mQ2",
+    "min_float": 0,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 1146
+   },
+   {
+    "name": "M4A1-S | Knight",
+    "weapon": "M4A1-S",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_GeMWqV1e96o95lRi67gVNwsWTQzdn4JHyQZ1QhWMZyQe5YsxK-ktPnZOiwtVDcjo9ExS393ytB8G81tGXpYjdX",
+    "min_float": 0,
+    "max_float": 0.1,
+    "stattrak": false,
+    "value": 754
+   },
+   {
+    "name": "M4A1-S | Black Lotus",
+    "weapon": "M4A1-S",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_3HDzaD_ux6seJicCW8gQg0jDGMnYftb3-eOgEpDcFyQuMMtRG8kIbhMuK051ba2IMQyH6r3yof5ilv4bwLWfU7uvqA7qRNHGA",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": true,
+    "value": 1459
+   },
+   {
+    "name": "P90 | Death by Kitty",
+    "weapon": "P90",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhx8bf_jdk7PO6e694LPyAMXfJkdF6ueZhW2fgkUh042jUnN2geSqTaFN2CcQmQuRfsBXtxtfkN7mztASIg91Bniv8kGoXucYQxgOQ",
+    "min_float": 0.08,
+    "max_float": 0.32,
+    "stattrak": true,
+    "value": 2202
+   },
+   {
+    "name": "AK-47 | Nightwish",
+    "weapon": "AK-47",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiFO0POlPPNSLvmUBnOHyP1-j-1gSCGn20glt2nXnt78cnKUbwN2XJp2R-ZbuxHqlNXlMLiw5AHc3toWnCur23hXrnE8p0T2bx4",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 2286
+   },
+   {
+    "name": "★ Gut Knife | Black Laminate",
+    "weapon": "Gut Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1c-uaRa7FSJ-WHMXSEzuBzp-B6Rxa_nBovp3PRn96tIynBPFJxA5RzROYOtxHpwIWzP7zitQXe2owWySWojisa7S46_a9cBlypMIP0",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 14316
+   },
+   {
+    "name": "★ Skeleton Knife | Night Stripe",
+    "weapon": "Skeleton Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I5PeibbBiLs-AHlieyOl-pPJ9XSCjkCIrujqNjsH8dX2VbVJ1X5Z0RbVZtEO5mtPhY77qtlbc34IQxC_6jy0f7C0457wLT-N7rW2ankyk",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 24169
+   },
+   {
+    "name": "★ Shadow Daggers | Case Hardened",
+    "weapon": "Shadow Daggers",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1L-uGmV6V8H_-aAmKU_uJ_t-l9AX3kkEx1tz7Vw437dXmUbQ9zCpF2RrUDsRe4wNXuZuzm7lHW2I0TzC_gznQe3C7aMsc",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 31487
+   },
+   {
+    "name": "★ Falchion Knife | Night",
+    "weapon": "Falchion Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1d7v6tYK1iLs-AAVieyOl-pN5lRi67gVN35jjcmNmqcSrDPAR2ApMhQ7UDsBmwwNfvZL_r5wHcgoNFynj-2y9B8G81tDvvgv8m",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 25200
+   }
+  ]
+ },
+ {
+  "slug": "street-art",
+  "name": "Street Art",
+  "kind": "custom",
+  "description": "Граффити, комиксы и уличный поп-арт.",
+  "case_price": 89,
+  "key_price": 0,
+  "accent": "#ff4fa3",
+  "image": "",
+  "collection": "CaseUP Street Art Collection",
+  "items": [
+   {
+    "name": "Galil AR | Rocket Pop",
+    "weapon": "Galil AR",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2n5rp8SNJ0PG7V6NsLPmfD3Wv0e9kpOhqQyygqhEutDWR1Nf8eXzDP1InCMR3QucIshjrktexMOqz4QPcjo1Gz3qq2H9L5ylu4ugcEf1yh3Lp9zc",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 30
+   },
+   {
+    "name": "SSG 08 | Acid Fade",
+    "weapon": "SSG 08",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLijZGwpR1a7s2oaaBoH_eBD3SDze94tN5lRi67gVN05G3QzI6pIn2UOAYhDJMjEeANsBbtlYC2ZbvltA2P2I5FyHmq2Hka8G81tCngBDgW",
+    "min_float": 0,
+    "max_float": 0.03,
+    "stattrak": false,
+    "value": 37
+   },
+   {
+    "name": "M4A1-S | Fizzy POP",
+    "weapon": "M4A1-S",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H-ODMXOVwuZ4v_ZoXRahkBkYvzSCkpu3JyqVagUhX5Z2QOYMs0a4lYHmMOjn7gCN2YwQyX6r3HhO5i464b1RA71lpPPi0vWs1A",
+    "min_float": 0,
+    "max_float": 0.57,
+    "stattrak": false,
+    "value": 28
+   },
+   {
+    "name": "M4A4 | Faded Zebra",
+    "weapon": "M4A4",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFL0OirarZsI_GeMWWH_uJ_t-l9AXu3zBkhsDyHz4z9dXmVagJzW8MiQbFetBfrkNHhZbjr51CMiN8TyS_gznQeEoYBjXk",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 42
+   },
+   {
+    "name": "MAC-10 | Poplar Thicket",
+    "weapon": "MAC-10",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5WxrR1T9veRb7ZoJf6sCGiCxP1ij-1gSCGn2x8mtm2Bntf7JHKSaAN2C5siTeIK5hO6wYGzMuritQ3ej4MTxHmqjHhXrnE8uA1Mzbk",
+    "min_float": 0,
+    "max_float": 0.68,
+    "stattrak": false,
+    "value": 30
+   },
+   {
+    "name": "Galil AR | Amber Fade",
+    "weapon": "Galil AR",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2n5rp8SNJ0POvV6JsJPWsA2KEwOJ6ueJWQyC0nQlp52uGm9yodC3GZ1d0CMdyQeJctRDqmtayY-Kz71fW2IIUziz8intK6TErvbiZh4dEMQ",
+    "min_float": 0,
+    "max_float": 0.4,
+    "stattrak": false,
+    "value": 47
+   },
+   {
+    "name": "P2000 | Amber Fade",
+    "weapon": "P2000",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0POvV6JsJPWsA2KEwOJ6ueJWQyC0nQlpsjvcmd_7dHyVZgdxAsB1QeRZ5BPqlYbmNuvr5lTW2o1Myyyt3ykY7DErvbib25P3aA",
+    "min_float": 0,
+    "max_float": 0.4,
+    "stattrak": false,
+    "value": 174
+   },
+   {
+    "name": "Glock-18 | Fade",
+    "weapon": "Glock-18",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1a7s2oaaBoH_yaCW-Ej-8u5bZvHnq1w0Vz62TUzNj4eCiVblMmXMAkROJeskLpkdXjMrzksVTAy9US8PY25So",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": false,
+    "value": 98
+   },
+   {
+    "name": "Dual Berettas | Urban Shock",
+    "weapon": "Dual Berettas",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL0kp_0-B1Y-s2rZK15JeOsG3WSwOBlpO57Qha_nBovp3PQzI6pc3iRZ1cjC5dzQe4CsxPtwdHjMevq41CLjIpMm3_5jypN7Cxp_a9cBoxgoAoS",
+    "min_float": 0,
+    "max_float": 0.47,
+    "stattrak": true,
+    "value": 90
+   },
+   {
+    "name": "AWP | POP AWP",
+    "weapon": "AWP",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf9Ttk-_etYKpiN_GBMXWHw9F6ueZhW2fikxgjtmjTzd-ucXOXbgEiCZN1QOcKtka_l9PgY7jrswbe2t5NyC_6kGoXuXrlRr9k",
+    "min_float": 0,
+    "max_float": 0.44,
+    "stattrak": false,
+    "value": 125
+   },
+   {
+    "name": "R8 Revolver | Amber Fade",
+    "weapon": "R8 Revolver",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLjm4Dv8TRe_c2vaZtrIfSWMWqV1e96vOhqcDu2gxIrpTiXpYPwJiPTcAIpDJckF-9cuhfqltDuZujgs1DZj4hDy338jnhM73xusOcKVaos-qPJz1aW9R0yRq8",
+    "min_float": 0,
+    "max_float": 0.4,
+    "stattrak": false,
+    "value": 1475
+   },
+   {
+    "name": "P250 | Cartel",
+    "weapon": "P250",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwiNK0OL8PfRSI_GBGmKc_uJ_t-l9AX2wlh906m7Uy4v_cXqWaA4gCpUmQLMNsBO_ltfiYuPltAHbgthGmyzgznQeqxXZ9kg",
+    "min_float": 0,
+    "max_float": 0.75,
+    "stattrak": true,
+    "value": 1178
+   },
+   {
+    "name": "UMP-45 | Fade",
+    "weapon": "UMP-45",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkk4a0qB1a7s2oaaBoH-WeHlicyOl-pK8_HHzmzU52sTjWntegc32faAR2DMEkELMI4xmxw4G1Yrnn4FCM3d4Q02yg2U-vv27j",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": false,
+    "value": 674
+   },
+   {
+    "name": "M4A1-S | Fade",
+    "weapon": "M4A1-S",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_GSMWGRxetJvbVoHjqMmRQguynLm92pci2WagEkC5Z5Q7VetkbukIXjNrnm5QPbjt8WxS-vii4b5i5v4fFCD_TfxF4xWg",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": false,
+    "value": 6436
+   },
+   {
+    "name": "AWP | Fade",
+    "weapon": "AWP",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_CNk7uW-V6JsJPWsAm6Xyfo45-c5GXDnwB534DuEwtuoIHOfaAYiAsYjF-QItUaxmoC0MO_h5ALcjJUFk3sEzfdk4w",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": false,
+    "value": 3040
+   },
+   {
+    "name": "★ Karambit | Marble Fade",
+    "weapon": "Karambit",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q7uCvZaZkNM-SA1idwPx0vORWSSi3kCIrujqNjsGveH2RaVRxX5ohEe4Juhawm4fiM-ji4APf2YMXmSz_hyoduytv4uhWT-N7rfLHGBJ4",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 42549
+   },
+   {
+    "name": "★ Karambit | Fade",
+    "weapon": "Karambit",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q7uCvZaZkNM-SD1iWwOpzj-1gSCGn20tztm_UyIn_JHKUbgYlWMcmQ-ZcskSwldS0MOnntAfd3YlMzH35jntXrnE8SOGRGG8",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 36956
+   },
+   {
+    "name": "★ Ursus Knife | Fade",
+    "weapon": "Ursus Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1O_eG7e5tsIc-VD2OV_uJ_t-l9AXzml00i527XzouseH7GblAjX5N3R-NbuhLswYfjY-zj7laKjdkRyX_gznQeK-1-7hY",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 14226
+   },
+   {
+    "name": "★ Talon Knife | Fade",
+    "weapon": "Talon Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1M5vahf6lsK_WBMWaR_uh3tORWQyC0nQlpsmXcnNaoeHuTZwUiWMZzRrVZsxm9x9ThNrzj4QCPjdhNmHj73S9KujErvbhX2ACGeQ",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": true,
+    "value": 62720
+   }
+  ]
+ },
+ {
+  "slug": "space-station",
+  "name": "Space Station",
+  "kind": "custom",
+  "description": "Орбита, туманности и далёкие галактики.",
+  "case_price": 249,
+  "key_price": 149,
+  "accent": "#6c7bff",
+  "image": "",
+  "collection": "CaseUP Space Station Collection",
+  "items": [
+   {
+    "name": "Desert Eagle | Meteorite",
+    "weapon": "Desert Eagle",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk7v-Ra7Z0M-SSAmuZ2-tyj-VoXSKMmRQguynLyN-qIH3Daw4mCZR3EeBbsUO-l4a2Prvm7gzWg4MXnymq2H8Yui9usfFCD_RyA7Mmlw",
+    "min_float": 0,
+    "max_float": 0.18,
+    "stattrak": false,
+    "value": 17
+   },
+   {
+    "name": "FAMAS | Decommissioned",
+    "weapon": "FAMAS",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL3n5vh7h1Y-s2oaalsM8-dG2yV_vpzvvJgQCeMmRQguynLnouqJC-VbwciD5J3QORYshftkIXlPuzrtlCP2NlCySmvin9B7Xo_5_FCD_RaCEWnyQ",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 41
+   },
+   {
+    "name": "MAG-7 | Firestarter",
+    "weapon": "MAG-7",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5G3wjFL0P-vb_NSJvmBC2WZ1fpzvt5lRi67gVNyt27dz46scn2TaQ52XpV1E-8I4RLuwIHnMO2w4gfa2NlHmy2ri3xP8G81tFM5kI47",
+    "min_float": 0.06,
+    "max_float": 0.49,
+    "stattrak": true,
+    "value": 17
+   },
+   {
+    "name": "CZ75-Auto | Hexane",
+    "weapon": "CZ75-Auto",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLyhMG1_B1T9s2sZLFoKPWLMWuZxuZi_rBqS3vrkRxz5W7dnN2oIyiTZgYhXpN5EOIPsUbsloC1M-_qs1HdiYlbjXKpP5VEBps",
+    "min_float": 0,
+    "max_float": 0.4,
+    "stattrak": true,
+    "value": 33
+   },
+   {
+    "name": "MP9 | Bioleak",
+    "weapon": "MP9",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f_C9k4uL3V6ZkL_yWD2yvzedxuPUnHSi3xhgm4GSGm4mpcnyTbVQjWcZ5EeIL50LultzgNbvmtAPf3oJByDK-0H0NB5p7wQ",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 22
+   },
+   {
+    "name": "SCAR-20 | Crimson Web",
+    "weapon": "SCAR-20",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLinZfyr3Jk5-uRf6FvM8-XD3WbxPxJvOhuRz39lEwhsGqBz9moJHmXawQhDsQhEOUNsBSwkdXiM-3k5AbZjo1MmSiojDQJsHiHhrZ4wA",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 21
+   },
+   {
+    "name": "Glock-18 | Moonrise",
+    "weapon": "Glock-18",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1a7s2pZKtuK8_CVliF0-x3vt5kQCa9qhsipTiXpYPwJiPTcANzXJNyFOEMthXsktHhMLzl4FaK3toWn3iqhi9BvHw9su5UU6Zw-_bJz1aWcX-Jd_0",
+    "min_float": 0,
+    "max_float": 0.65,
+    "stattrak": true,
+    "value": 93
+   },
+   {
+    "name": "P2000 | Space Race",
+    "weapon": "P2000",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0POvV7d9IfOWHGaTxNF5ouBnSCyMmRQguynLzNirI32Ua1dzDpVzQLMKtUGww4LhMejh4FTY34wWyyv-3ylO7S5i4vFCD_Qear_SSQ",
+    "min_float": 0,
+    "max_float": 0.6,
+    "stattrak": false,
+    "value": 117
+   },
+   {
+    "name": "M249 | Nebula Crusader",
+    "weapon": "M249",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8zMK5wiVI0P_8PP1SLvWRG2uR_u1kpfJoSyyhqhEutDWR1Ir_JSiXOgciDJN4RucCsRW8w4KyZu_q5FeLjN4RnCmt33lP7nxv5-wcEf1yLX15hXE",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 207
+   },
+   {
+    "name": "PP-Bizon | Space Cat",
+    "weapon": "PP-Bizon",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLzl4zv8x1Y-s2sYb5iLs-AHmaTxO13pN5lRi67gVN04jvcmYv6IHnGbw51XsYmQO5ftBG9xoexNrix4gPYjIJEzX_2iX9I8G81tOIzQC5J",
+    "min_float": 0,
+    "max_float": 0.67,
+    "stattrak": true,
+    "value": 222
+   },
+   {
+    "name": "USP-S | Orion",
+    "weapon": "USP-S",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XuWbwcuyMESA4Fdl-4nnpU7iQA3-kKn17jJk_PuibapuJeLdWGLFwL8i4eVsFiqxxUt34jmHnoysJ3qVOAYgCJZwQrRb5EPul4XlYvSiuVIHgy4Xvg",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 512
+   },
+   {
+    "name": "M4A4 | Desolate Space",
+    "weapon": "M4A4",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiFO0P_6afBSJPWAAWuR1etJo_FoTCyMmRQguynLnNepJXPEaQJyDZJ0QOdbsxi7ktS0Y-Li4ADegthGn32ojCJJ7CxosfFCD_SyjfEkHg",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 753
+   },
+   {
+    "name": "Glock-18 | Twilight Galaxy",
+    "weapon": "Glock-18",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1a4s2vebFsH_afC2Sb0tF6ueZhW2e3zR9-5mjcztv8cnjBbQMiA8ZzFLUKtBbsl4LuY77q4AHdj4pNmCz-kGoXudhVSAZp",
+    "min_float": 0,
+    "max_float": 0.2,
+    "stattrak": false,
+    "value": 529
+   },
+   {
+    "name": "M4A4 | The Battlestar",
+    "weapon": "M4A4",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiVI0P_6afBSMPmcAGKV09F6ueZhW2fjxB9_4GqEyN6vdi_BPwQgWZIkRLYD4Ba_kILgYeOz4lbagthBz3_9kGoXuZIYHoDp",
+    "min_float": 0,
+    "max_float": 0.64,
+    "stattrak": true,
+    "value": 6450
+   },
+   {
+    "name": "AWP | Neo-Noir",
+    "weapon": "AWP",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk7uW-V6poL_6cB3WvzedxuPUnHirrxR4l423SyI39I3KXPwdxWZclQeNZ5EXskYfnNeyw71OMi9lNzDK-0H3r66pOTw",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 8184
+   },
+   {
+    "name": "★ Shadow Daggers | Stained",
+    "weapon": "Shadow Daggers",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1L-uGmV6V8H_acHGSVxdF6ueZhW2fkx0t_4D_WntapICjCbgMkD8NzR7ZeskK4lNDvN7_k4wTZiotFzi35kGoXuV1xPlgw",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 39743
+   },
+   {
+    "name": "★ Navaja Knife | Ultraviolet",
+    "weapon": "Navaja Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1c9uK9cZtnIfOYBWmZx-tJo-5WXzyhhREijDGMnYftby3FOgUhAsYjTeZetBm4xtXkNbiw5lPbi9pGxCr92itB7C9q4ekDU6c7uvqA74P7bNU",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 53292
+   },
+   {
+    "name": "★ Bowie Knife | Scorched",
+    "weapon": "Bowie Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I-uC4YbJsLM-RAXCZxNFloN5tTjmjmRgYvzSCkpu3d3yWbFIoDJYiE-cLshHtkoHlYbyw7gzX2Y8WziysjH9I7n4_5L5RU71lpPPWuYfcpQ",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 51712
+   },
+   {
+    "name": "★ M9 Bayonet | Bright Water",
+    "weapon": "M9 Bayonet",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Wts2sab1iLvWHMW-J_uF1teBncCK9nBsijGTVpYPwJiPTcFUmC5p3FO5YsRO_lIG2Me3rsVOM3tpAmSv_33ka5i5r5upWV6Qsq_HJz1aWbk46ROo",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 34621
+   }
+  ]
+ },
+ {
+  "slug": "genesis-uplink",
+  "name": "Uplink Terminal",
+  "kind": "terminal",
+  "description": "Терминал подключает тебя к торговцу: 5 предложений подряд, можно купить одно или отклонить все.",
+  "case_price": 79,
+  "key_price": 0,
+  "accent": "#3ddc84",
+  "image": "",
+  "collection": "CaseUP Uplink Collection",
+  "items": [
+   {
+    "name": "Nova | Blaze Orange",
+    "weapon": "Nova",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL_kYDhwipC0Pq7ZrBoMs-RAmaKxNF5ouBnSCyMmRQguynLz9v7In7CbFd2XpciRLUL4EHumoCyM-Lh5gXeiYtAzC-tiH8c6Ctu6_FCD_RtjAd6hA",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 65
+   },
+   {
+    "name": "XM1014 | Oxide Blaze",
+    "weapon": "XM1014",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLpk8ewrHZk7OeRcKk8cKHHMWiIyOpzj-NlTjO2qhEutDWR1N-tJ3zDOFAoDZMhRrNbsUa_x9fuMrvrsgDW3YJGxHn22ixO6C9j5uscEf1ygXv9Ksw",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": true,
+    "value": 33
+   },
+   {
+    "name": "UMP-45 | Blaze",
+    "weapon": "UMP-45",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkk4a0qB1a7s2oZKVgJeOsAm6Xyfo4srhvSi21wUoi4j_Xzt7_di6RaQ4mA5YhRuIMtEbswIDmMbzg5ACN35UFk3uW8e_n9A",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": false,
+    "value": 40
+   },
+   {
+    "name": "Glock-18 | Oxide Blaze",
+    "weapon": "Glock-18",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1Y-s2pZKtuK6HLMWSf0_x5tORncCW6khUz_T_Xn9f6dnvDb1UkDsdwF7IItES6kYK1M-7k7wSI3YwQm3_63XlAvH51o7FVwJirs7M",
+    "min_float": 0,
+    "max_float": 0.85,
+    "stattrak": true,
+    "value": 56
+   },
+   {
+    "name": "R8 Revolver | Blaze",
+    "weapon": "R8 Revolver",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLjm4Dv8TRe_c2vaZtrLPGeC3SvzedxuPUnTCznkR9xsGiHzomgIn-UPwN1DZZyELNe5xDrlNTgY-jm5FeM3tkUnDK-0H3jUXrCJQ",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": false,
+    "value": 61
+   },
+   {
+    "name": "SCAR-20 | Trail Blazer",
+    "weapon": "SCAR-20",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLinZfyr3Jk_PGvevY9H_aGHH6v1eFmv95lRi67gVN_5D6Bzo38cXOVOA52DZolReBbt0K5k9DvM-Pr4VHXjI9Enn6sjHkb8G81tIsMy8R0",
+    "min_float": 0,
+    "max_float": 0.702614,
+    "stattrak": true,
+    "value": 21
+   },
+   {
+    "name": "MAG-7 | Heat",
+    "weapon": "MAG-7",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5G3wiFO0P-vb_NSMvWXBmiE_uJ_t-l9AX7nzBsk623dm46odHmUbFd1Dcd2RbINtBXtkNDjMbzj5AGKjt4UyijgznQe8JftFTE",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 114
+   },
+   {
+    "name": "Galil AR | Phoenix Blacklight",
+    "weapon": "Galil AR",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2n5rp8SNJ0OG-V7RlL_WdB3-v1e9xo955WjujmRgYvzSCkpu3JyqTblQhX5dxTeMJ40Pux4C2MOyw51DXjYtAyH7_jy9JuCk45LpWWL1lpPNjwyLnRw",
+    "min_float": 0,
+    "max_float": 0.7,
+    "stattrak": false,
+    "value": 158
+   },
+   {
+    "name": "Desert Eagle | Blaze",
+    "weapon": "Desert Eagle",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk7vORbqhsLfWAMWuZxuZi_uI_TX6wxxkjsGXXnImsJ37COlUoWcByEOMOtxa5kdXmNu3htVPZjN1bjXKpkHLRfQU",
+    "min_float": 0,
+    "max_float": 0.08,
+    "stattrak": false,
+    "value": 103
+   },
+   {
+    "name": "P250 | Inferno",
+    "weapon": "P250",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwiVI0OL8PfRSKf6VC3WeztF6ueZhW2e3wUgi6z7WmI6gc3LDPQAgXsB2E7Veshbpl4DiNL_htQDZ2NlHy3qvkGoXuXYeEedL",
+    "min_float": 0,
+    "max_float": 0.68,
+    "stattrak": true,
+    "value": 126
+   },
+   {
+    "name": "M4A4 | Hellfire",
+    "weapon": "M4A4",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiFO0P_6afBSKPWfAmGZ0-tJvOhuRz39zEp24GTXmImsInqWP1AkXpBwE7FetUTswdfkPu7h5QXXithBy32t2DQJsHhDPmtuAA",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 833
+   },
+   {
+    "name": "Desert Eagle | Heat Treated",
+    "weapon": "Desert Eagle",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk7uORbKFsJ_yWMWSR0utJuOB7Syy9kBkY4QKJk4jxNWXGbQZ0CZpyTeBf4xO4m9y1Nuy05wHYg4lNySWr3C1Luyhu4LkKA6As5OSJ2JAJXn6j",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": false,
+    "value": 1283
+   },
+   {
+    "name": "Zeus x27 | Dragon Snore",
+    "weapon": "Zeus x27",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLln4Xl7x1Y-s2hfqF_MPGAHViU0-9xv-9WVSymhiIrujqNjsH6dH7FOA8pXJZ0Q-MPshe-lte0Pu6z7lbXio5GmSv83yNJ73k54rlWT-N7rWv6YDXa",
+    "min_float": 0,
+    "max_float": 0.8,
+    "stattrak": false,
+    "value": 537
+   },
+   {
+    "name": "AWP | Sovereign Flame",
+    "weapon": "AWP",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_DVL0OGhfqF_JfmUAFiWze97td5lRi67gVNz5zvRnN-qcHKfPFcjXpUmRuILukW9ldHlNOjn5Q2PitoWmSiv3C0a8G81tAj27FZA",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": false,
+    "value": 8472
+   },
+   {
+    "name": "P2000 | Fire Elemental",
+    "weapon": "P2000",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0PG7V7Q_cKDDMWGZ0-tJte1sQiy9gRwrjDGMnYftb3-RZldxWJVyF-QLsUG5mofnML_qtg3cjd4TyCr4jXsf63lr4-5TVvA7uvqA-y0nTh8",
+    "min_float": 0,
+    "max_float": 0.6,
+    "stattrak": true,
+    "value": 3872
+   },
+   {
+    "name": "★ Bayonet | Scorched",
+    "weapon": "Bayonet",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLzn4_v8ydP0OG-V6BsMOCfC1icyOl-pK86HS_gwEx3sT_Ryon7c3ySO1UkCpt3Q7EL4BGxwd3lNeq24QTYiI1H02yg2fqRNo8T",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 38651
+   },
+   {
+    "name": "★ Gut Knife | Scorched",
+    "weapon": "Gut Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1c-uaRe7RSJPGDHmuV_uJ_t-l9AX-yl0Uj6jvQnoyrcy-TPQd1ApB2E7UIuxWwkoHkMOzjsgXei4pAyXngznQeOP3RS-8",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 42613
+   },
+   {
+    "name": "★ Survival Knife | Scorched",
+    "weapon": "Survival Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y7vyne5t-MM-XD3eAzetJvOhuRz39k09w5WnVyI34cnqUb1R2AsN5FuAPtha-m4CyMejitlfYiYpNmH392jQJsHiJvqHvqQ",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 39170
+   },
+   {
+    "name": "★ Huntsman Knife | Scorched",
+    "weapon": "Huntsman Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1P7vG6YadsLM-AHliUwP5mvORWQyC0nQlp5GiDnIqseHPGalMnXJMhQ-cDtkPrm93jZe7l5wbb2YsTyy352CpP7TErvbiCPrzwVA",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 24982
+   },
+   {
+    "name": "SG 553 | Cyberforce",
+    "weapon": "SG 553",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLimcO1qx1Y-s29b_E4c8-QF2WV0-h5ouJscCW6khUz_Wjdntr6Iy6WbgEjA5MlRedctxG5kNKyNbi3sgTfi9oUnyj9234b5n51o7FVairOMAY",
+    "min_float": 0,
+    "max_float": 0.9,
+    "stattrak": true,
+    "value": 15
+   },
+   {
+    "name": "G3SG1 | Digital Mesh",
+    "weapon": "G3SG1",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2zYXnrB1c_M2pO7dqcc-XB3SC1P5ij-1gSCGn20wh4m-By9-qIC7COA8jWcNxRuUPshe6kNfnYe62tQ2K2NpHmXj2iC9XrnE82YBIy5I",
+    "min_float": 0,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 37
+   },
+   {
+    "name": "P2000 | Pulse",
+    "weapon": "P2000",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0PG7V7Q_cKDDMXeFzf1zj-1gSCGn201wsTnRm9egcS7DaABxDZckQe5Ys0S6xtKxZO-wsQDbi9lMxSv-jS5XrnE8fJdFk9o",
+    "min_float": 0,
+    "max_float": 0.6,
+    "stattrak": true,
+    "value": 15
+   },
+   {
+    "name": "Galil AR | Sandstorm",
+    "weapon": "Galil AR",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2n5rp8SNJ0PG7V7dsLvSAGmiCzNF6ueZhW2exkx4m6mrcmd6heS-XZgB1ApZ3FLUI5xm6ktezMuzh7gTeiYpFnCr-kGoXuTw2UKiI",
+    "min_float": 0.1,
+    "max_float": 0.6,
+    "stattrak": true,
+    "value": 30
+   },
+   {
+    "name": "Tec-9 | Jambiya",
+    "weapon": "Tec-9",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLlm5W5wiVI0Oara_1SKvGeDG6JwNF6ueZhW2ewwhhw5WnXy4v_dnqXOwMnAsQmF-IMtxDql9LmP-mw51feiIhDnn78kGoXuTq6iJ_X",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 59
+   },
+   {
+    "name": "M249 | Deep Relief",
+    "weapon": "M249",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8zMK5wiFO0P_8PP1SJPWWHliCxOJ_tedWQyC0nQlp5DzUzIyqcnyQOAckWJckQu8KuhnpkdPgNu-0tgTYio5Eny2shnsd7TErvbi9QVp9bQ",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 55
+   },
+   {
+    "name": "M4A1-S | Glitched Paint",
+    "weapon": "M4A1-S",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_iHMWaS0vpkseJ9cD66mxkYvzSCkpu3dSnCPFJxXJZ2RrEP4Ri8k4a1Yu_j7w3e3okTzXr92ytA5ilrsroDUr1lpPMn2xt0Zg",
+    "min_float": 0,
+    "max_float": 0.67,
+    "stattrak": false,
+    "value": 136
+   },
+   {
+    "name": "P250 | Cyber Shell",
+    "weapon": "P250",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwiVI0OL8PfRSI-mRC3WDyet6vN5lRi67gVMl6mzUm9n8IHzCaQUmA5Z3RLJb4xC9m4bhMbzn7lOL2Y5Am3j73HxI8G81tOdaiAQT",
+    "min_float": 0,
+    "max_float": 0.85,
+    "stattrak": true,
+    "value": 267
+   },
+   {
+    "name": "USP-S | Cyrex",
+    "weapon": "USP-S",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSI-WsG3SA_u1vouRxcCW6khUz_TjdzdmsJyiTZg8kX8N4ELUP5EPsw9G1YeLn5VTXjY0WxS6rhiIYuCd1o7FV2N83Spg",
+    "min_float": 0,
+    "max_float": 0.55,
+    "stattrak": true,
+    "value": 117
+   },
+   {
+    "name": "P250 | Digital Architect",
+    "weapon": "P250",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwiNa0OSrerBkJ_-UC2ivz-t5vt5lRi67gVMk4mXQntr7JC_GPQNxApFxF7NethXqktfvMuLktAaKjd9Cyy_9iH8f8G81tGeD0jsi",
+    "min_float": 0,
+    "max_float": 0.49,
+    "stattrak": false,
+    "value": 185
+   },
+   {
+    "name": "USP-S | Spiral Glitch",
+    "weapon": "USP-S",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSNeODHViD0edkse1WSCW6gR4vjDSXk4v8MijCMEJPVssnHaMUskG4ltXvPr7j7lTfjo4QyS762Coa7y5u5rsCV6NwrKfTjlySMOFstY5DeqjJbNurDA",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": false,
+    "value": 478
+   },
+   {
+    "name": "M4A4 | Cyber Security",
+    "weapon": "M4A4",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiFO0P_6afBSI-mRC3WA1OB9j-1gSCGn2x9-527Tyt-pcnyUagQlW5JxEOIOuhjrw9XlMrixtQTd2NhNmH_5jCNXrnE8Cu1wa6c",
+    "min_float": 0,
+    "max_float": 0.98,
+    "stattrak": true,
+    "value": 1370
+   },
+   {
+    "name": "SCAR-20 | Cyrex",
+    "weapon": "SCAR-20",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLinZfyr3Jk7OeRe6dsMs-QF3WV2dF6ueZhW2fgzUR_52nUzYugICnCPVImApYkRO8NtkLtw4a1Nbzn7lSN2oITnCr5kGoXuXXxbesR",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 1050
+   },
+   {
+    "name": "M4A1-S | Hyper Beast",
+    "weapon": "M4A1-S",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwjFS4_ega6F_H_OGMWrEwL9JuPh5SjuMlxgmoCm6lob-KT-JbwF1WZEjR-YJskK9k9XiYePltAeNjYlAxSn5j34dvCZstb4LB6Ut-7qX0V8Xkv5_2A",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 3541
+   },
+   {
+    "name": "MAC-10 | Neon Rider",
+    "weapon": "MAC-10",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5WxrR1Y-s2jaac8cM-dC2ie0-dytfNWQyC0nQlp5DzTntmgdC7COABxX5NxQrUOtUS5w4LgMu6zsVCK2IJCmyisjitM6DErvbicsEA0SQ",
+    "min_float": 0,
+    "max_float": 0.45,
+    "stattrak": true,
+    "value": 3151
+   },
+   {
+    "name": "★ Survival Knife | Rust Coat",
+    "weapon": "Survival Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y7vyne5tsMc-AGmKVzdF9vuhvSha-kBkupjDLn9ytc36QZwByCJpwE-4I4UW9kNy0NO3mtQHdj4xFxSr6j35Lu35s6vFCD_SeoZUIGw",
+    "min_float": 0.4,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 22660
+   },
+   {
+    "name": "★ Flip Knife | Freehand",
+    "weapon": "Flip Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1d4_u-V6VgH_2SHGyVxdFjoN5lRi67gVMk4Wzdm4r7cCiWPwUjXpt2QrZZ5ESxktLiNbmx4VPdiogTyi_42CxO8G81tO8hlF8A",
+    "min_float": 0,
+    "max_float": 0.48,
+    "stattrak": true,
+    "value": 33046
+   },
+   {
+    "name": "★ Huntsman Knife | Bright Water",
+    "weapon": "Huntsman Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1P7vG6YadsLM-bF1ifwut3vt5iQSC1kCJ-4wKJk4jxNWWVOA4hA5MjQONbtRGwkYHlP77l5FaLj9gTxS76hn4avXo-t-tTV_Uk5OSJ2DtQY32N",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 26864
+   },
+   {
+    "name": "★ Flip Knife | Stained",
+    "weapon": "Flip Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1d4_u-V6V8H_acHGSVxdF6ueZhW2fjkUUk4GzRmNuvcSnFO1MlW5RxR7MItUbskIHnZurl5ALf341Gmy-rkGoXuTDvkImE",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 46776
+   },
+   {
+    "name": "Desert Eagle | Meteorite",
+    "weapon": "Desert Eagle",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk7v-Ra7Z0M-SSAmuZ2-tyj-VoXSKMmRQguynLyN-qIH3Daw4mCZR3EeBbsUO-l4a2Prvm7gzWg4MXnymq2H8Yui9usfFCD_RyA7Mmlw",
+    "min_float": 0,
+    "max_float": 0.18,
+    "stattrak": false,
+    "value": 17
+   },
+   {
+    "name": "FAMAS | Decommissioned",
+    "weapon": "FAMAS",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL3n5vh7h1Y-s2oaalsM8-dG2yV_vpzvvJgQCeMmRQguynLnouqJC-VbwciD5J3QORYshftkIXlPuzrtlCP2NlCySmvin9B7Xo_5_FCD_RaCEWnyQ",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 41
+   },
+   {
+    "name": "MAG-7 | Firestarter",
+    "weapon": "MAG-7",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5G3wjFL0P-vb_NSJvmBC2WZ1fpzvt5lRi67gVNyt27dz46scn2TaQ52XpV1E-8I4RLuwIHnMO2w4gfa2NlHmy2ri3xP8G81tFM5kI47",
+    "min_float": 0.06,
+    "max_float": 0.49,
+    "stattrak": true,
+    "value": 17
+   },
+   {
+    "name": "CZ75-Auto | Hexane",
+    "weapon": "CZ75-Auto",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLyhMG1_B1T9s2sZLFoKPWLMWuZxuZi_rBqS3vrkRxz5W7dnN2oIyiTZgYhXpN5EOIPsUbsloC1M-_qs1HdiYlbjXKpP5VEBps",
+    "min_float": 0,
+    "max_float": 0.4,
+    "stattrak": true,
+    "value": 33
+   },
+   {
+    "name": "MP9 | Bioleak",
+    "weapon": "MP9",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f_C9k4uL3V6ZkL_yWD2yvzedxuPUnHSi3xhgm4GSGm4mpcnyTbVQjWcZ5EeIL50LultzgNbvmtAPf3oJByDK-0H0NB5p7wQ",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 22
+   },
+   {
+    "name": "SCAR-20 | Crimson Web",
+    "weapon": "SCAR-20",
+    "rarity": "milspec",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLinZfyr3Jk5-uRf6FvM8-XD3WbxPxJvOhuRz39lEwhsGqBz9moJHmXawQhDsQhEOUNsBSwkdXiM-3k5AbZjo1MmSiojDQJsHiHhrZ4wA",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 21
+   },
+   {
+    "name": "Glock-18 | Moonrise",
+    "weapon": "Glock-18",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1a7s2pZKtuK8_CVliF0-x3vt5kQCa9qhsipTiXpYPwJiPTcANzXJNyFOEMthXsktHhMLzl4FaK3toWn3iqhi9BvHw9su5UU6Zw-_bJz1aWcX-Jd_0",
+    "min_float": 0,
+    "max_float": 0.65,
+    "stattrak": true,
+    "value": 93
+   },
+   {
+    "name": "P2000 | Space Race",
+    "weapon": "P2000",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL5lYayrXIL0POvV7d9IfOWHGaTxNF5ouBnSCyMmRQguynLzNirI32Ua1dzDpVzQLMKtUGww4LhMejh4FTY34wWyyv-3ylO7S5i4vFCD_Qear_SSQ",
+    "min_float": 0,
+    "max_float": 0.6,
+    "stattrak": false,
+    "value": 117
+   },
+   {
+    "name": "M249 | Nebula Crusader",
+    "weapon": "M249",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8zMK5wiVI0P_8PP1SLvWRG2uR_u1kpfJoSyyhqhEutDWR1Ir_JSiXOgciDJN4RucCsRW8w4KyZu_q5FeLjN4RnCmt33lP7nxv5-wcEf1yLX15hXE",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 207
+   },
+   {
+    "name": "PP-Bizon | Space Cat",
+    "weapon": "PP-Bizon",
+    "rarity": "restricted",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLzl4zv8x1Y-s2sYb5iLs-AHmaTxO13pN5lRi67gVN04jvcmYv6IHnGbw51XsYmQO5ftBG9xoexNrix4gPYjIJEzX_2iX9I8G81tOIzQC5J",
+    "min_float": 0,
+    "max_float": 0.67,
+    "stattrak": true,
+    "value": 222
+   },
+   {
+    "name": "USP-S | Orion",
+    "weapon": "USP-S",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGJKz2lu_XuWbwcuyMESA4Fdl-4nnpU7iQA3-kKn17jJk_PuibapuJeLdWGLFwL8i4eVsFiqxxUt34jmHnoysJ3qVOAYgCJZwQrRb5EPul4XlYvSiuVIHgy4Xvg",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 512
+   },
+   {
+    "name": "M4A4 | Desolate Space",
+    "weapon": "M4A4",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiFO0P_6afBSJPWAAWuR1etJo_FoTCyMmRQguynLnNepJXPEaQJyDZJ0QOdbsxi7ktS0Y-Li4ADegthGn32ojCJJ7CxosfFCD_SyjfEkHg",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 753
+   },
+   {
+    "name": "Glock-18 | Twilight Galaxy",
+    "weapon": "Glock-18",
+    "rarity": "classified",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1a4s2vebFsH_afC2Sb0tF6ueZhW2e3zR9-5mjcztv8cnjBbQMiA8ZzFLUKtBbsl4LuY77q4AHdj4pNmCz-kGoXudhVSAZp",
+    "min_float": 0,
+    "max_float": 0.2,
+    "stattrak": false,
+    "value": 529
+   },
+   {
+    "name": "M4A4 | The Battlestar",
+    "weapon": "M4A4",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiVI0P_6afBSMPmcAGKV09F6ueZhW2fjxB9_4GqEyN6vdi_BPwQgWZIkRLYD4Ba_kILgYeOz4lbagthBz3_9kGoXuZIYHoDp",
+    "min_float": 0,
+    "max_float": 0.64,
+    "stattrak": true,
+    "value": 6450
+   },
+   {
+    "name": "AWP | Neo-Noir",
+    "weapon": "AWP",
+    "rarity": "covert",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk7uW-V6poL_6cB3WvzedxuPUnHirrxR4l423SyI39I3KXPwdxWZclQeNZ5EXskYfnNeyw71OMi9lNzDK-0H3r66pOTw",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 8184
+   },
+   {
+    "name": "★ Shadow Daggers | Stained",
+    "weapon": "Shadow Daggers",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1L-uGmV6V8H_acHGSVxdF6ueZhW2fkx0t_4D_WntapICjCbgMkD8NzR7ZeskK4lNDvN7_k4wTZiotFzi35kGoXuV1xPlgw",
+    "min_float": 0,
+    "max_float": 1,
+    "stattrak": true,
+    "value": 39743
+   },
+   {
+    "name": "★ Navaja Knife | Ultraviolet",
+    "weapon": "Navaja Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1c9uK9cZtnIfOYBWmZx-tJo-5WXzyhhREijDGMnYftby3FOgUhAsYjTeZetBm4xtXkNbiw5lPbi9pGxCr92itB7C9q4ekDU6c7uvqA74P7bNU",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 53292
+   },
+   {
+    "name": "★ Bowie Knife | Scorched",
+    "weapon": "Bowie Knife",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I-uC4YbJsLM-RAXCZxNFloN5tTjmjmRgYvzSCkpu3d3yWbFIoDJYiE-cLshHtkoHlYbyw7gzX2Y8WziysjH9I7n4_5L5RU71lpPPWuYfcpQ",
+    "min_float": 0.06,
+    "max_float": 0.8,
+    "stattrak": true,
+    "value": 51712
+   },
+   {
+    "name": "★ M9 Bayonet | Bright Water",
+    "weapon": "M9 Bayonet",
+    "rarity": "gold",
+    "image": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Wts2sab1iLvWHMW-J_uF1teBncCK9nBsijGTVpYPwJiPTcFUmC5p3FO5YsRO_lIG2Me3rsVOM3tpAmSv_33ka5i5r5upWV6Qsq_HJz1aWbk46ROo",
+    "min_float": 0,
+    "max_float": 0.5,
+    "stattrak": true,
+    "value": 34621
+   }
+  ]
+ }
+]

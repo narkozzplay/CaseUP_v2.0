@@ -1,0 +1,7 @@
+{% extends "layouts/base_dashboard.html" %}
+
+{% block title %}{{ case.name }} | Кейсы | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
+
+{% block content %}
+    {% include "case_simulator/partials/detail_content.html" %}
+{% endblock %}

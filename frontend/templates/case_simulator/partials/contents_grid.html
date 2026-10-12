@@ -1,0 +1,11 @@
+{% load site_formatters %}
+<div class="sim-contents">
+    {% for row in contents %}
+        <div class="sim-content rarity--{{ row.item.rarity_css }}">
+            <div class="sim-content__media">{% if row.item.image_url %}<img src="{{ row.item.image_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}</div>
+            <span class="sim-content__weapon">{{ row.item.weapon_label }}</span>
+            <strong class="sim-content__name">{{ row.item.skin_name }}</strong>
+            <span class="sim-content__meta"><span>{{ row.chance|floatformat:"-3" }}%</span><span>{% money row.item.value %}</span></span>
+        </div>
+    {% endfor %}
+</div>

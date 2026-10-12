@@ -1,0 +1,91 @@
+{% load site_formatters %}
+<section class="section section--compact sim-page sim-case" style="--case-accent: {{ case.accent_color|default:'#f5a623' }}"
+    data-case-sim
+    data-open-url="{% url 'case_simulator:open' case.slug %}"
+    data-open-price="{{ case.open_price|stringformat:"s" }}"
+    data-currency-symbol="{{ site_settings.site_currency_symbol|default:'₽' }}"
+    data-currency-rate="{{ site_settings.site_currency_rate|default:1|stringformat:"s" }}">
+    {% csrf_token %}
+    <a href="{% url 'case_simulator:list' %}" class="back-link" data-dashboard-nav="true">← Все кейсы</a>
+
+    <div class="sim-hero">
+        {% include "case_simulator/partials/case_cover.html" %}
+        <div class="sim-hero__info">
+            <span class="eyebrow">{{ case.get_kind_display }}</span>
+            <h1>{{ case.name }}</h1>
+            {% if case.collection_name %}<p class="sim-hero__collection">{{ case.collection_name }}</p>{% endif %}
+            {% if case.description %}<p class="text-muted">{{ case.description }}</p>{% endif %}
+            <dl class="sim-price">
+                <div><dt>Кейс</dt><dd>{% money case.case_price %}</dd></div>
+                <div><dt>Ключ</dt><dd>{% if case.has_key %}{% money case.key_price %}{% else %}не нужен{% endif %}</dd></div>
+                <div class="sim-price__total"><dt>Открытие</dt><dd>{% money case.open_price %}</dd></div>
+            </dl>
+            <p class="sim-hero__balance">Баланс: <b data-sim-balance>{% money stats.balance %}</b></p>
+        </div>
+    </div>
+
+    <div class="sim-stage">
+        <div class="sim-roulette" data-sim-roulette>
+            <span class="sim-roulette__marker" aria-hidden="true"></span>
+            <div class="sim-lane" data-sim-lane>
+                <div class="sim-lane__track" data-sim-track>
+                    {% for tile in idle_strip %}{% include "case_simulator/partials/strip_tile.html" %}{% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="sim-controls">
+            <div class="sim-count" role="radiogroup" aria-label="Сколько кейсов открыть">
+                {% for n in open_counts %}
+                    <label class="sim-count__opt"><input type="radio" name="sim-count" value="{{ n }}"{% if n == 1 %} checked{% endif %}><span>x{{ n }}</span></label>
+                {% endfor %}
+            </div>
+            <button type="button" class="btn btn-primary sim-open-btn" data-sim-open>
+                Открыть за <span data-sim-total>{% money case.open_price %}</span>
+            </button>
+            <button type="button" class="btn btn-ghost" data-sim-demo>Демо-прокрут</button>
+            <label class="sim-switch"><input type="checkbox" data-sim-fast><span>Быстро</span></label>
+        </div>
+        <p class="sim-status" data-sim-status aria-live="polite"></p>
+    </div>
+
+    <div class="sim-layout">
+        <div>
+            <div class="sim-block-head">
+                <h2>Содержимое кейса</h2>
+                <span class="text-muted">{{ contents|length }} предметов · шанс и оценка в {{ site_settings.site_currency_symbol|default:"₽" }}</span>
+            </div>
+            {% include "case_simulator/partials/rarity_bar.html" %}
+            {% include "case_simulator/partials/contents_grid.html" %}
+        </div>
+        <aside class="sim-side">
+            <div class="sim-side__card">
+                <h3>Мои выпадения</h3>
+                <div class="sim-side__list" data-sim-history>
+                    {% for opening in my_drops %}
+                        {% include "case_simulator/partials/drop_tile.html" %}
+                    {% empty %}
+                        <p class="text-muted" data-sim-history-empty>Здесь появятся предметы, которые ты выбьешь из этого кейса.</p>
+                    {% endfor %}
+                </div>
+                <a href="{% url 'case_simulator:inventory' %}" class="btn btn-ghost btn-sm" data-dashboard-nav="true">Весь инвентарь →</a>
+            </div>
+            <div class="sim-side__card sim-side__note">
+                <h3>Как считаются шансы</h3>
+                <p class="text-muted">Как в CS2: армейское 79.92%, запрещённое 15.98%, засекреченное 3.2%, тайное 0.64%, редкий особый предмет 0.26%. Износ и StatTrak™ (10%) влияют на оценку предмета.</p>
+            </div>
+        </aside>
+    </div>
+
+    <dialog class="sim-reveal" data-sim-reveal>
+        <div class="sim-reveal__inner">
+            <span class="eyebrow" data-sim-reveal-title>Твой дроп</span>
+            <div class="sim-reveal__list" data-sim-reveal-list></div>
+            <p class="sim-reveal__total" data-sim-reveal-total></p>
+            <div class="sim-reveal__actions">
+                <button type="button" class="btn btn-primary" data-sim-again>Открыть ещё</button>
+                <button type="button" class="btn btn-ghost" data-sim-close>Закрыть</button>
+            </div>
+        </div>
+    </dialog>
+</section>

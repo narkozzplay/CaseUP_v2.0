@@ -1046,7 +1046,7 @@ class ProfileAvatarPatchTests(TestCase):
         response = self.client.get(reverse("profiles:profile"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "img/placeholders/no_image.svg")
+        self.assertContains(response, "img/placeholders/no_image.jpg")
 
     def test_profile_page_contains_custom_avatar_upload_ui(self):
         # Avatar upload UI moved from profile page to settings page
@@ -1110,7 +1110,7 @@ class ProfileAvatarPatchTests(TestCase):
         profile.steam_avatar = ""
         profile.save(update_fields=["uploaded_avatar", "steam_avatar"])
         default_avatar = get_profile_avatar_url(profile)
-        self.assertTrue(default_avatar.endswith("img/placeholders/no_image.svg"))
+        self.assertTrue(default_avatar.endswith("img/placeholders/no_image.jpg"))
 
         profile.steam_avatar = "https://cdn.example.com/steam-avatar.jpg"
         profile.save(update_fields=["steam_avatar"])

@@ -1,0 +1,1444 @@
+/* ==========================================================================
+   Case simulator: case list, case opening roulette, terminal, inventory
+   ========================================================================== */
+
+.rarity--gold { --rarity: #ffd24a; }
+
+.sim-page {
+    --case-accent: var(--accent);
+}
+
+.sim-head {
+    align-items: flex-end;
+}
+
+.sim-stats {
+    margin-top: 4px;
+}
+
+.sim-tabs {
+    margin: 18px 0 6px;
+}
+
+.sim-st {
+    color: #cf6a32;
+    font-weight: 700;
+}
+
+/* ---------- live feed ---------- */
+
+.sim-feed {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    overflow: hidden;
+}
+
+.sim-feed__label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px;
+    border-right: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--down, #eb4b4b);
+}
+
+.sim-feed__label::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    background: currentColor;
+    animation: sim-blink 1.4s steps(2, start) infinite;
+}
+
+.sim-feed__track {
+    display: flex;
+    gap: 1px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    mask-image: linear-gradient(90deg, #000 85%, transparent);
+}
+
+.sim-feed__track::-webkit-scrollbar { display: none; }
+
+.sim-feed .sim-drop {
+    flex: 0 0 210px;
+    border: 0;
+    border-bottom: 2px solid var(--rarity, var(--border));
+}
+
+/* ---------- drop tile (feed, side lists) ---------- */
+
+.sim-drop {
+    display: grid;
+    grid-template-columns: 52px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--rarity, var(--border));
+    background: linear-gradient(90deg, color-mix(in srgb, var(--rarity, transparent) 14%, transparent), transparent 70%);
+    min-width: 0;
+}
+
+.sim-drop__media {
+    width: 52px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+}
+
+.sim-drop__media img,
+.sim-tile__media img,
+.sim-content__media img,
+.sim-inv__media img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+}
+
+.sim-drop__body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.sim-drop__weapon,
+.sim-drop__meta {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sim-drop__name {
+    font-size: 0.86rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sim-drop__value {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--text-soft);
+}
+
+/* ---------- groups & case cards ---------- */
+
+.sim-group {
+    margin-top: 26px;
+}
+
+.sim-group__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 14px;
+    margin-bottom: 12px;
+}
+
+.sim-group__head h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.sim-group__head p {
+    margin: 0;
+    font-size: 0.86rem;
+}
+
+.sim-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 12px;
+}
+
+.sim-grid--wide {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+}
+
+.sim-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: inherit;
+    text-decoration: none;
+    overflow: hidden;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sim-card::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 2px;
+    background: var(--case-accent);
+    transform: scaleX(0.25);
+    transform-origin: left;
+    transition: transform 0.25s ease;
+}
+
+.sim-card:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--case-accent) 55%, transparent);
+    box-shadow: 0 14px 34px -18px var(--case-accent);
+}
+
+.sim-card:hover::after {
+    transform: scaleX(1);
+}
+
+.sim-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 12px 14px 14px;
+}
+
+.sim-card__kind {
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.sim-card__name {
+    font-family: var(--font-display);
+    font-size: 1.08rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.sim-card__price {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.sim-card__total {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 3;
+    padding: 4px 8px;
+    background: rgba(8, 10, 14, 0.82);
+    border: 1px solid color-mix(in srgb, var(--case-accent) 60%, transparent);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--case-accent);
+}
+
+.sim-card--terminal {
+    flex-direction: row;
+}
+
+.sim-card--terminal .sim-cover {
+    flex: 0 0 46%;
+    aspect-ratio: auto;
+    min-height: 170px;
+}
+
+.sim-card--terminal .sim-card__body {
+    justify-content: center;
+}
+
+/* ---------- cover: real image or fanned preview of best items ---------- */
+
+.sim-cover {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 50% 62%, color-mix(in srgb, var(--case-accent) 42%, transparent), transparent 66%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 10px),
+        linear-gradient(180deg, #10141b, #090b10);
+}
+
+.sim-cover::before {
+    content: "";
+    position: absolute;
+    left: 14%;
+    right: 14%;
+    bottom: 12%;
+    height: 10%;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.6), transparent 70%);
+}
+
+.sim-cover__stack {
+    position: absolute;
+    inset: 0;
+    transition: opacity 0.2s ease;
+}
+
+.sim-cover__item {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 64%;
+    transform: translate(-50%, -50%);
+    object-fit: contain;
+    filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.6));
+    transition: transform 0.3s ease;
+}
+
+.sim-cover__item--2 { transform: translate(-82%, -66%) rotate(-14deg) scale(0.78); opacity: 0.75; z-index: 0; }
+.sim-cover__item--3 { transform: translate(-18%, -66%) rotate(14deg) scale(0.78); opacity: 0.75; z-index: 0; }
+.sim-cover__item--1 { z-index: 1; transform: translate(-50%, -44%); }
+
+.sim-card:hover .sim-cover__item--1 { transform: translate(-50%, -48%) scale(1.06); }
+.sim-card:hover .sim-cover__item--2 { transform: translate(-90%, -68%) rotate(-18deg) scale(0.8); }
+.sim-card:hover .sim-cover__item--3 { transform: translate(-10%, -68%) rotate(18deg) scale(0.8); }
+
+.sim-cover__image {
+    position: absolute;
+    inset: 8%;
+    width: 84%;
+    height: 84%;
+    z-index: 2;
+    object-fit: contain;
+    filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.55));
+    transition: transform 0.3s ease;
+}
+
+.sim-card:hover .sim-cover__image { transform: scale(1.05) rotate(-2deg); }
+
+.sim-cover:has(.sim-cover__image) .sim-cover__stack { opacity: 0; }
+
+.sim-cover--terminal {
+    background:
+        repeating-linear-gradient(0deg, rgba(61, 220, 132, 0.06) 0 1px, transparent 1px 3px),
+        radial-gradient(circle at 50% 55%, rgba(61, 220, 132, 0.28), transparent 65%),
+        #050a07;
+}
+
+/* ---------- case page hero ---------- */
+
+.sim-hero {
+    display: grid;
+    grid-template-columns: minmax(220px, 320px) 1fr;
+    gap: 22px;
+    align-items: center;
+    margin: 6px 0 18px;
+}
+
+.sim-hero .sim-cover {
+    border: 1px solid color-mix(in srgb, var(--case-accent) 35%, var(--border));
+}
+
+.sim-hero__info h1 {
+    margin: 4px 0 2px;
+}
+
+.sim-hero__collection {
+    margin: 0 0 8px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--case-accent);
+}
+
+.sim-hero__balance {
+    margin: 10px 0 0;
+    font-size: 0.86rem;
+    color: var(--text-muted);
+}
+
+.sim-hero__balance b {
+    font-family: var(--font-mono);
+    color: var(--text);
+}
+
+.sim-price {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1px;
+    margin: 14px 0 0;
+    background: var(--border);
+    border: 1px solid var(--border);
+    width: fit-content;
+    max-width: 100%;
+}
+
+.sim-price > div {
+    padding: 10px 16px;
+    background: var(--panel);
+    min-width: 110px;
+}
+
+.sim-price dt {
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.sim-price dd {
+    margin: 2px 0 0;
+    font-family: var(--font-mono);
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.sim-price__total {
+    background: color-mix(in srgb, var(--case-accent) 14%, var(--panel)) !important;
+}
+
+.sim-price__total dd {
+    color: var(--case-accent);
+}
+
+/* ---------- roulette ---------- */
+
+.sim-stage {
+    margin-bottom: 22px;
+}
+
+.sim-roulette {
+    --tile-w: 136px;
+    --tile-gap: 6px;
+    --lane-h: 156px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 0;
+    border: 1px solid var(--border);
+    background:
+        radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--case-accent) 16%, transparent), transparent 60%),
+        linear-gradient(180deg, #0d1016, #08090d);
+    overflow: hidden;
+}
+
+.sim-roulette[data-lanes="2"] { --lane-h: 136px; }
+.sim-roulette[data-lanes="3"] { --lane-h: 112px; --tile-w: 112px; }
+.sim-roulette[data-lanes="4"],
+.sim-roulette[data-lanes="5"] { --lane-h: 92px; --tile-w: 96px; }
+
+.sim-roulette__marker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    margin-left: -1px;
+    z-index: 4;
+    background: var(--case-accent);
+    box-shadow: 0 0 12px var(--case-accent), 0 0 2px #fff;
+    pointer-events: none;
+}
+
+.sim-roulette__marker::before,
+.sim-roulette__marker::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border: 8px solid transparent;
+    transform: translateX(-50%);
+}
+
+.sim-roulette__marker::before { top: 0; border-top-color: var(--case-accent); }
+.sim-roulette__marker::after { bottom: 0; border-bottom-color: var(--case-accent); }
+
+.sim-lane {
+    position: relative;
+    height: var(--lane-h);
+    overflow: hidden;
+    mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+}
+
+.sim-lane__track {
+    display: flex;
+    gap: var(--tile-gap);
+    height: 100%;
+    will-change: transform;
+}
+
+.sim-tile {
+    position: relative;
+    flex: 0 0 var(--tile-w);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 6px 8px 8px;
+    border-bottom: 3px solid var(--rarity, var(--border));
+    background:
+        linear-gradient(0deg, color-mix(in srgb, var(--rarity, transparent) 34%, transparent), transparent 75%),
+        var(--panel);
+    overflow: hidden;
+    transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+.sim-tile__media {
+    position: absolute;
+    inset: 6px 8px 34px;
+    display: grid;
+    place-items: center;
+}
+
+.sim-tile__weapon,
+.sim-tile__name {
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.sim-tile__weapon {
+    font-size: 0.66rem;
+    color: var(--text-muted);
+}
+
+.sim-tile__name {
+    font-size: 0.78rem;
+}
+
+.sim-roulette[data-lanes="4"] .sim-tile__weapon,
+.sim-roulette[data-lanes="5"] .sim-tile__weapon { display: none; }
+
+.sim-roulette.is-done .sim-tile:not(.is-winner) {
+    filter: grayscale(0.7) brightness(0.55);
+}
+
+.sim-tile.is-winner {
+    box-shadow: inset 0 0 0 2px var(--rarity), 0 0 26px -4px var(--rarity);
+    animation: sim-win 0.7s ease-out;
+}
+
+.sim-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.sim-count {
+    display: inline-flex;
+    border: 1px solid var(--border);
+}
+
+.sim-count__opt input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sim-count__opt span {
+    display: grid;
+    place-items: center;
+    min-width: 44px;
+    height: 40px;
+    padding: 0 8px;
+    font-family: var(--font-mono);
+    font-size: 0.86rem;
+    color: var(--text-soft);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sim-count__opt + .sim-count__opt span {
+    border-left: 1px solid var(--border);
+}
+
+.sim-count__opt input:checked + span {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.sim-count__opt input:focus-visible + span {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+
+.sim-open-btn {
+    min-width: 220px;
+    min-height: 42px;
+    font-size: 0.95rem;
+}
+
+.sim-open-btn span {
+    font-family: var(--font-mono);
+}
+
+.sim-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.84rem;
+    color: var(--text-soft);
+    cursor: pointer;
+}
+
+.sim-switch input {
+    appearance: none;
+    width: 34px;
+    height: 18px;
+    margin: 0;
+    border: 1px solid var(--border-strong);
+    background: var(--panel-2);
+    position: relative;
+    cursor: pointer;
+}
+
+.sim-switch input::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    background: var(--text-muted);
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.sim-switch input:checked { border-color: var(--accent); }
+.sim-switch input:checked::after { transform: translateX(16px); background: var(--accent); }
+
+.sim-status {
+    min-height: 1.3em;
+    margin: 8px 0 0;
+    font-size: 0.86rem;
+    color: var(--text-muted);
+}
+
+.sim-status[data-tone="error"] { color: var(--down, #eb4b4b); }
+
+.sim-case.is-spinning [data-sim-open],
+.sim-case.is-spinning [data-sim-demo] {
+    pointer-events: none;
+    opacity: 0.55;
+}
+
+/* ---------- odds & contents ---------- */
+
+.sim-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 18px;
+    align-items: start;
+}
+
+.sim-block-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 12px;
+    margin: 6px 0 10px;
+}
+
+.sim-block-head h2 {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+.sim-block-head span {
+    font-size: 0.8rem;
+}
+
+.sim-odds {
+    margin-bottom: 12px;
+}
+
+.sim-odds__bar {
+    display: flex;
+    height: 6px;
+    gap: 2px;
+    background: var(--panel-2);
+}
+
+.sim-odds__bar span {
+    flex-basis: 3px;
+    background: var(--rarity);
+}
+
+.sim-odds__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.78rem;
+    color: var(--text-soft);
+}
+
+.sim-odds__legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sim-odds__legend i {
+    width: 8px;
+    height: 8px;
+    background: var(--rarity);
+}
+
+.sim-odds__legend b {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.sim-contents,
+.sim-inventory {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+}
+
+.sim-content,
+.sim-inv {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 8px 10px 10px;
+    border: 1px solid var(--border);
+    border-bottom: 2px solid var(--rarity, var(--border));
+    background:
+        radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--rarity, transparent) 22%, transparent), transparent 62%),
+        var(--panel);
+    min-width: 0;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.sim-content:hover,
+.sim-inv:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--rarity) 50%, transparent);
+}
+
+.sim-content__media,
+.sim-inv__media {
+    height: 86px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 6px;
+}
+
+.sim-content__weapon,
+.sim-inv__weapon,
+.sim-inv__wear {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sim-content__name,
+.sim-inv__name {
+    font-size: 0.84rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sim-content__meta,
+.sim-inv__foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-soft);
+}
+
+.sim-content__meta span:first-child {
+    color: var(--rarity);
+}
+
+.sim-inv__foot span {
+    font-family: inherit;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sim-side {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sim-side__card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+}
+
+.sim-side__card h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-family: var(--font-display);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.sim-side__card p {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.sim-side__list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sim-side__card .btn {
+    align-self: flex-start;
+}
+
+.sim-best .stat-tile__value {
+    color: var(--rarity);
+}
+
+.sim-best {
+    border-top-color: var(--rarity);
+}
+
+/* ---------- reveal dialog ---------- */
+
+.sim-reveal {
+    width: fit-content;
+    min-width: min(420px, calc(100vw - 32px));
+    max-width: min(1000px, calc(100vw - 32px));
+    max-height: calc(100vh - 40px);
+    padding: 0;
+    border: 1px solid var(--border-strong);
+    background: #0b0e13;
+    color: var(--text);
+}
+
+.sim-reveal::backdrop {
+    background: rgba(4, 5, 8, 0.78);
+    backdrop-filter: blur(4px);
+}
+
+.sim-reveal[open] {
+    animation: sim-pop 0.28s ease-out;
+}
+
+.sim-reveal__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 24px;
+}
+
+.sim-reveal__list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.sim-prize {
+    position: relative;
+    flex: 0 1 220px;
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 16px 14px 14px;
+    border: 1px solid color-mix(in srgb, var(--rarity) 55%, transparent);
+    background:
+        radial-gradient(circle at 50% 36%, color-mix(in srgb, var(--rarity) 40%, transparent), transparent 64%),
+        var(--panel);
+    text-align: center;
+    overflow: hidden;
+    opacity: 0;
+    animation: sim-prize-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.25) forwards;
+}
+
+.sim-prize::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 38%;
+    width: 220%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--rarity) 22%, transparent) 0 8deg, transparent 8deg 24deg);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sim-prize.rarity--classified::before,
+.sim-prize.rarity--covert::before,
+.sim-prize.rarity--gold::before {
+    opacity: 1;
+    animation: sim-rays 14s linear infinite;
+}
+
+.sim-prize__media {
+    position: relative;
+    height: 130px;
+    width: 100%;
+    display: grid;
+    place-items: center;
+}
+
+.sim-prize__media img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.6));
+}
+
+.sim-prize__weapon,
+.sim-prize__wear {
+    position: relative;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+}
+
+.sim-prize__name {
+    position: relative;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    letter-spacing: 0.02em;
+    color: var(--rarity);
+}
+
+.sim-prize__value {
+    position: relative;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+}
+
+.sim-prize__tag {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    padding: 2px 6px;
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    letter-spacing: 0.1em;
+    background: #cf6a32;
+    color: #fff;
+}
+
+.sim-reveal__total {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: var(--text-soft);
+}
+
+.sim-reveal__total b[data-tone="up"] { color: var(--up); }
+.sim-reveal__total b[data-tone="down"] { color: var(--down); }
+
+.sim-reveal__actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* ---------- terminal ---------- */
+
+.terminal-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+    margin-bottom: 24px;
+}
+
+.terminal-layout > .sim-side {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.term {
+    --term: #3ddc84;
+    --term-dim: rgba(61, 220, 132, 0.55);
+    --term-bg: #040806;
+    position: relative;
+    border: 1px solid rgba(61, 220, 132, 0.35);
+    background: var(--term-bg);
+    color: var(--term);
+    font-family: var(--font-mono);
+    box-shadow: 0 0 0 1px #000, 0 24px 60px -30px rgba(61, 220, 132, 0.45), inset 0 0 80px rgba(61, 220, 132, 0.06);
+    overflow: hidden;
+}
+
+.term::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 1px, transparent 1px 3px),
+        radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.55));
+    animation: term-flicker 6s infinite;
+}
+
+.term__bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(61, 220, 132, 0.25);
+    background: rgba(61, 220, 132, 0.06);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+}
+
+.term__dots {
+    display: inline-flex;
+    gap: 5px;
+}
+
+.term__dots i {
+    width: 8px;
+    height: 8px;
+    background: var(--term-dim);
+}
+
+.term__title {
+    flex: 1;
+    color: var(--term-dim);
+}
+
+.term__pips {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.term-pip {
+    width: 18px;
+    height: 8px;
+    border: 1px solid var(--term-dim);
+}
+
+.term-pip.is-current {
+    background: var(--term);
+    animation: sim-blink 1s steps(2, start) infinite;
+}
+
+.term-pip.is-declined {
+    border-color: rgba(235, 75, 75, 0.7);
+    background: repeating-linear-gradient(45deg, rgba(235, 75, 75, 0.7) 0 2px, transparent 2px 4px);
+}
+
+.term-pip.is-accepted {
+    background: var(--term);
+    box-shadow: 0 0 8px var(--term);
+}
+
+.term__screen {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 420px;
+    padding: 18px;
+}
+
+.term__log {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 96px;
+    max-height: 120px;
+    overflow: hidden;
+    justify-content: flex-end;
+    font-size: 0.78rem;
+    color: var(--term-dim);
+    text-shadow: 0 0 6px rgba(61, 220, 132, 0.35);
+}
+
+.term__log p {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.term__log p::before {
+    content: "> ";
+    color: var(--term);
+}
+
+.term__log p.is-typing::after {
+    content: "_";
+    animation: sim-blink 0.8s steps(2, start) infinite;
+}
+
+.term__log p[data-tone="bad"] { color: #ff6b6b; }
+.term__log p[data-tone="good"] { color: var(--term); }
+
+.term__view {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: term-in 0.35s ease-out;
+}
+
+.term__view[hidden] { display: none; }
+
+.term__big {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 3vw, 2.2rem);
+    letter-spacing: 0.12em;
+    text-shadow: 0 0 14px rgba(61, 220, 132, 0.6);
+}
+
+.term__boot p,
+.term__view--burned p {
+    max-width: 62ch;
+    margin: 8px 0 0;
+    font-size: 0.86rem;
+    line-height: 1.6;
+    color: var(--term-dim);
+}
+
+.term__boot b {
+    color: var(--term);
+}
+
+.term__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.term-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid var(--term-dim);
+    background: transparent;
+    color: var(--term);
+    font-family: var(--font-mono);
+    font-size: 0.86rem;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.term-btn:hover,
+.term-btn:focus-visible {
+    background: var(--term);
+    color: #031008;
+    box-shadow: 0 0 18px rgba(61, 220, 132, 0.5);
+    outline: none;
+}
+
+.term-btn--go {
+    background: rgba(61, 220, 132, 0.12);
+}
+
+.term-btn--no {
+    border-color: rgba(235, 75, 75, 0.6);
+    color: #ff7b7b;
+}
+
+.term-btn--no:hover,
+.term-btn--no:focus-visible {
+    background: #ff6b6b;
+    color: #1a0505;
+    box-shadow: 0 0 18px rgba(235, 75, 75, 0.5);
+}
+
+.term-btn:disabled {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.term-offer {
+    display: grid;
+    grid-template-columns: minmax(180px, 260px) 1fr;
+    gap: 18px;
+    align-items: center;
+    padding: 14px;
+    border: 1px dashed rgba(61, 220, 132, 0.35);
+    background: rgba(61, 220, 132, 0.03);
+}
+
+.term-offer__media {
+    position: relative;
+    height: 170px;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(circle at 50% 55%, color-mix(in srgb, var(--rarity, var(--term)) 45%, transparent), transparent 66%);
+}
+
+.term-offer__media img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.7));
+}
+
+.term-offer.is-entering .term-offer__media img {
+    animation: term-materialize 0.9s steps(8, end);
+}
+
+.term-offer__info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.term-offer__step {
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    color: var(--term-dim);
+}
+
+.term-offer__weapon {
+    font-size: 0.8rem;
+    color: var(--term-dim);
+}
+
+.term-offer__name {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    letter-spacing: 0.03em;
+    color: var(--rarity, var(--term));
+    text-shadow: 0 0 12px color-mix(in srgb, var(--rarity, var(--term)) 50%, transparent);
+}
+
+.term-offer__wear {
+    font-size: 0.78rem;
+    color: var(--term-dim);
+}
+
+.term-offer__prices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin: 10px 0 0;
+}
+
+.term-offer__prices dt {
+    font-size: 0.64rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--term-dim);
+}
+
+.term-offer__prices dd {
+    margin: 2px 0 0;
+    font-size: 1.05rem;
+    color: #d8ffe6;
+}
+
+.term-offer__prices .is-price dd {
+    font-size: 1.35rem;
+    color: var(--term);
+    text-shadow: 0 0 10px rgba(61, 220, 132, 0.6);
+}
+
+.term__warn {
+    margin: 0;
+    padding: 8px 12px;
+    border-left: 3px solid #ffb84d;
+    background: rgba(255, 184, 77, 0.08);
+    color: #ffcf80;
+    font-size: 0.82rem;
+}
+
+.term__error {
+    margin: 0;
+    color: #ff7b7b;
+    font-size: 0.82rem;
+}
+
+.term__big--burn {
+    position: relative;
+    color: #ff6b6b;
+    text-shadow: 0 0 14px rgba(235, 75, 75, 0.6);
+}
+
+.term__big--burn::before,
+.term__big--burn::after {
+    content: attr(data-glitch);
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.term__big--burn::before {
+    color: #5ecbff;
+    clip-path: inset(0 0 55% 0);
+    animation: term-glitch 2.4s infinite linear alternate-reverse;
+}
+
+.term__big--burn::after {
+    color: #ffd24a;
+    clip-path: inset(55% 0 0 0);
+    animation: term-glitch 1.8s infinite linear alternate;
+}
+
+.term[data-state="burned"] {
+    border-color: rgba(235, 75, 75, 0.45);
+}
+
+.term.is-busy .term-btn {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.term-steps {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--text-soft);
+}
+
+.term-history {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.term-history li {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    border-left: 3px solid var(--rarity, var(--border));
+    background: var(--panel-2);
+    font-size: 0.78rem;
+}
+
+.term-history li span {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.term-history li b {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* ---------- animations ---------- */
+
+@keyframes sim-blink { to { visibility: hidden; } }
+
+@keyframes sim-win {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+}
+
+@keyframes sim-pop {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes sim-prize-in {
+    from { opacity: 0; transform: translateY(18px) scale(0.85); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes sim-rays { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+@keyframes term-flicker {
+    0%, 96%, 100% { opacity: 1; }
+    97% { opacity: 0.82; }
+    98% { opacity: 1; }
+    99% { opacity: 0.9; }
+}
+
+@keyframes term-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes term-materialize {
+    0% { opacity: 0; filter: blur(8px) brightness(3) hue-rotate(90deg); clip-path: inset(0 0 100% 0); }
+    100% { opacity: 1; filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.7)); clip-path: inset(0); }
+}
+
+@keyframes term-glitch {
+    0% { transform: translate(0); }
+    20% { transform: translate(-3px, 1px); }
+    40% { transform: translate(3px, -1px); }
+    60% { transform: translate(-2px, 0); }
+    80% { transform: translate(2px, 1px); }
+    100% { transform: translate(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .term::after,
+    .sim-prize::before,
+    .term__big--burn::before,
+    .term__big--burn::after { animation: none; }
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 1100px) {
+    .sim-layout,
+    .terminal-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .sim-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .sim-hero .sim-cover {
+        max-width: 360px;
+    }
+
+    .sim-roulette { --tile-w: 112px; --lane-h: 128px; }
+
+    .sim-open-btn {
+        flex: 1 1 100%;
+    }
+
+    .sim-card--terminal {
+        flex-direction: column;
+    }
+
+    .term-offer {
+        grid-template-columns: 1fr;
+    }
+
+    .term__bar .term__title { display: none; }
+}

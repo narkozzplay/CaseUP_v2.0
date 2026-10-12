@@ -1,0 +1,53 @@
+{% load site_formatters %}
+<section class="section section--compact sim-page">
+    <div class="page-header page-header--compact sim-head">
+        <div>
+            <span class="eyebrow">Case simulator</span>
+            <h1>Симуляция кейсов</h1>
+            <p class="text-muted">Открывай кейсы CS2 и коллекции CaseUP за баланс сайта. Шансы как в игре, все выпадения попадают в инвентарь симулятора.</p>
+        </div>
+        <a href="{% url 'case_simulator:inventory' %}" class="btn btn-secondary" data-dashboard-nav="true">Мой инвентарь{% if stats.count %} · {{ stats.count }}{% endif %}</a>
+    </div>
+
+    <div class="stat-tiles sim-stats">
+        <div class="stat-tile"><span class="stat-tile__label">Баланс</span><span class="stat-tile__value" data-sim-balance>{% money stats.balance %}</span><span class="stat-tile__meta">Внутренняя валюта сайта</span></div>
+        <div class="stat-tile"><span class="stat-tile__label">Открыто</span><span class="stat-tile__value">{{ stats.count }}</span><span class="stat-tile__meta">кейсов и предложений терминала</span></div>
+        <div class="stat-tile"><span class="stat-tile__label">Потрачено</span><span class="stat-tile__value">{% money stats.spent %}</span><span class="stat-tile__meta">на открытия</span></div>
+        <div class="stat-tile"><span class="stat-tile__label">Стоимость дропа</span><span class="stat-tile__value">{% money stats.value %}</span><span class="stat-tile__meta">оценка всех выпадений</span></div>
+    </div>
+
+    {% if recent_drops %}
+        <div class="sim-feed" aria-label="Последние редкие выпадения">
+            <span class="sim-feed__label">Live</span>
+            <div class="sim-feed__track">
+                {% for opening in recent_drops %}{% include "case_simulator/partials/drop_tile.html" with show_user=True %}{% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if group_tabs|length > 1 %}
+        <div class="chip-tabs sim-tabs">
+            <a href="{% url 'case_simulator:list' %}" class="chip-tab{% if not selected_kind %} is-active{% endif %}" data-dashboard-nav="true">Все<span class="chip-tabs__count">{{ total_cases }}</span></a>
+            {% for key, title, count in group_tabs %}
+                <a href="?kind={{ key }}" class="chip-tab{% if selected_kind == key %} is-active{% endif %}" data-dashboard-nav="true">{{ title }}<span class="chip-tabs__count">{{ count }}</span></a>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% for group in groups %}
+        <div class="sim-group sim-group--{{ group.key }}">
+            <div class="sim-group__head">
+                <h2>{{ group.title }}</h2>
+                <p class="text-muted">{{ group.lead }}</p>
+            </div>
+            <div class="sim-grid{% if group.key == 'terminal' %} sim-grid--wide{% endif %}">
+                {% for case in group.cases %}{% include "case_simulator/partials/case_card.html" %}{% endfor %}
+            </div>
+        </div>
+    {% empty %}
+        <div class="empty-panel">
+            <strong>Кейсов пока нет</strong>
+            <p class="text-muted">Запусти <code>python manage.py seed_case_simulator</code>, чтобы добавить стандартный набор.</p>
+        </div>
+    {% endfor %}
+</section>

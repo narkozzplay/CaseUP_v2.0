@@ -1,0 +1,113 @@
+{% load site_formatters %}
+<section class="section section--compact sim-page sim-terminal-page" style="--case-accent: {{ case.accent_color|default:'#3ddc84' }}"
+    data-terminal
+    data-start-url="{% url 'case_simulator:terminal_start' case.slug %}"
+    data-accept-url="{% url 'case_simulator:terminal_accept' 0 %}"
+    data-decline-url="{% url 'case_simulator:terminal_decline' 0 %}"
+    data-price="{{ case.case_price|stringformat:'s' }}"
+    data-currency-symbol="{{ site_settings.site_currency_symbol|default:'₽' }}"
+    data-currency-rate="{{ site_settings.site_currency_rate|default:1|stringformat:'s' }}">
+    {% csrf_token %}
+    {{ terminal_state|json_script:"terminal-state" }}
+    <a href="{% url 'case_simulator:list' %}" class="back-link" data-dashboard-nav="true">← Все кейсы</a>
+
+    <div class="page-header page-header--compact">
+        <div>
+            <span class="eyebrow">Терминал · {{ case.collection_name }}</span>
+            <h1>{{ case.name }}</h1>
+            <p class="text-muted">{{ case.description }}</p>
+        </div>
+        <p class="sim-hero__balance">Баланс: <b data-sim-balance>{% money stats.balance %}</b></p>
+    </div>
+
+    <div class="terminal-layout">
+        <div class="term" data-term-root data-state="idle">
+            <div class="term__bar">
+                <span class="term__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span class="term__title">UPLINK://caseup-trader</span>
+                <span class="term__pips" data-term-pips aria-label="Предложения"></span>
+            </div>
+            <div class="term__screen">
+                <div class="term__log" data-term-log aria-live="polite"></div>
+
+                <div class="term__view term__view--idle" data-term-view="idle">
+                    <div class="term__boot">
+                        <strong class="term__big">ТЕРМИНАЛ ГОТОВ</strong>
+                        <p>Доступ стоит <b>{% money case.case_price %}</b>. Торговец покажет до {{ case.terminal_offers }} предложений по очереди. Каждое можно купить по указанной цене или отклонить. Отклонишь все, и терминал сгорит.</p>
+                    </div>
+                    <button type="button" class="term-btn term-btn--go" data-term-start>&gt; ПОДКЛЮЧИТЬСЯ · {% money case.case_price %}</button>
+                </div>
+
+                <div class="term__view term__view--offer" data-term-view="offer" hidden>
+                    <div class="term-offer" data-term-offer>
+                        <div class="term-offer__media"><img alt="" data-term-offer-img></div>
+                        <div class="term-offer__info">
+                            <span class="term-offer__step" data-term-offer-step></span>
+                            <span class="term-offer__weapon" data-term-offer-weapon></span>
+                            <strong class="term-offer__name" data-term-offer-name></strong>
+                            <span class="term-offer__wear" data-term-offer-wear></span>
+                            <dl class="term-offer__prices">
+                                <div><dt>Оценка</dt><dd data-term-offer-value></dd></div>
+                                <div class="is-price"><dt>Цена сделки</dt><dd data-term-offer-price></dd></div>
+                            </dl>
+                        </div>
+                    </div>
+                    <p class="term__warn" data-term-warn hidden>Это последнее предложение. Если отклонишь, терминал сгорит.</p>
+                    <div class="term__actions">
+                        <button type="button" class="term-btn term-btn--go" data-term-accept>&gt; ПРИНЯТЬ · <span data-term-accept-price></span></button>
+                        <button type="button" class="term-btn term-btn--no" data-term-decline>&gt; ОТКЛОНИТЬ</button>
+                    </div>
+                </div>
+
+                <div class="term__view term__view--accepted" data-term-view="accepted" hidden>
+                    <strong class="term__big">СДЕЛКА ЗАКРЫТА</strong>
+                    <div class="term-offer term-offer--won" data-term-result></div>
+                    <div class="term__actions">
+                        <button type="button" class="term-btn term-btn--go" data-term-start>&gt; НОВЫЙ ТЕРМИНАЛ · {% money case.case_price %}</button>
+                        <a href="{% url 'case_simulator:inventory' %}" class="term-btn" data-dashboard-nav="true">&gt; ИНВЕНТАРЬ</a>
+                    </div>
+                </div>
+
+                <div class="term__view term__view--burned" data-term-view="burned" hidden>
+                    <strong class="term__big term__big--burn" data-glitch="СИГНАЛ ПОТЕРЯН">СИГНАЛ ПОТЕРЯН</strong>
+                    <p>Все предложения отклонены. Терминал сгорел.</p>
+                    <div class="term__actions">
+                        <button type="button" class="term-btn term-btn--go" data-term-start>&gt; НОВЫЙ ТЕРМИНАЛ · {% money case.case_price %}</button>
+                    </div>
+                </div>
+                <p class="term__error" data-term-error hidden></p>
+            </div>
+        </div>
+
+        <aside class="sim-side">
+            <div class="sim-side__card">
+                <h3>Как работает терминал</h3>
+                <ol class="term-steps">
+                    <li>Платишь за доступ: <b>{% money case.case_price %}</b>.</li>
+                    <li>Торговец показывает предмет и цену: оценка + {{ case.terminal_markup_percent }}%.</li>
+                    <li>Принимаешь, и предмет уходит в инвентарь. Терминал закрывается.</li>
+                    <li>Отклоняешь, и появляется следующее. После {{ case.terminal_offers }}-го отказа терминал сгорает.</li>
+                </ol>
+            </div>
+            {% if history %}
+                <div class="sim-side__card">
+                    <h3>Прошлые сессии</h3>
+                    <ul class="term-history">
+                        {% for session in history %}
+                            <li class="{% if session.opening %}rarity--{{ session.opening.item.rarity_css }}{% endif %}">
+                                {% if session.opening %}<span>{{ session.opening.display_name }}</span><b>{% money session.opening.price_paid %}</b>{% else %}<span class="text-muted">Сгорел</span><b>{% money session.price_paid %}</b>{% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </aside>
+    </div>
+
+    <div class="sim-block-head">
+        <h2>Что может предложить торговец</h2>
+        <span class="text-muted">{{ contents|length }} предметов</span>
+    </div>
+    {% include "case_simulator/partials/rarity_bar.html" %}
+    {% include "case_simulator/partials/contents_grid.html" %}
+</section>

@@ -1,0 +1,18 @@
+{% load site_formatters %}
+<a href="{% if case.is_terminal %}{% url 'case_simulator:terminal' case.slug %}{% else %}{% url 'case_simulator:detail' case.slug %}{% endif %}" class="sim-card sim-card--{{ case.kind }}" style="--case-accent: {{ case.accent_color|default:'#f5a623' }}" data-dashboard-nav="true">
+    {% include "case_simulator/partials/case_cover.html" %}
+    <div class="sim-card__body">
+        <span class="sim-card__kind">{{ case.get_kind_display }}{% if case.item_count %} · {{ case.item_count }} предм.{% endif %}</span>
+        <strong class="sim-card__name">{{ case.name }}</strong>
+        <span class="sim-card__price">
+            {% if case.is_terminal %}
+                Доступ {% money case.case_price %}
+            {% elif case.has_key %}
+                <span>{% money case.case_price %} + ключ {% money case.key_price %}</span>
+            {% else %}
+                <span>Без ключа</span>
+            {% endif %}
+        </span>
+    </div>
+    <span class="sim-card__total">{% money case.open_price %}</span>
+</a>

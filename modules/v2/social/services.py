@@ -106,7 +106,7 @@ def _space_avatar_url(space: SocialSpace, preview_members: list[dict[str, object
     avatar_url = _safe_file_url(space.avatar)
     if avatar_url:
         return avatar_url
-    return static("img/placeholders/no_image.svg")
+    return static("img/placeholders/no_image.jpg")
 
 
 def _profile_has_avatar(profile: UserProfile | None) -> bool:
@@ -160,7 +160,7 @@ def build_space_presentation(user, space: SocialSpace) -> dict[str, object]:
         fallback_title = str(space.title or "").strip() or "Direct chat"
         return {
             "title": fallback_title,
-            "avatar_url": static("img/placeholders/no_image.svg"),
+            "avatar_url": static("img/placeholders/no_image.jpg"),
             "avatar_initial": _avatar_initial(fallback_title, fallback="D"),
             "has_custom_avatar": False,
             "space_type": space.space_type,
@@ -174,7 +174,7 @@ def build_space_presentation(user, space: SocialSpace) -> dict[str, object]:
     avatar_url = _safe_file_url(space.avatar)
     return {
         "title": title,
-        "avatar_url": avatar_url or static("img/placeholders/no_image.svg"),
+        "avatar_url": avatar_url or static("img/placeholders/no_image.jpg"),
         "avatar_initial": _avatar_initial(title, fallback="S"),
         "has_custom_avatar": bool(avatar_url),
         "space_type": space.space_type,

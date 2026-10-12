@@ -63,6 +63,7 @@ ACTIVE_VIEW_ALIASES = {
     },
     "users_catalog": {"profiles:users_catalog"},
     "game_servers": {"game_servers:list", "game_servers:detail"},
+    "case_simulator": {"case_simulator:list", "case_simulator:detail", "case_simulator:terminal", "case_simulator:inventory"},
     "notification_center": {"tg_notifier:center"},
     "farm_dashboard": {"farm:dashboard"},
     "farm_accounts": {"farm:accounts_list", "farm:accounts_add", "farm:accounts_detail", "farm:account_inventory_sync"},

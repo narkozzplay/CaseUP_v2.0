@@ -43,6 +43,15 @@ docker compose --env-file .env.dev exec web python manage.py import_cs2_referenc
 docker compose --env-file .env.dev exec web python manage.py import_cs2_reference --kinds skin,case,sticker
 ```
 
+## Симуляция кейсов
+
+Раздел `/cases/`: 4 кейса CS2, 10 кейсов CaseUP и терминал. Открытие списывает внутренний баланс (`LedgerReason.CASE_OPEN`), шансы по редкости как в CS2. Кейсы создаются миграцией `case_simulator.0002_seed_cases` из `modules/v2/case_simulator/data/cases.json`. Цены, состав и обложки (поле «image») правятся в Django admin.
+
+```bash
+# вернуть стандартный набор кейсов (перезапишет цены и содержимое)
+docker compose --env-file .env.dev exec web python manage.py seed_case_simulator --update
+```
+
 ## Остановка
 
 ```bash
