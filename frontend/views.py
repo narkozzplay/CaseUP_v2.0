@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.db import DatabaseError
 from django.db.models import Count, Sum
 from django.http import HttpResponseForbidden
 from django.shortcuts import render
@@ -14,7 +15,7 @@ from modules.v2.farm.models import FarmAccount
 from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserProfile, UserRole
 from modules.v2.profiles.services.presence import ONLINE_THRESHOLD_MINUTES
 from modules.v2.profiles.rbac import get_user_role
-from modules.v2.steam_catalog.models import SteamItem
+from modules.v2.steam_catalog.models import SteamItem, SteamItemPriceHistory, UserPriceAlertRule
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
 
@@ -29,8 +30,54 @@ ROLE_LABELS = {
 }
 
 
+HOME_TRACKER_LIMIT = 4
+HOME_TRACKER_WINDOW_DAYS = 7
+
+
+def _build_home_tracker() -> list[dict[str, object]]:
+    window_start = timezone.now() - timedelta(days=HOME_TRACKER_WINDOW_DAYS)
+    items = (
+        SteamItem.objects
+        .filter(is_active=True, price_rub__isnull=False, price_rub__gt=0)
+        .order_by("-price_rub")[:HOME_TRACKER_LIMIT]
+    )
+    rows = []
+    for item in items:
+        baseline = (
+            SteamItemPriceHistory.objects
+            .filter(item=item, created_at__lte=window_start)
+            .order_by("-created_at")
+            .values_list("price_rub", flat=True)
+            .first()
+        )
+        change_percent = None
+        if baseline:
+            change_percent = (item.price_rub - baseline) / baseline * 100
+        rows.append(
+            {
+                "item": item,
+                "icon": item.icon_cdn(128),
+                "change_percent": change_percent,
+            }
+        )
+    return rows
+
+
 def home(request):
-    return render(request, "frontend/home.html")
+    context = {
+        "home_tracker": [],
+        "home_stats": {},
+    }
+    try:
+        context["home_tracker"] = _build_home_tracker()
+        context["home_stats"] = {
+            "items": SteamItem.objects.filter(is_active=True).count(),
+            "users": User.objects.filter(is_active=True).count(),
+            "alerts": UserPriceAlertRule.objects.filter(status=UserPriceAlertRule.Status.ACTIVE).count(),
+        }
+    except DatabaseError:
+        pass
+    return render(request, "frontend/home.html", context)
 
 
 def _build_online_role_stats() -> list[dict[str, object]]:

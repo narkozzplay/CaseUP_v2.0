@@ -9,7 +9,7 @@
     inset: 0;
     z-index: 0;
     background-image:
-        linear-gradient(90deg, rgba(8, 12, 24, 0.92) 0%, rgba(8, 12, 24, 0.72) 48%, rgba(8, 12, 24, 0.86) 100%),
+        linear-gradient(90deg, rgba(9,11,15, 0.92) 0%, rgba(9,11,15, 0.72) 48%, rgba(9,11,15, 0.86) 100%),
         var(--profile-bg);
     background-size: cover;
     background-position: center;
@@ -37,7 +37,7 @@
     inset: 0;
     z-index: 1;
     background:
-        radial-gradient(circle at top right, rgba(111, 124, 255, 0.18), transparent 34%),
+        radial-gradient(circle at top right, rgba(245,166,35, 0.18), transparent 34%),
         linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
     pointer-events: none;
 }
@@ -57,7 +57,7 @@
     width: 120px;
     height: 120px;
     border: 1px solid var(--border);
-    border-radius: 26px;
+    border-radius: 6px;
     object-fit: cover;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
 }
@@ -80,7 +80,7 @@
     align-items: center;
     gap: .4rem;
     padding: .5rem .9rem;
-    border-radius: 11px;
+    border-radius: 6px;
     font-size: .82rem;
     font-weight: 600;
     border: 1px solid transparent;
@@ -100,38 +100,38 @@
 
 /* Message — синий */
 .profile-action-btn--message {
-    background: rgba(96,165,250,.15);
-    border-color: rgba(96,165,250,.32);
-    color: #93c5fd;
+    background: rgba(94,152,217,.15);
+    border-color: rgba(94,152,217,.32);
+    color: #9cc0e8;
 }
 .profile-action-btn--message:hover {
-    background: rgba(96,165,250,.25);
-    border-color: rgba(96,165,250,.52);
-    box-shadow: 0 3px 12px rgba(96,165,250,.18);
+    background: rgba(94,152,217,.25);
+    border-color: rgba(94,152,217,.52);
+    box-shadow: 0 3px 12px rgba(94,152,217,.18);
 }
 
 /* Add friend — зелёный */
 .profile-action-btn--friend {
-    background: rgba(34,197,94,.12);
-    border-color: rgba(34,197,94,.28);
+    background: rgba(61,220,132,.12);
+    border-color: rgba(61,220,132,.28);
     color: #6ee7a0;
 }
 .profile-action-btn--friend:hover {
-    background: rgba(34,197,94,.22);
-    border-color: rgba(34,197,94,.48);
-    box-shadow: 0 3px 12px rgba(34,197,94,.16);
+    background: rgba(61,220,132,.22);
+    border-color: rgba(61,220,132,.48);
+    box-shadow: 0 3px 12px rgba(61,220,132,.16);
 }
 
 /* Accept — ярко-зелёный */
 .profile-action-btn--accept {
-    background: rgba(34,197,94,.18);
-    border-color: rgba(34,197,94,.38);
-    color: #4ade80;
+    background: rgba(61,220,132,.18);
+    border-color: rgba(61,220,132,.38);
+    color: #3ddc84;
     font-weight: 700;
 }
 .profile-action-btn--accept:hover {
-    background: rgba(34,197,94,.28);
-    border-color: rgba(34,197,94,.58);
+    background: rgba(61,220,132,.28);
+    border-color: rgba(61,220,132,.58);
 }
 
 /* Neutral — cancel, decline */
@@ -148,26 +148,26 @@
 
 /* Danger — remove friend */
 .profile-action-btn--danger {
-    background: rgba(239,68,68,.1);
-    border-color: rgba(239,68,68,.22);
+    background: rgba(255,93,93,.1);
+    border-color: rgba(255,93,93,.22);
     color: #fca5a5;
 }
 .profile-action-btn--danger:hover {
-    background: rgba(239,68,68,.2);
-    border-color: rgba(239,68,68,.4);
-    box-shadow: 0 3px 12px rgba(239,68,68,.14);
+    background: rgba(255,93,93,.2);
+    border-color: rgba(255,93,93,.4);
+    box-shadow: 0 3px 12px rgba(255,93,93,.14);
 }
 
 /* Block — тёмно-красный */
 .profile-action-btn--block {
-    background: rgba(220,38,38,.1);
-    border-color: rgba(220,38,38,.24);
-    color: #f87171;
+    background: rgba(235,75,75,.1);
+    border-color: rgba(235,75,75,.24);
+    color: #ff7a7a;
 }
 .profile-action-btn--block:hover {
-    background: rgba(220,38,38,.2);
-    border-color: rgba(220,38,38,.44);
-    box-shadow: 0 3px 12px rgba(220,38,38,.16);
+    background: rgba(235,75,75,.2);
+    border-color: rgba(235,75,75,.44);
+    box-shadow: 0 3px 12px rgba(235,75,75,.16);
 }
 
 /* ---- Nav buttons (CS2 / Settings / Admin settings) ---- */
@@ -183,7 +183,7 @@
     align-items: center;
     gap: .4rem;
     padding: .45rem .85rem;
-    border-radius: 10px;
+    border-radius: 6px;
     font-size: .8rem;
     font-weight: 600;
     text-decoration: none;
@@ -220,8 +220,8 @@
     width: min(100%, 320px);
     padding: 14px;
     border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 18px;
-    background: rgba(8, 13, 27, 0.58);
+    border-radius: 6px;
+    background: rgba(9,11,15, 0.58);
 }
 
 .avatar-upload--compact {
@@ -267,9 +267,9 @@
     min-height: 92px;
     padding: 10px;
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: 6px;
     background:
-        radial-gradient(circle at top, rgba(111, 124, 255, 0.16), transparent 62%),
+        radial-gradient(circle at top, rgba(245,166,35, 0.16), transparent 62%),
         rgba(255, 255, 255, 0.03);
 }
 
@@ -277,7 +277,7 @@
     display: block;
     width: 100%;
     height: 92px;
-    border-radius: 12px;
+    border-radius: 6px;
     object-fit: contain;
 }
 
@@ -288,16 +288,16 @@
 .avatar-upload__errors .errorlist {
     margin: 0;
     padding: 10px 12px;
-    border: 1px solid rgba(239, 68, 68, 0.28);
-    border-radius: 12px;
-    background: rgba(239, 68, 68, 0.10);
+    border: 1px solid rgba(255,93,93, 0.28);
+    border-radius: 6px;
+    background: rgba(255,93,93, 0.10);
     color: #fecaca;
     font-size: 0.86rem;
     list-style: none;
 }
 
 .profile-hero--dashboard {
-    border-color: rgba(111, 124, 255, 0.16);
+    border-color: rgba(245,166,35, 0.16);
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
 }
 
@@ -307,8 +307,8 @@
 
 .profile-card-accent {
     background:
-        linear-gradient(180deg, rgba(111, 124, 255, 0.08), rgba(255, 255, 255, 0.03));
-    border-color: rgba(111, 124, 255, 0.14);
+        linear-gradient(180deg, rgba(245,166,35, 0.08), rgba(255, 255, 255, 0.03));
+    border-color: rgba(245,166,35, 0.14);
 }
 
 .profile-history--elevated {
@@ -325,7 +325,7 @@
     min-height: 120px;
     padding: 20px;
     border: 1px solid var(--border);
-    border-radius: 18px;
+    border-radius: 6px;
     background: radial-gradient(circle at top, rgba(246, 102, 67, 0.16), rgba(255, 255, 255, 0.03));
     display: flex;
     align-items: center;
@@ -343,7 +343,7 @@
 }
 
 .faceit-avatar {
-    border-radius: 18px;
+    border-radius: 6px;
     object-fit: cover;
 }
 
@@ -406,10 +406,10 @@
     justify-content: center;
     aspect-ratio: 1 / 1;
     padding: 12px;
-    border-radius: 16px;
+    border-radius: 6px;
     background:
-        radial-gradient(circle at top, rgba(111, 124, 255, 0.20), rgba(255, 255, 255, 0.02) 58%),
-        linear-gradient(180deg, rgba(18, 25, 51, 0.84), rgba(11, 16, 32, 0.95));
+        radial-gradient(circle at top, rgba(245,166,35, 0.20), rgba(255, 255, 255, 0.02) 58%),
+        linear-gradient(180deg, rgba(20,25,34, 0.84), rgba(11,14,19, 0.95));
 }
 
 .users-card__avatar {
@@ -417,7 +417,7 @@
     max-width: 96px;
     aspect-ratio: 1 / 1;
     border: 1px solid var(--border);
-    border-radius: 18px;
+    border-radius: 6px;
     object-fit: cover;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.30);
     transition: transform 0.2s ease;
@@ -526,7 +526,7 @@
     width: 52px;
     height: 52px;
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: 6px;
     object-fit: cover;
 }
 
@@ -630,9 +630,9 @@
     transform: translateX(-50%) translateY(6px);
     width: 230px;
     padding: 14px;
-    background: rgba(10, 14, 28, 0.98);
+    background: rgba(10,12,17, 0.98);
     border: 1px solid rgba(255, 255, 255, 0.11);
-    border-radius: 16px;
+    border-radius: 6px;
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(16px);
     opacity: 0;
@@ -656,7 +656,7 @@
 .user-mini-card__avatar {
     width: 48px;
     height: 48px;
-    border-radius: 12px;
+    border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     object-fit: cover;
     flex-shrink: 0;
@@ -828,7 +828,7 @@
 
 /* ---- VERIFIED (blue shield + checkmark) ---- */
 .vbadge--verified svg {
-    filter: drop-shadow(0 1px 3px rgba(37, 99, 235, 0.5));
+    filter: drop-shadow(0 1px 3px rgba(75,105,255, 0.5));
 }
 
 /* ---- FARMER (gold hexagon + $) ---- */
@@ -846,14 +846,14 @@
 @keyframes legend-glow {
     0%, 100% {
         filter:
-            drop-shadow(0 0 3px #A855F7)
+            drop-shadow(0 0 3px #8847ff)
             drop-shadow(0 0 6px #F97316);
     }
     50% {
         filter:
             drop-shadow(0 0 6px #FBBF24)
             drop-shadow(0 0 12px #F97316)
-            drop-shadow(0 0 18px #A855F7);
+            drop-shadow(0 0 18px #8847ff);
     }
 }
 
@@ -867,7 +867,7 @@
         transform: scale(1.12);
         filter:
             drop-shadow(0 0 8px #fff)
-            drop-shadow(0 0 14px #A855F7);
+            drop-shadow(0 0 14px #8847ff);
     }
     92% {
         opacity: 1;
@@ -893,7 +893,7 @@
     bottom: calc(100% + 6px);
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(15, 20, 40, 0.95);
+    background: rgba(16,20,27, 0.95);
     color: #e2e8f0;
     font-size: 11px;
     line-height: 1.3;
@@ -927,7 +927,7 @@
     gap: .2rem;
     padding: .75rem 1.25rem;
     border: 2px solid rgba(255,255,255,.1);
-    border-radius: 8px;
+    border-radius: 4px;
     background: rgba(255,255,255,.03);
     min-width: 110px;
     text-align: center;
@@ -935,8 +935,8 @@
     font-size: .85rem;
 }
 .verification-level-option input:checked + .verification-level-card {
-    border-color: var(--color-accent, #7b61ff);
-    background: rgba(123,97,255,.1);
+    border-color: var(--color-accent, #f5a623);
+    background: rgba(245,166,35,.1);
 }
 .verification-level-card:hover {
     border-color: rgba(255,255,255,.25);

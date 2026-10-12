@@ -1,0 +1,9 @@
+{% load caseup_brand %}{% brand_asset "logo" as logo_url %}
+<a href="{{ brand_href|default:'/' }}" class="brand{% if brand_modifier %} brand--{{ brand_modifier }}{% endif %}"{% if brand_nav %} data-dashboard-nav="true"{% endif %} aria-label="{{ site_settings.site_name|default:'CaseUP' }}">
+    {% if logo_url %}
+        <img src="{{ logo_url }}" alt="{{ site_settings.site_name|default:'CaseUP' }}" class="brand__logo">
+    {% else %}
+        <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M7 4h18l3 3v7h-7V10H11v12h10v-4h7v7l-3 3H7l-3-3V7z" fill="currentColor"/><path d="M18 13l7-5v8z" class="brand__mark-arrow"/></svg>
+        <span class="brand__word">{% with name=site_settings.site_name|default:"CaseUP" %}{% if name == "CaseUP" %}Case<b>UP</b>{% else %}{{ name }}{% endif %}{% endwith %}</span>
+    {% endif %}
+</a>

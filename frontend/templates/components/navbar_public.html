@@ -1,52 +1,43 @@
+{% url 'frontend:home' as home_url %}{% url 'frontend:dashboard_preview' as dashboard_url %}
 <header class="site-header">
     <div class="container">
-        <nav class="navbar">
-            <a href="{% url 'frontend:home' %}" class="brand">{{ site_settings.site_name|default:"CaseUP" }}</a>
+        <nav class="navbar" aria-label="{% if LANGUAGE_CODE == 'ru' %}Основная навигация{% else %}Main navigation{% endif %}">
+            {% include "components/brand.html" with brand_href=home_url %}
 
-            <div class="nav-links nav-links--primary">
-                {% if LANGUAGE_CODE == "ru" %}
-                    <a href="{% url 'frontend:home' %}">Главная</a>
-                    <a href="{% url 'frontend:dashboard_preview' %}">Dashboard</a>
-                    {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}">Подписки</a>{% endif %}
-                    <a href="{% url 'game_servers:list' %}">CS2</a>
-                    <a href="{% url 'frontend:testing_preview' %}">Testing</a>
-                    <a href="{% url 'admin:index' %}" class="btn btn-secondary btn-sm">Admin</a>
-                {% else %}
-                    <a href="{% url 'frontend:home' %}">Home</a>
-                    <a href="{% url 'frontend:dashboard_preview' %}">Dashboard</a>
-                    {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}">Subscriptions</a>{% endif %}
-                    <a href="{% url 'game_servers:list' %}">CS2</a>
-                    <a href="{% url 'frontend:testing_preview' %}">Testing</a>
-                    <a href="{% url 'admin:index' %}" class="btn btn-secondary btn-sm">Admin</a>
-                {% endif %}
-            </div>
+            <input type="checkbox" id="site-nav-toggle" class="navbar__toggle-input" aria-hidden="true" tabindex="-1">
+            <label for="site-nav-toggle" class="navbar__toggle" aria-label="{% if LANGUAGE_CODE == 'ru' %}Меню{% else %}Menu{% endif %}"><span></span><span></span><span></span></label>
 
-            <div class="nav-links nav-links--auth">
-                {% include "components/language_switcher.html" %}
+            <div class="navbar__panel">
+                <div class="nav-links nav-links--primary">
+                    <a href="{{ home_url }}" class="{% if request.path == home_url %}is-active{% endif %}">{% if LANGUAGE_CODE == "ru" %}Главная{% else %}Home{% endif %}</a>
+                    <a href="{{ dashboard_url }}">{% if LANGUAGE_CODE == "ru" %}Дашборд{% else %}Dashboard{% endif %}</a>
+                    {% if feature_flags.steam_catalog %}<a href="{% url 'steam_catalog:list' %}">{% if LANGUAGE_CODE == "ru" %}Каталог{% else %}Catalog{% endif %}</a>{% endif %}
+                    <a href="{% url 'game_servers:list' %}">{% if LANGUAGE_CODE == "ru" %}Серверы CS2{% else %}CS2 servers{% endif %}</a>
+                    {% if feature_flags.store %}<a href="{% url 'store:storefront' %}">{% if LANGUAGE_CODE == "ru" %}Магазин{% else %}Store{% endif %}</a>{% endif %}
+                    {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}">{% if LANGUAGE_CODE == "ru" %}Подписки{% else %}Subscriptions{% endif %}</a>{% endif %}
+                    {% if request.user.is_staff or role_access.is_admin_plus %}
+                        <a href="{% url 'frontend:testing_preview' %}" class="nav-links__staff">Testing</a>
+                        <a href="{% url 'admin:index' %}" class="nav-links__staff">Admin</a>
+                    {% endif %}
+                </div>
 
-                {% if request.user.is_authenticated %}
-                    {% if LANGUAGE_CODE == "ru" %}
-                        <span class="status-pill status-pill--sm">Баланс: {% money coins %}</span>
-                        <a href="{% url 'profiles:profile' %}" class="btn btn-secondary btn-sm">Профиль</a>
+                <div class="nav-links nav-links--auth">
+                    {% include "components/language_switcher.html" %}
+
+                    {% if request.user.is_authenticated %}
+                        <span class="wallet-chip"><span class="wallet-chip__label">{% if LANGUAGE_CODE == "ru" %}Баланс{% else %}Balance{% endif %}</span>{% money coins %}</span>
+                        <a href="{% url 'profiles:profile' %}" class="btn btn-secondary btn-sm">{% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}</a>
                         <form method="post" action="{% url 'accounts:logout' %}" class="inline-form">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-primary btn-sm">Выйти</button>
+                            <button type="submit" class="btn btn-ghost btn-sm">{% if LANGUAGE_CODE == "ru" %}Выйти{% else %}Logout{% endif %}</button>
                         </form>
                     {% else %}
-                        <span class="status-pill status-pill--sm">Balance: {% money coins %}</span>
-                        <a href="{% url 'profiles:profile' %}" class="btn btn-secondary btn-sm">Profile</a>
-                        <form method="post" action="{% url 'accounts:logout' %}" class="inline-form">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary btn-sm">Logout</button>
-                        </form>
+                        <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-sm">
+                            {% include "components/icon.html" with name="steam" %}
+                            {% if LANGUAGE_CODE == "ru" %}Войти через Steam{% else %}Login via Steam{% endif %}
+                        </a>
                     {% endif %}
-                {% else %}
-                    {% if LANGUAGE_CODE == "ru" %}
-                        <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-sm">Войти через Steam</a>
-                    {% else %}
-                        <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-sm">Login via Steam</a>
-                    {% endif %}
-                {% endif %}
+                </div>
             </div>
         </nav>
     </div>

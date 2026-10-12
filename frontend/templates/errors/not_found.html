@@ -1,4 +1,5 @@
 {% extends error_layout_template %}
+{% load caseup_brand %}
 
 {% block title %}{{ error_title }} | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
 
@@ -19,8 +20,10 @@
             </article>
         </section>
     {% else %}
-        <section class="auth-section">
+        {% brand_asset "not_found" as not_found_url %}
+        <section class="auth-section error-section{% if not_found_url %} error-section--image{% endif %}"{% if not_found_url %} style="--error-image: url('{{ not_found_url }}')"{% endif %}>
             <div class="container auth-grid auth-grid--single">
+                <p class="error-section__code" aria-hidden="true">{{ error_code }}</p>
                 <div class="auth-card card">
                     <div class="card-body auth-card__body">
                         <span class="eyebrow">Error {{ error_code }}</span>

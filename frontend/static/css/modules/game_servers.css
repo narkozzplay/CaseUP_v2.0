@@ -69,7 +69,7 @@
 .game-server-banner__cta-card,
 .game-server-kpi-card {
     border: 1px solid var(--border);
-    border-radius: 18px;
+    border-radius: 6px;
     background: rgba(255, 255, 255, 0.03);
 }
 
@@ -162,14 +162,14 @@
 }
 
 .status-pill--success {
-    background: rgba(80, 200, 120, 0.14);
-    border-color: rgba(80, 200, 120, 0.28);
+    background: rgba(61,220,132, 0.14);
+    border-color: rgba(61,220,132, 0.28);
     color: #9ff0b6;
 }
 
 .status-pill--danger {
-    background: rgba(255, 92, 92, 0.12);
-    border-color: rgba(255, 92, 92, 0.24);
+    background: rgba(255,93,93, 0.12);
+    border-color: rgba(255,93,93, 0.24);
     color: #ffb4b4;
 }
 

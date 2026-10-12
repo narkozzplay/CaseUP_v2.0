@@ -10,7 +10,7 @@
     gap: 14px;
     padding: 14px;
     border: 1px solid var(--border);
-    border-radius: 18px;
+    border-radius: 6px;
     background: rgba(255, 255, 255, 0.03);
 }
 
@@ -18,7 +18,7 @@
     width: 72px;
     height: 72px;
     object-fit: contain;
-    border-radius: 16px;
+    border-radius: 6px;
     border: 1px solid var(--border);
     background: rgba(255, 255, 255, 0.04);
     padding: 8px;
@@ -62,8 +62,8 @@
 .farm-tab:hover,
 .farm-tab.is-active {
     color: #ffffff;
-    border-color: rgba(111, 124, 255, 0.58);
-    background: rgba(111, 124, 255, 0.18);
+    border-color: rgba(245,166,35, 0.58);
+    background: rgba(245,166,35, 0.18);
 }
 
 .farm-pill-row,
@@ -93,8 +93,8 @@
 .farm-sync-pill--success,
 .farm-sell-pill--sellable,
 .farm-flag-pill--on {
-    border-color: rgba(45, 186, 93, 0.22);
-    background: rgba(45, 186, 93, 0.12);
+    border-color: rgba(61,220,132, 0.22);
+    background: rgba(61,220,132, 0.12);
 }
 
 .farm-sync-pill--failed,
@@ -107,8 +107,8 @@
 .farm-sync-pill--failed,
 .farm-sell-pill--blocked,
 .farm-flag-pill--off {
-    border-color: rgba(255, 82, 82, 0.22);
-    background: rgba(255, 82, 82, 0.12);
+    border-color: rgba(255,93,93, 0.22);
+    background: rgba(255,93,93, 0.12);
 }
 
 .farm-sync-pill--pending {
@@ -165,7 +165,7 @@
 }
 
 .farm-paywall-card {
-    border-color: rgba(111, 124, 255, 0.22);
+    border-color: rgba(245,166,35, 0.22);
 }
 
 .farm-paywall-card__header {
@@ -190,7 +190,7 @@
     align-items: center;
     gap: 16px;
     padding: 14px 16px;
-    border-radius: 16px;
+    border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.05);
     background: rgba(255, 255, 255, 0.03);
 }
@@ -249,9 +249,9 @@
     transition: border-color 0.2s ease;
 }
 
-.farm-stat-card--accounts { border-top-color: rgba(111, 124, 255, 0.55); }
-.farm-stat-card--drops    { border-top-color: rgba(138, 92, 246, 0.55); }
-.farm-stat-card--sales    { border-top-color: rgba(45, 186, 93, 0.55); }
+.farm-stat-card--accounts { border-top-color: rgba(245,166,35, 0.55); }
+.farm-stat-card--drops    { border-top-color: rgba(136,71,255, 0.55); }
+.farm-stat-card--sales    { border-top-color: rgba(61,220,132, 0.55); }
 .farm-stat-card--commission { border-top-color: rgba(245, 158, 11, 0.55); }
 
 .farm-stat-label {

@@ -102,3 +102,13 @@
 3. создать или обновить `ThemeProfile` в БД
 
 Отдельный theme engine переписывать не нужно. Текущий слой уже подходит как базовый runtime для plugin-provided themes.
+
+## CaseUP Tactical (базовый шаблон)
+
+Базовый дизайн платформы описан токенами в `frontend/static/css/base.css` (`--accent`, `--panel`, `--rarity-*`, `--font-*`).
+Каркасы страниц (шапка, футер, главная, вход, 404, сайдбар и топбар дашборда) лежат в `frontend/static/css/shell.css`.
+Тема `default` больше не дублирует компоненты: её `themes/default/components/*` подключают базовые `components/*`.
+
+Опциональные картинки (логотип, favicon, фон главной, обложки модулей и т.д.) кладутся в `frontend/static/img/brand/`
+и подхватываются тегом `{% brand_asset "имя" %}` из `caseup_brand`. Список слотов: `frontend/static/img/brand/README.md`.
+Без картинок шаблон рисует градиентные заглушки.

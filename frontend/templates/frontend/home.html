@@ -1,26 +1,31 @@
 {% extends "layouts/base_public.html" %}
+{% load caseup_brand %}
 
-{% block title %}{{ site_settings.site_name|default:"CaseUP" }} — Platform{% endblock %}
+{% block title %}{{ site_settings.site_name|default:"CaseUP" }} — {% if LANGUAGE_CODE == "ru" %}цены скинов CS2{% else %}CS2 skin prices{% endif %}{% endblock %}
+
+{% block body_class %}theme-public page-home{% endblock %}
 
 {% block content %}
 {% if active_theme and active_theme.key == "midnight" and feature_flags.midnight_theme %}
     {% include "themes/midnight/pages/home_content.html" %}
 {% else %}
-    <section class="hero">
+    {% brand_asset "hero" as hero_url %}
+    <section class="hero{% if hero_url %} hero--image{% endif %}"{% if hero_url %} style="--hero-image: url('{{ hero_url }}')"{% endif %}>
+        <div class="hero__backdrop" aria-hidden="true"></div>
         <div class="container hero-grid">
             <div class="hero-copy">
-                <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Игровая SaaS-платформа{% else %}Gaming SaaS platform{% endif %}</span>
+                <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Рынок CS2 в реальном времени{% else %}Live CS2 market{% endif %}</span>
                 {% if LANGUAGE_CODE == "ru" %}
-                    <h1>{{ site_settings.site_name|default:"CaseUP" }} — твоя платформа для CS2</h1>
+                    <h1>Следи за ценой.<br>Забирай <span class="hero-copy__accent">апсайд.</span></h1>
                     <p class="hero-text">
-                        Статистика Steam и FACEIT, фарм скинов, торговля, социальный слой и подписки —
-                        всё в одном месте.
+                        Цены скинов Steam, алерты на изменение, учёт закупок и фарм-аккаунтов,
+                        статистика Steam и FACEIT. Всё на одной панели.
                     </p>
                 {% else %}
-                    <h1>{{ site_settings.site_name|default:"CaseUP" }} — your CS2 platform</h1>
+                    <h1>Track the price.<br>Catch the <span class="hero-copy__accent">upside.</span></h1>
                     <p class="hero-text">
-                        Steam &amp; FACEIT stats, skin farming, trading, social layer and subscriptions —
-                        all in one place.
+                        Steam skin prices, change alerts, purchase and farm account tracking,
+                        Steam &amp; FACEIT stats. All on one panel.
                     </p>
                 {% endif %}
 
@@ -28,9 +33,11 @@
                     {% if request.user.is_authenticated %}
                         <a href="{% url 'frontend:dashboard_preview' %}" class="btn btn-primary">
                             {% if LANGUAGE_CODE == "ru" %}Перейти в Dashboard{% else %}Go to Dashboard{% endif %}
+                            {% include "components/icon.html" with name="arrow" %}
                         </a>
                     {% else %}
                         <a href="{% url 'accounts:login' %}" class="btn btn-primary">
+                            {% include "components/icon.html" with name="steam" %}
                             {% if LANGUAGE_CODE == "ru" %}Войти через Steam{% else %}Sign in via Steam{% endif %}
                         </a>
                     {% endif %}
@@ -40,23 +47,56 @@
                         </a>
                     {% endif %}
                 </div>
+
+                {% if home_stats %}
+                    <dl class="hero-stats">
+                        <div><dt>{% if LANGUAGE_CODE == "ru" %}предметов в каталоге{% else %}items in catalog{% endif %}</dt><dd>{{ home_stats.items }}</dd></div>
+                        <div><dt>{% if LANGUAGE_CODE == "ru" %}игроков на платформе{% else %}players on platform{% endif %}</dt><dd>{{ home_stats.users }}</dd></div>
+                        <div><dt>{% if LANGUAGE_CODE == "ru" %}активных алертов{% else %}active alerts{% endif %}</dt><dd>{{ home_stats.alerts }}</dd></div>
+                    </dl>
+                {% endif %}
             </div>
 
-            <div class="hero-card card">
-                <div class="card-header">
+            <aside class="hero-card market-tracker cut">
+                <div class="market-tracker__head">
                     <span class="badge">{% if LANGUAGE_CODE == "ru" %}Активные модули{% else %}Active modules{% endif %}</span>
+                    <span class="live-dot">LIVE</span>
                 </div>
-                <div class="card-body">
-                    <ul class="feature-list">
-                        <li>{% if LANGUAGE_CODE == "ru" %}CS2 статистика Steam + FACEIT{% else %}CS2 stats — Steam + FACEIT{% endif %}</li>
-                        {% if feature_flags.farm %}<li>{% if LANGUAGE_CODE == "ru" %}Farm — фарм скинов и аккаунты{% else %}Farm — skin farming & accounts{% endif %}</li>{% endif %}
-                        {% if feature_flags.steam_catalog %}<li>{% if LANGUAGE_CODE == "ru" %}Steam Catalog — предметы и цены{% else %}Steam Catalog — items & prices{% endif %}</li>{% endif %}
-                        {% if feature_flags.subscriptions %}<li>{% if LANGUAGE_CODE == "ru" %}Подписки — тарифы и бонусы{% else %}Subscriptions — plans & bonuses{% endif %}</li>{% endif %}
-                        <li>{% if LANGUAGE_CODE == "ru" %}Социальный слой — чаты и группы{% else %}Social layer — chats & groups{% endif %}</li>
-                        <li>{% if LANGUAGE_CODE == "ru" %}Верификация и бейджи профиля{% else %}Profile verification & badges{% endif %}</li>
+
+                {% if home_tracker %}
+                    <p class="market-tracker__caption">{% if LANGUAGE_CODE == "ru" %}Самые дорогие предметы каталога · изменение за 7 дней{% else %}Most expensive catalog items · 7-day change{% endif %}</p>
+                    <ul class="market-tracker__list">
+                        {% for row in home_tracker %}
+                            <li class="item-row rarity--{{ row.item.rarity_key|default:'none' }}">
+                                <span class="item-row__thumb">
+                                    {% if row.icon %}<img src="{{ row.icon }}" alt="" loading="lazy">{% else %}<span>{{ row.item.group_name|slice:":1" }}</span>{% endif %}
+                                </span>
+                                <span class="item-row__name">
+                                    <strong>{{ row.item.display_name }}</strong>
+                                    <span>{{ row.item.exterior|default:row.item.get_item_type_display }}</span>
+                                </span>
+                                <span class="item-row__price">
+                                    <strong>{% money row.item.price_rub %}</strong>
+                                    {% if row.change_percent is not None %}
+                                        <span class="{% if row.change_percent >= 0 %}text-up{% else %}text-down{% endif %}">{% if row.change_percent >= 0 %}▲{% else %}▼{% endif %} {{ row.change_percent|floatformat:1 }}%</span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </span>
+                            </li>
+                        {% endfor %}
                     </ul>
-                </div>
-            </div>
+                {% endif %}
+
+                <ul class="feature-list market-tracker__modules">
+                    <li>{% if LANGUAGE_CODE == "ru" %}CS2 статистика Steam + FACEIT{% else %}CS2 stats — Steam + FACEIT{% endif %}</li>
+                    {% if feature_flags.farm %}<li>{% if LANGUAGE_CODE == "ru" %}Farm — фарм скинов и аккаунты{% else %}Farm — skin farming & accounts{% endif %}</li>{% endif %}
+                    {% if feature_flags.steam_catalog %}<li>{% if LANGUAGE_CODE == "ru" %}Steam Catalog — предметы и цены{% else %}Steam Catalog — items & prices{% endif %}</li>{% endif %}
+                    {% if feature_flags.subscriptions %}<li>{% if LANGUAGE_CODE == "ru" %}Подписки — тарифы и бонусы{% else %}Subscriptions — plans & bonuses{% endif %}</li>{% endif %}
+                    <li>{% if LANGUAGE_CODE == "ru" %}Социальный слой — чаты и группы{% else %}Social layer — chats & groups{% endif %}</li>
+                    <li>{% if LANGUAGE_CODE == "ru" %}Верификация и бейджи профиля{% else %}Profile verification & badges{% endif %}</li>
+                </ul>
+            </aside>
         </div>
     </section>
 
@@ -73,63 +113,62 @@
                 {% endif %}
             </div>
 
-            <div class="cards-grid">
-                <article class="card">
-                    <div class="card-body">
-                        <h3>{% if LANGUAGE_CODE == "ru" %}CS2 Статистика{% else %}CS2 Stats{% endif %}</h3>
-                        <p class="text-muted">
-                            {% if LANGUAGE_CODE == "ru" %}
-                                K/D, Win rate, карты, FACEIT ELO — всё в одном месте с синхронизацией по кнопке.
-                            {% else %}
-                                K/D, win rate, maps, FACEIT ELO — all in one place with one-click sync.
-                            {% endif %}
-                        </p>
-                    </div>
-                </article>
+            <div class="module-grid">
+                {% if feature_flags.steam_catalog %}
+                    {% brand_asset "module_catalog" as cover_url %}
+                    <a href="{% url 'steam_catalog:list' %}" class="module-card cut" style="--module-color: var(--accent);{% if cover_url %} --module-image: url('{{ cover_url }}');{% endif %}">
+                        <span class="module-card__cover" aria-hidden="true"></span>
+                        <h3>Steam Catalog</h3>
+                        <p>{% if LANGUAGE_CODE == "ru" %}Каталог предметов с ценами, историей и алертами на изменение цены.{% else %}Item catalog with prices, history and price-change alerts.{% endif %}</p>
+                    </a>
+                {% endif %}
+
+                {% brand_asset "module_stats" as cover_url %}
+                <a href="{% url 'cs2_stats:own' %}" class="module-card cut" style="--module-color: var(--rarity-milspec);{% if cover_url %} --module-image: url('{{ cover_url }}');{% endif %}">
+                    <span class="module-card__cover" aria-hidden="true"></span>
+                    <h3>{% if LANGUAGE_CODE == "ru" %}CS2 Статистика{% else %}CS2 Stats{% endif %}</h3>
+                    <p>{% if LANGUAGE_CODE == "ru" %}K/D, Win rate, карты, FACEIT ELO — всё в одном месте с синхронизацией по кнопке.{% else %}K/D, win rate, maps, FACEIT ELO — all in one place with one-click sync.{% endif %}</p>
+                </a>
 
                 {% if feature_flags.farm %}
-                <article class="card">
-                    <div class="card-body">
+                    {% brand_asset "module_farm" as cover_url %}
+                    <a href="{% url 'farm:dashboard' %}" class="module-card cut" style="--module-color: var(--success);{% if cover_url %} --module-image: url('{{ cover_url }}');{% endif %}">
+                        <span class="module-card__cover" aria-hidden="true"></span>
                         <h3>Farm</h3>
-                        <p class="text-muted">
-                            {% if LANGUAGE_CODE == "ru" %}
-                                Управляй фарм-аккаунтами, отслеживай дропы и продавай скины с минимальной комиссией.
-                            {% else %}
-                                Manage farm accounts, track drops and sell skins with minimal commission.
-                            {% endif %}
-                        </p>
-                    </div>
-                </article>
+                        <p>{% if LANGUAGE_CODE == "ru" %}Управляй фарм-аккаунтами, отслеживай дропы и продавай скины с минимальной комиссией.{% else %}Manage farm accounts, track drops and sell skins with minimal commission.{% endif %}</p>
+                    </a>
                 {% endif %}
 
-                {% if feature_flags.steam_catalog %}
-                <article class="card">
-                    <div class="card-body">
-                        <h3>Steam Catalog</h3>
-                        <p class="text-muted">
-                            {% if LANGUAGE_CODE == "ru" %}
-                                Каталог предметов с ценами, историей и алертами на изменение цены.
-                            {% else %}
-                                Item catalog with prices, history and price-change alerts.
-                            {% endif %}
-                        </p>
-                    </div>
-                </article>
-                {% endif %}
-
-                <article class="card">
-                    <div class="card-body">
-                        <h3>{% if LANGUAGE_CODE == "ru" %}Социальный слой{% else %}Social layer{% endif %}</h3>
-                        <p class="text-muted">
-                            {% if LANGUAGE_CODE == "ru" %}
-                                Чаты, группы, друзья и система верификации профиля.
-                            {% else %}
-                                Chats, groups, friends and profile verification system.
-                            {% endif %}
-                        </p>
-                    </div>
-                </article>
+                {% brand_asset "module_social" as cover_url %}
+                <a href="{% url 'social:groups' %}" class="module-card cut" style="--module-color: var(--rarity-classified);{% if cover_url %} --module-image: url('{{ cover_url }}');{% endif %}">
+                    <span class="module-card__cover" aria-hidden="true"></span>
+                    <h3>{% if LANGUAGE_CODE == "ru" %}Социальный слой{% else %}Social layer{% endif %}</h3>
+                    <p>{% if LANGUAGE_CODE == "ru" %}Чаты, группы, друзья и система верификации профиля.{% else %}Chats, groups, friends and profile verification system.{% endif %}</p>
+                </a>
             </div>
+        </div>
+    </section>
+
+    <section class="section section--compact">
+        <div class="container">
+            <div class="section-heading">
+                <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Как начать{% else %}Getting started{% endif %}</span>
+                <h2>{% if LANGUAGE_CODE == "ru" %}Три шага до первого алерта{% else %}Three steps to your first alert{% endif %}</h2>
+            </div>
+            <ol class="steps">
+                <li class="steps__item">
+                    <strong>{% if LANGUAGE_CODE == "ru" %}Войди через Steam{% else %}Sign in with Steam{% endif %}</strong>
+                    <p class="text-muted">{% if LANGUAGE_CODE == "ru" %}Профиль создаётся сам: ник, аватар и уровень подтянутся из Steam.{% else %}Your profile is created automatically with nickname, avatar and level from Steam.{% endif %}</p>
+                </li>
+                <li class="steps__item">
+                    <strong>{% if LANGUAGE_CODE == "ru" %}Выбери предметы{% else %}Pick your items{% endif %}</strong>
+                    <p class="text-muted">{% if LANGUAGE_CODE == "ru" %}Найди скины и кейсы в каталоге, добавь закупки в портфель.{% else %}Find skins and cases in the catalog and add purchases to your portfolio.{% endif %}</p>
+                </li>
+                <li class="steps__item">
+                    <strong>{% if LANGUAGE_CODE == "ru" %}Настрой алерт{% else %}Set an alert{% endif %}</strong>
+                    <p class="text-muted">{% if LANGUAGE_CODE == "ru" %}Задай порог в рублях или процентах и получай уведомления в Telegram.{% else %}Set a threshold in rubles or percent and get notified in Telegram.{% endif %}</p>
+                </li>
+            </ol>
         </div>
     </section>
 {% endif %}

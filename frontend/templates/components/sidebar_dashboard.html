@@ -1,19 +1,13 @@
-{% load static %}
+{% load static %}{% url 'frontend:dashboard_preview' as dashboard_url %}
 
 <aside class="dashboard-sidebar" data-dashboard-sidebar>
     <div class="dashboard-sidebar__inner">
         <div class="dashboard-sidebar__brand-wrap">
-            <a href="{% url 'frontend:dashboard_preview' %}" class="brand brand--dashboard" data-dashboard-nav="true">{{ site_settings.site_name|default:"CaseUP" }} Dashboard</a>
+            {% include "components/brand.html" with brand_href=dashboard_url brand_modifier="dashboard" brand_nav=True %}
             <p class="dashboard-sidebar__subtitle">
-                {% if LANGUAGE_CODE == "ru" %}
-                    Внутренний контур платформы
-                {% else %}
-                    Internal platform control layer
-                {% endif %}
+                {% if LANGUAGE_CODE == "ru" %}Панель трейдера CS2{% else %}CS2 trader console{% endif %}
             </p>
         </div>
-
-        {% include "components/language_switcher.html" %}
 
         {% if request.user.is_authenticated %}
             <div class="dashboard-user-card card card--soft">
@@ -29,53 +23,55 @@
                             {% endif %}
                             <span class="presence-indicator {% if current_user_is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if current_user_is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if current_user_is_online %}Online{% else %}Offline{% endif %}"></span>
                         </span>
-                        <div>
+                        <div class="dashboard-user-card__identity">
                             <p class="dashboard-user-card__name">{{ request.user.profile_v2.steam_personaname|default:request.user.username }}{% if current_user_verification_badge %}{% include "components/verification_badge.html" with badge=current_user_verification_badge %}{% endif %}</p>
                             <p class="dashboard-user-card__meta">{{ request.user.profile_v2.get_role_display|default:request.user.profile_v2.role|default:"user" }}</p>
                         </div>
                     </a>
 
-                    <div class="dashboard-user-card__stats">
-                        <span class="status-pill status-pill--sm">{% if LANGUAGE_CODE == "ru" %}Баланс:{% else %}Balance:{% endif %} {{ coins }}</span>
-                        <span class="status-pill status-pill--sm">Steam lvl: {% if request.user.profile_v2.steam_level %}{{ request.user.profile_v2.steam_level }}{% else %}—{% endif %}</span>
-                        <span class="status-pill status-pill--sm">Site: {{ subscription_context.plan_name }}</span>
-                        {% if request.user.profile_v2.role == "farmer" or role_access.is_admin_plus %}
-                            <span class="status-pill status-pill--sm">Farm: {{ farmer_subscription_context.plan_name }}</span>
-                        {% endif %}
+                    <div class="dashboard-user-card__wallet">
+                        <span class="dashboard-user-card__wallet-label">{% if LANGUAGE_CODE == "ru" %}Баланс{% else %}Balance{% endif %}</span>
+                        <strong class="dashboard-user-card__wallet-value">{% money coins %}</strong>
                     </div>
 
-                    <div class="auth-card__actions">
-                        {% if LANGUAGE_CODE == "ru" %}
-                            <form method="post" action="{% url 'accounts:logout' %}" class="inline-form inline-form--block">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-primary btn-block">Выйти</button>
-                            </form>
-                        {% else %}
-                            <form method="post" action="{% url 'accounts:logout' %}" class="inline-form inline-form--block">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-primary btn-block">Logout</button>
-                            </form>
+                    <dl class="dashboard-user-card__stats">
+                        <div><dt>Steam lvl</dt><dd>{% if request.user.profile_v2.steam_level %}{{ request.user.profile_v2.steam_level }}{% else %}—{% endif %}</dd></div>
+                        <div><dt>Site</dt><dd>{{ subscription_context.plan_name }}</dd></div>
+                        {% if request.user.profile_v2.role == "farmer" or role_access.is_admin_plus %}
+                            <div><dt>Farm</dt><dd>{{ farmer_subscription_context.plan_name }}</dd></div>
                         {% endif %}
-                    </div>
+                    </dl>
                 </div>
             </div>
         {% endif %}
 
-        {% for group in dashboard_menu_groups %}
-            <details class="dashboard-menu-group" data-dashboard-group="{{ group.key }}" {% if group.is_open %}open{% endif %}>
-                <summary class="dashboard-menu-group__summary">{{ group.label }}</summary>
-                <nav class="dashboard-nav dashboard-nav--grouped">
-                    {% for item in group.items %}
-                        <a
-                            href="{{ item.url }}"
-                            data-dashboard-nav="{% if item.is_shell_nav %}true{% else %}false{% endif %}"
-                            data-menu-key="{{ item.key }}"
-                            class="{% if item.is_active %}is-active{% endif %}"
-                            {% if item.is_active %}aria-current="page"{% endif %}
-                        >{{ item.label }}</a>
-                    {% endfor %}
-                </nav>
-            </details>
-        {% endfor %}
+        <div class="dashboard-sidebar__menu">
+            {% for group in dashboard_menu_groups %}
+                <details class="dashboard-menu-group" data-dashboard-group="{{ group.key }}" {% if group.is_open %}open{% endif %}>
+                    <summary class="dashboard-menu-group__summary">{{ group.label }}</summary>
+                    <nav class="dashboard-nav dashboard-nav--grouped">
+                        {% for item in group.items %}
+                            <a
+                                href="{{ item.url }}"
+                                data-dashboard-nav="{% if item.is_shell_nav %}true{% else %}false{% endif %}"
+                                data-menu-key="{{ item.key }}"
+                                class="{% if item.is_active %}is-active{% endif %}"
+                                {% if item.is_active %}aria-current="page"{% endif %}
+                            >{% include "components/icon.html" with name=item.key %}<span class="dashboard-nav__label">{{ item.label }}</span></a>
+                        {% endfor %}
+                    </nav>
+                </details>
+            {% endfor %}
+        </div>
+
+        <div class="dashboard-sidebar__footer">
+            {% include "components/language_switcher.html" %}
+            {% if request.user.is_authenticated %}
+                <form method="post" action="{% url 'accounts:logout' %}" class="inline-form inline-form--block">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-ghost btn-sm btn-block">{% include "components/icon.html" with name="logout" %}{% if LANGUAGE_CODE == "ru" %}Выйти{% else %}Logout{% endif %}</button>
+                </form>
+            {% endif %}
+        </div>
     </div>
 </aside>

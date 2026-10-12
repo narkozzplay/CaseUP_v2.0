@@ -1,4 +1,17 @@
+{% load static caseup_brand %}{% brand_asset "favicon" as favicon_url %}{% brand_asset "og_cover" as og_cover_url %}
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="{{ site_settings.site_name|default:'CaseUP' }} platform">
-<meta name="theme-color" content="#0b1020">
+<meta name="description" content="{{ site_settings.site_name|default:'CaseUP' }}: {% if LANGUAGE_CODE == 'ru' %}цены скинов CS2, алерты, инвестиции, фарм и статистика Steam и FACEIT{% else %}CS2 skin prices, alerts, investments, farming and Steam &amp; FACEIT stats{% endif %}">
+<meta name="theme-color" content="#0b0e13">
+<meta name="color-scheme" content="dark">
+<meta property="og:site_name" content="{{ site_settings.site_name|default:'CaseUP' }}">
+{% if og_cover_url %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ og_cover_url }}">{% endif %}
+{% if favicon_url %}
+<link rel="icon" href="{{ favicon_url }}">
+<link rel="apple-touch-icon" href="{{ favicon_url }}">
+{% else %}
+<link rel="icon" href="{% static 'img/brand/mark.svg' %}" type="image/svg+xml">
+{% endif %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,500;0,600;0,700;0,800;1,700;1,800&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">

@@ -12,7 +12,7 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
-        radial-gradient(circle at top right, rgba(111, 124, 255, 0.14), transparent 42%);
+        radial-gradient(circle at top right, rgba(245,166,35, 0.14), transparent 42%);
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
 }
 
@@ -21,8 +21,8 @@
     position: absolute;
     inset: 0 auto 0 0;
     width: 4px;
-    border-radius: 18px 0 0 18px;
-    background: rgba(111, 124, 255, 0.7);
+    border-radius: 6px 0 0 6px;
+    background: rgba(245,166,35, 0.7);
 }
 
 .investment-kpi .card-body {
@@ -43,7 +43,7 @@
 .investment-kpi__label {
     margin: 0;
     max-width: 210px;
-    color: rgba(235, 240, 255, 0.9);
+    color: rgba(231,235,241, 0.9);
     font-size: 0.95rem;
     font-weight: 600;
     line-height: 1.35;
@@ -90,7 +90,7 @@
 .investment-kpi--primary::after,
 .investment-kpi--value::after,
 .investment-kpi--unlock::after {
-    background: linear-gradient(180deg, rgba(111, 124, 255, 0.95), rgba(81, 97, 255, 0.55));
+    background: linear-gradient(180deg, rgba(245,166,35, 0.95), rgba(230,140,20, 0.55));
 }
 
 .investment-kpi--positive::after,
@@ -153,10 +153,10 @@
 
 .investment-table-wrap {
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 22px;
+    border-radius: 6px;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
-        radial-gradient(circle at top right, rgba(111, 124, 255, 0.08), transparent 36%);
+        radial-gradient(circle at top right, rgba(245,166,35, 0.08), transparent 36%);
     overflow: hidden;
 }
 
@@ -165,7 +165,7 @@
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    color: #edf2ff;
+    color: #e7ebf1;
     background: transparent;
 }
 
@@ -173,7 +173,7 @@
     padding: 18px 18px 16px;
     border: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(212, 222, 255, 0.78);
+    color: rgba(205,212,222, 0.78);
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.04em;
@@ -224,7 +224,7 @@
 }
 
 .investment-item__name:hover {
-    color: #cfd8ff;
+    color: #ffe0ad;
     text-decoration: underline;
 }
 
@@ -327,9 +327,9 @@
 }
 
 .investment-status--partial {
-    background: rgba(128, 177, 255, 0.10);
-    border-color: rgba(128, 177, 255, 0.2);
-    color: #c7dbff;
+    background: rgba(94,152,217, 0.10);
+    border-color: rgba(94,152,217, 0.2);
+    color: #cfe0f2;
 }
 
 .investment-status--closed {
@@ -423,7 +423,7 @@
     gap: 18px;
     padding: 18px 20px;
     border: 1px solid rgba(111, 224, 162, 0.12);
-    border-radius: 18px;
+    border-radius: 6px;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.015)),
         radial-gradient(circle at top right, rgba(111, 224, 162, 0.08), transparent 42%);
@@ -453,7 +453,7 @@
 }
 
 .investment-ready-card__title:hover {
-    color: #cfd8ff;
+    color: #ffe0ad;
     text-decoration: underline;
 }
 
@@ -498,7 +498,7 @@
     min-height: 140px;
     padding: 20px;
     border: 1px dashed rgba(255, 255, 255, 0.1);
-    border-radius: 18px;
+    border-radius: 6px;
     background: rgba(255, 255, 255, 0.015);
 }
 
@@ -592,7 +592,7 @@
     gap: 16px;
     padding: 14px 16px;
     border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 16px;
+    border-radius: 6px;
     background: rgba(255, 255, 255, 0.02);
 }
 
@@ -639,7 +639,7 @@
 .investment-timeline__empty {
     padding: 14px 16px;
     border: 1px dashed rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
+    border-radius: 6px;
     color: var(--text-muted);
     font-size: 0.88rem;
     line-height: 1.45;
@@ -658,7 +658,7 @@
     justify-content: space-between;
     gap: 16px;
     padding: 14px 16px;
-    border-radius: 16px;
+    border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.07);
     background: rgba(255, 255, 255, 0.02);
 }
@@ -797,10 +797,10 @@
     margin: 24px 0 18px;
     padding: 18px 20px;
     border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 20px;
+    border-radius: 6px;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.015)),
-        radial-gradient(circle at top right, rgba(111, 124, 255, 0.08), transparent 42%);
+        radial-gradient(circle at top right, rgba(245,166,35, 0.08), transparent 42%);
 }
 
 .investment-toolbar__form {
@@ -819,7 +819,7 @@
 }
 
 .investment-toolbar__label {
-    color: rgba(212, 222, 255, 0.8);
+    color: rgba(205,212,222, 0.8);
     font-size: 0.8rem;
     font-weight: 700;
     letter-spacing: 0.03em;
@@ -876,7 +876,7 @@
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(255, 255, 255, 0.03);
-    color: rgba(235, 240, 255, 0.88);
+    color: rgba(231,235,241, 0.88);
     font-size: 0.84rem;
     font-weight: 700;
     line-height: 1;
@@ -886,15 +886,15 @@
 
 .investment-quick-filter:hover {
     color: #ffffff;
-    border-color: rgba(111, 124, 255, 0.32);
-    background: rgba(111, 124, 255, 0.08);
+    border-color: rgba(245,166,35, 0.32);
+    background: rgba(245,166,35, 0.08);
 }
 
 .investment-quick-filter--active {
     color: #ffffff;
-    border-color: rgba(111, 124, 255, 0.34);
-    background: rgba(111, 124, 255, 0.12);
-    box-shadow: inset 0 0 0 1px rgba(111, 124, 255, 0.08);
+    border-color: rgba(245,166,35, 0.34);
+    background: rgba(245,166,35, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(245,166,35, 0.08);
 }
 
 .investment-action-group {

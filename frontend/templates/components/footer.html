@@ -1,21 +1,29 @@
+{% url 'frontend:home' as home_url %}
 <footer class="site-footer">
     <div class="container footer-inner">
-        <div>
-            <strong>{{ site_settings.site_name|default:"CaseUP" }}</strong>
+        <div class="footer-brand">
+            {% include "components/brand.html" with brand_href=home_url %}
             <p class="text-muted">
                 {% if LANGUAGE_CODE == "ru" %}
-                    Новый модульный каркас платформы.
+                    Цены скинов CS2, алерты, учёт закупок, фарм и статистика игрока на одной панели.
                 {% else %}
-                    New modular platform shell.
+                    CS2 skin prices, alerts, investment tracking, farming and player stats on one panel.
                 {% endif %}
             </p>
         </div>
 
         <div class="footer-links">
-            <a href="{% url 'frontend:home' %}">{% if LANGUAGE_CODE == "ru" %}Главная{% else %}Home{% endif %}</a>
-            <a href="{% url 'frontend:dashboard_preview' %}">Dashboard</a>
-            <a href="{% url 'game_servers:list' %}">CS2</a>
-            <a href="{% url 'frontend:testing_preview' %}">Testing</a>
+            <span class="footer-links__title">{% if LANGUAGE_CODE == "ru" %}Платформа{% else %}Platform{% endif %}</span>
+            <a href="{{ home_url }}">{% if LANGUAGE_CODE == "ru" %}Главная{% else %}Home{% endif %}</a>
+            <a href="{% url 'frontend:dashboard_preview' %}">{% if LANGUAGE_CODE == "ru" %}Дашборд{% else %}Dashboard{% endif %}</a>
+            <a href="{% url 'game_servers:list' %}">{% if LANGUAGE_CODE == "ru" %}Серверы CS2{% else %}CS2 servers{% endif %}</a>
+            {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}">{% if LANGUAGE_CODE == "ru" %}Подписки{% else %}Subscriptions{% endif %}</a>{% endif %}
+        </div>
+
+        <div class="footer-meta">
+            <span class="footer-links__title">Build</span>
+            <span class="mono">v{{ current_project_version.version|default:"—" }}</span>
+            <span class="text-muted footer-meta__note">{% if LANGUAGE_CODE == "ru" %}Не связан с Valve Corporation.{% else %}Not affiliated with Valve Corporation.{% endif %}</span>
         </div>
     </div>
 </footer>

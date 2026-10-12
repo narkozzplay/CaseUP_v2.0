@@ -27,21 +27,21 @@
     gap: .85rem;
     padding: .6rem .75rem .6rem 1rem;
     border: 1px solid rgba(255,255,255,.1);
-    border-radius: 14px;
+    border-radius: 6px;
     background: rgba(255,255,255,.04);
     min-width: 190px;
     transition: border-color .18s, background .18s;
 }
 
 .cs2-sync-card--steam {
-    border-left: 3px solid #3B82F6;
-    background: rgba(59,130,246,.06);
+    border-left: 3px solid #4b69ff;
+    background: rgba(75,105,255,.06);
 }
 .cs2-sync-card--steam:hover {
-    border-color: rgba(59,130,246,.45);
-    background: rgba(59,130,246,.1);
+    border-color: rgba(75,105,255,.45);
+    background: rgba(75,105,255,.1);
 }
-.cs2-sync-card--steam .cs2-sync-card__platform { color: #60a5fa; }
+.cs2-sync-card--steam .cs2-sync-card__platform { color: #5e98d9; }
 
 .cs2-sync-card--faceit {
     border-left: 3px solid #F97316;
@@ -92,7 +92,7 @@
     gap: .3rem;
     padding: .38rem .65rem;
     border: 1px solid rgba(255,255,255,.12);
-    border-radius: 9px;
+    border-radius: 4px;
     background: rgba(255,255,255,.07);
     color: var(--text);
     font-size: .78rem;
@@ -117,8 +117,8 @@
 }
 
 .cs2-sync-card--steam .cs2-sync-card__btn:hover:not(:disabled) {
-    background: rgba(59,130,246,.2);
-    border-color: rgba(59,130,246,.4);
+    background: rgba(75,105,255,.2);
+    border-color: rgba(75,105,255,.4);
 }
 .cs2-sync-card--faceit .cs2-sync-card__btn:hover:not(:disabled) {
     background: rgba(249,115,22,.2);
@@ -154,7 +154,7 @@
 }
 
 .cs2-stat-panel { }
-.cs2-stat-panel--steam { border-top: 2px solid #3B82F6; }
+.cs2-stat-panel--steam { border-top: 2px solid #4b69ff; }
 .cs2-stat-panel--faceit { border-top: 2px solid #F97316; }
 
 .cs2-stat-panel__head {
@@ -200,7 +200,7 @@
     padding: .6rem .75rem;
     background: rgba(255,255,255,.03);
     border: 1px solid rgba(255,255,255,.06);
-    border-radius: 8px;
+    border-radius: 4px;
 }
 .cs2-big-stat--highlight {
     border-color: rgba(251,191,36,.25);
@@ -229,7 +229,7 @@
 
 .cs2-map-card {
     position: relative;
-    border-radius: 10px;
+    border-radius: 6px;
     overflow: hidden;
     aspect-ratio: 4/3;
     cursor: default;
@@ -329,7 +329,7 @@
     padding: 1rem;
     background: rgba(255,255,255,.03);
     border: 1px solid rgba(255,255,255,.07);
-    border-radius: 12px;
+    border-radius: 6px;
 }
 .cs2-auth-links__title {
     font-size: .78rem;
@@ -349,16 +349,16 @@
     align-items: flex-start;
     gap: .65rem;
     padding: .7rem .85rem;
-    border: 1px solid rgba(96,165,250,.18);
-    border-radius: 10px;
-    background: rgba(96,165,250,.06);
+    border: 1px solid rgba(94,152,217,.18);
+    border-radius: 6px;
+    background: rgba(94,152,217,.06);
     color: inherit;
     text-decoration: none;
     transition: border-color .16s, background .16s, transform .16s;
 }
 .cs2-auth-link-card:hover {
-    border-color: rgba(96,165,250,.38);
-    background: rgba(96,165,250,.12);
+    border-color: rgba(94,152,217,.38);
+    background: rgba(94,152,217,.12);
     transform: translateY(-2px);
     color: inherit;
 }
@@ -414,7 +414,7 @@
     align-items: center;
     gap: .45rem;
     padding: .55rem 1rem;
-    border-radius: 12px;
+    border-radius: 6px;
     font-size: .84rem;
     font-weight: 600;
     text-decoration: none;
@@ -445,17 +445,17 @@
 
 /* Sync button */
 .cs2-history-action-btn--sync {
-    background: linear-gradient(135deg, rgba(99,102,241,.22) 0%, rgba(139,92,246,.18) 100%);
-    border-color: rgba(99,102,241,.35);
-    color: #a5b4fc;
-    box-shadow: 0 2px 10px rgba(99,102,241,.12);
+    background: linear-gradient(135deg, rgba(245,166,35,.22) 0%, rgba(136,71,255,.18) 100%);
+    border-color: rgba(245,166,35,.35);
+    color: #ffd08a;
+    box-shadow: 0 2px 10px rgba(245,166,35,.12);
 }
 .cs2-history-action-btn--sync:hover {
-    background: linear-gradient(135deg, rgba(99,102,241,.35) 0%, rgba(139,92,246,.28) 100%);
-    border-color: rgba(99,102,241,.55);
-    color: #c7d2fe;
+    background: linear-gradient(135deg, rgba(245,166,35,.35) 0%, rgba(136,71,255,.28) 100%);
+    border-color: rgba(245,166,35,.55);
+    color: #ffe0ad;
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(99,102,241,.22);
+    box-shadow: 0 4px 16px rgba(245,166,35,.22);
 }
 
 /* Locked (no auth code) */
@@ -508,8 +508,8 @@
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0,0,0,.3);
 }
-.cs2-match-row--win  { border-left: 3px solid #22c55e; }
-.cs2-match-row--loss { border-left: 3px solid #ef4444; }
+.cs2-match-row--win  { border-left: 3px solid #3ddc84; }
+.cs2-match-row--loss { border-left: 3px solid #ff5d5d; }
 .cs2-match-row--tie  { border-left: 3px solid #f59e0b; }
 
 .cs2-match-row__map-strip {
@@ -546,11 +546,11 @@
     letter-spacing: .06em;
     text-transform: uppercase;
     padding: .25rem .5rem;
-    border-radius: 6px;
+    border-radius: 4px;
     text-align: center;
 }
-.cs2-match-row__outcome--win  { background: rgba(34,197,94,.15);  color: #22c55e; }
-.cs2-match-row__outcome--loss { background: rgba(239,68,68,.15);  color: #ef4444; }
+.cs2-match-row__outcome--win  { background: rgba(61,220,132,.15);  color: #3ddc84; }
+.cs2-match-row__outcome--loss { background: rgba(255,93,93,.15);  color: #ff5d5d; }
 .cs2-match-row__outcome--tie  { background: rgba(245,158,11,.15); color: #f59e0b; }
 .cs2-match-row__outcome--unknown { background: rgba(255,255,255,.06); color: var(--text-muted); }
 
@@ -636,12 +636,12 @@
 }
 .cs2-match-detail-hero__meta { display: flex; flex-wrap: wrap; gap: .5rem; }
 
-.cs2-match-outcome--win  { color: #22c55e; }
-.cs2-match-outcome--loss { color: #ef4444; }
+.cs2-match-outcome--win  { color: #3ddc84; }
+.cs2-match-outcome--loss { color: #ff5d5d; }
 .cs2-match-outcome--tie  { color: #f59e0b; }
 
-.cs2-outcome-pill--win  { background: rgba(34,197,94,.15);  color: #22c55e;  border-color: rgba(34,197,94,.3); }
-.cs2-outcome-pill--loss { background: rgba(239,68,68,.15);  color: #ef4444;  border-color: rgba(239,68,68,.3); }
+.cs2-outcome-pill--win  { background: rgba(61,220,132,.15);  color: #3ddc84;  border-color: rgba(61,220,132,.3); }
+.cs2-outcome-pill--loss { background: rgba(255,93,93,.15);  color: #ff5d5d;  border-color: rgba(255,93,93,.3); }
 .cs2-outcome-pill--tie  { background: rgba(245,158,11,.15); color: #f59e0b;  border-color: rgba(245,158,11,.3); }
 
 /* Scoreboard */
@@ -651,8 +651,8 @@
     gap: 1rem;
 }
 
-.cs2-scoreboard__team-title--a { color: #60a5fa; }
-.cs2-scoreboard__team-title--b { color: #f87171; }
+.cs2-scoreboard__team-title--a { color: #5e98d9; }
+.cs2-scoreboard__team-title--b { color: #ff7a7a; }
 
 .cs2-scoreboard__table-wrap { overflow-x: auto; }
 
@@ -679,8 +679,8 @@
 .cs2-scoreboard__table tbody tr:last-child td { border-bottom: none; }
 .cs2-scoreboard__table tbody tr:hover { background: rgba(255,255,255,.03); }
 
-.cs2-scoreboard__row--own td { background: rgba(111,124,255,.08); }
-.cs2-scoreboard__row--own:hover td { background: rgba(111,124,255,.13) !important; }
+.cs2-scoreboard__row--own td { background: rgba(245,166,35,.08); }
+.cs2-scoreboard__row--own:hover td { background: rgba(245,166,35,.13) !important; }
 
 .cs2-scoreboard__player {
     display: flex;
@@ -694,14 +694,14 @@
     font-size: .82rem;
     font-family: monospace;
 }
-.cs2-scoreboard__steam-link:hover { color: #60a5fa; text-decoration: underline; }
+.cs2-scoreboard__steam-link:hover { color: #5e98d9; text-decoration: underline; }
 
 .cs2-scoreboard__you-tag {
     font-size: .65rem;
     font-weight: 700;
     padding: .1rem .35rem;
-    background: rgba(111,124,255,.2);
-    color: rgba(111,124,255,.9);
+    background: rgba(245,166,35,.2);
+    color: rgba(245,166,35,.9);
     border-radius: 4px;
     text-transform: uppercase;
     letter-spacing: .04em;

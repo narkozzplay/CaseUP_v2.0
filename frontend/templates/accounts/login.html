@@ -1,10 +1,12 @@
 {% extends "layouts/base_public.html" %}
+{% load caseup_brand %}
 
 {% block title %}{% if LANGUAGE_CODE == "ru" %}Вход через Steam | {{ site_settings.site_name|default:"CaseUP" }}{% else %}Steam Login | {{ site_settings.site_name|default:"CaseUP" }}{% endif %}{% endblock %}
 
 {% block content %}
+{% brand_asset "login" as login_art_url %}
 <section class="auth-section">
-    <div class="container auth-grid auth-grid--single">
+    <div class="container auth-grid auth-grid--split">
         <div class="auth-card card">
             <div class="card-body auth-card__body">
                 <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Авторизация{% else %}Authorization{% endif %}</span>
@@ -29,9 +31,10 @@
 
                 <div class="auth-actions auth-actions--stack">
                     <a href="{% url 'social_auth:begin' 'steam' %}" class="btn btn-primary btn-block">
+                        {% include "components/icon.html" with name="steam" %}
                         {% if LANGUAGE_CODE == "ru" %}Войти через Steam{% else %}Login via Steam{% endif %}
                     </a>
-                    <a href="{% url 'admin:index' %}" class="btn btn-secondary btn-block">
+                    <a href="{% url 'admin:index' %}" class="btn btn-ghost btn-block">
                         Admin / Superuser
                     </a>
                 </div>
@@ -43,6 +46,13 @@
                 </div>
             </div>
         </div>
+
+        <aside class="auth-art cut"{% if login_art_url %} style="--auth-art-image: url('{{ login_art_url }}')"{% endif %} aria-hidden="true">
+            <ul class="auth-art__facts">
+                <li><b>Steam OpenID</b><span>{% if LANGUAGE_CODE == "ru" %}пароль от Steam сайт не видит{% else %}the site never sees your Steam password{% endif %}</span></li>
+                <li><b>{% if LANGUAGE_CODE == "ru" %}Авто-профиль{% else %}Auto profile{% endif %}</b><span>{% if LANGUAGE_CODE == "ru" %}ник, аватар и уровень из Steam{% else %}nickname, avatar and level from Steam{% endif %}</span></li>
+            </ul>
+        </aside>
     </div>
 </section>
 {% endblock %}
