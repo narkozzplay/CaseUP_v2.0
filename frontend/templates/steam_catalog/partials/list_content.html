@@ -38,6 +38,7 @@
 
             <div class="toolbar-actions">
                 <button type="submit" class="btn btn-secondary">Фильтровать</button>
+                <a href="{% url 'steam_catalog:reference' %}" class="btn btn-ghost" data-dashboard-nav="true">Справочник CS2</a>
                 {% if catalog_can_edit %}
                     <a href="{% url 'steam_catalog:add' %}" class="btn btn-primary" data-market-search-open>+ Добавить предмет</a>
                 {% else %}
@@ -140,6 +141,6 @@
         <button type="button" class="btn btn-ghost btn-sm" data-market-search-close aria-label="Закрыть">✕</button>
     </div>
     {% include "steam_catalog/partials/market_search.html" %}
-    <p class="market-dialog__foot">Не нашёл? <a href="{% url 'steam_catalog:add' %}">Добавь по ссылке или market_hash_name</a>.</p>
+    <p class="market-dialog__foot">Не нашёл? Выбери в <a href="{% url 'steam_catalog:reference' %}">справочнике CS2</a> или <a href="{% url 'steam_catalog:add' %}">добавь по ссылке</a>.</p>
 </dialog>
 {% endif %}

@@ -1325,3 +1325,134 @@ class SteamMarketSearchTests(TestCase):
         form = response.context["form"]
         self.assertEqual(form.initial["item"], self.existing.id)
         self.assertEqual(form.initial["scope_type"], UserPriceAlertRule.ScopeType.ITEM)
+
+
+class CS2ReferenceTests(TestCase):
+    SKIN_ROWS = [
+        {
+            "id": "skin-redline",
+            "name": "AK-47 | Redline",
+            "weapon": {"name": "AK-47"},
+            "category": {"name": "Rifles"},
+            "pattern": {"name": "Redline"},
+            "min_float": 0.1,
+            "max_float": 0.7,
+            "rarity": {"name": "Classified", "color": "#d32ce6"},
+            "stattrak": True,
+            "souvenir": False,
+            "wears": [{"name": "Minimal Wear"}, {"name": "Field-Tested"}],
+            "collections": [{"name": "The Phoenix Collection"}],
+            "crates": [{"name": "Operation Phoenix Weapon Case"}],
+            "image": "https://example.com/redline.png",
+        },
+        {
+            "id": "skin-asiimov",
+            "name": "AWP | Asiimov",
+            "weapon": {"name": "AWP"},
+            "category": {"name": "Sniper Rifles"},
+            "rarity": {"name": "Covert", "color": "#eb4b4b"},
+            "wears": [{"name": "Field-Tested"}],
+            "collections": [{"name": "The Phoenix Collection"}],
+            "image": "https://example.com/asiimov.png",
+        },
+        {"id": "", "name": "broken"},
+    ]
+    CASE_ROWS = [
+        {"id": "crate-1", "name": "Kilowatt Case", "market_hash_name": "Kilowatt Case", "type": "Case", "first_sale_date": "2024/02/06", "rarity": {"name": "Base Grade"}, "image": "https://example.com/kw.png"},
+        {"id": "crate-2", "name": "No Market", "market_hash_name": None, "type": "Case"},
+    ]
+
+    def setUp(self):
+        from .models import CS2ReferenceItem
+        from .services.reference import import_reference_rows
+
+        self.Ref = CS2ReferenceItem
+        self.skins = import_reference_rows(kind=CS2ReferenceItem.Kind.SKIN, rows=self.SKIN_ROWS)
+        self.cases = import_reference_rows(kind=CS2ReferenceItem.Kind.CASE, rows=self.CASE_ROWS)
+        self.staff = User.objects.create_user(username="ref_staff", password="StrongPass123", is_staff=True)
+
+    def test_import_parses_and_skips_invalid_rows(self):
+        self.assertEqual((self.skins.created, self.skins.skipped), (2, 1))
+        self.assertEqual((self.cases.created, self.cases.skipped), (1, 1))
+
+        redline = self.Ref.objects.get(external_id="skin-redline")
+        self.assertEqual(redline.weapon, "AK-47")
+        self.assertEqual(redline.rarity_key, "classified")
+        self.assertEqual(redline.collection_name, "The Phoenix Collection")
+        self.assertEqual(redline.wears, ["Minimal Wear", "Field-Tested"])
+        self.assertEqual(redline.min_float, Decimal("0.1000"))
+        self.assertTrue(redline.has_stattrak)
+        self.assertEqual(redline.catalog_input_value, "AK-47 | Redline (Minimal Wear)")
+
+    def test_reimport_updates_existing_rows(self):
+        from .services.reference import import_reference_rows
+
+        rows = [dict(self.SKIN_ROWS[0], image="https://example.com/new.png")]
+        result = import_reference_rows(kind=self.Ref.Kind.SKIN, rows=rows)
+
+        self.assertEqual((result.created, result.updated), (0, 1))
+        self.assertEqual(self.Ref.objects.get(external_id="skin-redline").image_url, "https://example.com/new.png")
+
+    def test_reference_page_filters_by_weapon_and_rarity(self):
+        self.client.force_login(self.staff)
+
+        response = self.client.get(reverse("steam_catalog:reference"), {"weapon": "AWP"})
+        self.assertContains(response, "AWP | Asiimov")
+        self.assertNotContains(response, "AK-47 | Redline")
+
+        response = self.client.get(reverse("steam_catalog:reference"), {"rarity": "classified"})
+        self.assertContains(response, "AK-47 | Redline")
+        self.assertNotContains(response, "AWP | Asiimov")
+
+        response = self.client.get(reverse("steam_catalog:reference"), {"kind": "case"})
+        self.assertContains(response, "Kilowatt Case")
+
+    def test_reference_marks_items_already_in_catalog(self):
+        item = SteamItem.objects.create(
+            market_hash_name="AK-47 | Redline (Field-Tested)",
+            family_name="AK-47 | Redline",
+            name="AK-47 | Redline",
+            item_type=SteamItem.ItemType.SKIN,
+        )
+        self.client.force_login(self.staff)
+
+        response = self.client.get(reverse("steam_catalog:reference"))
+
+        self.assertContains(response, reverse("steam_catalog:detail", args=[item.id]))
+        self.assertContains(response, reverse("steam_catalog:reference_add", args=[self.Ref.objects.get(external_id="skin-asiimov").id]))
+
+    @patch("modules.v2.steam_catalog.services.fetch_price_rub_from_steam", return_value=Decimal("100.00"))
+    @patch("modules.v2.steam_catalog.services.try_fetch_listing_render_data", return_value={})
+    @patch("modules.v2.steam_catalog.services.try_fetch_listing_metadata", return_value={})
+    def test_add_from_reference_creates_family_and_fills_metadata(self, *_mocks):
+        reference = self.Ref.objects.get(external_id="skin-redline")
+        self.client.force_login(self.staff)
+
+        response = self.client.post(reverse("steam_catalog:reference_add", args=[reference.id]))
+
+        anchor = SteamItem.objects.get(market_hash_name="AK-47 | Redline (Minimal Wear)")
+        self.assertRedirects(response, reverse("steam_catalog:detail", args=[anchor.id]), fetch_redirect_response=False)
+        family = SteamItem.objects.filter(family_name="AK-47 | Redline")
+        self.assertGreater(family.count(), 1)
+        self.assertFalse(family.filter(icon_url="").exists())
+        self.assertEqual(set(family.values_list("rarity_key", flat=True)), {"classified"})
+
+    def test_add_from_reference_requires_staff(self):
+        user = User.objects.create_user(username="ref_user", password="StrongPass123")
+        self.client.force_login(user)
+
+        response = self.client.post(reverse("steam_catalog:reference_add", args=[self.Ref.objects.first().id]))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_import_command_reads_local_files(self):
+        import tempfile
+        from pathlib import Path
+
+        from django.core.management import call_command
+
+        with tempfile.TemporaryDirectory() as tmp:
+            Path(tmp, "skins.json").write_text(json.dumps(self.SKIN_ROWS), encoding="utf-8")
+            call_command("import_cs2_reference", "--kinds", "skin", "--from-dir", tmp, stdout=MagicMock())
+
+        self.assertEqual(self.Ref.objects.filter(kind="skin").count(), 2)

@@ -1,0 +1,126 @@
+<section class="section section--compact reference-page">
+    <a href="{% url 'steam_catalog:list' %}" class="back-link">← Steam Catalog</a>
+    <div class="page-header page-header--compact">
+        <div>
+            <span class="eyebrow">CS2 database</span>
+            <h1>Справочник CS2</h1>
+            <p class="text-muted">Все скины, кейсы и стикеры игры с редкостью, коллекцией и диапазоном float.{% if catalog_can_edit %} Нажми «Добавить», и предмет появится в каталоге со всеми вариантами износа.{% endif %}</p>
+        </div>
+    </div>
+
+    <div class="chip-tabs reference-kinds">
+        {% for value, label, count in reference_kinds %}
+            <a href="?kind={{ value }}" class="chip-tab{% if selected_kind == value %} is-active{% endif %}" data-dashboard-nav="true">{{ label }}<span class="chip-tab__count">{{ count }}</span></a>
+        {% endfor %}
+    </div>
+
+    <form method="get" class="catalog-toolbar__form reference-toolbar">
+        <input type="hidden" name="kind" value="{{ selected_kind }}">
+        <label class="catalog-search">
+            {% include "components/icon.html" with name="search" %}
+            <span class="visually-hidden">Поиск</span>
+            <input type="search" name="q" value="{{ q }}" placeholder="{% if selected_kind == 'skin' %}Redline, Asiimov, Karambit…{% else %}Название или коллекция{% endif %}">
+        </label>
+        {% if weapon_options %}
+            <div class="form-field catalog-toolbar__select">
+                <label for="ref-weapon">Оружие</label>
+                <select id="ref-weapon" name="weapon" class="form-control" onchange="this.form.requestSubmit()">
+                    <option value="">Любое</option>
+                    {% for weapon in weapon_options %}<option value="{{ weapon }}"{% if weapon == selected_weapon %} selected{% endif %}>{{ weapon }}</option>{% endfor %}
+                </select>
+            </div>
+        {% endif %}
+        {% if category_options %}
+            <div class="form-field catalog-toolbar__select">
+                <label for="ref-category">Тип</label>
+                <select id="ref-category" name="category" class="form-control" onchange="this.form.requestSubmit()">
+                    <option value="">Любой</option>
+                    {% for value in category_options %}<option value="{{ value }}"{% if value == selected_category %} selected{% endif %}>{{ value }}</option>{% endfor %}
+                </select>
+            </div>
+        {% endif %}
+        {% if collection_options %}
+            <div class="form-field catalog-toolbar__select reference-toolbar__collection">
+                <label for="ref-collection">Коллекция</label>
+                <select id="ref-collection" name="collection" class="form-control" onchange="this.form.requestSubmit()">
+                    <option value="">Любая</option>
+                    {% for collection in collection_options %}<option value="{{ collection }}"{% if collection == selected_collection %} selected{% endif %}>{{ collection }}</option>{% endfor %}
+                </select>
+            </div>
+        {% endif %}
+        <input type="hidden" name="rarity" value="{{ selected_rarity }}">
+        <div class="toolbar-actions">
+            <button type="submit" class="btn btn-secondary">Найти</button>
+            {% if has_reference_filters %}<a href="?kind={{ selected_kind }}" class="btn btn-ghost" data-dashboard-nav="true">Сбросить</a>{% endif %}
+        </div>
+    </form>
+
+    {% if rarity_options %}
+        <div class="reference-rarities">
+            <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}kind={{ selected_kind }}&weapon={{ selected_weapon|urlencode }}&collection={{ selected_collection|urlencode }}&category={{ selected_category|urlencode }}" class="rarity-chip{% if not selected_rarity %} is-active{% endif %}" data-dashboard-nav="true">Любая редкость</a>
+            {% for key, label in rarity_options %}
+                <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}kind={{ selected_kind }}&weapon={{ selected_weapon|urlencode }}&collection={{ selected_collection|urlencode }}&category={{ selected_category|urlencode }}&rarity={{ key }}" class="rarity-chip rarity--{{ key }}{% if selected_rarity == key %} is-active{% endif %}" data-dashboard-nav="true">{{ label }}</a>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <p class="reference-count">{{ page_obj.paginator.count }} из {{ reference_total }}</p>
+
+    <div class="reference-grid">
+        {% for ref in reference_items %}
+            <article class="reference-card{% if ref.rarity_key %} rarity--{{ ref.rarity_key }}{% endif %}">
+                <div class="reference-card__media">
+                    {% if ref.image_url %}<img src="{{ ref.image_url }}" alt="{{ ref.name }}" loading="lazy" onerror="this.remove()">{% endif %}
+                    <div class="reference-card__flags">
+                        {% if ref.has_stattrak %}<span class="tag tag--stattrak">ST</span>{% endif %}
+                        {% if ref.has_souvenir %}<span class="tag">SV</span>{% endif %}
+                    </div>
+                </div>
+                <div class="reference-card__body">
+                    <strong class="reference-card__name">{{ ref.name }}</strong>
+                    <span class="reference-card__rarity">{{ ref.rarity_label }}</span>
+                    {% if ref.release_date %}<span class="reference-card__meta">С {{ ref.release_date }}</span>{% endif %}
+                    {% if ref.collection_name %}<span class="reference-card__meta">{{ ref.collection_name }}</span>{% elif ref.crates %}<span class="reference-card__meta">{{ ref.crates.0 }}{% if ref.crates|length > 1 %} +{{ ref.crates|length|add:"-1" }}{% endif %}</span>{% endif %}
+                    {% if ref.min_float is not None and ref.max_float is not None %}
+                        <span class="reference-card__float" title="Диапазон float">
+                            <span class="reference-card__float-bar"><span style="{{ ref.float_bar_style }}"></span></span>
+                            {{ ref.min_float|floatformat:2 }} – {{ ref.max_float|floatformat:2 }}
+                        </span>
+                    {% endif %}
+                </div>
+                <div class="reference-card__action">
+                    {% if ref.catalog_item_id %}
+                        <a href="{% url 'steam_catalog:detail' ref.catalog_item_id %}" class="btn btn-ghost btn-sm" data-dashboard-nav="true">В каталоге →</a>
+                    {% elif catalog_can_edit %}
+                        <form method="post" action="{% url 'steam_catalog:reference_add' ref.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary btn-sm">Добавить</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </article>
+        {% empty %}
+            <div class="empty-panel">
+                {% if reference_total %}
+                    <strong>Ничего не нашлось</strong>
+                    <p class="text-muted">Попробуй другое название или сбрось фильтры.</p>
+                {% else %}
+                    <strong>Справочник пока пуст</strong>
+                    <p class="text-muted">Загрузи данные командой <code>python manage.py import_cs2_reference</code>.</p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+        <div class="pagination-wrap">
+            {% if page_obj.has_previous %}
+                <a class="btn btn-secondary btn-sm" href="?{{ filter_query }}&page={{ page_obj.previous_page_number }}" data-dashboard-nav="true">Назад</a>
+            {% endif %}
+            <span class="pagination-wrap__state">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a class="btn btn-secondary btn-sm" href="?{{ filter_query }}&page={{ page_obj.next_page_number }}" data-dashboard-nav="true">Вперёд</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</section>

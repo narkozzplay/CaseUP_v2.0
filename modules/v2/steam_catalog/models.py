@@ -495,3 +495,72 @@ class StockMovement(models.Model):
             item.save(update_fields=["stock", "updated_at"])
 
             super().save(*args, **kwargs)
+
+class CS2ReferenceItem(models.Model):
+    """Read-only CS2 item reference imported from an open dataset (ByMykel/CSGO-API)."""
+
+    class Kind(models.TextChoices):
+        SKIN = "skin", "Скин"
+        CASE = "case", "Кейс"
+        STICKER = "sticker", "Стикер"
+
+    external_id = models.CharField(max_length=64, unique=True)
+    kind = models.CharField(max_length=16, choices=Kind.choices, db_index=True)
+    name = models.CharField(max_length=255, db_index=True)
+    market_hash_name = models.CharField(max_length=255, blank=True, default="", db_index=True)
+
+    weapon = models.CharField(max_length=64, blank=True, default="", db_index=True)
+    category = models.CharField(max_length=64, blank=True, default="", db_index=True)
+    pattern = models.CharField(max_length=128, blank=True, default="")
+
+    rarity_name = models.CharField(max_length=64, blank=True, default="")
+    rarity_key = models.CharField(max_length=24, blank=True, default="", db_index=True)
+    rarity_color = models.CharField(max_length=16, blank=True, default="")
+
+    collection_name = models.CharField(max_length=255, blank=True, default="", db_index=True)
+    collections = models.JSONField(default=list, blank=True)
+    crates = models.JSONField(default=list, blank=True)
+    wears = models.JSONField(default=list, blank=True)
+
+    min_float = models.DecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    max_float = models.DecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    has_stattrak = models.BooleanField(default=False)
+    has_souvenir = models.BooleanField(default=False)
+
+    image_url = models.URLField(max_length=1000, blank=True, default="")
+    release_date = models.CharField(max_length=32, blank=True, default="")
+
+    imported_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["kind", "weapon", "name"]
+        indexes = [
+            models.Index(fields=["kind", "weapon"], name="steam_cat_ref_kind_weapon_idx"),
+            models.Index(fields=["kind", "collection_name"], name="steam_cat_ref_kind_coll_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return self.name
+
+    @property
+    def rarity_label(self) -> str:
+        from modules.v2.steam_catalog.services.helpers import rarity_ru_label_from_key
+
+        if self.kind == self.Kind.CASE:
+            return self.category or self.rarity_name
+        return rarity_ru_label_from_key(self.rarity_key) or self.rarity_name or self.category
+
+    @property
+    def float_bar_style(self) -> str:
+        if self.min_float is None or self.max_float is None:
+            return ""
+        left = max(0, min(100, float(self.min_float) * 100))
+        width = max(1, min(100 - left, (float(self.max_float) - float(self.min_float)) * 100))
+        return f"left: {left:.1f}%; width: {width:.1f}%;"
+
+    @property
+    def catalog_input_value(self) -> str:
+        """Value for upsert_from_market_input: a concrete market hash name."""
+        if self.kind == self.Kind.SKIN and self.wears:
+            return f"{self.name} ({self.wears[0]})"
+        return self.market_hash_name or self.name

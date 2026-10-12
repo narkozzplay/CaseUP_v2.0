@@ -72,6 +72,7 @@
             img.src = result.icon;
             img.alt = result.name;
             img.loading = 'lazy';
+            img.addEventListener('error', () => img.remove());
             media.appendChild(img);
         }
         card.appendChild(media);

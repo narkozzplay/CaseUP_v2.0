@@ -32,6 +32,17 @@ docker compose --env-file .env.dev exec web python manage.py test
 docker compose --env-file .env.dev exec web python manage.py createsuperuser
 ```
 
+## Справочник CS2
+
+Справочник скинов, кейсов и стикеров (страница `/steam-catalog/reference/`) загружается из открытого датасета ByMykel/CSGO-API. Команду можно запускать повторно, она обновит существующие записи.
+
+```bash
+# скины и кейсы (по умолчанию)
+docker compose --env-file .env.dev exec web python manage.py import_cs2_reference
+# вместе со стикерами
+docker compose --env-file .env.dev exec web python manage.py import_cs2_reference --kinds skin,case,sticker
+```
+
 ## Остановка
 
 ```bash

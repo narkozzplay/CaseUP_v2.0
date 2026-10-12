@@ -35,9 +35,10 @@ from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
 
 from .forms import AddSteamItemForm, SteamItemNameRuForm, StockMovementCreateForm, UserPriceAlertRuleForm
-from .models import SteamItem, UserPriceAlertEvent, UserPriceAlertRule
+from .models import CS2ReferenceItem, SteamItem, UserPriceAlertEvent, UserPriceAlertRule
 from .services import MarketSearchError, refresh_item_prices, search_market_items, upsert_from_market_input
-from .services.helpers import canonical_listing_url
+from .services.helpers import canonical_listing_url, rarity_ru_label_from_key
+from .services.reference import catalog_ids_for_reference, fill_catalog_from_reference
 
 
 def _catalog_staff_access(user) -> bool:
@@ -580,6 +581,102 @@ def catalog_market_search(request):
             for result in results
         ],
     })
+
+
+REFERENCE_RARITY_ORDER = ["consumer", "industrial", "milspec", "restricted", "classified", "covert", "extraordinary", "contraband"]
+
+
+@login_required
+def catalog_reference(request):
+    if not (_catalog_staff_access(request.user) or _catalog_view_access(request.user)):
+        return render_feature_locked_response(
+            request,
+            feature_code=STEAM_CATALOG_VIEW,
+            title="Справочник CS2 закрыт тарифом",
+            description="Справочник предметов открывается вместе с доступом к Steam Catalog.",
+        )
+
+    kind = request.GET.get("kind") or CS2ReferenceItem.Kind.SKIN
+    if kind not in CS2ReferenceItem.Kind.values:
+        kind = CS2ReferenceItem.Kind.SKIN
+    q = (request.GET.get("q") or "").strip()
+    weapon = (request.GET.get("weapon") or "").strip()
+    collection = (request.GET.get("collection") or "").strip()
+    rarity = (request.GET.get("rarity") or "").strip()
+    category = (request.GET.get("category") or "").strip()
+
+    base_qs = CS2ReferenceItem.objects.filter(kind=kind)
+    queryset = base_qs
+    if q:
+        queryset = queryset.filter(Q(name__icontains=q) | Q(collection_name__icontains=q))
+    if weapon:
+        queryset = queryset.filter(weapon=weapon)
+    if collection:
+        queryset = queryset.filter(collection_name=collection)
+    if rarity:
+        queryset = queryset.filter(rarity_key=rarity)
+    if category:
+        queryset = queryset.filter(category=category)
+
+    ordering = ("-release_date", "name") if kind == CS2ReferenceItem.Kind.CASE else ("weapon", "name")
+    paginator = Paginator(queryset.order_by(*ordering), 48)
+    page_obj = paginator.get_page(request.GET.get("page") or 1)
+    page_items = list(page_obj.object_list)
+    catalog_ids = catalog_ids_for_reference(page_items)
+    for item in page_items:
+        item.catalog_item_id = catalog_ids.get(item.id)
+
+    present_rarities = set(base_qs.exclude(rarity_key="").values_list("rarity_key", flat=True).distinct())
+    filter_query = urlencode({key: value for key, value in {
+        "kind": kind, "q": q, "weapon": weapon, "collection": collection, "rarity": rarity, "category": category,
+    }.items() if value})
+
+    return render_dashboard_page(
+        request,
+        full_template="steam_catalog/reference.html",
+        partial_template="steam_catalog/partials/reference_content.html",
+        context={
+            "page_obj": page_obj,
+            "reference_items": page_items,
+            "reference_kinds": [
+                (value, label, CS2ReferenceItem.objects.filter(kind=value).count())
+                for value, label in CS2ReferenceItem.Kind.choices
+            ],
+            "selected_kind": kind,
+            "q": q,
+            "selected_weapon": weapon,
+            "selected_collection": collection,
+            "selected_rarity": rarity,
+            "selected_category": category,
+            "category_options": list(base_qs.exclude(category="").values_list("category", flat=True).distinct().order_by("category")) if kind != CS2ReferenceItem.Kind.SKIN else [],
+            "weapon_options": list(base_qs.exclude(weapon="").values_list("weapon", flat=True).distinct().order_by("weapon")),
+            "collection_options": list(base_qs.exclude(collection_name="").values_list("collection_name", flat=True).distinct().order_by("collection_name")),
+            "rarity_options": [(key, rarity_ru_label_from_key(key) or key) for key in REFERENCE_RARITY_ORDER if key in present_rarities],
+            "filter_query": filter_query,
+            "has_reference_filters": bool(q or weapon or collection or rarity or category),
+            "reference_total": base_qs.count(),
+            "catalog_can_edit": _catalog_staff_access(request.user),
+        },
+        page_title=build_page_title("Справочник CS2"),
+        active_menu_key="steam_catalog",
+    )
+
+
+@login_required
+def catalog_reference_add(request, reference_id: int):
+    if not _catalog_staff_access(request.user):
+        return HttpResponseForbidden("Steam Catalog доступен только staff/admin.")
+    if request.method != "POST":
+        return redirect("steam_catalog:reference")
+
+    reference = get_object_or_404(CS2ReferenceItem, pk=reference_id)
+    result = upsert_from_market_input(value=reference.catalog_input_value, stock=0)
+    fill_catalog_from_reference(reference=reference)
+    if result.variants_created:
+        messages.success(request, f"{reference.name}: добавлено {result.variants_created} вариантов.")
+    else:
+        messages.success(request, f"{reference.name} добавлен в Steam Catalog.")
+    return redirect("steam_catalog:detail", item_id=result.anchor_item.id)
 
 
 @login_required

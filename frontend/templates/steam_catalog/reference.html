@@ -1,0 +1,12 @@
+{% extends "layouts/base_dashboard.html" %}
+{% load static %}
+
+{% block dashboard_extra_head %}
+<link rel="stylesheet" href="{% static 'css/modules/steam_catalog.css' %}">
+{% endblock %}
+
+{% block title %}Справочник CS2 | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
+
+{% block content %}
+    {% include "steam_catalog/partials/reference_content.html" %}
+{% endblock %}
