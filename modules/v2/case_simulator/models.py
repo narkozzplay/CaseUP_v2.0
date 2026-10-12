@@ -1,11 +1,22 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from functools import lru_cache
 
 from django.conf import settings
+from django.contrib.staticfiles import finders
 from django.db import models
+from django.templatetags.static import static
 
 ZERO = Decimal("0.00")
+BUNDLED_COVER_PATH = "img/cases/{slug}.webp"
+
+
+@lru_cache(maxsize=64)
+def bundled_cover_url(slug: str) -> str:
+    """Cover shipped with the project in static/img/cases/, if there is one for this slug."""
+    path = BUNDLED_COVER_PATH.format(slug=slug)
+    return static(path) if finders.find(path) else ""
 
 
 class SimCase(models.Model):
@@ -63,7 +74,7 @@ class SimCase(models.Model):
     def cover_url(self) -> str:
         if self.image:
             return self.image.url
-        return self.image_url
+        return self.image_url or bundled_cover_url(self.slug)
 
     @property
     def is_terminal(self) -> bool:

@@ -48,6 +48,12 @@ class CaseSimulatorServiceTests(TestCase):
         self.assertEqual(SimCase.objects.filter(kind=SimCase.Kind.CUSTOM).exclude(slug="test-case").count(), 10)
         self.assertTrue(SimCase.objects.get(slug="kilowatt").has_key)
 
+    def test_custom_cases_use_bundled_covers(self):
+        for case in SimCase.objects.filter(kind__in=[SimCase.Kind.CUSTOM, SimCase.Kind.TERMINAL]).exclude(slug="test-case"):
+            with self.subTest(slug=case.slug):
+                self.assertTrue(case.cover_url.endswith(f"img/cases/{case.slug}.webp"))
+        self.assertEqual(self.case.cover_url, "")
+
     def test_rarity_odds_follow_cs2_tiers(self):
         summary = {row["rarity"]: row["chance"] for row in services.rarity_summary(self.case)}
         self.assertEqual(summary["milspec"], Decimal("79.92"))
