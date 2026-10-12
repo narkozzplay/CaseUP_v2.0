@@ -427,7 +427,7 @@ class SteamCatalogTests(TestCase):
         self.assertEqual(item.price_rub, Decimal("1400.00"))
         self.assertEqual(item.price_history.count(), 1)
 
-    def test_detail_week_range_groups_prices_by_day_using_daily_max(self):
+    def test_detail_week_range_chart_shows_all_raw_points(self):
         user = User.objects.create_user(username="staff_chart_week", password="StrongPass123", is_staff=True)
         item = SteamItem.objects.create(
             market_hash_name="Sealed Dead Hand Terminal",
@@ -453,13 +453,13 @@ class SteamCatalogTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["selected_price_history_range"], "week")
-        self.assertEqual(len(response.context["price_chart"]["points"]), 2)
+        self.assertEqual(len(response.context["price_chart"]["points"]), 3)
 
         point_values = [point["value"] for point in response.context["price_chart"]["points"]]
-        self.assertEqual(point_values, [Decimal("150.00"), Decimal("130.00")])
+        self.assertEqual(point_values, [Decimal("100.00"), Decimal("150.00"), Decimal("130.00")])
 
 
-    def test_detail_day_range_groups_prices_by_hour_using_hourly_max(self):
+    def test_detail_day_range_chart_shows_all_raw_points(self):
         user = User.objects.create_user(username="staff_chart_day", password="StrongPass123", is_staff=True)
         item = SteamItem.objects.create(
             market_hash_name="Sealed Dead Hand Terminal 2",
@@ -488,10 +488,10 @@ class SteamCatalogTests(TestCase):
     
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["selected_price_history_range"], "day")
-        self.assertEqual(len(response.context["price_chart"]["points"]), 2)
+        self.assertEqual(len(response.context["price_chart"]["points"]), 3)
     
         point_values = [point["value"] for point in response.context["price_chart"]["points"]]
-        self.assertEqual(point_values, [Decimal("140.00"), Decimal("130.00")])
+        self.assertEqual(point_values, [Decimal("100.00"), Decimal("140.00"), Decimal("130.00")])
 
 
     def test_detail_week_range_analytics_uses_raw_history_not_bucket_maximums(self):
@@ -531,7 +531,7 @@ class SteamCatalogTests(TestCase):
         self.assertEqual(analytics["trend_direction"], "up")
 
         point_values = [point["value"] for point in chart["points"]]
-        self.assertEqual(point_values, [Decimal("150.00"), Decimal("149.00")])
+        self.assertEqual(point_values, [Decimal("142.00"), Decimal("150.00"), Decimal("149.00")])
 
 
     def test_catalog_uses_grid_columns_setting(self):

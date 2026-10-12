@@ -1,0 +1,38 @@
+# Env / secrets
+.env
+.env.*
+!.env.example
+!.env.dev.example
+!.env.prod.example
+!.env.test.example
+
+# Python cache / tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Django runtime artifacts
+staticfiles/
+media/
+backups/
+*.sqlite3
+*.log
+.tmp_test_ops/
+
+# OS / IDE
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local generated archives
+*.zip

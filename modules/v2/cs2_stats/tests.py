@@ -88,7 +88,7 @@ class SyncCS2SteamStatsTests(TestCase):
             "total_deaths": 4000,
             "total_matches_played": 800,
             "total_wins": 420,
-            "total_headshots": 2000,
+            "total_kills_headshot": 2000,
             "total_mvps": 300,
             "total_time_played": 800000,
             "total_shots_fired": 100000,

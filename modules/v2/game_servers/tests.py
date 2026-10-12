@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import socket
+import threading
 from unittest.mock import patch
 
 from django.test import Client, TestCase
@@ -7,7 +9,44 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .models import GameServer, GameServerPrivilege
-from .services import ServerProbeResult, refresh_game_server_status
+from .services import A2S_INFO_REQUEST, ServerProbeResult, probe_game_server, refresh_game_server_status
+
+
+class GameServerProbeTests(TestCase):
+    def _fake_a2s_server(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.bind(("127.0.0.1", 0))
+        self.addCleanup(sock.close)
+
+        def serve():
+            data, addr = sock.recvfrom(4096)
+            if data == A2S_INFO_REQUEST:
+                sock.sendto(b"\xff\xff\xff\xffA\x01\x02\x03\x04", addr)
+            data, addr = sock.recvfrom(4096)
+            if data == A2S_INFO_REQUEST + b"\x01\x02\x03\x04":
+                sock.sendto(b"\xff\xff\xff\xffI\x11CaseUP\x00", addr)
+
+        threading.Thread(target=serve, daemon=True).start()
+        return sock.getsockname()[1]
+
+    def test_probe_answers_a2s_challenge_and_marks_online(self):
+        port = self._fake_a2s_server()
+        server = GameServer(slug="a2s", name="A2S", host="127.0.0.1", port=port)
+
+        result = probe_game_server(server, timeout=2)
+
+        self.assertEqual(result.status, GameServer.Status.ONLINE)
+        self.assertEqual(result.error, "")
+
+    def test_probe_marks_silent_server_offline(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.bind(("127.0.0.1", 0))
+        self.addCleanup(sock.close)
+        server = GameServer(slug="silent", name="Silent", host="127.0.0.1", port=sock.getsockname()[1])
+
+        result = probe_game_server(server, timeout=0.3)
+
+        self.assertEqual(result.status, GameServer.Status.OFFLINE)
 
 
 class GameServerServiceTests(TestCase):

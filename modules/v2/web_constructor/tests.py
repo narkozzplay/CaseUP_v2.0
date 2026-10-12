@@ -10,6 +10,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from modules.v2.profiles.models import UserRole
+from modules.v2.system.models import SiteConfiguration
 
 from .forms import PageTemplateEditorForm
 from .models import EditablePage, PageTemplate, PageTemplateVersion, SandboxSession, TemplateAsset, TemplateVariable, UserTemplateOwnership
@@ -297,6 +298,8 @@ class WebConstructorBuilderFoundationTests(TestCase):
 
     @override_settings(SITE_BASE_URL="http://caseup.localhost:8000", CASEUP_LAB_BASE_URL="http://lib.caseup.localhost:8000", ALLOWED_HOSTS=["testserver", "caseup.localhost", "lib.caseup.localhost"])
     def test_builder_editor_page_renders_foundation_shell(self):
+        # public_base_url is seeded from SITE_BASE_URL of the env the test DB was built with.
+        SiteConfiguration.objects.update(public_base_url="")
         self.client.force_login(self.user)
         sync_editable_pages()
         sync_template_variables()

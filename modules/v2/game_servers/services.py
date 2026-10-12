@@ -31,20 +31,35 @@ def get_status_cache_ttl_seconds() -> int:
         return 30
 
 
+A2S_INFO_REQUEST = b"\xff\xff\xff\xffTSource Engine Query\x00"
+A2S_HEADER = b"\xff\xff\xff\xff"
+A2S_CHALLENGE = 0x41  # 'A'
+A2S_INFO_RESPONSE = 0x49  # 'I'
+
+
+def _query_a2s_info(host: str, port: int, timeout: float) -> None:
+    """Send a Source A2S_INFO query over UDP; raise OSError if the server does not answer."""
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sock.settimeout(timeout)
+        address = (socket.gethostbyname(host), port)
+        sock.sendto(A2S_INFO_REQUEST, address)
+        data, _ = sock.recvfrom(4096)
+        if data[:4] == A2S_HEADER and len(data) >= 9 and data[4] == A2S_CHALLENGE:
+            # CS2 servers answer with a challenge first; repeat the query with it appended.
+            sock.sendto(A2S_INFO_REQUEST + data[5:9], address)
+            data, _ = sock.recvfrom(4096)
+        if data[:4] != A2S_HEADER or len(data) < 5 or data[4] != A2S_INFO_RESPONSE:
+            raise OSError("Unexpected A2S_INFO response")
+
+
 def probe_game_server(server: GameServer, *, timeout: float | None = None) -> ServerProbeResult:
     checked_at = timezone.now()
     timeout = float(timeout if timeout is not None else getattr(settings, "GAME_SERVER_STATUS_TIMEOUT_SECONDS", 1.5))
     started = time.monotonic()
 
     try:
-        with socket.create_connection((server.host, int(server.port)), timeout=timeout):
-            latency_ms = max(int((time.monotonic() - started) * 1000), 1)
-            return ServerProbeResult(
-                status=GameServer.Status.ONLINE,
-                checked_at=checked_at,
-                latency_ms=latency_ms,
-                error="",
-            )
+        # CS2 game servers speak UDP (A2S); a plain TCP connect to the game port always fails.
+        _query_a2s_info(server.host, int(server.port), timeout)
     except OSError as exc:
         return ServerProbeResult(
             status=GameServer.Status.OFFLINE,
@@ -52,6 +67,13 @@ def probe_game_server(server: GameServer, *, timeout: float | None = None) -> Se
             latency_ms=None,
             error=str(exc)[:255],
         )
+    latency_ms = max(int((time.monotonic() - started) * 1000), 1)
+    return ServerProbeResult(
+        status=GameServer.Status.ONLINE,
+        checked_at=checked_at,
+        latency_ms=latency_ms,
+        error="",
+    )
 
 
 @transaction.atomic

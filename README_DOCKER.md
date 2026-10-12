@@ -67,6 +67,7 @@ Prod overlay публикует приложение на локальный п�
 
 ## Типовые ошибки
 
+- `web` в статусе `Restarting`, в логах `PermissionError: ... /app/staticfiles`: volumes созданы старой версией образа с владельцем root. Удалите их (база не пострадает) и пересоберите: `docker volume rm caseup_dev_static_data caseup_dev_media_data caseup_dev_backup_data caseup_dev_celerybeat_data`, затем `docker compose --env-file .env.dev up --build`.
 - Docker daemon не запущен: запустите Docker Desktop или Docker Engine и повторите команду.
 - Порт `8000`, `5432` или `6379` занят: поменяйте `DJANGO_PORT`, `POSTGRES_PORT` или `REDIS_PORT` в `.env.dev` либо остановите конфликтующий сервис.
 - Отсутствует `.env.dev`: создайте его из `.env.dev.example` и запускайте compose с `--env-file .env.dev`.

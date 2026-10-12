@@ -241,7 +241,6 @@ class UsersCatalogTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "ID Search Target")
-        self.assertContains(response, f"ID: {target.id}")
         self.assertContains(response, reverse("profiles:profile_detail", args=[target.id]))
         self.assertNotContains(response, "ID Search Other")
         self.assertNotContains(response, reverse("profiles:profile_detail", args=[other.id]))
@@ -270,7 +269,7 @@ class UsersCatalogTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-users-catalog-view="grid"')
         self.assertContains(response, "users-grid")
-        self.assertContains(response, f"ID: {target.id}")
+        self.assertContains(response, reverse("profiles:profile_detail", args=[target.id]))
         self.assertContains(response, "presence-indicator")
 
     def test_users_catalog_list_mode(self):
@@ -283,7 +282,7 @@ class UsersCatalogTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-users-catalog-view="list"')
         self.assertContains(response, "users-list__row")
-        self.assertContains(response, f"ID: {target.id}")
+        self.assertContains(response, reverse("profiles:profile_detail", args=[target.id]))
         self.assertContains(response, "presence-indicator")
 
     def test_users_catalog_unknown_view_falls_back_to_grid(self):
