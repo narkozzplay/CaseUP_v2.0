@@ -219,7 +219,7 @@
 
 .hero--image .hero__backdrop {
     background:
-        linear-gradient(90deg, var(--bg) 0%, rgba(11, 14, 19, 0.88) 38%, rgba(11, 14, 19, 0.35) 75%, rgba(11, 14, 19, 0.6) 100%),
+        linear-gradient(90deg, var(--bg) 0%, rgba(11, 14, 19, 0.82) 36%, rgba(11, 14, 19, 0.15) 72%, rgba(11, 14, 19, 0.35) 100%),
         linear-gradient(0deg, var(--bg) 0%, transparent 35%),
         var(--hero-image) center right / cover no-repeat;
 }
@@ -633,7 +633,7 @@
     min-height: 420px;
     padding: var(--space-4);
     background:
-        linear-gradient(180deg, transparent 40%, rgba(11, 14, 19, 0.92) 100%),
+        linear-gradient(180deg, transparent 30%, rgba(11, 14, 19, 0.78) 68%, rgba(11, 14, 19, 0.97) 100%),
         var(--auth-art-image) center / cover no-repeat,
         radial-gradient(60% 50% at 50% 35%, rgba(245, 166, 35, 0.3), transparent 70%),
         repeating-linear-gradient(135deg, transparent 0 18px, rgba(231, 235, 241, 0.04) 18px 19px),
