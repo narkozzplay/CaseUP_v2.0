@@ -1,0 +1,219 @@
+/*
+ * CaseUP Tactical: reusable content blocks shared by all modules
+ * (toolbars, chip tabs, empty states, KPI tiles, panels, data tables).
+ */
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* ---------- toolbar + search ---------- */
+
+.catalog-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: var(--space-4);
+}
+
+.catalog-toolbar__form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: end;
+    padding: 14px;
+    border: 1px solid var(--border);
+    background: rgba(20, 25, 34, 0.75);
+}
+
+.catalog-toolbar__select {
+    width: 180px;
+}
+
+.catalog-toolbar__select label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.catalog-search {
+    display: flex;
+    flex: 1 1 280px;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--border-strong);
+    background: rgba(9, 11, 15, 0.6);
+    color: var(--text-muted);
+    cursor: text;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.catalog-search:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
+}
+
+.catalog-search input {
+    flex: 1;
+    min-width: 0;
+    height: 42px;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+}
+
+.catalog-search input::placeholder {
+    color: var(--text-muted);
+}
+
+.chip-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.chip-tab {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    color: var(--text-soft);
+    font-size: 0.84rem;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.chip-tab:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+}
+
+.chip-tab.is-active {
+    border-color: rgba(245, 166, 35, 0.6);
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.chip-tabs__count {
+    margin-left: auto;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+}
+
+/* ---------- empty state ---------- */
+
+.empty-panel {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 28px;
+    border: 1px dashed var(--border-strong);
+    background: rgba(20, 25, 34, 0.5);
+}
+
+.empty-panel strong {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.empty-panel p {
+    margin: 0;
+    max-width: 60ch;
+}
+
+/* ---------- pagination ---------- */
+
+.pagination-wrap__state {
+    min-width: 72px;
+    color: var(--text-soft);
+    font-family: var(--font-mono);
+    font-size: 0.84rem;
+    text-align: center;
+}
+
+/* ---------- KPI tiles (stats-card, metric blocks) ---------- */
+
+.stats-card .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.stats-card__label {
+    margin: 0;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.stats-card__value {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 1.8rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.stats-card__meta {
+    margin: 0;
+    font-size: 0.84rem;
+}
+
+/* ---------- headings inside cards ---------- */
+
+.card-body > h2:first-child,
+.card-body > .section-title:first-child {
+    margin-top: 0;
+}
+
+.card h2 {
+    font-size: 1.1rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+@media (max-width: 720px) {
+    .catalog-toolbar__select {
+        width: calc(50% - 6px);
+    }
+
+    .catalog-toolbar__form .toolbar-actions {
+        width: 100%;
+    }
+
+    .catalog-toolbar__form .toolbar-actions .btn {
+        flex: 1;
+    }
+
+    .chip-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+
+    .chip-tab {
+        flex: none;
+    }
+}

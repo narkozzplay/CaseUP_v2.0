@@ -37,6 +37,7 @@ from modules.v2.system.services import build_page_title
 from .forms import AddSteamItemForm, SteamItemNameRuForm, StockMovementCreateForm, UserPriceAlertRuleForm
 from .models import SteamItem, UserPriceAlertEvent, UserPriceAlertRule
 from .services import refresh_item_prices, upsert_from_market_input
+from .services.helpers import canonical_listing_url
 
 
 def _catalog_staff_access(user) -> bool:
@@ -644,6 +645,7 @@ def catalog_detail(request, item_id: int):
             "catalog_can_edit": _catalog_staff_access(request.user),
             "catalog_can_view_deep_analytics": _catalog_analytics_access(request.user),
             "catalog_analytics_access_state": get_feature_access_state(request.user, STEAM_CATALOG_DEEP_ANALYTICS),
+            "steam_market_url": canonical_listing_url(appid=730, market_hash_name=item.market_hash_name),
             "steam_catalog_detail_content_template": detail_content_template,
             "steam_catalog_detail_mode_template": detail_mode_template,
         },

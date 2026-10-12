@@ -3,47 +3,56 @@
         <span class="eyebrow">{% if catalog_can_edit %}Staff tools{% else %}Subscription view{% endif %}</span>
         <h1>Steam Catalog</h1>
         <p class="text-muted">
-            {% if catalog_can_edit %}Компактный каталог предметов. Основные данные показываются при наведении на карточку.{% else %}Компактный каталог предметов в режиме просмотра. Редакторские действия доступны только staff/admin.{% endif %}
+            {% if catalog_can_edit %}Цены, варианты износа и склад по каждому предмету. Нажми на карточку, чтобы открыть график и историю цены.{% else %}Каталог открыт в режиме просмотра: цены и варианты износа по каждому предмету. Нажми на карточку, чтобы открыть график цены и поставить алерт.{% endif %}
         </p>
     </div>
 
-    <div class="card catalog-toolbar">
-        <div class="card-body">
-            <form method="get" class="toolbar-grid">
-                <div class="form-field">
-                    <label for="q">Поиск</label>
-                    <input id="q" type="text" name="q" value="{{ q }}" class="form-control">
-                </div>
+    <div class="catalog-toolbar">
+        <form method="get" class="catalog-toolbar__form" role="search">
+            <label class="catalog-search" for="q">
+                {% include "components/icon.html" with name="search" %}
+                <span class="visually-hidden">Поиск</span>
+                <input id="q" type="search" name="q" value="{{ q }}" placeholder="Поиск: AK-47, Redline, Kilowatt…" autocomplete="off">
+            </label>
 
-                <div class="form-field">
-                    <label for="type">Тип</label>
-                    <select id="type" name="type" class="form-control">
-                        <option value="">Все</option>
-                        {% for value, label in types %}
-                            <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+            <div class="form-field catalog-toolbar__select">
+                <label for="type">Тип</label>
+                <select id="type" name="type" class="form-control" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
+                    <option value="">Все</option>
+                    {% for value, label in types %}
+                        <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-                <div class="form-field">
+            {% if catalog_can_edit %}
+                <div class="form-field catalog-toolbar__select">
                     <label for="review">Review</label>
-                    <select id="review" name="review" class="form-control">
+                    <select id="review" name="review" class="form-control" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
                         <option value="">Все</option>
                         <option value="1" {% if selected_review == "1" %}selected{% endif %}>Требует review</option>
                         <option value="0" {% if selected_review == "0" %}selected{% endif %}>Без review</option>
                     </select>
                 </div>
+            {% endif %}
 
-                <div class="toolbar-actions">
-                    <button type="submit" class="btn btn-secondary">Фильтровать</button>
-                    {% if catalog_can_edit %}
-                        <a href="{% url 'steam_catalog:add' %}" class="btn btn-primary">Добавить предмет</a>
-                    {% else %}
-                        {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}" class="btn btn-secondary">Тарифы</a>{% endif %}
-                    {% endif %}
-                </div>
-            </form>
-        </div>
+            <div class="toolbar-actions">
+                <button type="submit" class="btn btn-secondary">Фильтровать</button>
+                {% if catalog_can_edit %}
+                    <a href="{% url 'steam_catalog:add' %}" class="btn btn-primary">+ Добавить предмет</a>
+                {% else %}
+                    {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}" class="btn btn-ghost">Тарифы</a>{% endif %}
+                {% endif %}
+            </div>
+        </form>
+
+        <nav class="chip-tabs" aria-label="Тип предмета">
+            <a href="?q={{ q|urlencode }}&review={{ selected_review }}" class="chip-tab {% if not selected_type %}is-active{% endif %}">Все</a>
+            {% for value, label in types %}
+                <a href="?q={{ q|urlencode }}&type={{ value }}&review={{ selected_review }}" class="chip-tab {% if selected_type == value %}is-active{% endif %}">{{ label }}</a>
+            {% endfor %}
+            <span class="chip-tabs__count">{{ page_obj.paginator.count }} {% if page_obj.paginator.count == 1 %}позиция{% else %}позиций{% endif %}</span>
+        </nav>
     </div>
 
     <div
@@ -51,68 +60,71 @@
         style="--catalog-columns: {{ catalog_grid_columns|default:7 }};"
     >
         {% for card in cards %}
-            <article class="card catalog-card catalog-card--compact">
+            <article class="card catalog-card catalog-card--compact rarity--{{ card.item.rarity_key|default:'none' }}">
                 <a href="{% url 'steam_catalog:detail' card.item.id %}" class="catalog-card__link" aria-label="{{ card.item.group_name }}"></a>
-            
+
                 <div class="card-body">
                     <div class="catalog-card__media catalog-card__media--compact">
+                        <span class="catalog-card__type-chip">{{ card.item.get_item_type_display }}</span>
                         {% if card.auto_update_enabled %}
                             <span
                                 class="catalog-card__auto-update-badge"
                                 title="Авто-апдейт цены включён"
                                 aria-label="Авто-апдейт цены включён"
                             >
-                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <path d="M14.1 4.5c2.85-.58 4.85-.06 5.4.49.55.55 1.07 2.55.49 5.4l-3.21 3.21c-.36 1.59-1.16 3.1-2.43 4.37-.21.21-.51.3-.8.24l-3.39-.77-2.45 2.45a1 1 0 0 1-1.7-.65l-.11-2.6-2.6-.11a1 1 0 0 1-.65-1.7l2.45-2.45-.77-3.39a.91.91 0 0 1 .24-.8c1.27-1.27 2.78-2.07 4.37-2.43zm1.48 2.05-4.84 1.11a6.17 6.17 0 0 0-2.71 1.39l.57 2.51c.07.31-.02.64-.24.87l-1.71 1.71 1.42.06c.52.02.93.43.95.95l.06 1.42 1.71-1.71c.23-.23.56-.32.87-.24l2.51.57a6.17 6.17 0 0 0 1.39-2.71l1.11-4.84c.29-1.29.19-2.13.08-2.57-.44-.11-1.28-.21-2.57.08zm1.17 1.58a1.25 1.25 0 1 1 1.77 1.77 1.25 1.25 0 0 1-1.77-1.77z"/>
-                                </svg>
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 12a8 8 0 0 1 13.7-5.6M20 4v5h-5M20 12a8 8 0 0 1-13.7 5.6M4 20v-5h5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
                             </span>
                         {% endif %}
-                        
+
                         {% if card.item.icon_url %}
-                            <img src="{{ card.item.icon_cdn }}" alt="{{ card.item.group_name }}" class="catalog-card__image catalog-card__image--compact">
+                            <img src="{{ card.item.icon_cdn }}" alt="{{ card.item.group_name }}" class="catalog-card__image catalog-card__image--compact" loading="lazy">
                         {% else %}
                             <div class="catalog-card__image-fallback">
                                 <span>{{ card.item.group_name|slice:":1" }}</span>
                             </div>
                         {% endif %}
-                        
-                        <div class="catalog-card__overlay">
-                            <div class="catalog-card__overlay-inner">
-                                <h3 class="catalog-card__title">{{ card.item.group_name }}</h3>
-                                <div class="catalog-card__price">
-                                    {% if card.min_price and card.max_price %}
-                                        {% if card.min_price == card.max_price %}
-                                            {{ card.min_price }}
-                                        {% else %}
-                                            {{ card.min_price }} — {{ card.max_price }}
-                                        {% endif %}
+                    </div>
+
+                    <div class="catalog-card__overlay">
+                        <div class="catalog-card__overlay-inner">
+                            <h3 class="catalog-card__title">{{ card.item.group_name }}</h3>
+                            <div class="catalog-card__price">
+                                {% if card.min_price and card.max_price %}
+                                    {% if card.min_price == card.max_price %}
+                                        {% money card.min_price %}
                                     {% else %}
-                                        —
+                                        <span class="catalog-card__price-from">от</span> {% money card.min_price %}
                                     {% endif %}
-                                </div>
-                                {% if card.total_stock %}<div class="catalog-card__stock">Stock: {{ card.total_stock }}</div>{% endif %}
+                                {% else %}
+                                    <span class="text-muted">нет цены</span>
+                                {% endif %}
+                            </div>
+                            <div class="catalog-card__meta">
+                                {% if card.variants_count > 1 %}<span>{{ card.variants_count }} вар.</span>{% endif %}
+                                {% if card.item.rarity %}<span class="catalog-card__rarity">{{ card.item.rarity }}</span>{% endif %}
+                                {% if card.total_stock %}<span class="catalog-card__stock">Stock: {{ card.total_stock }}</span>{% endif %}
                             </div>
                         </div>
                     </div>
                 </div>
             </article>
         {% empty %}
-            <article class="card">
-                <div class="card-body">
-                    <p class="text-muted">Каталог пока пуст.</p>
-                </div>
-            </article>
+            <div class="empty-panel">
+                <strong>Каталог пока пуст</strong>
+                <p class="text-muted">{% if catalog_can_edit %}Добавь первый предмет, и он появится здесь вместе с ценой.{% else %}Предметы появятся, когда команда добавит их в каталог.{% endif %}</p>
+                {% if catalog_can_edit %}<a href="{% url 'steam_catalog:add' %}" class="btn btn-primary btn-sm">+ Добавить предмет</a>{% endif %}
+            </div>
         {% endfor %}
     </div>
 
     {% if page_obj.paginator.num_pages > 1 %}
         <div class="pagination-wrap">
             {% if page_obj.has_previous %}
-                <a class="btn btn-secondary" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&type={{ selected_type }}&review={{ selected_review }}">Назад</a>
+                <a class="btn btn-secondary btn-sm" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&type={{ selected_type }}&review={{ selected_review }}">Назад</a>
             {% endif %}
-            <span class="text-muted">Страница {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            <span class="pagination-wrap__state">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
             {% if page_obj.has_next %}
-                <a class="btn btn-secondary" href="?page={{ page_obj.next_page_number }}&q={{ q }}&type={{ selected_type }}&review={{ selected_review }}">Вперёд</a>
+                <a class="btn btn-secondary btn-sm" href="?page={{ page_obj.next_page_number }}&q={{ q }}&type={{ selected_type }}&review={{ selected_review }}">Вперёд</a>
             {% endif %}
         </div>
     {% endif %}

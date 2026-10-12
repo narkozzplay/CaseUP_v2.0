@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="{% static 'css/layout.css' %}">
     <link rel="stylesheet" href="{% static 'css/components.css' %}">
     <link rel="stylesheet" href="{% static 'css/shell.css' %}">
+    <link rel="stylesheet" href="{% static 'css/ui.css' %}">
     {% if active_theme_css_file %}<link rel="stylesheet" href="{% static active_theme_css_file %}" id="active-theme-css" data-theme-key="{{ active_theme.key|default:'' }}">{% endif %}
     {% block extra_head %}{% endblock %}
     {% for runtime_theme_css_file in runtime_theme_css_files %}

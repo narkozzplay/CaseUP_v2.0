@@ -1,167 +1,83 @@
-<section class="section section--compact" data-steam-catalog-detail-page>
-    <div class="profile-hero card">
-        <div class="card-body profile-hero__body">
-            <div class="profile-hero__main">
-                <span class="eyebrow">Steam Catalog</span>
-                <h1 class="page-title page-title--sm">{{ item.group_name }}</h1>
-                <p class="text-muted profile-hero__subtitle">
-                    Базовая карточка предмета. Ниже — все связанные варианты, цены, stock и ручные операции.
-                </p>
+<section class="section section--compact item-page rarity--{{ item.rarity_key|default:'none' }}" data-steam-catalog-detail-page>
+    <a href="{% url 'steam_catalog:list' %}" class="back-link">← Steam Catalog</a>
+
+    <div class="item-hero">
+        <div class="item-hero__stage">
+            <div class="steam-catalog-detail__media">
+                {% if item.icon_cdn %}
+                    <img src="{{ item.icon_cdn }}" alt="{{ item.group_name }}" class="steam-catalog-detail__image">
+                {% else %}
+                    <div class="steam-catalog-detail__image-fallback" aria-hidden="true">
+                        {{ item.get_item_type_display|default:"Item" }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="item-hero__info">
+            <div class="item-hero__tags">
+                <span class="tag">{{ item.get_item_type_display }}</span>
+                {% if item.rarity %}<span class="tag tag--rarity">{{ item.rarity }}</span>{% endif %}
+                {% if item.is_stattrak %}<span class="tag tag--stattrak">StatTrak™</span>{% endif %}
+                {% if item.exterior %}<span class="tag">{{ item.exterior }}</span>{% endif %}
+            </div>
+            <h1 class="item-hero__title">{{ item.group_name }}</h1>
+            {% if item.market_hash_name != item.group_name %}<p class="item-hero__variant">{{ item.market_hash_name }}</p>{% endif %}
+
+            <div class="item-hero__price">
+                <span class="item-hero__price-label">Текущая цена</span>
+                <strong>{% if item.price_rub %}{% money item.price_rub %}{% else %}—{% endif %}</strong>
+                {% if catalog_can_view_deep_analytics and price_chart.has_data %}
+                    <span class="item-hero__delta item-hero__delta--{{ price_analytics.trend_direction }}">{{ price_analytics.trend_delta_label }} ({{ price_analytics.trend_percent|floatformat:2 }}%)</span>
+                {% endif %}
             </div>
 
-            <div class="profile-hero__aside">
-                <div class="steam-catalog-detail__media">
-                    {% if item.icon_cdn %}
-                        <img src="{{ item.icon_cdn }}" alt="{{ item.group_name }}" class="steam-catalog-detail__image">
-                    {% else %}
-                        <div class="steam-catalog-detail__image-fallback" aria-hidden="true">
-                            {{ item.get_item_type_display|default:"Item" }}
-                        </div>
-                    {% endif %}
-                </div>
-                <div class="profile-badges">
-                    <span class="status-pill">Вариантов: {{ family_items|length }}</span>
-                    <span class="status-pill">Stock: {{ family_total_stock }}</span>
-                    <span class="status-pill">
-                        Цена:
-                        {% if family_min_price and family_max_price %}
-                            {% if family_min_price == family_max_price %}
-                                {{ family_min_price }}
-                            {% else %}
-                                {{ family_min_price }} — {{ family_max_price }}
-                            {% endif %}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </span>
-                    {% if auto_update_enabled %}
-                        <span class="status-pill">Auto update: ON</span>
-                    {% else %}
-                        <span class="status-pill">Auto update: OFF</span>
-                    {% endif %}
-                </div>
+            <dl class="item-hero__facts">
+                <div><dt>Диапазон семейства</dt><dd>{% if family_min_price and family_max_price %}{% if family_min_price == family_max_price %}{% money family_min_price %}{% else %}{% money family_min_price %} — {% money family_max_price %}{% endif %}{% else %}—{% endif %}</dd></div>
+                <div><dt>Вариантов</dt><dd>{{ family_items|length }}</dd></div>
+                <div><dt>Stock</dt><dd>{{ family_total_stock }}</dd></div>
+                <div><dt>Обновлено</dt><dd>{% if latest_price_entry %}{{ latest_price_entry.created_at|date:"d.m H:i" }}{% else %}—{% endif %}</dd></div>
+                <div><dt>Авто-апдейт</dt><dd class="{% if auto_update_enabled %}text-up{% else %}text-muted{% endif %}">{% if auto_update_enabled %}ON · {{ auto_update_rule.schedule_display }}{% else %}OFF{% endif %}</dd></div>
+            </dl>
+
+            <div class="item-hero__actions">
+                {% if catalog_can_edit %}
+                    <form method="post" action="{% url 'steam_catalog:update_price' item.id %}" class="inline-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Обновить цену</button>
+                    </form>
+                {% endif %}
+                <a href="{% url 'steam_catalog:alert_rule_create' %}" class="btn btn-secondary">Поставить алерт</a>
+                {% if steam_market_url %}<a href="{{ steam_market_url }}" class="btn btn-ghost" target="_blank" rel="noopener" data-dashboard-nav="false">Steam Market ↗</a>{% endif %}
             </div>
+            {% if catalog_can_edit %}
+                <p class="price-card__hint">{% if item.item_type == "skin" %}Для скинов обновляются цены всех вариантов семейства.{% else %}Обновляется текущий предмет.{% endif %}</p>
+            {% endif %}
         </div>
     </div>
 
-    <div class="profile-grid">
-        <article class="card">
-            <div class="card-body">
-                <h2 class="section-title">Метаданные карточки</h2>
-                <dl class="details-list">
-                    <div><dt>Тип</dt><dd>{{ item.get_item_type_display }}</dd></div>
-                    <div><dt>Family</dt><dd>{{ item.family_name|default:"—" }}</dd></div>
-                    <div><dt>Weapon</dt><dd>{{ item.weapon|default:"—" }}</dd></div>
-                    <div><dt>Rarity</dt><dd>{{ item.rarity|default:"—" }}</dd></div>
-                    <div><dt>Rarity key</dt><dd>{{ item.rarity_key|default:"—" }}</dd></div>
-                    <div><dt>Текущая цена варианта</dt><dd>{{ item.price_rub|default:"—" }}</dd></div>
-                    <div>
-                        <dt>Последнее обновление цены</dt>
-                        <dd>
-                            {% if latest_price_entry %}
-                                {{ latest_price_entry.created_at|date:"d.m.Y H:i" }}
-                            {% else %}
-                                —
-                            {% endif %}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt>Авто-апдейт</dt>
-                        <dd>
-                            {% if auto_update_rule %}
-                                Включён
-                            {% else %}
-                                Выключен
-                            {% endif %}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt>Расписание</dt>
-                        <dd>
-                            {% if auto_update_rule %}
-                                {{ auto_update_rule.schedule_display }}
-                            {% else %}
-                                —
-                            {% endif %}
-                        </dd>
-                    </div>
-                </dl>
-
-                {% if catalog_can_edit %}
-                    <div class="price-card__actions">
-                        <form method="post" action="{% url 'steam_catalog:update_price' item.id %}" class="inline-form inline-form--block">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary btn-block">Обновить цену</button>
-                        </form>
-                        <p class="price-card__hint">
-                            {% if item.item_type == "skin" %}
-                                Для скинов обновляются цены всех вариантов семейства.
-                            {% else %}
-                                Обновляется текущий предмет.
-                            {% endif %}
-                        </p>
-                    </div>
-
-                    <hr style="margin: 24px 0; border-color: var(--border);">
-
-                    <form method="post" action="{% url 'steam_catalog:update_name_ru' item.id %}" class="form-stack">
-                        {% csrf_token %}
-                        <div class="form-field">
-                            <label for="{{ name_ru_form.name_ru.id_for_label }}">RU-name</label>
-                            {{ name_ru_form.name_ru }}
-                            {{ name_ru_form.name_ru.errors }}
-                        </div>
-                        {% if item.item_type == "skin" %}
-                            <p class="text-muted">Для скинов это значение сохранится сразу на все варианты семейства.</p>
-                        {% endif %}
-                        <button type="submit" class="btn btn-secondary btn-block">Сохранить RU-name</button>
-                    </form>
-                {% else %}
-                    <div class="feature-lock-card feature-lock-card--compact">
-                        <div class="feature-lock-card__badge">View mode</div>
-                        <h3 class="feature-lock-card__title">Редактирование закрыто</h3>
-                        <p class="feature-lock-card__text">Эта карточка открыта в режиме просмотра. Ручное обновление цены, RU-name и складские операции доступны только staff/admin.</p>
-                    </div>
-                {% endif %}
+    {% if family_items|length > 1 %}
+        <section class="variant-picker" aria-label="Варианты предмета">
+            <div class="section-head-inline">
+                <h2 class="section-title">Варианты предмета</h2>
+                <span class="text-muted">{{ family_items|length }} записей</span>
             </div>
-        </article>
-
-        <article class="card">
-            <div class="card-body">
-                <h2 class="section-title">Склад</h2>
-
-                {% if catalog_can_edit %}
-                    <form method="post" action="{% url 'steam_catalog:add_stock_move' item.id %}" class="form-stack">
-                        {% csrf_token %}
-                        <div class="form-field">
-                            <label for="{{ stock_form.reason.id_for_label }}">Причина</label>
-                            {{ stock_form.reason }}
-                        </div>
-                        <div class="form-field">
-                            <label for="{{ stock_form.qty.id_for_label }}">Количество</label>
-                            {{ stock_form.qty }}
-                        </div>
-                        <div class="form-field">
-                            <label for="{{ stock_form.note.id_for_label }}">Комментарий</label>
-                            {{ stock_form.note }}
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block">Сохранить движение</button>
-                    </form>
-                {% else %}
-                    <div class="feature-lock-card feature-lock-card--compact">
-                        <div class="feature-lock-card__badge">Staff only</div>
-                        <h3 class="feature-lock-card__title">Складские операции скрыты</h3>
-                        <p class="feature-lock-card__text">Подписка открывает просмотр каталога и аналитику, но не складские изменения.</p>
-                    </div>
-                {% endif %}
+            <div class="variant-picker__grid">
+                {% for variant in family_items %}
+                    <a href="{% url 'steam_catalog:detail' variant.id %}" class="variant-tile{% if variant.id == item.id %} is-active{% endif %}{% if variant.is_stattrak %} variant-tile--stattrak{% endif %}"{% if variant.id == item.id %} aria-current="page"{% endif %}>
+                        <span class="variant-tile__name">{% if variant.is_stattrak %}ST · {% endif %}{{ variant.exterior|default:variant.market_hash_name }}</span>
+                        <strong class="variant-tile__price">{% if variant.price_rub %}{% money variant.price_rub %}{% else %}—{% endif %}</strong>
+                        <span class="variant-tile__stock">Stock: {{ variant.stock }}</span>
+                    </a>
+                {% endfor %}
             </div>
-        </article>
-    </div>
+        </section>
+    {% endif %}
 
     <article class="card profile-history" id="price-history">
         <div class="card-body">
             <div class="section-head-inline">
-                <h2 class="section-title">История цены: {{ item.group_name }}</h2>
+                <h2 class="section-title">История цены</h2>
                 <span class="text-muted">{{ price_history|length }} записей</span>
             </div>
 
@@ -294,6 +210,8 @@
                         </span>
                     </div>
                 
+                    <details class="raw-history">
+                    <summary>Сырая история цены</summary>
                     <div class="table-wrap">
                         <table class="table table--dark">
                             <thead>
@@ -314,6 +232,7 @@
                             </tbody>
                         </table>
                     </div>
+                    </details>
                 </div>
             {% else %}
                 <div class="price-chart">
@@ -338,39 +257,73 @@
         </div>
     </article>
 
-    <article class="card profile-history">
-        <div class="card-body">
-            <div class="section-head-inline">
-                <h2 class="section-title">Варианты предмета</h2>
-                <span class="text-muted">{{ family_items|length }} записей</span>
-            </div>
+    <div class="item-columns">
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Метаданные карточки</h2>
+                <dl class="details-list details-list--compact">
+                    <div><dt>Тип</dt><dd>{{ item.get_item_type_display }}</dd></div>
+                    <div><dt>Family</dt><dd>{{ item.family_name|default:"—" }}</dd></div>
+                    <div><dt>Weapon</dt><dd>{{ item.weapon|default:"—" }}</dd></div>
+                    <div><dt>Rarity</dt><dd>{{ item.rarity|default:"—" }}</dd></div>
+                    <div><dt>Rarity key</dt><dd>{{ item.rarity_key|default:"—" }}</dd></div>
+                    <div><dt>Текущая цена варианта</dt><dd>{{ item.price_rub|default:"—" }}</dd></div>
+                </dl>
 
-            <div class="table-wrap">
-                <table class="table table--dark">
-                    <thead>
-                        <tr>
-                            <th>Вариант</th>
-                            <th>Exterior</th>
-                            <th>StatTrak™</th>
-                            <th>Цена</th>
-                            <th>Stock</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for variant in family_items %}
-                            <tr>
-                                <td>{{ variant.market_hash_name }}</td>
-                                <td>{{ variant.exterior|default:"—" }}</td>
-                                <td>{{ variant.is_stattrak|yesno:"Да,Нет" }}</td>
-                                <td>{{ variant.price_rub|default:"—" }}</td>
-                                <td>{{ variant.stock }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                {% if catalog_can_edit %}
+                    <form method="post" action="{% url 'steam_catalog:update_name_ru' item.id %}" class="form-stack item-columns__form">
+                        {% csrf_token %}
+                        <div class="form-field">
+                            <label for="{{ name_ru_form.name_ru.id_for_label }}">RU-name</label>
+                            {{ name_ru_form.name_ru }}
+                            {{ name_ru_form.name_ru.errors }}
+                        </div>
+                        {% if item.item_type == "skin" %}
+                            <p class="text-muted">Для скинов это значение сохранится сразу на все варианты семейства.</p>
+                        {% endif %}
+                        <button type="submit" class="btn btn-secondary btn-block">Сохранить RU-name</button>
+                    </form>
+                {% else %}
+                    <div class="feature-lock-card feature-lock-card--compact">
+                        <div class="feature-lock-card__badge">View mode</div>
+                        <h3 class="feature-lock-card__title">Редактирование закрыто</h3>
+                        <p class="feature-lock-card__text">Эта карточка открыта в режиме просмотра. Ручное обновление цены, RU-name и складские операции доступны только staff/admin.</p>
+                    </div>
+                {% endif %}
             </div>
-        </div>
-    </article>
+        </article>
+
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">Склад</h2>
+
+                {% if catalog_can_edit %}
+                    <form method="post" action="{% url 'steam_catalog:add_stock_move' item.id %}" class="form-stack">
+                        {% csrf_token %}
+                        <div class="form-field">
+                            <label for="{{ stock_form.reason.id_for_label }}">Причина</label>
+                            {{ stock_form.reason }}
+                        </div>
+                        <div class="form-field">
+                            <label for="{{ stock_form.qty.id_for_label }}">Количество</label>
+                            {{ stock_form.qty }}
+                        </div>
+                        <div class="form-field">
+                            <label for="{{ stock_form.note.id_for_label }}">Комментарий</label>
+                            {{ stock_form.note }}
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Сохранить движение</button>
+                    </form>
+                {% else %}
+                    <div class="feature-lock-card feature-lock-card--compact">
+                        <div class="feature-lock-card__badge">Staff only</div>
+                        <h3 class="feature-lock-card__title">Складские операции скрыты</h3>
+                        <p class="feature-lock-card__text">Подписка открывает просмотр каталога и аналитику, но не складские изменения.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </article>
+    </div>
 
     <article class="card profile-history">
         <div class="card-body">
