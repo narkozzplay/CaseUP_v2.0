@@ -102,15 +102,6 @@ def dashboard(request):
     config = get_farm_module_config()
 
     accounts_qs = _get_account_queryset_for_user(request.user, access)
-    drops_qs = WeeklyDropLog.objects.select_related(
-        "account",
-        "account__owner",
-        "item_1",
-        "item_2",
-    )
-    if not access.staff_access:
-        drops_qs = drops_qs.filter(account__owner=request.user)
-
     sessions_qs = _get_session_queryset_for_user(request.user, access).order_by("-collected_at", "-id")
     sales_qs = _get_sale_queryset_for_user(request.user, access)
     analytics_locked = not feature_state.deep_analytics
@@ -130,15 +121,9 @@ def dashboard(request):
         "accounts_total": accounts_qs.count(),
         "accounts_active": accounts_qs.filter(status=FarmAccount.Status.ACTIVE).count(),
         "accounts_review": accounts_qs.filter(status=FarmAccount.Status.REVIEW).count(),
-        "catalog_items": SteamItem.objects.filter(is_active=True).count(),
-        "active_pool_total": ActiveDropPoolEntry.objects.filter(is_active=True).count(),
-        "weekly_drops_total": drops_qs.count(),
         "drop_sessions_total": sessions_qs.count(),
         "sales_total": sales_qs.count(),
         "caseup_sales_total": sales_qs.filter(platform=FarmDropSale.Platform.CASEUP).count(),
-        "recent_accounts": accounts_qs[:10],
-        "recent_drops": drops_qs[:10],
-        "active_pool_entries": ActiveDropPoolEntry.objects.filter(is_active=True).select_related("item")[:12],
         "dashboard_analytics": dashboard_analytics,
         "recent_session_rows": recent_session_rows,
         "current_caseup_fee_percent": resolve_sale_fee_percent(user=request.user, platform=FarmDropSale.Platform.CASEUP),
@@ -160,7 +145,6 @@ def accounts_list(request):
     access = get_farm_access(request.user)
 
     qs = _get_account_queryset_for_user(request.user, access).annotate(
-        weekly_drop_count=Count("weekly_drops"),
         session_count=Count("drop_sessions", distinct=True),
         inventory_total=Count("inventory_items", filter=Q(inventory_items__is_missing=False), distinct=True),
         inventory_sellable_total=Count(

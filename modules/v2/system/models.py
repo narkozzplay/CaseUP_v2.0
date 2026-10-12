@@ -611,15 +611,6 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 30,
             },
             {
-                "key": "farm_legacy_logs",
-                "label_ru": "Legacy weekly logs",
-                "label_en": "Legacy weekly logs",
-                "url_name": "farm:drops_list",
-                "group": cls.Group.FARM,
-                "visibility_condition": cls.Visibility.FARM_ACCESS,
-                "sort_order": 40,
-            },
-            {
                 "key": "tradehub_dashboard",
                 "label_ru": "TradeHub",
                 "label_en": "TradeHub",

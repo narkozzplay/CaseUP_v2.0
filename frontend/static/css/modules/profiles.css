@@ -369,17 +369,35 @@
 }
 
 .users-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
 }
 
 .users-card {
     min-width: 0;
 }
 
+/* Два класса = выше специфичность, чем .catalog-card--compact в steam_catalog.css */
+.users-card.catalog-card--compact {
+    overflow: visible;
+}
+
+.users-card .user-mini-card {
+    left: 0;
+    transform: translateX(0) translateY(6px);
+}
+
+.users-card:hover .user-mini-card {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0) translateY(0);
+}
+
 .users-card .card-body {
     display: flex;
     flex-direction: column;
     min-height: 100%;
+    padding: 0;
 }
 
 .users-card__media {
@@ -387,36 +405,43 @@
     align-items: center;
     justify-content: center;
     aspect-ratio: 1 / 1;
-    padding: 18px;
+    padding: 12px;
+    border-radius: 16px;
     background:
         radial-gradient(circle at top, rgba(111, 124, 255, 0.20), rgba(255, 255, 255, 0.02) 58%),
         linear-gradient(180deg, rgba(18, 25, 51, 0.84), rgba(11, 16, 32, 0.95));
 }
 
 .users-card__avatar {
-    width: min(100%, 148px);
+    width: 100%;
+    max-width: 96px;
     aspect-ratio: 1 / 1;
     border: 1px solid var(--border);
-    border-radius: 28px;
+    border-radius: 18px;
     object-fit: cover;
-    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.30);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.30);
+    transition: transform 0.2s ease;
+}
+
+.users-card:hover .users-card__avatar {
+    transform: scale(1.04);
 }
 
 .users-card__media .presence-avatar-wrap {
-    width: min(100%, 148px);
+    width: min(100%, 96px);
 }
 
 .users-card__media .presence-indicator {
-    width: 16px;
-    height: 16px;
+    width: 12px;
+    height: 12px;
 }
 
 .users-card__content {
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: 10px;
-    padding: 16px;
+    gap: 6px;
+    padding: 10px 10px 12px;
 }
 
 .users-card__name,
@@ -427,8 +452,11 @@
 
 .users-card__name {
     margin: 0;
-    font-size: 1.05rem;
+    font-size: 0.88rem;
     line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .users-card__username {
@@ -436,6 +464,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 0.75rem;
 }
 
 .users-card__badges,
@@ -477,17 +506,17 @@
 }
 
 .users-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
 }
 
 .users-list__row {
     display: grid;
-    grid-template-columns: auto minmax(160px, 1.1fr) minmax(260px, 2fr) minmax(140px, auto) auto;
-    gap: 14px;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 10px;
     align-items: center;
-    padding: 14px 16px;
+    padding: 12px 14px;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     background: rgba(255, 255, 255, 0.03);
@@ -528,17 +557,15 @@
     }
 
     .users-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    }
+
+    .users-list {
+        grid-template-columns: 1fr;
     }
 
     .users-list__row {
-        grid-template-columns: auto minmax(160px, 1fr) minmax(240px, 1.4fr);
-    }
-
-    .users-list__activity,
-    .users-list__actions,
-    .users-list__open {
-        grid-column: 2 / -1;
+        grid-template-columns: auto 1fr auto auto;
     }
 }
 
@@ -565,29 +592,215 @@
         width: 100%;
     }
 
-    .users-catalog__filters,
+    .users-catalog__filters {
+        grid-template-columns: 1fr;
+    }
+
     .users-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+
+    .users-list {
         grid-template-columns: 1fr;
     }
 
     .users-list__row {
-        grid-template-columns: auto minmax(0, 1fr);
-    }
-
-    .users-list__meta,
-    .users-list__activity,
-    .users-list__actions,
-    .users-list__open {
-        grid-column: 1 / -1;
+        grid-template-columns: auto 1fr auto;
     }
 
     .users-list__actions {
-        justify-content: stretch;
+        grid-column: 1 / -1;
+        justify-content: flex-start;
     }
+}
 
-    .users-list__open {
-        width: 100%;
-    }
+/* ============================================================
+   USER HOVER MINI-CARD
+   ============================================================ */
+
+.user-hover-wrap {
+    position: relative;
+}
+
+.user-mini-card {
+    position: absolute;
+    z-index: 500;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%) translateY(6px);
+    width: 230px;
+    padding: 14px;
+    background: rgba(10, 14, 28, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 16px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(16px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.user-hover-wrap:hover .user-mini-card {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+}
+
+.user-mini-card__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.user-mini-card__avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.user-mini-card__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.user-mini-card__name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 150px;
+}
+
+.user-mini-card__role {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.user-mini-card__online {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.user-mini-card__online--on { color: #8df7b0; }
+.user-mini-card__online--off { color: var(--text-muted); }
+
+.user-mini-card__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.user-mini-card__stats .status-pill {
+    font-size: 0.72rem;
+    padding: 2px 7px;
+}
+
+.user-mini-card__actions {
+    display: flex;
+    gap: 6px;
+    position: relative;
+    z-index: 10;
+}
+
+.user-mini-card__actions .btn {
+    flex: 1;
+    font-size: 0.78rem;
+    min-height: 30px;
+    padding: 4px 8px;
+}
+
+/* List row: overlay link for whole-row click */
+.users-list__row {
+    position: relative;
+}
+
+.users-list__row-link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: var(--radius-md);
+}
+
+.users-list__row:hover .users-list__name {
+    color: #fff;
+}
+
+/* Avatar wrap в list — inline чтобы не ломать auto-колонку */
+.users-list__avatar-wrap {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    position: relative;
+    z-index: 2;
+}
+
+/* Positioning mini-card for list avatar */
+.users-list__avatar-wrap .user-mini-card {
+    left: 0;
+    transform: translateX(0) translateY(6px);
+    bottom: calc(100% + 8px);
+}
+
+.users-list__avatar-wrap:hover .user-mini-card {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0) translateY(0);
+}
+
+/* Keep actions/form above the overlay */
+.users-list__actions,
+.users-list__meta,
+.users-list__identity,
+.users-list__activity {
+    position: relative;
+    z-index: 2;
+}
+
+/* Users catalog toolbar: 5 колонок (поиск, роль, faceit, сортировка, кнопки) */
+.users-catalog__toolbar .toolbar-grid {
+    grid-template-columns: 2fr 1fr 1fr 1fr auto;
+}
+
+/* user-hover-wrap в строчных контекстах */
+.dashboard-list__row-person .user-hover-wrap {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+}
+
+/* Дашборд: mini-card внутри user-hover-wrap, рядом с маленькой аватаркой */
+.dashboard-list__row-person .user-hover-wrap .user-mini-card {
+    left: 0;
+    transform: translateX(0) translateY(6px);
+    bottom: calc(100% + 8px);
+}
+
+.dashboard-list__row-person .user-hover-wrap:hover .user-mini-card {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0) translateY(0);
+}
+
+/* Чат: user-hover-wrap совмещён с presence-avatar-wrap, mini-card внутри него */
+.user-hover-wrap.presence-avatar-wrap--sm .user-mini-card {
+    left: 0;
+    transform: translateX(0) translateY(6px);
+    bottom: calc(100% + 8px);
+}
+
+.user-hover-wrap.presence-avatar-wrap--sm:hover .user-mini-card {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0) translateY(0);
 }
 
 /* ============================================================

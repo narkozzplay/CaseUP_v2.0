@@ -372,7 +372,7 @@ class FarmDropItemForm(forms.Form):
         }
 
 
-FarmDropItemFormSet = formset_factory(FarmDropItemForm, extra=2, min_num=1, validate_min=True, can_delete=True)
+FarmDropItemFormSet = formset_factory(FarmDropItemForm, extra=1, min_num=1, validate_min=True, can_delete=True)
 
 
 class FarmDropSaleForm(forms.ModelForm):

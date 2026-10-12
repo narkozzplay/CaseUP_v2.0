@@ -258,6 +258,7 @@
                             
                                 {% for point in price_chart.points %}
                                     <g class="price-chart__point">
+                                        {% if point.show_label %}
                                         <text
                                             class="price-chart__value"
                                             x="{{ point.x_svg }}"
@@ -265,12 +266,13 @@
                                             text-anchor="middle">
                                             {{ point.value_label }}
                                         </text>
-                                    
+                                        {% endif %}
+
                                         <circle
                                             class="price-chart__dot"
                                             cx="{{ point.x_svg }}"
                                             cy="{{ point.y_svg }}"
-                                            r="4">
+                                            r="{{ price_chart.dot_radius }}">
                                             <title>{{ point.value_label }} {{ site_settings.site_currency_symbol|default:'₽' }} · {{ point.label }} · {{ point.created_label }}</title>
                                         </circle>
                                     </g>
@@ -285,10 +287,10 @@
                 
                     <div class="section-head-inline section-head-inline--subtle">
                         <span class="text-muted">
-                            {{ price_history_total }} сырых записей за выбранный период
+                            {{ price_history_total }} записей за выбранный период
                         </span>
                         <span class="text-muted">
-                            {{ price_chart.points|length }} агрегированных точек на графике
+                            {{ price_chart.points|length }} точек на графике
                         </span>
                     </div>
                 

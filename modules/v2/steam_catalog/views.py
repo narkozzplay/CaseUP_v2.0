@@ -117,16 +117,22 @@ def _get_bucket_label(bucket_start, range_key: str) -> str:
     return bucket_start.strftime("%Y")
 
 
+_RAW_RANGES = frozenset({"day", "week", "month", "year", "all"})
+
+_CHART_LABEL_THRESHOLD = 30
+_MAX_CHART_POINTS = 400
+
+
 def _get_range_note(range_key: str) -> str:
     if range_key == "day":
-        return "На графике — максимум за каждый час."
+        return "На графике — все точки за последние 24 часа."
     if range_key == "week":
-        return "На графике — максимум за каждый день."
+        return "На графике — все точки за 7 дней (~24 точки/сутки)."
     if range_key == "month":
-        return "На графике — максимум за каждую неделю."
+        return "На графике — все точки за месяц."
     if range_key == "year":
-        return "На графике — максимум за каждый месяц."
-    return "На графике — максимум за каждый год."
+        return f"На графике — все точки за год (при >{ _MAX_CHART_POINTS} выборка с сохранением min/max)."
+    return f"На графике — все точки за всё время (при >{_MAX_CHART_POINTS} выборка с сохранением min/max)."
 
 
 def _group_history_entries(history_entries, range_key: str):
@@ -158,6 +164,23 @@ def _group_history_entries(history_entries, range_key: str):
             }
 
     return [buckets[key] for key in sorted(buckets.keys())]
+
+
+def _build_raw_chart_entries(history_entries, range_key: str):
+    if not history_entries:
+        return []
+    tz = timezone.get_current_timezone()
+    result = []
+    for entry in history_entries:
+        local_dt = timezone.localtime(entry.created_at, tz)
+        if range_key == "day":
+            label = local_dt.strftime("%H:%M")
+        elif range_key in ("week", "month"):
+            label = local_dt.strftime("%d.%m %H:%M")
+        else:
+            label = local_dt.strftime("%d.%m.%y")
+        result.append({"entry": entry, "label": label})
+    return result
 
 
 def _format_signed_decimal(value: Decimal) -> str:
@@ -343,7 +366,17 @@ def _build_price_chart(chart_entries):
             "points": [],
             "first_label": "",
             "last_label": "",
+            "dot_radius": 4,
         }
+
+    if len(chart_rows) > _MAX_CHART_POINTS:
+        all_values = [row["entry"].price_rub for row in chart_rows]
+        min_idx = all_values.index(min(all_values))
+        max_idx = all_values.index(max(all_values))
+        keep = {0, len(chart_rows) - 1, min_idx, max_idx}
+        step = max(1, len(chart_rows) // (_MAX_CHART_POINTS - len(keep)))
+        sampled = sorted(keep | set(range(0, len(chart_rows), step)))
+        chart_rows = [chart_rows[i] for i in sampled]
 
     chart_values = [row["entry"].price_rub for row in chart_rows]
     chart_min_value = min(chart_values)
@@ -360,15 +393,25 @@ def _build_price_chart(chart_entries):
     if spread == 0:
         spread = Decimal("1")
 
+    n = len(chart_rows)
+    dot_radius = 4 if n <= 48 else (3 if n <= 150 else 2)
+
+    if n > _CHART_LABEL_THRESHOLD:
+        min_idx = chart_values.index(chart_min_value)
+        max_idx = chart_values.index(chart_max_value)
+        label_indices = {0, n - 1, min_idx, max_idx}
+    else:
+        label_indices = set(range(n))
+
     points = []
 
     for index, row in enumerate(chart_rows):
         entry = row["entry"]
 
-        if len(chart_rows) == 1:
+        if n == 1:
             x = chart_width / 2
         else:
-            x = pad_x + (usable_width * index / (len(chart_rows) - 1))
+            x = pad_x + (usable_width * index / (n - 1))
 
         relative = float((entry.price_rub - chart_min_value) / spread)
         y = pad_y + ((1 - relative) * usable_height)
@@ -388,6 +431,7 @@ def _build_price_chart(chart_entries):
                 "value_label": f"{entry.price_rub:.2f}",
                 "label": row["label"],
                 "created_label": timezone.localtime(entry.created_at).strftime("%d.%m.%Y %H:%M"),
+                "show_label": index in label_indices,
             }
         )
 
@@ -396,6 +440,7 @@ def _build_price_chart(chart_entries):
         "points": points,
         "first_label": chart_rows[0]["label"],
         "last_label": chart_rows[-1]["label"],
+        "dot_radius": dot_radius,
     }
 
 
@@ -551,11 +596,8 @@ def catalog_detail(request, item_id: int):
     filtered_history_asc = list(history_qs.order_by("created_at"))
     price_history = list(reversed(filtered_history_asc[-50:]))
 
-    grouped_chart_entries = _group_history_entries(
-        filtered_history_asc,
-        selected_price_history_range,
-    )
-    price_chart = _build_price_chart(grouped_chart_entries)
+    chart_entries = _build_raw_chart_entries(filtered_history_asc, selected_price_history_range)
+    price_chart = _build_price_chart(chart_entries)
     price_analytics = _build_price_analytics(filtered_history_asc)
 
     auto_update_rule = (

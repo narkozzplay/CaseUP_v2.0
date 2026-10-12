@@ -829,14 +829,17 @@ def _require_visible_membership(user, space: SocialSpace) -> SocialMembership:
 
 
 def _build_message_row(user, message: SocialMessage) -> dict[str, object]:
+    from django.urls import reverse as _reverse
     profile = _get_user_profile(message.author)
     return {
         "id": message.id,
         "body": message.body,
         "created_at": message.created_at,
         "author_id": message.author_id,
+        "author_user_id": message.author_id,
         "author_display_name": get_profile_display_name(profile, fallback_username=message.author.username),
         "author_avatar_url": get_profile_avatar_url(profile),
+        "author_profile_url": _reverse("profiles:profile_detail", args=[message.author_id]),
         "author_is_online": is_profile_online(profile),
         "author_verification_badge": get_verification_badge(profile),
         "is_own": message.author_id == user.pk,

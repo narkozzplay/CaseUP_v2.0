@@ -152,7 +152,7 @@
                 <div class="cs2-stat-panel__rows">
                     {% include "cs2_stats/partials/_stat_row.html" with label="K/D" value=comparison.steam_kd highlight=True %}
                     {% include "cs2_stats/partials/_stat_row.html" with label="HS %" value=comparison.steam_hs unit="%" %}
-                    {% include "cs2_stats/partials/_stat_row.html" with label="Win rate" value=comparison.steam_winrate unit="%" %}
+                    {% include "cs2_stats/partials/_stat_row.html" with label="Round %" value=comparison.steam_winrate unit="%" %}
                     {% include "cs2_stats/partials/_stat_row.html" with label_ru="Матчей" label_en="Matches" value=comparison.steam_matches %}
                 </div>
             </div>
@@ -196,8 +196,8 @@
                 {% include "cs2_stats/partials/_big_stat.html" with label_ru="K/D"      label_en="K/D"      value=steam_stats.kd_ratio highlight=True %}
                 {% include "cs2_stats/partials/_big_stat.html" with label_ru="HS %"     label_en="HS %"     value=steam_stats.hs_percent unit="%" %}
                 {% include "cs2_stats/partials/_big_stat.html" with label_ru="Матчей"   label_en="Matches"  value=steam_stats.total_matches_played %}
-                {% include "cs2_stats/partials/_big_stat.html" with label_ru="Побед"    label_en="Wins"     value=steam_stats.total_wins %}
-                {% include "cs2_stats/partials/_big_stat.html" with label_ru="Win %"    label_en="Win %"    value=steam_stats.win_rate unit="%" %}
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="Раундов W" label_en="Rounds W"  value=steam_stats.total_wins %}
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="Round %"  label_en="Round %"  value=steam_stats.win_rate unit="%" %}
                 {% include "cs2_stats/partials/_big_stat.html" with label_ru="MVPs"     label_en="MVPs"     value=steam_stats.total_mvps %}
                 {% include "cs2_stats/partials/_big_stat.html" with label_ru="Точность" label_en="Accuracy" value=steam_stats.accuracy unit="%" %}
                 {% include "cs2_stats/partials/_big_stat.html" with label_ru="Часов"    label_en="Hours"    value=steam_stats.playtime_hours %}

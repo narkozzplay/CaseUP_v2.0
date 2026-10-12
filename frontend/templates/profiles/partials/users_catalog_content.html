@@ -32,6 +32,15 @@
                 </div>
 
                 <div class="form-field">
+                    <label for="faceit">FACEIT</label>
+                    <select id="faceit" name="faceit" class="form-control">
+                        {% for value, label in faceit_filter_options %}
+                            <option value="{{ value }}" {% if selected_faceit == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
                     <label for="sort">{% if LANGUAGE_CODE == "ru" %}Сортировка{% else %}Sort{% endif %}</label>
                     <select id="sort" name="sort" class="form-control">
                         {% for value, label in sort_options %}
@@ -57,47 +66,67 @@
         <div class="users-list">
             {% for item in users %}
                 <article class="users-list__row">
-                    <span class="presence-avatar-wrap">
-                        <img src="{{ item.avatar_url }}" alt="{{ item.display_name }}" class="users-list__avatar">
-                        <span class="presence-indicator {% if item.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if item.is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if item.is_online %}Online{% else %}Offline{% endif %}"></span>
+                    {# Overlay link — вся строка кликабельна #}
+                    <a href="{{ item.profile_url }}" class="users-list__row-link" aria-label="{{ item.display_name }}" data-dashboard-nav="true"></a>
+
+                    {# Avatar с hover mini-card — inline-flex чтобы не ломать auto-колонку #}
+                    <span class="user-hover-wrap users-list__avatar-wrap">
+                        <span class="presence-avatar-wrap">
+                            <img src="{{ item.avatar_url }}" alt="{{ item.display_name }}" class="users-list__avatar">
+                            <span class="presence-indicator {% if item.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" aria-label="{% if item.is_online %}Online{% else %}Offline{% endif %}"></span>
+                        </span>
+                        <div class="user-mini-card">
+                            <div class="user-mini-card__head">
+                                <img src="{{ item.avatar_url }}" class="user-mini-card__avatar" alt="">
+                                <div class="user-mini-card__info">
+                                    <span class="user-mini-card__name">{{ item.display_name }}</span>
+                                    <span class="user-mini-card__role">{{ item.role_label }}</span>
+                                    <span class="user-mini-card__online {% if item.is_online %}user-mini-card__online--on{% else %}user-mini-card__online--off{% endif %}">
+                                        {% if item.is_online %}● Online{% else %}○ Offline{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="user-mini-card__stats">
+                                {% if item.steam_level %}<span class="status-pill status-pill--sm">Steam {{ item.steam_level }}</span>{% endif %}
+                                {% if item.faceit_label %}<span class="status-pill status-pill--sm">FACEIT {{ item.faceit_label }}</span>{% endif %}
+                                {% if show_balance %}<span class="status-pill status-pill--sm">{{ item.balance }}</span>{% endif %}
+                            </div>
+                            <div class="user-mini-card__actions">
+                                <a href="{{ item.profile_url }}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">Профиль</a>
+                                {% if item.user_id != request.user.id %}
+                                    <form method="post" action="{% url 'profiles:profile_start_direct_chat' item.user_id %}" class="inline-form users-direct-chat" style="flex:1">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-sm" style="width:100%">
+                                            {% if LANGUAGE_CODE == "ru" %}Написать{% else %}Message{% endif %}
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
                     </span>
+
                     <div class="users-list__identity">
-                        <a href="{{ item.profile_url }}" class="users-list__name" data-dashboard-nav="true">{{ item.display_name }}{% if item.verification_badge %}{% include "components/verification_badge.html" with badge=item.verification_badge %}{% endif %}</a>
-                        <span class="text-muted">{{ item.user.username }}</span>
-                    </div>
-                    <div class="users-list__meta">
-                        <span class="status-pill status-pill--sm">ID: {{ item.user_id }}</span>
-                        <span class="status-pill status-pill--sm">{{ item.role_label }}</span>
-                        <span class="status-pill status-pill--sm">{% if LANGUAGE_CODE == "ru" %}Баланс:{% else %}Balance:{% endif %} {{ item.balance }}</span>
-                        <span class="status-pill status-pill--sm">Steam lvl: {% if item.steam_level %}{{ item.steam_level }}{% else %}—{% endif %}</span>
-                        <span class="status-pill status-pill--sm">FACEIT: {% if item.faceit_label %}{{ item.faceit_label }}{% else %}—{% endif %}</span>
+                        <span class="users-list__name">{{ item.display_name }}{% if item.verification_badge %}{% include "components/verification_badge.html" with badge=item.verification_badge %}{% endif %}</span>
+                        <div class="users-list__meta">
+                            <span class="status-pill status-pill--sm">{{ item.role_label }}</span>
+                            {% if item.steam_level %}<span class="status-pill status-pill--sm">Steam {{ item.steam_level }}</span>{% endif %}
+                            {% if item.faceit_label %}<span class="status-pill status-pill--sm">FACEIT {{ item.faceit_label }}</span>{% endif %}
+                        </div>
                     </div>
                     <div class="users-list__activity text-muted">
-                        {% if item.activity_kind == "last_seen" %}
-                            {% if LANGUAGE_CODE == "ru" %}Был:{% else %}Seen:{% endif %}
-                        {% elif item.activity_kind == "last_login" %}
-                            {% if LANGUAGE_CODE == "ru" %}Login:{% else %}Login:{% endif %}
-                        {% else %}
-                            {% if LANGUAGE_CODE == "ru" %}С нами:{% else %}Joined:{% endif %}
-                        {% endif %}
                         {% if item.activity_at %}{{ item.activity_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}
                     </div>
                     <div class="users-list__actions">
-                        <a href="{{ item.profile_url }}" class="btn btn-secondary btn-sm users-list__open" data-dashboard-nav="true">
-                            {% if LANGUAGE_CODE == "ru" %}Открыть{% else %}Open{% endif %}
-                        </a>
                         {% if item.user_id != request.user.id %}
                             <form method="post" action="{% url 'profiles:profile_start_direct_chat' item.user_id %}" class="users-direct-chat">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-primary btn-sm">
-                                    {% if LANGUAGE_CODE == "ru" %}Написать{% else %}Message{% endif %}
-                                </button>
+                                <button type="submit" class="btn btn-primary btn-sm">{% if LANGUAGE_CODE == "ru" %}Написать{% else %}Msg{% endif %}</button>
                             </form>
                         {% endif %}
                     </div>
                 </article>
             {% empty %}
-                <article class="card">
+                <article class="card" style="grid-column:1/-1">
                     <div class="card-body">
                         <p class="text-muted empty-state">{% if LANGUAGE_CODE == "ru" %}Пользователи не найдены.{% else %}No users found.{% endif %}</p>
                     </div>
@@ -105,41 +134,44 @@
             {% endfor %}
         </div>
     {% else %}
+        {# GRID — только аватарки, все данные в hover mini-card #}
         <div class="cards-grid users-grid">
             {% for item in users %}
-                <article class="card catalog-card catalog-card--compact users-card">
+                <article class="card catalog-card catalog-card--compact users-card user-hover-wrap">
                     <a href="{{ item.profile_url }}" class="catalog-card__link" aria-label="{{ item.display_name }}" data-dashboard-nav="true"></a>
                     <div class="card-body">
                         <div class="users-card__media">
                             <span class="presence-avatar-wrap">
                                 <img src="{{ item.avatar_url }}" alt="{{ item.display_name }}" class="users-card__avatar">
-                                <span class="presence-indicator {% if item.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if item.is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if item.is_online %}Online{% else %}Offline{% endif %}"></span>
+                                <span class="presence-indicator {% if item.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if item.is_online %}Online{% else %}Offline{% endif %}" aria-label="{% if item.is_online %}Online{% else %}Offline{% endif %}"></span>
                             </span>
                         </div>
-                        <div class="users-card__content">
-                            <h2 class="users-card__name">{{ item.display_name }}{% if item.verification_badge %}{% include "components/verification_badge.html" with badge=item.verification_badge %}{% endif %}</h2>
-                            <div class="text-muted users-card__username">{{ item.user.username }}</div>
-                            <div class="users-card__badges">
-                                <span class="status-pill status-pill--sm">ID: {{ item.user_id }}</span>
-                                <span class="status-pill status-pill--sm">{{ item.role_label }}</span>
-                                <span class="status-pill status-pill--sm">{% if LANGUAGE_CODE == "ru" %}Баланс:{% else %}Balance:{% endif %} {{ item.balance }}</span>
-                                <span class="status-pill status-pill--sm">Steam lvl: {% if item.steam_level %}{{ item.steam_level }}{% else %}—{% endif %}</span>
-                                <span class="status-pill status-pill--sm">FACEIT: {% if item.faceit_label %}{{ item.faceit_label }}{% else %}—{% endif %}</span>
+                    </div>
+
+                    {# Hover mini-card — z-index 50, выше чем catalog-card__link (z-index 4) #}
+                    <div class="user-mini-card">
+                        <div class="user-mini-card__head">
+                            <img src="{{ item.avatar_url }}" class="user-mini-card__avatar" alt="">
+                            <div class="user-mini-card__info">
+                                <span class="user-mini-card__name">{{ item.display_name }}{% if item.verification_badge %}{% include "components/verification_badge.html" with badge=item.verification_badge %}{% endif %}</span>
+                                <span class="user-mini-card__role">{{ item.role_label }}</span>
+                                <span class="user-mini-card__online {% if item.is_online %}user-mini-card__online--on{% else %}user-mini-card__online--off{% endif %}">
+                                    {% if item.is_online %}● Online{% else %}○ Offline{% endif %}
+                                </span>
                             </div>
-                            <div class="text-muted users-card__activity">
-                                {% if item.activity_kind == "last_seen" %}
-                                    {% if LANGUAGE_CODE == "ru" %}Был:{% else %}Seen:{% endif %}
-                                {% elif item.activity_kind == "last_login" %}
-                                    {% if LANGUAGE_CODE == "ru" %}Login:{% else %}Login:{% endif %}
-                                {% else %}
-                                    {% if LANGUAGE_CODE == "ru" %}С нами:{% else %}Joined:{% endif %}
-                                {% endif %}
-                                {% if item.activity_at %}{{ item.activity_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}
-                            </div>
+                        </div>
+                        <div class="user-mini-card__stats">
+                            {% if item.steam_level %}<span class="status-pill status-pill--sm">Steam {{ item.steam_level }}</span>{% endif %}
+                            {% if item.faceit_label %}<span class="status-pill status-pill--sm">FACEIT {{ item.faceit_label }}</span>{% endif %}
+                            {% if item.activity_at %}<span class="status-pill status-pill--sm">{{ item.activity_at|date:"d.m.Y" }}</span>{% endif %}
+                            {% if show_balance %}<span class="status-pill status-pill--sm">{{ item.balance }}</span>{% endif %}
+                        </div>
+                        <div class="user-mini-card__actions">
+                            <a href="{{ item.profile_url }}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">Профиль</a>
                             {% if item.user_id != request.user.id %}
-                                <form method="post" action="{% url 'profiles:profile_start_direct_chat' item.user_id %}" class="users-card__actions users-direct-chat">
+                                <form method="post" action="{% url 'profiles:profile_start_direct_chat' item.user_id %}" class="inline-form users-direct-chat" style="flex:1">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-primary btn-sm">
+                                    <button type="submit" class="btn btn-primary btn-sm" style="width:100%">
                                         {% if LANGUAGE_CODE == "ru" %}Написать{% else %}Message{% endif %}
                                     </button>
                                 </form>

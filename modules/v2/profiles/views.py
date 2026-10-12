@@ -453,6 +453,16 @@ def profile_view(request):
     )
 
 
+FACEIT_FILTER_OPTIONS = (
+    ("", "Все"),
+    ("3", "3+"),
+    ("5", "5+"),
+    ("7", "7+"),
+    ("9", "9+"),
+    ("10", "10"),
+)
+
+
 @login_required
 def users_catalog_view(request):
     if not can_view_foreign_profiles(request.user):
@@ -461,6 +471,7 @@ def users_catalog_view(request):
     q = (request.GET.get("q") or "").strip()
     selected_role = (request.GET.get("role") or "").strip()
     selected_sort = (request.GET.get("sort") or "").strip()
+    selected_faceit = (request.GET.get("faceit") or "").strip()
     view_mode = (request.GET.get("view") or "").strip()
 
     valid_roles = {role_code for role_code, _label in UserRole.choices}
@@ -472,6 +483,10 @@ def users_catalog_view(request):
 
     if view_mode not in USERS_CATALOG_VIEW_MODES:
         view_mode = "grid"
+
+    valid_faceit = {v for v, _ in FACEIT_FILTER_OPTIONS if v}
+    if selected_faceit not in valid_faceit:
+        selected_faceit = ""
 
     profiles_qs = UserProfile.objects.select_related("user")
 
@@ -487,6 +502,9 @@ def users_catalog_view(request):
 
     if selected_role:
         profiles_qs = profiles_qs.filter(role=selected_role)
+
+    if selected_faceit:
+        profiles_qs = profiles_qs.filter(faceit_skill_level__gte=int(selected_faceit))
 
     profiles_qs = profiles_qs.order_by(*USERS_CATALOG_SORT_MAP[selected_sort])
 
@@ -506,20 +524,28 @@ def users_catalog_view(request):
         query_params["role"] = selected_role
     else:
         query_params.pop("role", None)
+    if selected_faceit:
+        query_params["faceit"] = selected_faceit
+    else:
+        query_params.pop("faceit", None)
 
+    viewer_role = get_user_role(request.user)
     context = {
         "page_obj": page_obj,
         "users": users,
         "q": q,
         "selected_role": selected_role,
         "selected_sort": selected_sort,
+        "selected_faceit": selected_faceit,
+        "faceit_filter_options": FACEIT_FILTER_OPTIONS,
         "view_mode": view_mode,
         "role_options": UserRole.choices,
         "sort_options": USERS_CATALOG_SORT_OPTIONS,
         "view_modes": USERS_CATALOG_VIEW_MODES,
         "pagination_query": query_params.urlencode(),
-        "grid_query": _users_catalog_querystring(request, q=q, role=selected_role, sort=selected_sort, view="grid"),
-        "list_query": _users_catalog_querystring(request, q=q, role=selected_role, sort=selected_sort, view="list"),
+        "grid_query": _users_catalog_querystring(request, q=q, role=selected_role, sort=selected_sort, faceit=selected_faceit, view="grid"),
+        "list_query": _users_catalog_querystring(request, q=q, role=selected_role, sort=selected_sort, faceit=selected_faceit, view="list"),
+        "show_balance": viewer_role.is_admin_plus,
     }
     return render_dashboard_page(
         request,

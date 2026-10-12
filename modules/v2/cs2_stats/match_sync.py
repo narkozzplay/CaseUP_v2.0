@@ -117,9 +117,15 @@ def _get_next_share_code(steam_id: str, auth_code: str, known_code: str) -> str 
     result = data.get("result", {})
     status = _safe_int(result.get("status", 0))
 
-    # status 1 = OK, anything else (4 = no more matches, etc.) = done
-    if status not in (1,):
+    if status == 4:
+        # No more matches available — normal "end of chain" response
         return None
+    if status != 1:
+        # Unexpected status: likely wrong auth code, Steam ID mismatch, or API issue
+        raise ValueError(
+            f"Steam API вернул неожиданный статус {status}. "
+            "Проверьте правильность Game Auth Code и Steam ID."
+        )
 
     next_code = (result.get("nextcode") or "").strip()
     return next_code if next_code and next_code != "n/a" else None

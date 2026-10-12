@@ -244,8 +244,23 @@
     margin-bottom: 16px;
 }
 
-.farm-legacy-card {
-    margin-top: 18px;
+.farm-stat-card {
+    border-top: 3px solid transparent;
+    transition: border-color 0.2s ease;
+}
+
+.farm-stat-card--accounts { border-top-color: rgba(111, 124, 255, 0.55); }
+.farm-stat-card--drops    { border-top-color: rgba(138, 92, 246, 0.55); }
+.farm-stat-card--sales    { border-top-color: rgba(45, 186, 93, 0.55); }
+.farm-stat-card--commission { border-top-color: rgba(245, 158, 11, 0.55); }
+
+.farm-stat-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
 }
 
 @media (max-width: 1180px) {

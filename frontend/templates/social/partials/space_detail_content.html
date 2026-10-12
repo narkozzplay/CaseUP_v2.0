@@ -86,11 +86,29 @@
                 <div class="social-message-list" id="social-msg-list">
                     {% for message in social_messages %}
                         <div class="social-message {% if message.is_own %}social-message--own{% endif %}">
-                            {# Avatar — скрываем для своих сообщений на мобилке, но оставляем в DOM #}
-                            <span class="presence-avatar-wrap presence-avatar-wrap--sm social-message__avatar-wrap {% if message.is_own %}social-message__avatar-wrap--own{% endif %}">
-                                <img src="{{ message.author_avatar_url }}" alt="{{ message.author_display_name }}" class="social-message__avatar">
+                            {# Avatar — кликабелен, hover показывает мини-профиль #}
+                            <div class="user-hover-wrap presence-avatar-wrap presence-avatar-wrap--sm social-message__avatar-wrap {% if message.is_own %}social-message__avatar-wrap--own{% endif %}">
+                                <a href="{{ message.author_profile_url }}" data-dashboard-nav="true" tabindex="-1" aria-hidden="true">
+                                    <img src="{{ message.author_avatar_url }}" alt="{{ message.author_display_name }}" class="social-message__avatar">
+                                </a>
                                 <span class="presence-indicator {% if message.author_is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" aria-label="{% if message.author_is_online %}Online{% else %}Offline{% endif %}"></span>
-                            </span>
+                                <div class="user-mini-card">
+                                    <div class="user-mini-card__head">
+                                        <img src="{{ message.author_avatar_url }}" class="user-mini-card__avatar" alt="">
+                                        <div class="user-mini-card__info">
+                                            <span class="user-mini-card__name">{{ message.author_display_name }}{% if message.author_verification_badge %}{% include "components/verification_badge.html" with badge=message.author_verification_badge %}{% endif %}</span>
+                                            <span class="user-mini-card__online {% if message.author_is_online %}user-mini-card__online--on{% else %}user-mini-card__online--off{% endif %}">
+                                                {% if message.author_is_online %}● Online{% else %}○ Offline{% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="user-mini-card__actions">
+                                        <a href="{{ message.author_profile_url }}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
+                                            {% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="social-message__bubble">
                                 <div class="social-message__meta">
                                     <strong>

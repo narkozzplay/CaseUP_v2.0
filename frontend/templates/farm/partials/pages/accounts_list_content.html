@@ -55,7 +55,6 @@
                                     <td>{{ account.get_status_display }}</td>
                                     <td>
                                         <strong>{{ account.session_count }}</strong>
-                                        <div class="text-muted">legacy weekly: {{ account.weekly_drop_count }}</div>
                                     </td>
                                     <td>
                                         <strong>{{ account.inventory_total }}</strong>
@@ -76,21 +75,6 @@
             {% else %}
                 <p class="text-muted">Аккаунтов пока нет.</p>
             {% endif %}
-        </div>
-    </article>
-
-    <article class="card card--soft farm-legacy-card">
-        <div class="card-body">
-            <div class="section-head-inline">
-                <div>
-                    <h2 class="section-title">Legacy weekly logs</h2>
-                    <p class="text-muted">WeeklyDropLog оставлен как secondary/legacy слой для старых записей.</p>
-                </div>
-                <div class="hero-actions">
-                    <a href="{% url 'farm:drops_list' %}" class="btn btn-secondary btn-sm">Открыть legacy</a>
-                    <a href="{% url 'farm:drops_add' %}" class="btn btn-secondary btn-sm">Добавить legacy-log</a>
-                </div>
-            </div>
         </div>
     </article>
 </section>

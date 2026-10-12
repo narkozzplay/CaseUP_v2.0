@@ -79,19 +79,18 @@
                         <div class="catalog-card__overlay">
                             <div class="catalog-card__overlay-inner">
                                 <h3 class="catalog-card__title">{{ card.item.group_name }}</h3>
-                                <p class="catalog-card__type">{{ card.item.get_item_type_display }}</p>
-                            
                                 <div class="catalog-card__price">
                                     {% if card.min_price and card.max_price %}
                                         {% if card.min_price == card.max_price %}
-                                            <span>{{ card.min_price }}</span>
+                                            {{ card.min_price }}
                                         {% else %}
-                                            <span>{{ card.min_price }} — {{ card.max_price }}</span>
+                                            {{ card.min_price }} — {{ card.max_price }}
                                         {% endif %}
                                     {% else %}
-                                        <span>—</span>
+                                        —
                                     {% endif %}
                                 </div>
+                                {% if card.total_stock %}<div class="catalog-card__stock">Stock: {{ card.total_stock }}</div>{% endif %}
                             </div>
                         </div>
                     </div>

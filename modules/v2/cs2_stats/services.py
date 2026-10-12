@@ -202,11 +202,19 @@ def sync_cs2_steam_stats(user) -> SyncResult:
 
     kills   = raw_stats.get("total_kills", 0)
     deaths  = raw_stats.get("total_deaths", 0)
-    hs      = raw_stats.get("total_headshots", 0)
+    hs      = raw_stats.get("total_kills_headshot", 0)  # Steam API key, not "total_headshots"
     matches = raw_stats.get("total_matches_played", 0)
-    wins    = raw_stats.get("total_wins", 0)
+    wins    = raw_stats.get("total_wins", 0)  # rounds won in Steam API, not matches won
     shots_fired = raw_stats.get("total_shots_fired", 0)
     shots_hit   = raw_stats.get("total_shots_hit", 0)
+
+    # total_wins = rounds won; need rounds_played for a meaningful win rate
+    rounds_played = raw_stats.get("total_rounds_played", 0)
+    if not rounds_played:
+        rounds_played = sum(
+            raw_stats.get(f"total_rounds_map_{mc.replace('-', '_')}", 0)
+            for mc in CS2_MAPS
+        )
 
     with transaction.atomic():
         stats_obj.total_kills         = kills
@@ -223,7 +231,7 @@ def sync_cs2_steam_stats(user) -> SyncResult:
         stats_obj.total_defused_bombs = raw_stats.get("total_defused_bombs", 0)
         stats_obj.kd_ratio            = _ratio(kills, deaths)
         stats_obj.hs_percent          = _percent(hs, kills)
-        stats_obj.win_rate            = _percent(wins, matches)
+        stats_obj.win_rate            = _percent(wins, rounds_played)
         stats_obj.accuracy            = _percent(shots_hit, shots_fired)
         stats_obj.playtime_hours      = playtime_minutes // 60
         if last_played:

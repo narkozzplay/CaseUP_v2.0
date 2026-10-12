@@ -125,20 +125,39 @@
 
                 <div class="dashboard-list">
                     {% for profile in latest_users %}
+                        {% with display_name=profile.steam_personaname|default:profile.user.username %}
                         {% if role_access.is_moder_plus or request.user.is_staff or request.user.is_superuser %}
                             <a href="{% url 'profiles:profile_detail' profile.user_id %}" class="dashboard-list__row dashboard-list__row--link">
                                 <div class="dashboard-list__row-person">
-                                    <span class="presence-avatar-wrap presence-avatar-wrap--xs">
-                                        {% if profile.uploaded_avatar %}
-                                            <img src="{{ profile.uploaded_avatar.url }}" alt="{{ profile.steam_personaname|default:profile.user.username }}" class="dashboard-list__avatar">
-                                        {% elif profile.steam_avatar %}
-                                            <img src="{{ profile.steam_avatar }}" alt="{{ profile.steam_personaname|default:profile.user.username }}" class="dashboard-list__avatar">
-                                        {% else %}
-                                            <span class="dashboard-list__avatar-fallback">{{ profile.steam_personaname|default:profile.user.username|slice:":1"|upper }}</span>
-                                        {% endif %}
-                                    </span>
+                                    <div class="user-hover-wrap">
+                                        <span class="presence-avatar-wrap presence-avatar-wrap--xs">
+                                            {% if profile.uploaded_avatar %}
+                                                <img src="{{ profile.uploaded_avatar.url }}" alt="{{ display_name }}" class="dashboard-list__avatar">
+                                            {% elif profile.steam_avatar %}
+                                                <img src="{{ profile.steam_avatar }}" alt="{{ display_name }}" class="dashboard-list__avatar">
+                                            {% else %}
+                                                <span class="dashboard-list__avatar-fallback">{{ display_name|slice:":1"|upper }}</span>
+                                            {% endif %}
+                                        </span>
+                                        <div class="user-mini-card">
+                                            <div class="user-mini-card__head">
+                                                {% if profile.uploaded_avatar %}
+                                                    <img src="{{ profile.uploaded_avatar.url }}" class="user-mini-card__avatar" alt="">
+                                                {% elif profile.steam_avatar %}
+                                                    <img src="{{ profile.steam_avatar }}" class="user-mini-card__avatar" alt="">
+                                                {% else %}
+                                                    <span class="user-mini-card__avatar" style="display:flex;align-items:center;justify-content:center;background:rgba(111,124,255,.15);font-weight:700;">{{ display_name|slice:":1"|upper }}</span>
+                                                {% endif %}
+                                                <div class="user-mini-card__info">
+                                                    <span class="user-mini-card__name">{{ display_name }}</span>
+                                                    <span class="user-mini-card__role">{{ profile.get_role_display }}</span>
+                                                    {% if profile.steam_level %}<span class="user-mini-card__role">Steam {{ profile.steam_level }}</span>{% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div>
-                                        <strong>{{ profile.steam_personaname|default:profile.user.username }}</strong>
+                                        <strong>{{ display_name }}</strong>
                                         <div class="text-muted">{{ profile.get_role_display }}</div>
                                     </div>
                                 </div>
@@ -147,23 +166,41 @@
                         {% else %}
                             <div class="dashboard-list__row">
                                 <div class="dashboard-list__row-person">
-                                    <span class="presence-avatar-wrap presence-avatar-wrap--xs">
-                                        {% if profile.uploaded_avatar %}
-                                            <img src="{{ profile.uploaded_avatar.url }}" alt="{{ profile.steam_personaname|default:profile.user.username }}" class="dashboard-list__avatar">
-                                        {% elif profile.steam_avatar %}
-                                            <img src="{{ profile.steam_avatar }}" alt="{{ profile.steam_personaname|default:profile.user.username }}" class="dashboard-list__avatar">
-                                        {% else %}
-                                            <span class="dashboard-list__avatar-fallback">{{ profile.steam_personaname|default:profile.user.username|slice:":1"|upper }}</span>
-                                        {% endif %}
-                                    </span>
+                                    <div class="user-hover-wrap">
+                                        <span class="presence-avatar-wrap presence-avatar-wrap--xs">
+                                            {% if profile.uploaded_avatar %}
+                                                <img src="{{ profile.uploaded_avatar.url }}" alt="{{ display_name }}" class="dashboard-list__avatar">
+                                            {% elif profile.steam_avatar %}
+                                                <img src="{{ profile.steam_avatar }}" alt="{{ display_name }}" class="dashboard-list__avatar">
+                                            {% else %}
+                                                <span class="dashboard-list__avatar-fallback">{{ display_name|slice:":1"|upper }}</span>
+                                            {% endif %}
+                                        </span>
+                                        <div class="user-mini-card">
+                                            <div class="user-mini-card__head">
+                                                {% if profile.uploaded_avatar %}
+                                                    <img src="{{ profile.uploaded_avatar.url }}" class="user-mini-card__avatar" alt="">
+                                                {% elif profile.steam_avatar %}
+                                                    <img src="{{ profile.steam_avatar }}" class="user-mini-card__avatar" alt="">
+                                                {% else %}
+                                                    <span class="user-mini-card__avatar" style="display:flex;align-items:center;justify-content:center;background:rgba(111,124,255,.15);font-weight:700;">{{ display_name|slice:":1"|upper }}</span>
+                                                {% endif %}
+                                                <div class="user-mini-card__info">
+                                                    <span class="user-mini-card__name">{{ display_name }}</span>
+                                                    <span class="user-mini-card__role">{{ profile.get_role_display }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div>
-                                        <strong>{{ profile.steam_personaname|default:profile.user.username }}</strong>
+                                        <strong>{{ display_name }}</strong>
                                         <div class="text-muted">{{ profile.get_role_display }}</div>
                                     </div>
                                 </div>
                                 <span class="text-muted">{{ profile.created_at|date:"d.m.Y H:i" }}</span>
                             </div>
                         {% endif %}
+                        {% endwith %}
                     {% empty %}
                         <p class="text-muted">No data.</p>
                     {% endfor %}
