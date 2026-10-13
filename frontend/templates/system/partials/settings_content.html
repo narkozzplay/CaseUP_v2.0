@@ -1,334 +1,276 @@
 {% load i18n %}
-<section class="section section--compact">
-    <div class="dashboard-hero card dashboard-hero--admin">
-        <div class="card-body dashboard-hero__body">
+<section class="section section--compact ops cc cc-settings" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center · System settings</span>
+            <h1 class="cc-pagehead__title">Настройки системы</h1>
+            <p class="ops-hero__text">Конфигурация сайта, доступ, ключи внешних API и флаги модулей. Каждое сохранение пишется в журнал с тем, что именно поменялось.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Среда</dt><dd>{{ runtime_environment }}</dd></div>
+            <div><dt>Версия</dt><dd>{{ current_project_version.version|default:"—" }}</dd></div>
+            <div><dt>Тема</dt><dd>{{ summary.active_theme.name|default:"—" }}</dd></div>
+            <div><dt>Модули</dt><dd>{{ modules_enabled_count }} / {{ modules_total_count }}</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <nav class="cc-filters-chips cc-anchors" aria-label="Разделы">
+        <a href="#site" class="cc-chip cc-chip--link" data-dashboard-nav="false">Основное</a>
+        <a href="#access" class="cc-chip cc-chip--link" data-dashboard-nav="false">Доступ{% if summary.maintenance_mode_enabled %} · обслуживание{% endif %}</a>
+        <a href="#integrations" class="cc-chip cc-chip--link" data-dashboard-nav="false">Интеграции</a>
+        <a href="#modules" class="cc-chip cc-chip--link" data-dashboard-nav="false">Модули · {{ modules_enabled_count }}/{{ modules_total_count }}</a>
+        <a href="#history" class="cc-chip cc-chip--link" data-dashboard-nav="false">История</a>
+    </nav>
+
+    {% if form.errors %}
+        <div class="cc-banner cc-banner--fail">
+            {% include "components/icon.html" with name="cc_ban" %}
             <div>
-                <span class="eyebrow">Admin+</span>
-                <h1 class="page-title page-title--sm">{% trans "System settings" %}</h1>
-                <p class="text-muted dashboard-hero__text">
-                    {% trans "Centralized control for site configuration, maintenance mode, and module feature flags without runtime INSTALLED_APPS mutations." %}
-                </p>
-            </div>
-            <div class="dashboard-hero__meta">
-                <span class="status-pill">{% trans "Public URL" %}: {{ summary.public_base_url }}</span>
-                <span class="status-pill">{% trans "Maintenance" %}: {{ summary.maintenance_label }}</span>
-                <span class="status-pill">{% trans "Modules" %}: {{ summary.enabled_count }}/{{ summary.total_count }}</span>
+                <strong>Настройки не сохранены</strong>
+                <span>{% if form.non_field_errors %}{{ form.non_field_errors|striptags }}{% else %}Проверьте поля, отмеченные ниже.{% endif %}</span>
             </div>
         </div>
-    </div>
+    {% endif %}
 
-    <div class="profile-grid profile-grid--3">
-        <article class="card">
-            <div class="card-body">
-                <h2 class="section-title">{% trans "Public runtime" %}</h2>
-                <div class="dashboard-list">
-                    <div class="dashboard-list__row">
-                        <strong>{% trans "Public base URL" %}</strong>
-                        <span class="status-pill status-pill--sm">{{ summary.public_base_url }}</span>
-                    </div>
-                    <div class="dashboard-list__row">
-                        <strong>{% trans "Support email" %}</strong>
-                        <span class="status-pill status-pill--sm">{{ summary.support_email }}</span>
-                    </div>
+    <div class="ops-grid">
+        <form method="post" class="ops-grid__main cc-settings__form" data-dashboard-shell-form data-cc-dirty-form data-active-theme-key="{{ summary.active_theme.key|default:'' }}">
+            {% csrf_token %}
+
+            <article class="ops-panel" id="site">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Основное</h2>
+                    <span class="ops-panel__hint">Site configuration</span>
                 </div>
-            </div>
-        </article>
-
-        <article class="card">
-            <div class="card-body">
-                <h2 class="section-title">{% trans "Site access" %}</h2>
-                <div class="dashboard-list">
-                    <div class="dashboard-list__row">
-                        <strong>{% trans "Maintenance" %}</strong>
-                        <span class="status-pill status-pill--sm">{{ summary.maintenance_label }}</span>
-                    </div>
-                    <div class="dashboard-list__row">
-                        <strong>{% trans "Registration" %}</strong>
-                        <span class="status-pill status-pill--sm">{{ summary.registration_label }}</span>
-                    </div>
+                <div class="cc-form-grid">
+                    <label class="cc-field form-field"><span>Название сайта</span>{{ form.site_name }}{{ form.site_name.errors }}</label>
+                    <label class="cc-field form-field"><span>Email поддержки</span>{{ form.support_email }}{{ form.support_email.errors }}</label>
+                    <label class="cc-field form-field cc-span-2"><span>Public base URL</span>{{ form.public_base_url }}
+                        <small class="cc-help">Используется в публичных ссылках, Telegram webhook и callback-ах платёжки.</small>{{ form.public_base_url.errors }}</label>
+                    <label class="cc-field form-field"><span>Валюта отображения</span>{{ form.site_currency_code }}{{ form.site_currency_code.errors }}</label>
+                    <label class="cc-field form-field"><span>Курс: сколько RUB за 1 единицу</span>{{ form.site_currency_rate }}
+                        <small class="cc-help" data-cc-currency-preview data-rub="1000">Балансы хранятся в RUB, валюта меняет только отображение.</small>{{ form.site_currency_rate.errors }}</label>
+                    <label class="cc-field form-field"><span>Версия проекта</span>{{ form.current_project_version }}{{ form.current_project_version.errors }}</label>
+                    <label class="cc-field form-field"><span>Активная тема</span>{{ form.active_theme }}{{ form.active_theme.errors }}</label>
                 </div>
-            </div>
-        </article>
+            </article>
 
-        <article class="card">
-            <div class="card-body">
-                <h2 class="section-title">{% trans "Feature flags" %}</h2>
-                <div class="dashboard-list">
-                    <div class="dashboard-list__row">
-                        <strong>{% trans "TG Notifier" %}</strong>
-                        <span class="status-pill status-pill--sm">{% if summary.tg_notifier_enabled %}Enabled{% else %}Disabled{% endif %}</span>
-                    </div>
-                    <div class="dashboard-list__row">
-                        <strong>{% trans "Steam Catalog" %}</strong>
-                        <span class="status-pill status-pill--sm">{% if summary.steam_catalog_enabled %}Enabled{% else %}Disabled{% endif %}</span>
-                    </div>
-                    <div class="dashboard-list__row">
-                        <strong>{% trans "Subscriptions" %}</strong>
-                        <span class="status-pill status-pill--sm">{% if summary.subscriptions_enabled %}Enabled{% else %}Disabled{% endif %}</span>
-                    </div>
-                    <div class="dashboard-list__row">
-                        <strong>{% trans "Active modules" %}</strong>
-                        <span class="status-pill status-pill--sm">{{ summary.enabled_count }}/{{ summary.total_count }}</span>
-                    </div>
+            <article class="ops-panel" id="access">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Доступ к сайту</h2>
+                    <a href="{% url 'system_config:maintenance_preview' %}" class="ops-panel__link" target="_blank" rel="noopener" data-dashboard-nav="false" data-cc-maintenance-preview>Предпросмотр страницы обслуживания →</a>
                 </div>
-            </div>
-        </article>
-    </div>
-
-    <form method="post" class="form-stack" data-dashboard-shell-form data-active-theme-key="{{ summary.active_theme.key|default:'' }}">
-        {% csrf_token %}
-
-        <article class="card">
-            <div class="card-body">
-                <div class="section-head-inline">
-                    <h2 class="section-title">Site configuration</h2>
-                    <span class="text-muted">{% trans "Singleton configuration used by middleware and template context." %}</span>
+                <div class="cc-switch-grid">
+                    <label class="cc-switch-card" for="{{ form.registration_enabled.id_for_label }}">
+                        <span class="toggle-control">{{ form.registration_enabled }}<span class="toggle-control__track" aria-hidden="true"></span></span>
+                        <span class="cc-switch-card__text"><strong>Регистрация</strong><span>Новые пользователи могут создавать аккаунты.</span></span>
+                    </label>
+                    <label class="cc-switch-card cc-switch-card--danger" for="{{ form.maintenance_mode_enabled.id_for_label }}">
+                        <span class="toggle-control">{{ form.maintenance_mode_enabled }}<span class="toggle-control__track" aria-hidden="true"></span></span>
+                        <span class="cc-switch-card__text"><strong>Режим обслуживания</strong><span>Обычные пользователи видят заглушку, admin+ работают как обычно.</span></span>
+                    </label>
                 </div>
-
-                {% if form.non_field_errors %}
-                    <div class="card card--soft">
-                        <div class="card-body">{{ form.non_field_errors }}</div>
-                    </div>
-                {% endif %}
-
-                <div class="profile-grid profile-grid--3">
-                    <div class="form-field">
-                        <label for="{{ form.site_name.id_for_label }}">{% trans "Site name" %}</label>
-                        {{ form.site_name }}
-                        {{ form.site_name.errors }}
-                    </div>
-                    <div class="form-field">
-                        <label for="{{ form.site_currency_code.id_for_label }}">{% trans "Currency code" %}</label>
-                        {{ form.site_currency_code }}
-                        {{ form.site_currency_code.errors }}
-                    </div>
-                    <div class="form-field">
-                        <label for="{{ form.site_currency_rate.id_for_label }}">{% trans "Currency rate" %}</label>
-                        {{ form.site_currency_rate }}
-                        <p class="text-muted">{% blocktrans with currency=form.site_currency_code.value|default:site_settings.site_currency_code|default:"RUB" rate=form.site_currency_rate.value|default:site_settings.site_currency_rate|default:"1.000000" %}1 {{ currency }} = {{ rate }} RUB. Balances and charges are stored in RUB; currency only affects display.{% endblocktrans %}</p>
-                        {{ form.site_currency_rate.errors }}
-                    </div>
-                    <div class="form-field">
-                        <label for="{{ form.support_email.id_for_label }}">{% trans "Support email" %}</label>
-                        {{ form.support_email }}
-                        {{ form.support_email.errors }}
-                    </div>
-                    <div class="form-field">
-                        <label for="{{ form.current_project_version.id_for_label }}">{% trans "Current project version" %}</label>
-                        {{ form.current_project_version }}
-                        {{ form.current_project_version.errors }}
-                    </div>
-                    <div class="form-field">
-                        <label for="{{ form.active_theme.id_for_label }}">{% trans "Active theme" %}</label>
-                        {{ form.active_theme }}
-                        {{ form.active_theme.errors }}
-                    </div>
-                    <div class="form-field" style="grid-column: span 2;">
-                        <label for="{{ form.public_base_url.id_for_label }}">{% trans "Public base URL" %}</label>
-                        {{ form.public_base_url }}
-                        <p class="text-muted">{% trans "Used by public integrations and links, including external callback/webhook scenarios." %}</p>
-                        {{ form.public_base_url.errors }}
-                    </div>
+                <div class="cc-form-grid cc-form-grid--single">
+                    <label class="cc-field form-field"><span>Текст на странице обслуживания</span>{{ form.maintenance_message }}{{ form.maintenance_message.errors }}</label>
                 </div>
+            </article>
 
-                <div class="profile-grid profile-grid--3">
-                    <div class="form-field toggle-field">
-                        <label class="toggle-control" for="{{ form.registration_enabled.id_for_label }}">
-                            {{ form.registration_enabled }}
-                            <span class="toggle-control__track" aria-hidden="true"></span>
-                            <span class="toggle-control__text">{% trans "Registration enabled" %}</span>
-                        </label>
-                        <p class="text-muted">{% trans "Controls whether user registration is available." %}</p>
-                        {{ form.registration_enabled.errors }}
-                    </div>
-                    <div class="form-field toggle-field">
-                        <label class="toggle-control" for="{{ form.maintenance_mode_enabled.id_for_label }}">
-                            {{ form.maintenance_mode_enabled }}
-                            <span class="toggle-control__track" aria-hidden="true"></span>
-                            <span class="toggle-control__text">{% trans "Maintenance mode" %}</span>
-                        </label>
-                        <p class="text-muted">{% trans "Regular users receive the maintenance page while admin+ users keep access." %}</p>
-                        {{ form.maintenance_mode_enabled.errors }}
-                    </div>
+            <article class="ops-panel" id="integrations">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Интеграции</h2>
+                    <span class="ops-panel__hint">External API integrations</span>
                 </div>
-
-                <div class="form-field">
-                    <label for="{{ form.maintenance_message.id_for_label }}">{% trans "Maintenance message" %}</label>
-                    {{ form.maintenance_message }}
-                    {{ form.maintenance_message.errors }}
-                </div>
-            </div>
-        </article>
-
-        <article class="card">
-            <div class="card-body">
-                <div class="section-head-inline">
-                    <h2 class="section-title">External API integrations</h2>
-                    <span class="text-muted">{% trans "Steam / FaceIT / Telegram keys, health mode and service stubs." %}</span>
-                </div>
-
-                <div class="profile-grid profile-grid--3">
-                    <div class="form-field">
-                        <label for="{{ form.steam_api_key.id_for_label }}">Steam API key</label>
-                        {{ form.steam_api_key }}
-                        {% if masked_integration_secrets.steam_api_key %}
-                            <p class="text-muted">{% trans "Current key" %}: {{ masked_integration_secrets.steam_api_key }}</p>
-                        {% endif %}
-                        {{ form.steam_api_key.errors }}
-                    </div>
-                    <div class="form-field">
-                        <label for="{{ form.faceit_api_key.id_for_label }}">FaceIT API key</label>
-                        {{ form.faceit_api_key }}
-                        {% if masked_integration_secrets.faceit_api_key %}
-                            <p class="text-muted">{% trans "Current key" %}: {{ masked_integration_secrets.faceit_api_key }}</p>
-                        {% endif %}
-                        {{ form.faceit_api_key.errors }}
-                    </div>
-                    <div class="form-field">
-                        <label for="{{ form.telegram_bot_token.id_for_label }}">Telegram bot token</label>
-                        {{ form.telegram_bot_token }}
-                        {% if masked_integration_secrets.telegram_bot_token %}
-                            <p class="text-muted">{% trans "Current key" %}: {{ masked_integration_secrets.telegram_bot_token }}</p>
-                        {% endif %}
-                        {{ form.telegram_bot_token.errors }}
-                    </div>
-                    <div class="form-field">
-                        <label for="{{ form.steam_health_mode.id_for_label }}">Steam health mode</label>
-                        {{ form.steam_health_mode }}
-                        {{ form.steam_health_mode.errors }}
-                    </div>
-                    <div class="form-field">
-                        <label for="{{ form.faceit_health_mode.id_for_label }}">FaceIT health mode</label>
-                        {{ form.faceit_health_mode }}
-                        {{ form.faceit_health_mode.errors }}
-                    </div>
-                    <div class="form-field">
-                        <label for="{{ form.telegram_health_mode.id_for_label }}">Telegram health mode</label>
-                        {{ form.telegram_health_mode }}
-                        {{ form.telegram_health_mode.errors }}
-                    </div>
-                    <div class="form-field" style="grid-column: span 2;">
-                        <label for="{{ form.degraded_stub_message.id_for_label }}">Stub for degraded service</label>
-                        {{ form.degraded_stub_message }}
-                        {{ form.degraded_stub_message.errors }}
-                    </div>
-                    <div class="form-field">
-                        <label for="{{ form.down_stub_message.id_for_label }}">Stub for down service</label>
-                        {{ form.down_stub_message }}
-                        {{ form.down_stub_message.errors }}
-                    </div>
-                </div>
-
-                <div class="dashboard-list">
+                <div class="cc-integrations">
                     {% for item in integration_health %}
-                        <div class="dashboard-list__row">
-                            <div>
+                        <section class="cc-integration cc-integration--{{ item.status }}">
+                            <header class="cc-integration__head">
+                                <span class="cc-dot cc-dot--{% if item.status == 'up' %}ok{% elif item.status == 'degraded' or item.status == 'missing_key' %}warn{% elif item.status == 'down' %}fail{% else %}info{% endif %}"></span>
                                 <strong>{{ item.label }}</strong>
-                                <div class="text-muted">{{ item.message }}</div>
-                            </div>
-                            <span class="status-pill status-pill--sm">{{ item.status }} · mode: {{ item.mode }}</span>
-                        </div>
+                                <span class="cc-chip">{% if item.status == "up" %}работает{% elif item.status == "degraded" %}с ограничениями{% elif item.status == "down" %}недоступен{% elif item.status == "missing_key" %}нет ключа{% else %}не проверялся{% endif %}</span>
+                            </header>
+                            <p class="cc-integration__msg">{{ item.message }}</p>
+                            {% if item.key == "steam" %}
+                                <label class="cc-field form-field"><span>Steam API key</span><span class="cc-secret">{{ form.steam_api_key }}<button type="button" class="cc-secret__toggle" data-cc-reveal aria-label="Показать ключ">👁</button></span>
+                                    {% if masked_integration_secrets.steam_api_key %}<small class="cc-help">Сейчас: {{ masked_integration_secrets.steam_api_key }}</small>{% endif %}{{ form.steam_api_key.errors }}</label>
+                                <label class="cc-field form-field"><span>Health mode</span>{{ form.steam_health_mode }}</label>
+                            {% elif item.key == "faceit" %}
+                                <label class="cc-field form-field"><span>FaceIT API key</span><span class="cc-secret">{{ form.faceit_api_key }}<button type="button" class="cc-secret__toggle" data-cc-reveal aria-label="Показать ключ">👁</button></span>
+                                    {% if masked_integration_secrets.faceit_api_key %}<small class="cc-help">Сейчас: {{ masked_integration_secrets.faceit_api_key }}</small>{% endif %}{{ form.faceit_api_key.errors }}</label>
+                                <label class="cc-field form-field"><span>Health mode</span>{{ form.faceit_health_mode }}</label>
+                            {% else %}
+                                <label class="cc-field form-field"><span>Telegram bot token</span><span class="cc-secret">{{ form.telegram_bot_token }}<button type="button" class="cc-secret__toggle" data-cc-reveal aria-label="Показать ключ">👁</button></span>
+                                    {% if masked_integration_secrets.telegram_bot_token %}<small class="cc-help">Сейчас: {{ masked_integration_secrets.telegram_bot_token }}</small>{% endif %}{{ form.telegram_bot_token.errors }}</label>
+                                <label class="cc-field form-field"><span>Health mode</span>{{ form.telegram_health_mode }}</label>
+                            {% endif %}
+                        </section>
                     {% endfor %}
                 </div>
-            </div>
-        </article>
+                <div class="cc-form-grid">
+                    <label class="cc-field form-field"><span>Заглушка, если сервис работает с ограничениями</span>{{ form.degraded_stub_message }}</label>
+                    <label class="cc-field form-field"><span>Заглушка, если сервис недоступен</span>{{ form.down_stub_message }}</label>
+                </div>
+            </article>
 
-        <article class="card">
-            <div class="card-body">
-                <div class="section-head-inline">
-                    <h2 class="section-title">Module flags</h2>
-                    <span class="text-muted">{% trans "Module dependencies are validated before saving." %}</span>
+            <article class="ops-panel" id="modules">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Модули</h2>
+                    <span class="ops-panel__hint">Module flags · зависимости проверяются при сохранении</span>
+                </div>
+                <div class="cc-toolbar cc-toolbar--flat">
+                    <label class="cc-field cc-field--grow"><span>Фильтр</span><input type="search" class="form-control" placeholder="Название или описание модуля" data-cc-module-filter></label>
+                    <div class="cc-filters-chips" data-cc-module-scope>
+                        <button type="button" class="cc-chip cc-chip--link is-active" data-scope="all">Все</button>
+                        <button type="button" class="cc-chip cc-chip--link" data-scope="on">Включены</button>
+                        <button type="button" class="cc-chip cc-chip--link" data-scope="off">Выключены</button>
+                    </div>
                 </div>
 
                 {% if module_preview and module_preview.cascaded_disabled_labels %}
-                    <div class="card card--soft">
-                        <div class="card-body">
-                            <strong>{% trans "Cascade preview:" %}</strong>
-                            {% trans "saving will also disable dependent modules" %}: {{ module_preview.cascaded_disabled_labels|join:", " }}.
-                        </div>
+                    <div class="cc-banner cc-banner--info cc-banner--inset">
+                        {% include "components/icon.html" with name="system_settings" %}
+                        <div><strong>Каскадное отключение</strong><span>При сохранении также выключатся: {{ module_preview.cascaded_disabled_labels|join:", " }}.</span></div>
                     </div>
                 {% endif %}
 
-                <div class="dashboard-list">
+                <div class="cc-modules-grid">
                     {% for card in module_cards %}
-                        <div class="dashboard-list__row" data-module-row data-module-key="{{ card.row.key }}">
-                            <div>
-                                <div class="section-head-inline">
+                        <section class="cc-module-card{% if card.row.is_enabled %} is-on{% endif %}{% if card.row.missing_dependency_labels %} is-blocked{% endif %}" data-module-row data-module-key="{{ card.row.key }}" data-enabled="{% if card.row.is_enabled %}1{% else %}0{% endif %}" data-search="{{ card.row.label|lower }} {{ card.row.description|lower }}">
+                            <header class="cc-module-card__head">
+                                <div>
                                     <strong>{{ card.row.label }}</strong>
-                                    <span class="status-pill status-pill--sm">{{ card.row.status_label }}</span>
+                                    <span class="cc-chip {% if card.row.status_label == 'Enabled' %}cc-chip--ok{% elif card.row.status_label == 'Disabled' %}{% else %}cc-chip--warn{% endif %}">{{ card.row.status_label }}</span>
                                 </div>
-
-                                <div class="text-muted">{{ card.row.description }}</div>
-
-                                {% if card.row.dependency_labels %}
-                                    <div class="text-muted"><strong>Depends on:</strong> {{ card.row.dependency_labels|join:", " }}</div>
-                                {% endif %}
-                                {% if card.row.missing_dependency_labels %}
-                                    <div class="text-muted"><strong>Blocked by:</strong> {{ card.row.missing_dependency_labels|join:", " }}</div>
-                                {% endif %}
-                                {% if card.row.cascade_disable_labels and not card.row.is_enabled %}
-                                    <div class="text-muted"><strong>Will cascade off:</strong> {{ card.row.cascade_disable_labels|join:", " }}</div>
-                                {% endif %}
-                                {% if card.row.dependent_labels %}
-                                    <div class="text-muted"><strong>Dependents:</strong> {{ card.row.dependent_labels|join:", " }}</div>
-                                {% endif %}
-                                {% if card.row.addon_source_labels %}
-                                    <div class="text-muted"><strong>Extended by:</strong> {{ card.row.addon_source_labels|join:", " }}</div>
-                                {% endif %}
-                                {% if card.row.addon_target_labels %}
-                                    <div class="text-muted"><strong>Commercial access for:</strong> {{ card.row.addon_target_labels|join:", " }}</div>
-                                {% endif %}
-                                {% if card.row.blocked_reason %}
-                                    <div class="text-muted">{{ card.row.blocked_reason }}</div>
-                                {% endif %}
-                                {% if card.row.key == "midnight_theme" and summary.active_theme and summary.active_theme.key == "midnight" %}
-                                    <div class="text-muted">
-                                        <strong>{% trans "Warning:" %}</strong> {% trans "disabling Midnight plugin will fallback to the default theme." %}
-                                    </div>
-                                {% endif %}
-
-                                <div class="text-muted">
-                                    <strong>Current release:</strong> {{ card.release.active_release_version }}
-                                    · <strong>Channel:</strong> {{ card.release.active_release_channel }}
-                                </div>
-                                <div class="text-muted">
-                                    <strong>{{ card.release.runtime_environment_label }} runtime release:</strong> {{ card.release.runtime_release_version }}
-                                    · <strong>Channel:</strong> {{ card.release.runtime_release_channel }}
-                                    {% if card.release.runtime_is_test_mode %}· <strong>Mode:</strong> test-mode{% endif %}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="toggle-control" for="{{ card.field.id_for_label }}">
+                                <label class="toggle-control" for="{{ card.field.id_for_label }}" title="Включить в форме (применится после сохранения)">
                                     {{ card.field }}
                                     <span class="toggle-control__track" aria-hidden="true"></span>
                                 </label>
-                                <div class="auth-card__actions" style="margin-top:.5rem;">
-                                    <button
-                                        type="button"
-                                        class="btn btn-secondary btn-sm"
-                                        data-module-live-toggle
-                                        data-module-key="{{ card.row.key }}"
-                                        data-module-toggle-url="{% url 'system_config:toggle_module_state' module_key=card.row.key %}"
-                                        {% if card.row.key == "midnight_theme" and summary.active_theme and summary.active_theme.key == "midnight" %}
-                                            data-module-toggle-confirm="Disable Midnight Theme Plugin? Active theme will switch to default."
-                                        {% endif %}
-                                    >
-                                        Apply live
-                                    </button>
-                                </div>
-                                {{ card.field.errors }}
+                            </header>
+                            <p class="cc-module-card__desc">{{ card.row.description }}</p>
+                            <div class="cc-module-card__tags">
+                                {% if card.row.dependency_labels %}<span class="cc-chip">Depends on: {{ card.row.dependency_labels|join:", " }}</span>{% endif %}
+                                {% if card.row.missing_dependency_labels %}<span class="cc-chip cc-chip--fail">Blocked by: {{ card.row.missing_dependency_labels|join:", " }}</span>{% endif %}
+                                {% if card.row.cascade_disable_labels and not card.row.is_enabled %}<span class="cc-chip cc-chip--warn">Will cascade off: {{ card.row.cascade_disable_labels|join:", " }}</span>{% endif %}
+                                {% if card.row.dependent_labels %}<span class="cc-chip">Dependents: {{ card.row.dependent_labels|join:", " }}</span>{% endif %}
+                                {% if card.row.addon_source_labels %}<span class="cc-chip cc-chip--info">Extended by: {{ card.row.addon_source_labels|join:", " }}</span>{% endif %}
+                                {% if card.row.addon_target_labels %}<span class="cc-chip cc-chip--info">Commercial access for: {{ card.row.addon_target_labels|join:", " }}</span>{% endif %}
                             </div>
-                        </div>
+                            {% if card.row.blocked_reason %}<p class="cc-module-card__warn">{{ card.row.blocked_reason }}</p>{% endif %}
+                            {% if card.row.key == "midnight_theme" and summary.active_theme and summary.active_theme.key == "midnight" %}
+                                <p class="cc-module-card__warn">{% trans "Warning:" %} {% trans "disabling Midnight plugin will fallback to the default theme." %}</p>
+                            {% endif %}
+                            <footer class="cc-module-card__foot">
+                                <span class="cc-module-card__release">
+                                    <span>Current release: <b>{{ card.release.active_release_version }}</b> · {{ card.release.active_release_channel }}</span>
+                                    <span>{{ card.release.runtime_environment_label }} runtime release: <b>{{ card.release.runtime_release_version }}</b> · {{ card.release.runtime_release_channel }}{% if card.release.runtime_is_test_mode %} · test-mode{% endif %}</span>
+                                </span>
+                                <button
+                                    type="button"
+                                    class="btn btn-ghost btn-sm"
+                                    data-module-live-toggle
+                                    data-module-key="{{ card.row.key }}"
+                                    data-module-toggle-url="{% url 'system_config:toggle_module_state' module_key=card.row.key %}"
+                                    {% if card.row.key == "midnight_theme" and summary.active_theme and summary.active_theme.key == "midnight" %}
+                                        data-module-toggle-confirm="Disable Midnight Theme Plugin? Active theme will switch to default."
+                                    {% endif %}
+                                    title="Применить состояние переключателя сразу, без сохранения формы"
+                                >Применить сразу</button>
+                            </footer>
+                            {{ card.field.errors }}
+                        </section>
                     {% empty %}
-                        <p class="text-muted">{% trans "No modules registered." %}</p>
+                        <p class="ops-empty">{% trans "No modules registered." %}</p>
                     {% endfor %}
                 </div>
+                <p class="ops-empty cc-modules-empty" data-cc-module-empty hidden>По этому фильтру модулей нет.</p>
+            </article>
 
-                <div class="auth-card__actions">
-                    <button type="submit" class="btn btn-primary">{% trans "Save configuration" %}</button>
-                </div>
+            <div class="cc-savebar" data-cc-savebar>
+                <span class="cc-savebar__state" data-cc-dirty-label>Изменений нет</span>
+                <button type="reset" class="btn btn-ghost btn-sm" data-cc-reset>Отменить</button>
+                <button type="submit" class="btn btn-primary">{% trans "Save configuration" %}</button>
             </div>
-        </article>
-    </form>
+        </form>
+
+        <aside class="ops-grid__side">
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Сводка</h2></div>
+                <div class="cc-checks cc-checks--compact">
+                    <div class="cc-check"><span class="cc-dot cc-dot--{% if summary.maintenance_mode_enabled %}fail{% else %}ok{% endif %}"></span><span class="cc-check__label">Обслуживание</span><span class="cc-check__value">{% if summary.maintenance_mode_enabled %}включено{% else %}выключено{% endif %}</span></div>
+                    <div class="cc-check"><span class="cc-dot cc-dot--{% if summary.registration_enabled %}ok{% else %}warn{% endif %}"></span><span class="cc-check__label">Регистрация</span><span class="cc-check__value">{% if summary.registration_enabled %}открыта{% else %}закрыта{% endif %}</span></div>
+                    <div class="cc-check"><span class="cc-dot cc-dot--info"></span><span class="cc-check__label">Валюта</span><span class="cc-check__value">{{ config.site_currency_code }} · {{ config.site_currency_rate|floatformat:"-4" }}</span></div>
+                    <div class="cc-check"><span class="cc-dot cc-dot--{% if config.public_base_url %}ok{% else %}warn{% endif %}"></span><span class="cc-check__label">Public URL</span><span class="cc-check__value cc-ellipsis">{{ summary.public_base_url }}</span></div>
+                    <div class="cc-check"><span class="cc-dot cc-dot--{% if config.support_email %}ok{% else %}warn{% endif %}"></span><span class="cc-check__label">Поддержка</span><span class="cc-check__value cc-ellipsis">{{ summary.support_email }}</span></div>
+                </div>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Статус API</h2>
+                    <span class="ops-panel__hint">{% if integration_checked_at %}{{ integration_checked_at|date:"d.m H:i" }}{% else %}не проверялось{% endif %}</span>
+                </div>
+                <div class="cc-checks cc-checks--compact">
+                    {% for item in integration_health %}
+                        <div class="cc-check"><span class="cc-dot cc-dot--{% if item.status == 'up' %}ok{% elif item.status == 'degraded' or item.status == 'missing_key' %}warn{% elif item.status == 'down' %}fail{% else %}info{% endif %}"></span><span class="cc-check__label">{{ item.label }}</span><span class="cc-check__value">{{ item.status }} · {{ item.mode }}</span></div>
+                    {% endfor %}
+                </div>
+                <form method="post" action="{% url 'system_config:check_integrations' %}" class="cc-form">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-secondary btn-sm btn-block">Проверить сейчас</button>
+                    <small class="cc-help">Запрос к Steam, FACEIT и Telegram, результат хранится 10 минут.</small>
+                </form>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Инструменты</h2></div>
+                <nav class="ops-actions">
+                    <a href="{% url 'system_config:export_settings' %}" class="ops-action" download>
+                        <span class="ops-action__icon">{% include "components/icon.html" with name="cc_download" %}</span>
+                        <span class="ops-action__text"><strong>Экспорт настроек</strong><span>JSON без секретов, для бэкапа</span></span>
+                        {% include "components/icon.html" with name="arrow" %}
+                    </a>
+                    <a href="{% url 'system_config:versioning' %}" class="ops-action">
+                        <span class="ops-action__icon">{% include "components/icon.html" with name="system_versioning" %}</span>
+                        <span class="ops-action__text"><strong>Версии и темы</strong><span>Релизы модулей и оформление</span></span>
+                        {% include "components/icon.html" with name="arrow" %}
+                    </a>
+                    <a href="{% url 'control_center:health' %}" class="ops-action">
+                        <span class="ops-action__icon">{% include "components/icon.html" with name="cc_health" %}</span>
+                        <span class="ops-action__text"><strong>Состояние системы</strong><span>БД, кэш, Celery, диск</span></span>
+                        {% include "components/icon.html" with name="arrow" %}
+                    </a>
+                </nav>
+                <form method="post" action="{% url 'system_config:clear_cache' %}" class="cc-form cc-form--danger">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-ghost btn-sm btn-block">Сбросить кэш</button>
+                    <small class="cc-help">Очищает кэш Django: статусы API, проверки и временные данные.</small>
+                </form>
+            </article>
+
+            <article class="ops-panel" id="history">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">История изменений</h2>
+                    <a href="{% url 'control_center:audit' %}?action=settings_update" class="ops-panel__link">Журнал →</a>
+                </div>
+                <div class="ops-list">
+                    {% for entry in settings_history %}
+                        <details class="cc-history">
+                            <summary class="ops-row">
+                                <span class="cc-action-icon cc-action-icon--{{ entry.action }}" aria-hidden="true">{% include "components/icon.html" with name="system_settings" %}</span>
+                                <span class="ops-row__main"><strong>{{ entry.action_label_ru }}</strong><span>{{ entry.actor.username|default:"система" }} · {{ entry.summary }}</span></span>
+                                <span class="ops-row__side"><time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"d.m H:i" }}</time></span>
+                            </summary>
+                            {% if entry.payload.changes %}
+                                <ul class="cc-history__changes">
+                                    {% for change in entry.payload.changes %}<li><b>{{ change.label }}</b>: <s>{{ change.from }}</s> → {{ change.to }}</li>{% endfor %}
+                                </ul>
+                            {% endif %}
+                        </details>
+                    {% empty %}
+                        <p class="ops-empty">Изменений пока не было.</p>
+                    {% endfor %}
+                </div>
+            </article>
+        </aside>
+    </div>
 </section>

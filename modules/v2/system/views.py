@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpResponseForbidden
 from django.http import JsonResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
@@ -24,7 +24,6 @@ from .services import (
     get_module_release_matrix,
     get_module_state_map,
     get_module_state_views,
-    get_external_service_health,
     get_runtime_environment,
     get_runtime_module_admin_rows,
     get_site_configuration,
@@ -34,6 +33,34 @@ from .services import (
     set_active_theme,
 )
 from .module_registry import MODULE_REGISTRY
+from .settings_tools import diff_settings, export_settings_payload, get_cached_integration_health, snapshot_settings
+
+SETTINGS_HISTORY_ACTIONS = ("settings_update", "module_toggle", "site_maintenance", "site_registration", "cache_clear")
+
+
+def _settings_history(limit: int = 10):
+    from modules.v2.control_center.models import AdminAuditLog
+
+    return AdminAuditLog.objects.filter(action__in=SETTINGS_HISTORY_ACTIONS).select_related("actor")[:limit]
+
+
+def _log_settings_change(request, before: dict[str, object]) -> None:
+    from modules.v2.control_center.models import AuditAction
+    from modules.v2.control_center.services.audit import log_admin_action
+
+    changes = diff_settings(before, snapshot_settings())
+    if not changes:
+        return
+    labels = ", ".join(change["label"] for change in changes[:4])
+    if len(changes) > 4:
+        labels += f" и ещё {len(changes) - 4}"
+    log_admin_action(
+        actor=request.user,
+        action=AuditAction.SETTINGS_UPDATE,
+        summary=labels,
+        payload={"changes": changes},
+        request=request,
+    )
 
 
 def _build_settings_context(*, role_access, config, form, current_state_map, preview=None, preview_state_map=None):
@@ -43,6 +70,7 @@ def _build_settings_context(*, role_access, config, form, current_state_map, pre
     module_rows = get_module_state_views(state_map=resolved_preview_state_map)
     release_map = get_module_flag_release_map(project_version=current_project_version, environment=runtime_environment)
     module_cards = [{"row": row, "release": release_map[row.key], "field": form[f"module__{row.key}"]} for row in module_rows]
+    integration_health = get_cached_integration_health()
     return {
         "role_access": role_access,
         "config": config,
@@ -53,7 +81,12 @@ def _build_settings_context(*, role_access, config, form, current_state_map, pre
         "runtime_environment": runtime_environment,
         "current_project_version": current_project_version,
         "module_preview": preview,
-        "integration_health": get_external_service_health(),
+        "integration_health": integration_health["items"],
+        "integration_checked_at": integration_health["checked_at"],
+        "settings_history": _settings_history(),
+        "modules_enabled_count": sum(1 for row in module_rows if row.is_enabled),
+        "modules_total_count": len(module_rows),
+        "cc_tab": "settings",
         "masked_integration_secrets": getattr(form, "masked_integration_secrets", {}),
     }
 
@@ -77,7 +110,9 @@ def settings_page(request):
         if form.is_valid():
             previous_theme = config.active_theme
             preview = preview_module_update(current_state_map, form.get_module_states())
+            before = snapshot_settings()
             config = form.save()
+            _log_settings_change(request, before)
             messages.success(request, "Системные настройки сохранены.")
             if preview.cascaded_disabled_labels:
                 messages.warning(request, "Каскадно выключены зависимые модули: " + ", ".join(preview.cascaded_disabled_labels) + ".")
@@ -259,3 +294,49 @@ def toggle_module_state_page(request, module_key: str):
             "message": f"Module '{MODULE_REGISTRY[module_key].label}' {'enabled' if final_enabled else 'disabled'}.",
         }
     )
+
+
+@login_required
+@require_POST
+def check_integrations_page(request):
+    if not get_user_role(request.user).is_admin_plus:
+        return HttpResponseForbidden("System configuration доступна только admin+.")
+    get_cached_integration_health(refresh=True)
+    messages.success(request, "Интеграции проверены.")
+    return redirect(reverse("system_config:settings") + "#integrations")
+
+
+@login_required
+@require_POST
+def clear_cache_page(request):
+    if not get_user_role(request.user).is_admin_plus:
+        return HttpResponseForbidden("System configuration доступна только admin+.")
+    from django.core.cache import cache
+
+    from modules.v2.control_center.models import AuditAction
+    from modules.v2.control_center.services.audit import log_admin_action
+
+    cache.clear()
+    log_admin_action(actor=request.user, action=AuditAction.CACHE_CLEAR, summary="default cache", request=request)
+    messages.success(request, "Кэш очищен.")
+    return redirect("system_config:settings")
+
+
+@login_required
+def export_settings_page(request):
+    if not get_user_role(request.user).is_admin_plus:
+        return HttpResponseForbidden("System configuration доступна только admin+.")
+    from django.utils import timezone
+
+    response = JsonResponse(export_settings_payload(), json_dumps_params={"ensure_ascii": False, "indent": 2})
+    response["Content-Disposition"] = f'attachment; filename="caseup-settings-{timezone.localdate():%Y%m%d}.json"'
+    return response
+
+
+@login_required
+def maintenance_preview_page(request):
+    if not get_user_role(request.user).is_admin_plus:
+        return HttpResponseForbidden("System configuration доступна только admin+.")
+    config = get_site_configuration()
+    message = (request.GET.get("message") or "").strip() or config.maintenance_message
+    return render(request, "system/maintenance.html", {"site_settings": config, "maintenance_message": message, "maintenance_preview": True})

@@ -202,3 +202,100 @@ class HealthFormattingTests(TestCase):
         from .services.health import check_database
 
         self.assertIn("sqlite", check_database().hint)
+
+
+class SystemSettingsToolsTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.admin = make_user("admin", UserRole.ADMIN)
+        self.client.login(username="admin", password=PASSWORD)
+
+    def _form_data(self, **overrides):
+        form = self.client.get(reverse("system_config:settings")).context["form"]
+        data = {}
+        for name in form.fields:
+            value = form[name].value()
+            if isinstance(value, bool):
+                if value:
+                    data[name] = "on"
+            elif value is not None:
+                data[name] = value
+        data.update(overrides)
+        return {key: value for key, value in data.items() if value is not False}
+
+    def test_settings_page_renders_in_control_center(self):
+        response = self.client.get(reverse("system_config:settings"))
+        self.assertContains(response, "cc-tabs")
+        self.assertContains(response, "Настройки системы")
+        self.assertContains(response, reverse("system_config:check_integrations"))
+
+    def test_settings_page_does_not_call_external_apis(self):
+        from unittest import mock
+
+        with mock.patch("modules.v2.system.settings_tools.get_external_service_health") as live:
+            self.client.get(reverse("system_config:settings"))
+        live.assert_not_called()
+
+    def test_saving_settings_writes_diff_to_audit_without_secrets(self):
+        response = self.client.post(
+            reverse("system_config:settings"),
+            self._form_data(site_name="CaseUP Pro", steam_api_key="super-secret-key"),
+        )
+        self.assertEqual(response.status_code, 302)
+        entry = AdminAuditLog.objects.get(action=AuditAction.SETTINGS_UPDATE)
+        fields = {change["field"]: change for change in entry.payload["changes"]}
+        self.assertEqual(fields["config.site_name"]["to"], "CaseUP Pro")
+        self.assertEqual(fields["integration.steam_api_key"]["to"], "••••")
+        self.assertNotIn("super-secret-key", str(entry.payload))
+        self.assertContains(self.client.get(reverse("system_config:settings")), "CaseUP Pro")
+
+    def test_saving_without_changes_is_not_logged(self):
+        self.client.post(reverse("system_config:settings"), self._form_data())
+        self.assertFalse(AdminAuditLog.objects.filter(action=AuditAction.SETTINGS_UPDATE).exists())
+
+    def test_check_integrations_caches_result(self):
+        from unittest import mock
+
+        from modules.v2.system.services import ExternalServiceHealth
+
+        fake = [ExternalServiceHealth(key="steam", label="Steam API", status="up", mode="auto", has_key=True, message="ok")]
+        with mock.patch("modules.v2.system.settings_tools.get_external_service_health", return_value=fake) as live:
+            response = self.client.post(reverse("system_config:check_integrations"))
+            self.client.get(reverse("system_config:settings"))
+        self.assertEqual(response.status_code, 302)
+        live.assert_called_once()
+        page = self.client.get(reverse("system_config:settings"))
+        self.assertIsNotNone(page.context["integration_checked_at"])
+        self.assertEqual(page.context["integration_health"][0].status, "up")
+
+    def test_clear_cache_is_audited(self):
+        from django.core.cache import cache
+
+        cache.set("probe", 1)
+        self.client.post(reverse("system_config:clear_cache"))
+        self.assertIsNone(cache.get("probe"))
+        self.assertTrue(AdminAuditLog.objects.filter(action=AuditAction.CACHE_CLEAR).exists())
+
+    def test_export_has_no_secrets(self):
+        self.client.post(reverse("system_config:settings"), self._form_data(telegram_bot_token="123:secret-token"))
+        response = self.client.get(reverse("system_config:export_settings"))
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertIn("attachment", response["Content-Disposition"])
+        body = response.content.decode("utf-8")
+        self.assertNotIn("secret-token", body)
+        self.assertTrue(response.json()["integrations"]["telegram_bot_token_set"])
+
+    def test_maintenance_preview_uses_draft_message(self):
+        response = self.client.get(reverse("system_config:maintenance_preview"), {"message": "Скоро вернёмся"})
+        self.assertContains(response, "Скоро вернёмся")
+        self.assertContains(response, "Предпросмотр")
+
+    def test_tools_forbidden_for_regular_user(self):
+        make_user("plain")
+        self.client.login(username="plain", password=PASSWORD)
+        for name in ("check_integrations", "clear_cache"):
+            self.assertEqual(self.client.post(reverse(f"system_config:{name}")).status_code, 403, name)
+        for name in ("export_settings", "maintenance_preview"):
+            self.assertEqual(self.client.get(reverse(f"system_config:{name}")).status_code, 403, name)

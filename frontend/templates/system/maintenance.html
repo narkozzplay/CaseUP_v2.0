@@ -7,6 +7,9 @@
     <div class="container auth-grid auth-grid--single">
         <div class="auth-card card">
             <div class="card-body auth-card__body">
+                {% if maintenance_preview %}
+                    <p class="maintenance-preview-note" style="margin:0 0 16px;padding:10px 14px;border:1px dashed var(--accent);color:var(--accent);font-size:.85rem;">Предпросмотр для админа: так страницу увидят пользователи, когда включён режим обслуживания.</p>
+                {% endif %}
                 <span class="eyebrow">Maintenance</span>
                 <h1 class="auth-title">{{ site_settings.site_name }} временно недоступен</h1>
                 <p class="text-muted auth-description">{{ maintenance_message }}</p>

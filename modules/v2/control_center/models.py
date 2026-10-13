@@ -16,6 +16,8 @@ class AuditAction(models.TextChoices):
     MODULE_TOGGLE = "module_toggle", "Module toggled"
     CATALOG_APPROVE = "catalog_approve", "Catalog item approved"
     CATALOG_DISABLE = "catalog_disable", "Catalog item disabled"
+    SETTINGS_UPDATE = "settings_update", "Settings updated"
+    CACHE_CLEAR = "cache_clear", "Cache cleared"
 
 
 AUDIT_ACTION_LABELS_RU = {
@@ -29,6 +31,8 @@ AUDIT_ACTION_LABELS_RU = {
     AuditAction.MODULE_TOGGLE: "Переключение модуля",
     AuditAction.CATALOG_APPROVE: "Предмет одобрен",
     AuditAction.CATALOG_DISABLE: "Предмет скрыт",
+    AuditAction.SETTINGS_UPDATE: "Изменение настроек",
+    AuditAction.CACHE_CLEAR: "Сброс кэша",
 }
 
 

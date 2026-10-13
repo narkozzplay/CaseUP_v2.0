@@ -6,7 +6,7 @@
     <a href="{% url 'control_center:audit' %}" class="cc-tab{% if cc_tab == 'audit' %} is-active{% endif %}">{% include "components/icon.html" with name="cc_audit" %}<span>Журнал</span></a>
     <a href="{% url 'control_center:health' %}" class="cc-tab{% if cc_tab == 'health' %} is-active{% endif %}">{% include "components/icon.html" with name="cc_health" %}<span>Система</span></a>
     <span class="cc-tabs__spacer"></span>
-    <a href="{% url 'system_config:settings' %}" class="cc-tab cc-tab--ghost" title="System Settings">{% include "components/icon.html" with name="system_settings" %}<span>Настройки</span></a>
+    <a href="{% url 'system_config:settings' %}" class="cc-tab cc-tab--ghost{% if cc_tab == 'settings' %} is-active{% endif %}" title="System Settings">{% include "components/icon.html" with name="system_settings" %}<span>Настройки</span></a>
     {% if feature_flags.celery_tasks %}<a href="{% url 'celery_tasks:control_center' %}" class="cc-tab cc-tab--ghost" title="Celery Tasks">{% include "components/icon.html" with name="celery_tasks" %}<span>Celery</span></a>{% endif %}
     <a href="{% url 'admin:index' %}" class="cc-tab cc-tab--ghost" title="Django Admin" data-dashboard-nav="false" target="_blank" rel="noopener">{% include "components/icon.html" with name="django_admin" %}<span>Django</span></a>
 </nav>
