@@ -21,7 +21,7 @@ from modules.v2.profiles.services.ledger import LedgerError, LedgerIdempotencyCo
 from modules.v2.profiles.services.faceit import build_faceit_level_image_url, sync_faceit_profile
 from modules.v2.profiles.services.presence import is_profile_online
 from modules.v2.profiles.forms import AdminProfileIdentityForm
-from modules.v2.profiles.models import UserProfile, UserRole
+from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserProfile, UserRole
 from modules.v2.store.models import ThemeStoreListing, UserThemePurchase
 from modules.v2.subscriptions.models import SubscriptionPlan, UserSubscription
 from modules.v2.tg_notifier.models import TelegramNotifierConfig
@@ -431,8 +431,17 @@ class UsersCatalogTests(TestCase):
             {
                 "admin_section": "identity",
                 "username": "target_manage_profile_updated",
-                "balance_coins": "150.00",
                 "role": UserRole.FARMER,
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        response = self.client.post(
+            reverse("profiles:profile_admin_update", args=[target.id]),
+            {
+                "admin_section": "balance",
+                "balance_operation": "set",
+                "balance_amount": "150.00",
+                "balance_comment": "test credit",
             },
         )
         self.assertEqual(response.status_code, 302)
@@ -476,6 +485,69 @@ class UsersCatalogTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 403)
+
+    def _make_balance_admin(self, username="balance_admin"):
+        admin = User.objects.create_user(username=username, password="StrongPass123")
+        admin.profile_v2.role = UserRole.ADMIN
+        admin.profile_v2.save(update_fields=["role"])
+        self.client.login(username=username, password="StrongPass123")
+        return admin
+
+    def _post_balance(self, target, **data):
+        payload = {"admin_section": "balance", **data}
+        return self.client.post(reverse("profiles:profile_admin_update", args=[target.id]), payload)
+
+    def test_admin_balance_add_subtract_and_set_are_logged_in_ledger(self):
+        admin = self._make_balance_admin()
+        target = User.objects.create_user(username="balance_target", password="StrongPass123")
+
+        response = self._post_balance(target, balance_operation="add", balance_amount="100", balance_comment="бонус")
+        self.assertRedirects(
+            response,
+            reverse("profiles:profile_user_settings", args=[target.id]) + "#settings-admin-balance",
+            fetch_redirect_response=False,
+        )
+        self._post_balance(target, balance_operation="subtract", balance_amount="30", balance_comment="штраф")
+        self._post_balance(target, balance_operation="set", balance_amount="500", balance_comment="ручная правка")
+
+        target.profile_v2.refresh_from_db()
+        self.assertEqual(target.profile_v2.balance_coins, Decimal("500.00"))
+        entries = list(LedgerEntry.objects.filter(user=target).order_by("id"))
+        self.assertEqual([entry.delta for entry in entries], [Decimal("100.00"), Decimal("-30.00"), Decimal("430.00")])
+        self.assertEqual([entry.comment for entry in entries], ["бонус", "штраф", "ручная правка"])
+        self.assertTrue(all(entry.created_by_id == admin.id for entry in entries))
+        self.assertTrue(all(entry.reason == LedgerReason.ADMIN_ADJUST for entry in entries))
+
+    def test_admin_balance_rejects_overdraft_and_missing_comment(self):
+        self._make_balance_admin("balance_admin_guard")
+        target = User.objects.create_user(username="balance_target_guard", password="StrongPass123")
+
+        response = self._post_balance(target, balance_operation="subtract", balance_amount="10", balance_comment="x")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Нельзя списать больше текущего баланса")
+
+        response = self._post_balance(target, balance_operation="add", balance_amount="10", balance_comment="  ")
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(LedgerEntry.objects.filter(user=target).exists())
+
+    def test_regular_user_cannot_change_balance(self):
+        viewer = User.objects.create_user(username="balance_regular", password="StrongPass123")
+        self.client.login(username="balance_regular", password="StrongPass123")
+
+        response = self._post_balance(viewer, balance_operation="add", balance_amount="1000", balance_comment="free money")
+
+        self.assertEqual(response.status_code, 403)
+        viewer.profile_v2.refresh_from_db()
+        self.assertEqual(viewer.profile_v2.balance_coins, Decimal("0.00"))
+
+    def test_admin_settings_page_shows_change_balance_card(self):
+        self._make_balance_admin("balance_admin_page")
+        target = User.objects.create_user(username="balance_target_page", password="StrongPass123")
+
+        response = self.client.get(reverse("profiles:profile_user_settings", args=[target.id]))
+
+        self.assertContains(response, "Изменить баланс")
+        self.assertContains(response, 'name="balance_comment"')
 
     def test_admin_cannot_assign_role_higher_than_self(self):
         admin = User.objects.create_user(username="profile_admin_role_guard", password="StrongPass123")

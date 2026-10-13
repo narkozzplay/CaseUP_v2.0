@@ -211,6 +211,14 @@ class LedgerEntry(models.Model):
         null=True,
         blank=True,
     )
+    comment = models.CharField(max_length=255, blank=True, default="")
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ledger_entries_created",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

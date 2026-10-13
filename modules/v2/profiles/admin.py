@@ -60,8 +60,8 @@ class UserProfileAdmin(admin.ModelAdmin):
 
 @admin.register(LedgerEntry)
 class LedgerEntryAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "delta", "balance_after", "reason", "created_at")
-    search_fields = ("user__username", "user__email", "idempotency_key")
+    list_display = ("id", "user", "delta", "balance_after", "reason", "comment", "created_by", "created_at")
+    search_fields = ("user__username", "user__email", "idempotency_key", "comment")
     list_filter = ("reason",)
     readonly_fields = (
         "user",
@@ -73,6 +73,8 @@ class LedgerEntryAdmin(admin.ModelAdmin):
         "inventory_item_id",
         "withdraw_request_id",
         "idempotency_key",
+        "comment",
+        "created_by",
         "created_at",
     )
 

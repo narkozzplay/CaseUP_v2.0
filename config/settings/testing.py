@@ -43,3 +43,7 @@ else:
             "NAME": BASE_DIR / "test_db.sqlite3",
         }
     }
+# Tests never talk to a real payment gateway.
+PAYMENTS_PROVIDER = "auto"
+YOOKASSA_SHOP_ID = ""
+YOOKASSA_SECRET_KEY = ""
