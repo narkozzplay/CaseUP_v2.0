@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from datetime import timedelta
 from decimal import Decimal
 from urllib.parse import urlencode
@@ -121,7 +122,11 @@ def _get_bucket_label(bucket_start, range_key: str) -> str:
 
 _RAW_RANGES = frozenset({"day", "week", "month", "year", "all"})
 
-_CHART_LABEL_THRESHOLD = 30
+_CHART_DOTS_THRESHOLD = 60
+_CHART_TICK_COUNT = 4
+_CHART_X_TICK_COUNT = 5
+_CHART_VIEW_WIDTH = 1000
+_CHART_VIEW_HEIGHT = 300
 _MAX_CHART_POINTS = 400
 
 
@@ -359,6 +364,50 @@ def _svg_number(value: float) -> str:
     return text
 
 
+def _nice_chart_step(raw_step: float) -> float:
+    if raw_step <= 0:
+        return 1.0
+    magnitude = 10 ** math.floor(math.log10(raw_step))
+    for factor in (1, 2, 2.5, 5, 10):
+        step = factor * magnitude
+        if step >= raw_step:
+            return step
+    return 10 * magnitude
+
+
+def _format_chart_tick(value: float, step: float) -> str:
+    if step >= 1 and float(step).is_integer():
+        return f"{value:,.0f}".replace(",", " ")
+    if step >= 0.1:
+        return f"{value:,.1f}".replace(",", " ")
+    return f"{value:,.2f}".replace(",", " ")
+
+
+def _build_chart_scale(values):
+    low = float(min(values))
+    high = float(max(values))
+    spread = high - low
+    if spread == 0:
+        pad = max(abs(high) * 0.05, 1.0)
+    else:
+        pad = spread * 0.15
+    low = max(low - pad, 0.0) if low >= 0 else low - pad
+    high = high + pad
+
+    step = _nice_chart_step((high - low) / _CHART_TICK_COUNT)
+    low = math.floor(low / step) * step
+    high = math.ceil(high / step) * step
+    if high == low:
+        high = low + step
+
+    ticks = []
+    value = low
+    while value <= high + step / 1000:
+        ticks.append(value)
+        value += step
+    return low, high, step, ticks
+
+
 def _build_price_chart(chart_entries):
     chart_rows = list(chart_entries)
 
@@ -383,63 +432,115 @@ def _build_price_chart(chart_entries):
     chart_values = [row["entry"].price_rub for row in chart_rows]
     chart_min_value = min(chart_values)
     chart_max_value = max(chart_values)
-
-    chart_width = 640
-    chart_height = 240
-    pad_x = 28
-    pad_y = 22
-    usable_width = chart_width - (pad_x * 2)
-    usable_height = chart_height - (pad_y * 2)
-
-    spread = chart_max_value - chart_min_value
-    if spread == 0:
-        spread = Decimal("1")
+    scale_low, scale_high, scale_step, scale_ticks = _build_chart_scale(chart_values)
+    scale_span = scale_high - scale_low
 
     n = len(chart_rows)
     dot_radius = 4 if n <= 48 else (3 if n <= 150 else 2)
+    min_idx = chart_values.index(chart_min_value)
+    max_idx = len(chart_values) - 1 - chart_values[::-1].index(chart_max_value)
 
-    if n > _CHART_LABEL_THRESHOLD:
-        min_idx = chart_values.index(chart_min_value)
-        max_idx = chart_values.index(chart_max_value)
-        label_indices = {0, n - 1, min_idx, max_idx}
-    else:
-        label_indices = set(range(n))
+    timestamps = [row["entry"].created_at.timestamp() for row in chart_rows]
+    time_span = timestamps[-1] - timestamps[0]
+
+    def y_percent(value) -> float:
+        return round((1 - (float(value) - scale_low) / scale_span) * 100, 3)
 
     points = []
-
+    previous_value = None
     for index, row in enumerate(chart_rows):
         entry = row["entry"]
-
         if n == 1:
-            x = chart_width / 2
+            x = 50.0
+        elif time_span > 0:
+            x = (timestamps[index] - timestamps[0]) / time_span * 100
         else:
-            x = pad_x + (usable_width * index / (n - 1))
+            x = index / (n - 1) * 100
+        x = round(x, 3)
+        y = y_percent(entry.price_rub)
 
-        relative = float((entry.price_rub - chart_min_value) / spread)
-        y = pad_y + ((1 - relative) * usable_height)
-
-        x = round(x, 2)
-        y = round(y, 2)
-        label_y = max(pad_y + 12, y - 14)
+        change_label = ""
+        change_direction = "flat"
+        if previous_value is not None:
+            delta = entry.price_rub - previous_value
+            change_label = _format_signed_decimal(delta)
+            change_direction = "up" if delta > 0 else ("down" if delta < 0 else "flat")
+        previous_value = entry.price_rub
 
         points.append(
             {
                 "x": x,
                 "y": y,
-                "x_svg": _svg_number(x),
-                "y_svg": _svg_number(y),
-                "label_y_svg": _svg_number(label_y),
+                "x_svg": _svg_number(x * _CHART_VIEW_WIDTH / 100),
+                "y_svg": _svg_number(y * _CHART_VIEW_HEIGHT / 100),
                 "value": entry.price_rub,
                 "value_label": f"{entry.price_rub:.2f}",
                 "label": row["label"],
                 "created_label": timezone.localtime(entry.created_at).strftime("%d.%m.%Y %H:%M"),
-                "show_label": index in label_indices,
+                "change_label": change_label,
+                "change_direction": change_direction,
             }
         )
 
+    if n == 1:
+        only = points[0]
+        line_path = f"M0 {only['y_svg']} H{_CHART_VIEW_WIDTH}"
+    else:
+        line_path = "M" + " L".join(f"{p['x_svg']} {p['y_svg']}" for p in points)
+    first_x = "0" if n == 1 else points[0]["x_svg"]
+    last_x = str(_CHART_VIEW_WIDTH) if n == 1 else points[-1]["x_svg"]
+    area_path = f"{line_path} L{last_x} {_CHART_VIEW_HEIGHT} L{first_x} {_CHART_VIEW_HEIGHT} Z"
+
+    y_ticks = [
+        {"y": y_percent(value), "label": _format_chart_tick(value, scale_step)}
+        for value in reversed(scale_ticks)
+    ]
+
+    if n == 1:
+        x_tick_indices = [0]
+    else:
+        wanted = min(n, _CHART_X_TICK_COUNT)
+        x_tick_indices = sorted({round(i * (n - 1) / (wanted - 1)) for i in range(wanted)})
+    x_ticks = []
+    for index in x_tick_indices:
+        point = points[index]
+        align = "start" if point["x"] < 8 else ("end" if point["x"] > 92 else "center")
+        x_ticks.append({"x": point["x"], "label": point["label"], "align": align})
+
+    last_point = points[-1]
+    markers = []
+    if n > 1 and chart_max_value != chart_min_value:
+        # The last point already carries the price tag, so it gets no extra marker.
+        markers = [
+            {"kind": kind, "point": points[index], "title": title}
+            for kind, index, title in (("max", max_idx, "Макс"), ("min", min_idx, "Мин"))
+            if index != n - 1
+        ]
+
     return {
         "has_data": True,
+        "is_single": n == 1,
         "points": points,
+        "points_json": [
+            {
+                "x": point["x"],
+                "y": point["y"],
+                "price": point["value_label"],
+                "date": point["created_label"],
+                "change": point["change_label"],
+                "dir": point["change_direction"],
+            }
+            for point in points
+        ],
+        "line_path": line_path,
+        "area_path": area_path,
+        "view_width": _CHART_VIEW_WIDTH,
+        "view_height": _CHART_VIEW_HEIGHT,
+        "y_ticks": y_ticks,
+        "x_ticks": x_ticks,
+        "markers": markers,
+        "last_point": last_point,
+        "show_dots": n <= _CHART_DOTS_THRESHOLD,
         "first_label": chart_rows[0]["label"],
         "last_label": chart_rows[-1]["label"],
         "dot_radius": dot_radius,

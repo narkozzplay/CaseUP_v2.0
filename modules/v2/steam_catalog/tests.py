@@ -1456,3 +1456,36 @@ class CS2ReferenceTests(TestCase):
             call_command("import_cs2_reference", "--kinds", "skin", "--from-dir", tmp, stdout=MagicMock())
 
         self.assertEqual(self.Ref.objects.filter(kind="skin").count(), 2)
+
+
+class PriceChartBuilderTests(TestCase):
+    def _rows(self, prices):
+        start = timezone.now() - timedelta(hours=len(prices))
+        rows = []
+        for index, price in enumerate(prices):
+            entry = MagicMock(price_rub=Decimal(price), created_at=start + timedelta(hours=index))
+            rows.append({"entry": entry, "label": f"p{index}"})
+        return rows
+
+    def test_single_point_draws_flat_line_and_padded_scale(self):
+        from .views import _build_price_chart
+
+        chart = _build_price_chart(self._rows(["26.17"]))
+
+        self.assertTrue(chart["is_single"])
+        self.assertTrue(chart["line_path"].startswith("M0 "))
+        self.assertEqual(chart["markers"], [])
+        self.assertGreater(len(chart["y_ticks"]), 2)
+        self.assertTrue(0 < chart["points"][0]["y"] < 100)
+
+    def test_points_fit_scale_and_markers_skip_last_point(self):
+        from .views import _build_price_chart
+
+        chart = _build_price_chart(self._rows(["80", "95", "70", "60"]))
+
+        self.assertFalse(chart["is_single"])
+        self.assertEqual([point["x"] for point in (chart["points"][0], chart["points"][-1])], [0, 100])
+        self.assertTrue(all(0 < point["y"] < 100 for point in chart["points"]))
+        self.assertEqual([marker["kind"] for marker in chart["markers"]], ["max"])
+        self.assertEqual(chart["points_json"][2]["change"], "-25.00")
+        self.assertEqual(chart["points_json"][2]["dir"], "down")

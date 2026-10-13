@@ -1,3 +1,4 @@
+{% load l10n %}
 <section class="section section--compact item-page rarity--{{ item.rarity_key|default:'none' }}" data-steam-catalog-detail-page>
     <a href="{% url 'steam_catalog:list' %}" class="back-link">← Steam Catalog</a>
 
@@ -74,181 +75,150 @@
         </section>
     {% endif %}
 
-    <article class="card profile-history" id="price-history">
+    <article class="card price-panel" id="price-history">
         <div class="card-body">
-            <div class="section-head-inline">
-                <h2 class="section-title">История цены</h2>
-                <span class="text-muted">{{ price_history|length }} записей</span>
+            <div class="price-panel__head">
+                <div>
+                    <span class="eyebrow">Аналитика</span>
+                    <h2 class="section-title">История цены</h2>
+                </div>
+                {% if catalog_can_view_deep_analytics %}
+                    <nav class="price-panel__ranges" aria-label="Период">
+                        {% for value, label in price_history_range_choices %}
+                            <a href="?range={{ value }}#price-history" data-price-range-link class="price-chart__range-btn{% if selected_price_history_range == value %} is-active{% endif %}"{% if selected_price_history_range == value %} aria-current="true"{% endif %}>{{ label }}</a>
+                        {% endfor %}
+                    </nav>
+                {% endif %}
             </div>
 
             {% if catalog_can_view_deep_analytics %}
             {% if price_chart.has_data %}
+                {% with currency=site_settings.site_currency_symbol|default:"₽" %}
                 <div class="price-chart">
-                    <div class="price-chart__toolbar">
-                        <div class="price-chart__ranges">
-                            {% for value, label in price_history_range_choices %}
-                                <a
-                                    href="?range={{ value }}#price-history"
-                                    data-price-range-link
-                                    class="price-chart__range-btn {% if selected_price_history_range == value %}is-active{% endif %}">
-                                    {{ label }}
-                                </a>
+                    <div class="price-stats">
+                        <div class="price-stat price-stat--main">
+                            <span class="price-stat__label">Текущая</span>
+                            <strong class="price-stat__value">{{ price_analytics.current_value|stringformat:".2f" }} <small>{{ currency }}</small></strong>
+                            <span class="price-delta price-delta--{{ price_analytics.trend_direction }}" title="{{ price_analytics.trend_label }}">{{ price_analytics.trend_icon }} {{ price_analytics.trend_delta_label }} · {{ price_analytics.trend_percent|stringformat:".2f" }}%</span>
+                        </div>
+                        <div class="price-stat">
+                            <span class="price-stat__label">Старт периода</span>
+                            <strong class="price-stat__value">{{ price_analytics.first_value|stringformat:".2f" }}</strong>
+                            <span class="price-stat__note">{{ price_analytics.trend_label }}</span>
+                        </div>
+                        <div class="price-stat">
+                            <span class="price-stat__label">Минимум</span>
+                            <strong class="price-stat__value price-stat__value--down">{{ price_analytics.min_value|stringformat:".2f" }}</strong>
+                            <span class="price-stat__note">за выбранный период</span>
+                        </div>
+                        <div class="price-stat">
+                            <span class="price-stat__label">Максимум</span>
+                            <strong class="price-stat__value price-stat__value--up">{{ price_analytics.max_value|stringformat:".2f" }}</strong>
+                            <span class="price-stat__note">пик {{ price_analytics.peak_created_label }}</span>
+                        </div>
+                        <div class="price-stat">
+                            <span class="price-stat__label">От пика</span>
+                            <strong class="price-stat__value price-stat__value--{{ price_analytics.drawdown_direction }}">{{ price_analytics.drawdown_delta_label }}</strong>
+                            <span class="price-stat__note">{{ price_analytics.drawdown_percent|stringformat:".2f" }}% · {{ price_analytics.drawdown_label }}</span>
+                        </div>
+                    </div>
+
+                    {% localize off %}
+                    <div class="pc" data-price-chart data-currency="{{ currency }}">
+                        {{ price_chart.points_json|json_script:"price-chart-data" }}
+                        <div class="pc__plot" data-price-chart-plot>
+                            <svg class="pc__svg" viewBox="0 0 {{ price_chart.view_width }} {{ price_chart.view_height }}" preserveAspectRatio="none" aria-label="История цены" role="img">
+                                <defs>
+                                    <linearGradient id="pc-area-fill" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#f5a623" stop-opacity="0.32"></stop>
+                                        <stop offset="70%" stop-color="#f5a623" stop-opacity="0.06"></stop>
+                                        <stop offset="100%" stop-color="#f5a623" stop-opacity="0"></stop>
+                                    </linearGradient>
+                                </defs>
+                                {% for tick in price_chart.y_ticks %}
+                                    <line x1="0" x2="{{ price_chart.view_width }}" y1="{% widthratio tick.y 100 price_chart.view_height %}" y2="{% widthratio tick.y 100 price_chart.view_height %}" class="pc__grid"></line>
+                                {% endfor %}
+                                <path d="{{ price_chart.area_path }}" class="pc__area" fill="url(#pc-area-fill)"></path>
+                                <line x1="0" x2="{{ price_chart.view_width }}" y1="{{ price_chart.last_point.y_svg }}" y2="{{ price_chart.last_point.y_svg }}" class="pc__current-line"></line>
+                                <path d="{{ price_chart.line_path }}" class="pc__line{% if price_chart.is_single %} pc__line--single{% endif %}"></path>
+                            </svg>
+
+                            {% if price_chart.show_dots and not price_chart.is_single %}
+                                {% for point in price_chart.points %}
+                                    <span class="pc__dot" style="left: {{ point.x }}%; top: {{ point.y }}%;" aria-hidden="true"></span>
+                                {% endfor %}
+                            {% endif %}
+
+                            {% for marker in price_chart.markers %}
+                                <span class="pc__marker pc__marker--{{ marker.kind }}{% if marker.point.x > 80 %} is-left{% elif marker.point.x < 20 %} is-right{% endif %}" style="left: {{ marker.point.x }}%; top: {{ marker.point.y }}%;">
+                                    <span class="pc__marker-label">{{ marker.title }} {{ marker.point.value_label }}</span>
+                                </span>
+                            {% endfor %}
+
+                            <span class="pc__last" style="left: {% if price_chart.is_single %}50{% else %}{{ price_chart.last_point.x }}{% endif %}%; top: {{ price_chart.last_point.y }}%;" title="{{ price_chart.last_point.value_label }} {{ currency }} · {{ price_chart.last_point.created_label }}"></span>
+
+                            {% if price_chart.is_single %}
+                                <div class="pc__single-note">
+                                    <strong>Пока одна запись</strong>
+                                    <span>{{ price_chart.last_point.value_label }} {{ currency }} · {{ price_chart.last_point.created_label }}. Линия тренда появится после следующего обновления цены.</span>
+                                </div>
+                            {% endif %}
+
+                            <div class="pc__cursor" data-price-chart-cursor hidden></div>
+                            <span class="pc__cursor-dot" data-price-chart-cursor-dot hidden></span>
+                            <div class="pc__tooltip" data-price-chart-tooltip hidden></div>
+                        </div>
+
+                        <div class="pc__yaxis" aria-hidden="true">
+                            {% for tick in price_chart.y_ticks %}
+                                <span style="top: {{ tick.y }}%;">{{ tick.label }}</span>
+                            {% endfor %}
+                            <span class="pc__price-tag" style="top: {{ price_chart.last_point.y }}%;">{{ price_chart.last_point.value_label }}</span>
+                        </div>
+
+                        <div class="pc__xaxis" aria-hidden="true">
+                            {% for tick in price_chart.x_ticks %}
+                                <span class="is-{{ tick.align }}" style="left: {% if price_chart.is_single %}50{% else %}{{ tick.x }}{% endif %}%;">{{ tick.label }}</span>
                             {% endfor %}
                         </div>
-                        <p class="price-chart__note">{{ price_history_range_note }}</p>
                     </div>
-                
-                    <dl class="price-chart__summary">
-                        <div class="price-chart__metric">
-                            <dt>Минимум</dt>
-                            <dd>{{ price_analytics.min_value|floatformat:2 }}</dd>
-                            <div class="price-chart__metric-note">
-                                Реальный минимум за выбранный период
-                            </div>
-                        </div>
-                    
-                        <div class="price-chart__metric price-chart__metric--focus">
-                            <dt>Текущая</dt>
-                            <dd class="price-chart__metric-value">
-                                {{ price_analytics.current_value|floatformat:2 }}
-                            </dd>
-                        
-                            <div class="price-chart__metric-note">
-                                Старт периода: {{ price_analytics.first_value|floatformat:2 }}
-                            </div>
-                            <div class="price-chart__metric-note">
-                                От пика: {{ price_analytics.max_value|floatformat:2 }}
-                            </div>
-                        
-                            <div class="price-chart__signal-grid">
-                                <div class="price-chart__signal-card price-chart__signal-card--{{ price_analytics.trend_direction }}">
-                                    <div class="price-chart__signal-label">От старта периода</div>
-                                    <div class="price-chart__signal-value">
-                                        {{ price_analytics.trend_delta_label }}
-                                        <span>({{ price_analytics.trend_percent|floatformat:2 }}%)</span>
-                                    </div>
-                                    <div class="price-chart__signal-note">
-                                        {{ price_analytics.trend_label }}
-                                    </div>
-                                </div>
-                            
-                                <div class="price-chart__signal-card price-chart__signal-card--{{ price_analytics.drawdown_direction }}">
-                                    <div class="price-chart__signal-label">От пика периода</div>
-                                    <div class="price-chart__signal-value">
-                                        {{ price_analytics.drawdown_delta_label }}
-                                        <span>({{ price_analytics.drawdown_percent|floatformat:2 }}%)</span>
-                                    </div>
-                                    <div class="price-chart__signal-note">
-                                        {{ price_analytics.drawdown_label }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    
-                        <div class="price-chart__metric">
-                            <dt>Максимум</dt>
-                            <dd>{{ price_analytics.max_value|floatformat:2 }}</dd>
-                            <div class="price-chart__metric-note">
-                                Реальный максимум за выбранный период
-                            </div>
-                            <div class="price-chart__metric-note price-chart__metric-note--spaced">
-                                Пик был: {{ price_analytics.peak_created_label }}
-                            </div>
-                        </div>
-                    </dl>
+                    {% endlocalize %}
 
-                    <div class="price-chart__analytics-caption">
-                        Период анализа: {{ price_analytics.period_span_label }}
+                    <div class="price-chart__footer">
+                        <span class="price-chart__analytics-caption">Период анализа: {{ price_analytics.period_span_label }}</span>
+                        <span>{{ price_history_total }} записей · {{ price_chart.points|length }} точек на графике</span>
                     </div>
-                
-                    <div class="price-chart__frame">
-                        <svg viewBox="0 0 640 240" class="price-chart__svg" preserveAspectRatio="none" aria-label="История цены">
-                            <line x1="28" y1="22" x2="612" y2="22" class="price-chart__grid-line"></line>
-                            <line x1="28" y1="120" x2="612" y2="120" class="price-chart__grid-line"></line>
-                            <line x1="28" y1="218" x2="612" y2="218" class="price-chart__grid-line"></line>
-                        
-                                                            <polyline
-                                    class="price-chart__line"
-                                    points="{% for point in price_chart.points %}{{ point.x_svg }},{{ point.y_svg }} {% endfor %}">
-                                </polyline>
-                            
-                                {% for point in price_chart.points %}
-                                    <g class="price-chart__point">
-                                        {% if point.show_label %}
-                                        <text
-                                            class="price-chart__value"
-                                            x="{{ point.x_svg }}"
-                                            y="{{ point.label_y_svg }}"
-                                            text-anchor="middle">
-                                            {{ point.value_label }}
-                                        </text>
-                                        {% endif %}
+                    <p class="price-chart__note">{{ price_history_range_note }}</p>
 
-                                        <circle
-                                            class="price-chart__dot"
-                                            cx="{{ point.x_svg }}"
-                                            cy="{{ point.y_svg }}"
-                                            r="{{ price_chart.dot_radius }}">
-                                            <title>{{ point.value_label }} {{ site_settings.site_currency_symbol|default:'₽' }} · {{ point.label }} · {{ point.created_label }}</title>
-                                        </circle>
-                                    </g>
-                                {% endfor %}
-                        </svg>
-                    
-                        <div class="price-chart__labels">
-                            <span>{{ price_chart.first_label }}</span>
-                            <span>{{ price_chart.last_label }}</span>
-                        </div>
-                    </div>
-                
-                    <div class="section-head-inline section-head-inline--subtle">
-                        <span class="text-muted">
-                            {{ price_history_total }} записей за выбранный период
-                        </span>
-                        <span class="text-muted">
-                            {{ price_chart.points|length }} точек на графике
-                        </span>
-                    </div>
-                
                     <details class="raw-history">
-                    <summary>Сырая история цены</summary>
-                    <div class="table-wrap">
-                        <table class="table table--dark">
-                            <thead>
-                                <tr>
-                                    <th>Дата</th>
-                                    <th>Цена</th>
-                                    <th>Источник</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for entry in price_history %}
+                        <summary>Сырая история цены</summary>
+                        <div class="table-wrap">
+                            <table class="table table--dark">
+                                <thead>
                                     <tr>
-                                        <td>{{ entry.created_at|date:"d.m.Y H:i" }}</td>
-                                        <td>{{ entry.price_rub|floatformat:2 }}</td>
-                                        <td>{{ entry.source|default:"manual" }}</td>
+                                        <th>Дата</th>
+                                        <th>Цена</th>
+                                        <th>Источник</th>
                                     </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    {% for entry in price_history %}
+                                        <tr>
+                                            <td>{{ entry.created_at|date:"d.m.Y H:i" }}</td>
+                                            <td>{{ entry.price_rub|floatformat:2 }}</td>
+                                            <td>{{ entry.source|default:"manual" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </details>
                 </div>
+                {% endwith %}
             {% else %}
-                <div class="price-chart">
-                    <div class="price-chart__toolbar">
-                        <div class="price-chart__ranges">
-                            {% for value, label in price_history_range_choices %}
-                                <a
-                                    href="?range={{ value }}"
-                                    class="price-chart__range-btn {% if selected_price_history_range == value %}is-active{% endif %}">
-                                    {{ label }}
-                                </a>
-                            {% endfor %}
-                        </div>
-                    </div>
-                
-                    <p class="text-muted empty-state">История цены за выбранный период пока не накоплена. Нажми «Обновить цену».</p>
+                <div class="empty-panel price-chart__empty">
+                    <strong>Нет данных за этот период</strong>
+                    <p class="text-muted">История цены за выбранный период пока не накоплена. Нажми «Обновить цену» или выбери период пошире.</p>
                 </div>
             {% endif %}
             {% else %}
