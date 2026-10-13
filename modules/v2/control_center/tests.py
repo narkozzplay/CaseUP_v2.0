@@ -176,3 +176,29 @@ class SiteAndModerationTests(TestCase):
         export = self.client.get(reverse("control_center:ledger_export"), {"reason": "topup"})
         self.assertIn("topup", export.content.decode("utf-8"))
         self.assertNotIn("case_open", export.content.decode("utf-8"))
+
+
+class HealthFormattingTests(TestCase):
+    def test_format_ms_keeps_sub_millisecond_values(self):
+        from .services.health import format_ms
+
+        self.assertEqual(format_ms(0.04), "<0.1 мс")
+        self.assertEqual(format_ms(0.42), "0.4 мс")
+        self.assertEqual(format_ms(37.6), "38 мс")
+
+    def test_disk_check_shows_fractional_percent_and_total(self):
+        from collections import namedtuple
+        from unittest import mock
+
+        from .services import health
+
+        usage = namedtuple("usage", "total used free")(1000 * 1024**3, 4 * 1024**3, 996 * 1024**3)
+        with mock.patch.object(health.shutil, "disk_usage", return_value=usage):
+            check = health.check_disk()
+        self.assertEqual(check.value, "996.0 ГБ свободно")
+        self.assertEqual(check.hint, "Занято 0.4% из 1000.0 ГБ")
+
+    def test_database_check_reports_size(self):
+        from .services.health import check_database
+
+        self.assertIn("sqlite", check_database().hint)
