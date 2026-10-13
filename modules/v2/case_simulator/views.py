@@ -2,14 +2,19 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
+from django.utils.http import urlencode
 from django.views.decorators.http import require_POST
 
+from frontend.templatetags.site_formatters import money
 from modules.v2.profiles.models import UserProfile
+from modules.v2.system.services import get_site_configuration
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
 
@@ -26,11 +31,24 @@ def _balance(user) -> Decimal:
 
 
 def _user_stats(user) -> dict:
-    stats = SimOpening.objects.filter(user=user).aggregate(count=Count("id"), spent=Sum("price_paid"), value=Sum("item_value"))
+    in_inventory = Q(sold_at__isnull=True)
+    stats = SimOpening.objects.filter(user=user).aggregate(
+        count=Count("id"),
+        spent=Sum("price_paid"),
+        value=Sum("item_value"),
+        inventory_count=Count("id", filter=in_inventory),
+        inventory_value=Sum("item_value", filter=in_inventory),
+        sold_count=Count("id", filter=~in_inventory),
+        sold_value=Sum("sold_price", filter=~in_inventory),
+    )
     return {
         "count": stats["count"] or 0,
         "spent": stats["spent"] or ZERO,
         "value": stats["value"] or ZERO,
+        "inventory_count": stats["inventory_count"] or 0,
+        "inventory_value": stats["inventory_value"] or ZERO,
+        "sold_count": stats["sold_count"] or 0,
+        "sold_value": stats["sold_value"] or ZERO,
         "balance": _balance(user),
     }
 
@@ -226,7 +244,7 @@ def terminal_decline(request, session_id: int):
 @login_required
 def inventory(request):
     rarity = request.GET.get("rarity") or ""
-    queryset = SimOpening.objects.filter(user=request.user).select_related("item", "case")
+    queryset = SimOpening.objects.filter(user=request.user, sold_at__isnull=True).select_related("item", "case")
     rarity_counts = dict(queryset.values_list("item__rarity").annotate(n=Count("id")).values_list("item__rarity", "n"))
     if rarity in SimCaseItem.Rarity.values:
         queryset = queryset.filter(item__rarity=rarity)
@@ -235,7 +253,8 @@ def inventory(request):
     page_obj = Paginator(queryset, 36).get_page(request.GET.get("page") or 1)
     labels = dict(SimCaseItem.Rarity.choices)
     rarity_tabs = [(key, labels[key], rarity_counts[key]) for key in services.RARITY_ORDER if rarity_counts.get(key)]
-    best = SimOpening.objects.filter(user=request.user).select_related("item").order_by("-item_value").first()
+    selection_value = queryset.aggregate(total=Sum("item_value"))["total"] or ZERO
+    best = SimOpening.objects.filter(user=request.user).select_related("item").order_by("-item_value", "-id").first()
     return render_dashboard_page(
         request,
         full_template="case_simulator/inventory.html",
@@ -245,9 +264,36 @@ def inventory(request):
             "openings": list(page_obj.object_list),
             "rarity_tabs": rarity_tabs,
             "selected_rarity": rarity,
+            "selection_count": page_obj.paginator.count,
+            "selection_value": selection_value,
             "stats": _user_stats(request.user),
             "best_drop": best,
         },
         page_title=build_page_title("Инвентарь симулятора", "Кейсы"),
         active_menu_key=MENU_KEY,
     )
+
+
+@login_required
+@require_POST
+def inventory_sell(request):
+    """Sell one item, the selected items, or everything shown under the current filter."""
+    rarity = request.POST.get("rarity") or ""
+    if rarity not in SimCaseItem.Rarity.values:
+        rarity = ""
+    single = request.POST.get("sell")
+    try:
+        if single:
+            count, total = services.sell_openings(user=request.user, opening_ids=[single])
+        elif request.POST.get("action") == "all":
+            count, total = services.sell_openings(user=request.user, rarity=rarity)
+        else:
+            count, total = services.sell_openings(user=request.user, opening_ids=request.POST.getlist("ids"))
+    except services.SimulatorError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, f"Продано предметов: {count}. Баланс пополнен на {money({'site_settings': get_site_configuration()}, total)}.")
+
+    params = {key: value for key, value in (("rarity", rarity), ("page", request.POST.get("page") or "")) if value}
+    url = reverse("case_simulator:inventory")
+    return redirect(f"{url}?{urlencode(params)}" if params else url)

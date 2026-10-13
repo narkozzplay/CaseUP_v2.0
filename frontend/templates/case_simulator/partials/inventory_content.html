@@ -1,49 +1,79 @@
 {% load site_formatters %}
-<section class="section section--compact sim-page">
+<section class="section section--compact sim-page" data-sim-inventory
+    data-balance="{{ stats.balance|stringformat:'s' }}"
+    data-currency-symbol="{{ site_settings.site_currency_symbol|default:'₽' }}"
+    data-currency-rate="{{ site_settings.site_currency_rate|default:1|stringformat:'s' }}">
     <a href="{% url 'case_simulator:list' %}" class="back-link" data-dashboard-nav="true">← Все кейсы</a>
     <div class="page-header page-header--compact">
         <div>
             <span class="eyebrow">Case simulator</span>
             <h1>Инвентарь симулятора</h1>
-            <p class="text-muted">Всё, что выпало из кейсов и терминала. Это симуляция: предметы остаются здесь и не выводятся в Steam.</p>
+            <p class="text-muted">Всё, что выпало из кейсов и терминала. Предметы не выводятся в Steam, но их можно продать обратно за баланс сайта по текущей оценке.</p>
         </div>
     </div>
 
     <div class="stat-tiles sim-stats">
-        <div class="stat-tile"><span class="stat-tile__label">Предметов</span><span class="stat-tile__value">{{ stats.count }}</span></div>
-        <div class="stat-tile"><span class="stat-tile__label">Потрачено</span><span class="stat-tile__value">{% money stats.spent %}</span></div>
-        <div class="stat-tile"><span class="stat-tile__label">Оценка инвентаря</span><span class="stat-tile__value">{% money stats.value %}</span></div>
+        <div class="stat-tile"><span class="stat-tile__label">Предметов</span><span class="stat-tile__value">{{ stats.inventory_count }}</span>{% if stats.sold_count %}<span class="stat-tile__meta">ещё {{ stats.sold_count }} продано</span>{% endif %}</div>
+        <div class="stat-tile"><span class="stat-tile__label">Потрачено</span><span class="stat-tile__value">{% money stats.spent %}</span>{% if stats.sold_value %}<span class="stat-tile__meta">возвращено продажей {% money stats.sold_value %}</span>{% endif %}</div>
+        <div class="stat-tile"><span class="stat-tile__label">Оценка инвентаря</span><span class="stat-tile__value">{% money stats.inventory_value %}</span><span class="stat-tile__meta">столько вернётся при продаже всего</span></div>
         {% if best_drop %}
-            <div class="stat-tile rarity--{{ best_drop.item.rarity_css }} sim-best"><span class="stat-tile__label">Лучший дроп</span><span class="stat-tile__value">{% money best_drop.item_value %}</span><span class="stat-tile__meta">{{ best_drop.display_name }}</span></div>
+            <div class="stat-tile rarity--{{ best_drop.item.rarity_css }} sim-best">
+                <div class="sim-best__body">
+                    <span class="stat-tile__label">Лучший дроп</span>
+                    <span class="stat-tile__value">{% money best_drop.item_value %}</span>
+                    <span class="stat-tile__meta">{{ best_drop.display_name }}{% if best_drop.is_sold %} · продан{% endif %}</span>
+                </div>
+                {% if best_drop.item.image_url %}<div class="sim-best__media"><img src="{{ best_drop.item.image_url }}" alt="{{ best_drop.item.name }}" loading="lazy" onerror="this.remove()"></div>{% endif %}
+            </div>
         {% endif %}
     </div>
 
     {% if rarity_tabs %}
         <div class="chip-tabs sim-tabs">
-            <a href="{% url 'case_simulator:inventory' %}" class="chip-tab{% if not selected_rarity %} is-active{% endif %}" data-dashboard-nav="true">Все<span class="chip-tabs__count">{{ stats.count }}</span></a>
+            <a href="{% url 'case_simulator:inventory' %}" class="chip-tab{% if not selected_rarity %} is-active{% endif %}" data-dashboard-nav="true">Все<span class="chip-tabs__count">{{ stats.inventory_count }}</span></a>
             {% for key, label, count in rarity_tabs %}
                 <a href="?rarity={{ key }}" class="chip-tab rarity--{{ key }}{% if selected_rarity == key %} is-active{% endif %}" data-dashboard-nav="true">{{ label }}<span class="chip-tabs__count">{{ count }}</span></a>
             {% endfor %}
         </div>
     {% endif %}
 
-    <div class="sim-inventory">
-        {% for opening in openings %}
-            <div class="sim-inv rarity--{{ opening.item.rarity_css }}">
-                <div class="sim-inv__media">{% if opening.item.image_url %}<img src="{{ opening.item.image_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}</div>
-                <span class="sim-inv__weapon">{% if opening.is_stattrak %}<b class="sim-st">StatTrak™</b> {% endif %}{{ opening.item.weapon_label }}</span>
-                <strong class="sim-inv__name">{{ opening.item.skin_name }}</strong>
-                <span class="sim-inv__wear">{{ opening.exterior|default:"—" }}{% if opening.float_value is not None %} · {{ opening.float_value|floatformat:4 }}{% endif %}</span>
-                <span class="sim-inv__foot"><span>{% if opening.source == "terminal" %}Терминал{% else %}{{ opening.case.name }}{% endif %}</span><b>{% money opening.item_value %}</b></span>
+    <form method="post" action="{% url 'case_simulator:inventory_sell' %}" class="sim-sell" data-dashboard-shell-form data-sim-sell-form>
+        {% csrf_token %}
+        <input type="hidden" name="rarity" value="{{ selected_rarity }}">
+        <input type="hidden" name="page" value="{{ page_obj.number }}">
+
+        {% if openings %}
+            <div class="sim-sell__bar">
+                <label class="sim-sell__all"><input type="checkbox" data-sim-select-all> Выбрать на странице</label>
+                <span class="sim-sell__summary" data-sim-sell-summary>Отметь предметы, чтобы продать несколько сразу</span>
+                <div class="sim-sell__actions">
+                    <button type="submit" name="action" value="selected" class="btn btn-secondary btn-sm" data-sim-sell-selected disabled>Продать выбранные</button>
+                    <button type="submit" name="action" value="all" class="btn btn-primary btn-sm"
+                        data-sim-confirm="Продать {{ selection_count }} {% if selected_rarity %}предметов этой редкости{% else %}предметов{% endif %} за {% money selection_value %}?">Продать {% if selected_rarity %}все этой редкости{% else %}всё{% endif %} · {% money selection_value %}</button>
+                </div>
             </div>
-        {% empty %}
-            <div class="empty-panel">
-                <strong>Пока пусто</strong>
-                <p class="text-muted">Открой первый кейс, и выпавший предмет появится здесь.</p>
-                <a href="{% url 'case_simulator:list' %}" class="btn btn-primary btn-sm" data-dashboard-nav="true">К кейсам</a>
-            </div>
-        {% endfor %}
-    </div>
+        {% endif %}
+
+        <div class="sim-inventory">
+            {% for opening in openings %}
+                <div class="sim-inv rarity--{{ opening.item.rarity_css }}" data-sim-inv data-value="{{ opening.item_value|stringformat:'s' }}">
+                    <label class="sim-inv__check" title="Выбрать"><input type="checkbox" name="ids" value="{{ opening.pk }}" data-sim-check><span></span></label>
+                    <div class="sim-inv__media">{% if opening.item.image_url %}<img src="{{ opening.item.image_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}</div>
+                    <span class="sim-inv__weapon">{% if opening.is_stattrak %}<b class="sim-st">StatTrak™</b> {% endif %}{{ opening.item.weapon_label }}</span>
+                    <strong class="sim-inv__name">{{ opening.item.skin_name }}</strong>
+                    <span class="sim-inv__wear">{{ opening.exterior|default:"—" }}{% if opening.float_value is not None %} · {{ opening.float_value|floatformat:4 }}{% endif %}</span>
+                    <span class="sim-inv__foot"><span>{% if opening.source == "terminal" %}Терминал{% else %}{{ opening.case.name }}{% endif %}</span><b>{% money opening.item_value %}</b></span>
+                    <button type="submit" name="sell" value="{{ opening.pk }}" class="sim-inv__sell">Продать</button>
+                </div>
+            {% empty %}
+                <div class="empty-panel">
+                    <strong>{% if stats.sold_count %}Инвентарь пуст{% else %}Пока пусто{% endif %}</strong>
+                    <p class="text-muted">{% if stats.sold_count %}Всё продано. Открой ещё кейс, и новый дроп появится здесь.{% else %}Открой первый кейс, и выпавший предмет появится здесь.{% endif %}</p>
+                    <a href="{% url 'case_simulator:list' %}" class="btn btn-primary btn-sm" data-dashboard-nav="true">К кейсам</a>
+                </div>
+            {% endfor %}
+        </div>
+    </form>
 
     {% if page_obj.has_other_pages %}
         <nav class="pagination-wrap">
