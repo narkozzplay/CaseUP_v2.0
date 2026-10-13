@@ -1,0 +1,105 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Пользователи</h1>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Всего</dt><dd>{{ counts.total }}</dd></div>
+            <div><dt>Команда</dt><dd>{{ counts.staff }}</dd></div>
+            <div><dt>Заблокировано</dt><dd>{{ counts.blocked }}</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <form method="get" class="cc-toolbar">
+        <label class="cc-field cc-field--grow">
+            <span>Поиск</span>
+            <input type="search" name="q" value="{{ filters.q }}" class="form-control" placeholder="Логин, email, Steam, FACEIT или ID">
+        </label>
+        <label class="cc-field form-field">
+            <span>Роль</span>
+            <select name="role">
+                <option value="">Все роли</option>
+                {% for code, label in role_options %}<option value="{{ code }}"{% if filters.role == code %} selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+        </label>
+        <label class="cc-field form-field">
+            <span>Статус</span>
+            <select name="status">
+                {% for code, label in status_options %}<option value="{{ code }}"{% if filters.status == code %} selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+        </label>
+        <label class="cc-field form-field">
+            <span>Сортировка</span>
+            <select name="sort">
+                {% for code, label in sort_options %}<option value="{{ code }}"{% if filters.sort == code %} selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+        </label>
+        <div class="cc-toolbar__actions">
+            <button type="submit" class="btn btn-primary btn-sm">Найти</button>
+            <a href="{% url 'control_center:users_export' %}{% if export_query %}?{{ export_query }}{% endif %}" class="btn btn-ghost btn-sm" download>{% include "components/icon.html" with name="cc_download" %}CSV</a>
+        </div>
+    </form>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head">
+            <h2 class="ops-panel__title">Найдено: {{ result_count }}</h2>
+            {% if filters.q or filters.role or filters.status %}<a href="{% url 'control_center:users' %}" class="ops-panel__link">Сбросить фильтры</a>{% endif %}
+        </div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead>
+                    <tr>
+                        <th>Пользователь</th>
+                        <th>Роль</th>
+                        <th>Статус</th>
+                        <th class="cc-num">Баланс</th>
+                        <th>Регистрация</th>
+                        <th>Активность</th>
+                        <th class="cc-actions-col">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr{% if row.ban or row.is_blocked %} class="is-banned"{% endif %}>
+                            <td>
+                                <a href="{% url 'control_center:user_detail' row.user.pk %}" class="cc-user">
+                                    <span class="cc-user__avatar"><img src="{{ row.avatar_url }}" alt=""></span>
+                                    <span class="cc-user__text">
+                                        <span class="cc-user__name">{{ row.display_name }}</span>
+                                        <span class="cc-user__sub">#{{ row.user.pk }} · {{ row.user.username }}</span>
+                                    </span>
+                                </a>
+                            </td>
+                            <td><span class="cc-role ops-role--{{ row.profile.role }}"><span class="ops-role__swatch"></span>{{ row.role_label }}</span></td>
+                            <td>
+                                {% if row.ban %}
+                                    <span class="cc-chip cc-chip--fail" title="{{ row.ban.reason }}">Бан{% if row.ban.expires_at %} до {{ row.ban.expires_at|date:"d.m H:i" }}{% endif %}</span>
+                                {% elif row.is_blocked %}
+                                    <span class="cc-chip cc-chip--fail">Заблокирован</span>
+                                {% elif row.is_online %}
+                                    <span class="cc-chip cc-chip--ok">Онлайн</span>
+                                {% else %}
+                                    <span class="cc-chip">Офлайн</span>
+                                {% endif %}
+                            </td>
+                            <td class="cc-num">{% money row.profile.balance_coins %}</td>
+                            <td class="cc-mono">{{ row.user.date_joined|date:"d.m.Y" }}</td>
+                            <td class="cc-mono">{{ row.profile.last_seen_at|date:"d.m H:i"|default:"—" }}</td>
+                            <td class="cc-actions-col">
+                                <div class="cc-row-actions">
+                                    <a href="{% url 'control_center:user_detail' row.user.pk %}" class="btn btn-secondary btn-sm">Досье</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="7" class="text-muted">Никого не нашли по этим фильтрам.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+    {% include "control_center/partials/_pagination.html" %}
+</section>

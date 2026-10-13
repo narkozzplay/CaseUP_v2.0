@@ -1,0 +1,89 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Состояние системы</h1>
+            <p class="ops-hero__text">Проверено {{ checked_at|date:"d.m.Y H:i:s" }}. Обновите страницу, чтобы перепроверить.</p>
+        </div>
+        <span class="cc-overall cc-overall--{{ overall }}"><span class="cc-dot cc-dot--{{ overall }}"></span>{% if overall == "ok" %}Всё работает{% elif overall == "warn" %}Есть предупреждения{% else %}Есть сбои{% endif %}</span>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <div class="cc-checks">
+        {% for check in checks %}
+            <article class="cc-check-card cc-check--{{ check.status }}">
+                <span class="cc-dot cc-dot--{{ check.status }}"></span>
+                <span class="cc-check-card__label">{{ check.label }}</span>
+                <strong class="cc-check-card__value">{{ check.value }}</strong>
+                {% if check.hint %}<span class="cc-check-card__hint">{{ check.hint }}</span>{% endif %}
+            </article>
+        {% endfor %}
+    </div>
+
+    <div class="ops-grid">
+        <div class="ops-grid__main">
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Последние запуски обновления цен</h2>
+                    {% if feature_flags.celery_tasks %}<a href="{% url 'celery_tasks:control_center' %}" class="ops-panel__link">Celery Tasks →</a>{% endif %}
+                </div>
+                <div class="table-wrap">
+                    <table class="table cc-table">
+                        <thead><tr><th>Старт</th><th>Категория</th><th>Триггер</th><th>Статус</th><th class="cc-num">Обновлено</th><th class="cc-num">Ошибок</th></tr></thead>
+                        <tbody>
+                            {% for run in recent_runs %}
+                                <tr>
+                                    <td class="cc-mono">{{ run.started_at|date:"d.m H:i" }}</td>
+                                    <td>{{ run.get_category_display }}</td>
+                                    <td class="text-muted">{{ run.triggered_by|default:"—" }}</td>
+                                    <td><span class="cc-chip {% if run.status == 'success' %}cc-chip--ok{% elif run.status == 'error' %}cc-chip--fail{% elif run.status == 'partial' %}cc-chip--warn{% endif %}">{{ run.get_status_display }}</span></td>
+                                    <td class="cc-num">{{ run.updated_items_count }} / {{ run.touched_items_count }}</td>
+                                    <td class="cc-num">{{ run.errors_count }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="6" class="text-muted">Запусков ещё не было.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Модули</h2>
+                    <a href="{% url 'system_config:settings' %}" class="ops-panel__link">Управлять →</a>
+                </div>
+                <div class="cc-modules">
+                    {% for module in modules %}
+                        <span class="cc-module{% if module.enabled %} is-on{% endif %}"><span class="cc-dot cc-dot--{% if module.enabled %}ok{% else %}muted{% endif %}"></span>{{ module.label }}</span>
+                    {% endfor %}
+                </div>
+            </article>
+        </div>
+        <aside class="ops-grid__side">
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Окружение</h2></div>
+                <dl class="cc-facts cc-facts--single">
+                    {% for label, value in runtime %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}
+                    <div><dt>Обслуживание</dt><dd>{{ summary.maintenance_label }}</dd></div>
+                    <div><dt>Регистрация</dt><dd>{{ summary.registration_label }}</dd></div>
+                    <div><dt>Тема</dt><dd>{{ summary.active_theme.name|default:"—" }}</dd></div>
+                    <div><dt>Base URL</dt><dd>{{ summary.public_base_url }}</dd></div>
+                </dl>
+            </article>
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Интеграции</h2><a href="{% url 'system_config:settings' %}" class="ops-panel__link">Живая проверка →</a></div>
+                <div class="cc-checks cc-checks--compact">
+                    {% for label, configured in integrations %}
+                        <div class="cc-check cc-check--{% if configured %}ok{% else %}warn{% endif %}">
+                            <span class="cc-dot cc-dot--{% if configured %}ok{% else %}warn{% endif %}"></span>
+                            <span class="cc-check__label">{{ label }}</span>
+                            <span class="cc-check__value">{% if configured %}ключ задан{% else %}нет ключа{% endif %}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </article>
+        </aside>
+    </div>
+</section>

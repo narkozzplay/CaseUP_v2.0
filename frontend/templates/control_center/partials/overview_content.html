@@ -1,0 +1,265 @@
+{% load l10n %}
+<section class="section section--compact ops cc" data-control-center>
+    {% with currency=site_settings.site_currency_symbol|default:"₽" %}
+    <header class="ops-hero cc-hero">
+        <div class="ops-hero__main">
+            <span class="eyebrow">Admin+ · {{ build_version }}</span>
+            <h1 class="ops-hero__title">Control Center</h1>
+            <p class="ops-hero__text">Пользователи, баны, финансы, модерация каталога и состояние системы в одном месте. Все действия команды пишутся в журнал.</p>
+        </div>
+        <div class="cc-hero__side">
+            <div class="cc-switches">
+                <form method="post" action="{% url 'control_center:site_toggle' %}" class="cc-switch{% if summary.maintenance_mode_enabled %} is-on is-danger{% endif %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="field" value="maintenance">
+                    <input type="hidden" name="enabled" value="{% if summary.maintenance_mode_enabled %}0{% else %}1{% endif %}">
+                    <button type="submit" class="cc-switch__btn" title="{% if summary.maintenance_mode_enabled %}Выключить{% else %}Включить{% endif %} режим обслуживания">
+                        <span class="cc-switch__track" aria-hidden="true"><span></span></span>
+                        <span class="cc-switch__text"><strong>Обслуживание</strong><span>{% if summary.maintenance_mode_enabled %}Сайт закрыт{% else %}Сайт открыт{% endif %}</span></span>
+                    </button>
+                </form>
+                <form method="post" action="{% url 'control_center:site_toggle' %}" class="cc-switch{% if summary.registration_enabled %} is-on{% endif %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="field" value="registration">
+                    <input type="hidden" name="enabled" value="{% if summary.registration_enabled %}0{% else %}1{% endif %}">
+                    <button type="submit" class="cc-switch__btn" title="{% if summary.registration_enabled %}Закрыть{% else %}Открыть{% endif %} регистрацию">
+                        <span class="cc-switch__track" aria-hidden="true"><span></span></span>
+                        <span class="cc-switch__text"><strong>Регистрация</strong><span>{% if summary.registration_enabled %}Открыта{% else %}Закрыта{% endif %}</span></span>
+                    </button>
+                </form>
+            </div>
+            <dl class="ops-hero__meta">
+                <div><dt>Среда</dt><dd>{{ summary.runtime_environment }}</dd></div>
+                <div><dt>Модули</dt><dd>{{ summary.enabled_count }} / {{ summary.total_count }}</dd></div>
+                <div><dt>Система</dt><dd><span class="cc-dot cc-dot--{{ health_status }}"></span>{% if health_status == "ok" %}OK{% elif health_status == "warn" %}Внимание{% else %}Сбой{% endif %}</dd></div>
+            </dl>
+        </div>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <div class="ops-kpis">
+        <a href="{% url 'control_center:users' %}?status=new" class="ops-kpi ops-kpi--link">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="users_catalog" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Пользователи</span>
+                <strong class="ops-kpi__value">{{ kpis.users_total }}</strong>
+                <span class="ops-kpi__meta"><b class="text-up">+{{ kpis.users_new_day }}</b> за 24 ч · <b class="text-up">+{{ kpis.users_new_week }}</b> за 7 дн</span>
+            </div>
+        </a>
+        <a href="{% url 'control_center:users' %}?status=online" class="ops-kpi ops-kpi--link">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="cc_online" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Онлайн сейчас</span>
+                <strong class="ops-kpi__value ops-live"><span class="ops-live__dot" aria-hidden="true"></span>{{ kpis.users_online }}</strong>
+                <span class="ops-kpi__meta">Команда: <b>{{ kpis.staff_total }}</b></span>
+            </div>
+        </a>
+        <a href="{% url 'control_center:users' %}?status=banned" class="ops-kpi ops-kpi--link{% if kpis.users_banned %} ops-kpi--warn{% endif %}">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="cc_ban" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Забанено</span>
+                <strong class="ops-kpi__value">{{ kpis.users_banned }}</strong>
+                <span class="ops-kpi__meta">Действий команды за 7 дн: <b>{{ kpis.audit_week }}</b></span>
+            </div>
+        </a>
+        <a href="{% url 'control_center:ledger' %}" class="ops-kpi ops-kpi--link">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="cc_ledger" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Операции за 24 ч</span>
+                <strong class="ops-kpi__value">{{ kpis.ledger_day_count }}</strong>
+                <span class="ops-kpi__meta">Сальдо <b class="{% if kpis.ledger_day_net > 0 %}text-up{% elif kpis.ledger_day_net < 0 %}text-down{% endif %}">{% if kpis.ledger_day_net > 0 %}+{% endif %}{{ kpis.ledger_day_net|stringformat:".2f" }} {{ currency }}</b></span>
+            </div>
+        </a>
+        <a href="{% url 'control_center:ledger' %}" class="ops-kpi ops-kpi--link">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="cc_wallet" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Балансы юзеров</span>
+                <strong class="ops-kpi__value">{% money kpis.balances_total %}</strong>
+                <span class="ops-kpi__meta">Сумма на всех счетах</span>
+            </div>
+        </a>
+        <a href="{% url 'control_center:moderation' %}" class="ops-kpi ops-kpi--link{% if kpis.catalog_review or kpis.verifications_pending %} ops-kpi--warn{% endif %}">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="cc_moderation" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Очередь модерации</span>
+                <strong class="ops-kpi__value">{{ kpis.catalog_review|add:kpis.verifications_pending }}</strong>
+                <span class="ops-kpi__meta">Предметы: <b>{{ kpis.catalog_review }}</b> · Верификация: <b>{{ kpis.verifications_pending }}</b></span>
+            </div>
+        </a>
+    </div>
+
+    <div class="ops-grid">
+        <div class="ops-grid__main">
+            <div class="cc-charts">
+                <article class="ops-panel">
+                    <div class="ops-panel__head">
+                        <h2 class="ops-panel__title">Регистрации</h2>
+                        <span class="ops-panel__hint">14 дней</span>
+                    </div>
+                    <div class="cc-chart" role="img" aria-label="Регистрации за 14 дней">
+                        {% for row in registrations_series %}
+                            <div class="cc-chart__col" title="{{ row.date|date:'d.m' }}: {{ row.value }}">
+                                <span class="cc-chart__value">{% if row.value %}{{ row.value }}{% endif %}</span>
+                                <span class="cc-chart__bar" style="height: {{ row.percent|unlocalize }}%;"></span>
+                                <span class="cc-chart__label">{{ row.date|date:"d" }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </article>
+                <article class="ops-panel">
+                    <div class="ops-panel__head">
+                        <h2 class="ops-panel__title">Операции ledger</h2>
+                        <span class="ops-panel__hint">14 дней</span>
+                    </div>
+                    <div class="cc-chart cc-chart--alt" role="img" aria-label="Операции за 14 дней">
+                        {% for row in ledger_series %}
+                            <div class="cc-chart__col" title="{{ row.date|date:'d.m' }}: {{ row.value }}">
+                                <span class="cc-chart__value">{% if row.value %}{{ row.value }}{% endif %}</span>
+                                <span class="cc-chart__bar" style="height: {{ row.percent|unlocalize }}%;"></span>
+                                <span class="cc-chart__label">{{ row.date|date:"d" }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </article>
+            </div>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Журнал действий</h2>
+                    <a href="{% url 'control_center:audit' %}" class="ops-panel__link">Весь журнал →</a>
+                </div>
+                <div class="ops-list">
+                    {% for entry in recent_audit %}
+                        <div class="ops-row cc-audit-row">
+                            <span class="cc-action-icon cc-action-icon--{{ entry.action }}" aria-hidden="true">{% if entry.action == "user_ban" %}{% include "components/icon.html" with name="cc_ban" %}{% elif entry.action == "user_role" %}{% include "components/icon.html" with name="profile" %}{% elif entry.action == "catalog_approve" or entry.action == "catalog_disable" %}{% include "components/icon.html" with name="cc_moderation" %}{% elif entry.action == "site_maintenance" or entry.action == "site_registration" or entry.action == "module_toggle" %}{% include "components/icon.html" with name="system_settings" %}{% else %}{% include "components/icon.html" with name="cc_audit" %}{% endif %}</span>
+                            <span class="ops-row__main">
+                                <strong>{{ entry.action_label_ru }}</strong>
+                                <span>{{ entry.actor.username|default:"система" }}{% if entry.summary %} · {{ entry.summary }}{% endif %}</span>
+                            </span>
+                            <span class="ops-row__side"><time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"d.m H:i" }}</time></span>
+                        </div>
+                    {% empty %}
+                        <p class="ops-empty">Пока пусто. Баны, смены ролей, модерация и переключатели сайта появятся здесь.</p>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Ручные корректировки баланса</h2>
+                    <a href="{% url 'control_center:ledger' %}?reason=admin_adjust" class="ops-panel__link">Все →</a>
+                </div>
+                <div class="ops-list">
+                    {% for entry in recent_admin_adjustments %}
+                        <a href="{% url 'control_center:user_detail' entry.user_id %}" class="ops-row ops-row--link">
+                            <span class="ops-row__badge ops-row__badge--{% if entry.delta >= 0 %}up{% else %}down{% endif %}" aria-hidden="true">{% if entry.delta >= 0 %}+{% else %}−{% endif %}</span>
+                            <span class="ops-row__main">
+                                <strong>{{ entry.user.profile_v2.steam_personaname|default:entry.user.username }}</strong>
+                                <span>Баланс после: {{ entry.balance_after|stringformat:".2f" }} {{ currency }}</span>
+                            </span>
+                            <span class="ops-row__side">
+                                <b class="ops-row__amount {% if entry.delta >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% if entry.delta > 0 %}+{% endif %}{{ entry.delta|stringformat:".2f" }} {{ currency }}</b>
+                                <time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"d.m H:i" }}</time>
+                            </span>
+                        </a>
+                    {% empty %}
+                        <p class="ops-empty">Ручных корректировок пока не было. Баланс меняется в админ-настройках профиля пользователя.</p>
+                    {% endfor %}
+                </div>
+            </article>
+        </div>
+
+        <aside class="ops-grid__side">
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Требует внимания</h2>
+                    <span class="ops-panel__hint">{{ attention|length }}</span>
+                </div>
+                <div class="cc-attention">
+                    {% for item in attention %}
+                        <a href="{% url item.url_name %}" class="cc-attention__item cc-attention__item--{{ item.level }}">
+                            <strong>{{ item.title }}</strong>
+                            {% if item.text %}<span>{{ item.text }}</span>{% endif %}
+                        </a>
+                    {% empty %}
+                        <p class="cc-attention__ok"><span class="cc-dot cc-dot--ok"></span>Всё спокойно, очередь пустая.</p>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Состояние системы</h2>
+                    <a href="{% url 'control_center:health' %}" class="ops-panel__link">Подробнее →</a>
+                </div>
+                <div class="cc-checks cc-checks--compact">
+                    {% for check in quick_checks %}
+                        <div class="cc-check cc-check--{{ check.status }}">
+                            <span class="cc-dot cc-dot--{{ check.status }}"></span>
+                            <span class="cc-check__label">{{ check.label }}</span>
+                            <span class="cc-check__value">{{ check.value }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Роли</h2>
+                    <a href="{% url 'control_center:users' %}?status=staff" class="ops-panel__link">Команда →</a>
+                </div>
+                <div class="cc-roles">
+                    {% for row in role_rows %}
+                        <a href="{% url 'control_center:users' %}?role={{ row.code }}" class="cc-roles__row ops-role--{{ row.code }}{% if not row.total %} is-zero{% endif %}">
+                            <span class="cc-roles__name"><span class="ops-role__swatch" aria-hidden="true"></span>{{ row.label }}</span>
+                            <span class="cc-roles__bar"><span style="width: {{ row.percent|unlocalize }}%;"></span></span>
+                            <b>{{ row.total }}</b>
+                        </a>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Топ балансов</h2>
+                    <a href="{% url 'control_center:users' %}?sort=balance" class="ops-panel__link">Все →</a>
+                </div>
+                <div class="ops-list">
+                    {% for profile in top_profiles %}
+                        {% with display_name=profile.steam_personaname|default:profile.user.username %}
+                        <a href="{% url 'control_center:user_detail' profile.user_id %}" class="ops-row ops-row--link">
+                            <span class="ops-row__avatar">{% if profile.uploaded_avatar %}<img src="{{ profile.uploaded_avatar.url }}" alt="">{% elif profile.steam_avatar %}<img src="{{ profile.steam_avatar }}" alt="">{% else %}<span>{{ display_name|slice:":1"|upper }}</span>{% endif %}</span>
+                            <span class="ops-row__main"><strong>{{ display_name }}</strong><span>{{ profile.get_role_display }}</span></span>
+                            <span class="ops-row__side"><b class="ops-row__amount metric-positive">{% money profile.balance_coins %}</b></span>
+                        </a>
+                        {% endwith %}
+                    {% empty %}
+                        <p class="ops-empty">Нет данных.</p>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Новые пользователи</h2>
+                    <a href="{% url 'control_center:users' %}" class="ops-panel__link">Все →</a>
+                </div>
+                <div class="ops-list">
+                    {% for profile in latest_users %}
+                        {% with display_name=profile.steam_personaname|default:profile.user.username %}
+                        <a href="{% url 'control_center:user_detail' profile.user_id %}" class="ops-row ops-row--link">
+                            <span class="ops-row__avatar">{% if profile.uploaded_avatar %}<img src="{{ profile.uploaded_avatar.url }}" alt="">{% elif profile.steam_avatar %}<img src="{{ profile.steam_avatar }}" alt="">{% else %}<span>{{ display_name|slice:":1"|upper }}</span>{% endif %}</span>
+                            <span class="ops-row__main"><strong>{{ display_name }}</strong><span>{{ profile.get_role_display }}</span></span>
+                            <span class="ops-row__side"><time datetime="{{ profile.user.date_joined|date:'c' }}">{{ profile.user.date_joined|date:"d.m H:i" }}</time></span>
+                        </a>
+                        {% endwith %}
+                    {% empty %}
+                        <p class="ops-empty">Нет данных.</p>
+                    {% endfor %}
+                </div>
+            </article>
+        </aside>
+    </div>
+    {% endwith %}
+</section>

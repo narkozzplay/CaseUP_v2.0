@@ -1,0 +1,12 @@
+<nav class="cc-tabs" aria-label="Control Center">
+    <a href="{% url 'frontend:admin_panel' %}" class="cc-tab{% if cc_tab == 'overview' %} is-active{% endif %}">{% include "components/icon.html" with name="dashboard_preview" %}<span>Обзор</span></a>
+    <a href="{% url 'control_center:users' %}" class="cc-tab{% if cc_tab == 'users' %} is-active{% endif %}">{% include "components/icon.html" with name="users_catalog" %}<span>Пользователи</span></a>
+    <a href="{% url 'control_center:ledger' %}" class="cc-tab{% if cc_tab == 'ledger' %} is-active{% endif %}">{% include "components/icon.html" with name="cc_ledger" %}<span>Финансы</span></a>
+    <a href="{% url 'control_center:moderation' %}" class="cc-tab{% if cc_tab == 'moderation' %} is-active{% endif %}">{% include "components/icon.html" with name="cc_moderation" %}<span>Модерация</span></a>
+    <a href="{% url 'control_center:audit' %}" class="cc-tab{% if cc_tab == 'audit' %} is-active{% endif %}">{% include "components/icon.html" with name="cc_audit" %}<span>Журнал</span></a>
+    <a href="{% url 'control_center:health' %}" class="cc-tab{% if cc_tab == 'health' %} is-active{% endif %}">{% include "components/icon.html" with name="cc_health" %}<span>Система</span></a>
+    <span class="cc-tabs__spacer"></span>
+    <a href="{% url 'system_config:settings' %}" class="cc-tab cc-tab--ghost" title="System Settings">{% include "components/icon.html" with name="system_settings" %}<span>Настройки</span></a>
+    {% if feature_flags.celery_tasks %}<a href="{% url 'celery_tasks:control_center' %}" class="cc-tab cc-tab--ghost" title="Celery Tasks">{% include "components/icon.html" with name="celery_tasks" %}<span>Celery</span></a>{% endif %}
+    <a href="{% url 'admin:index' %}" class="cc-tab cc-tab--ghost" title="Django Admin" data-dashboard-nav="false" target="_blank" rel="noopener">{% include "components/icon.html" with name="django_admin" %}<span>Django</span></a>
+</nav>

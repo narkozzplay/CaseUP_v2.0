@@ -1,0 +1,15 @@
+{% if page_obj.has_other_pages %}
+    <div class="cc-pager">
+        {% if page_obj.has_previous %}
+            <a class="btn btn-secondary btn-sm" href="?page={{ page_obj.previous_page_number }}{% if pagination_query %}&amp;{{ pagination_query }}{% endif %}">← Назад</a>
+        {% else %}
+            <span class="btn btn-secondary btn-sm" aria-disabled="true">← Назад</span>
+        {% endif %}
+        <span class="cc-pager__info">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a class="btn btn-secondary btn-sm" href="?page={{ page_obj.next_page_number }}{% if pagination_query %}&amp;{{ pagination_query }}{% endif %}">Вперёд →</a>
+        {% else %}
+            <span class="btn btn-secondary btn-sm" aria-disabled="true">Вперёд →</span>
+        {% endif %}
+    </div>
+{% endif %}

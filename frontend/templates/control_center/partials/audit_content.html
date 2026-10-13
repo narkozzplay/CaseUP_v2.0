@@ -1,0 +1,48 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Журнал действий</h1>
+            <p class="ops-hero__text">Кто, что и когда сделал: баны, роли, сессии, модерация, переключатели сайта и модулей.</p>
+        </div>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <div class="cc-filters-chips">
+        <a href="?{% if filters.q %}q={{ filters.q|urlencode }}{% endif %}" class="cc-chip cc-chip--link{% if not filters.action %} is-active{% endif %}">Все</a>
+        {% for code, label in action_options %}
+            <a href="?action={{ code }}{% if filters.q %}&amp;q={{ filters.q|urlencode }}{% endif %}" class="cc-chip cc-chip--link{% if filters.action == code %} is-active{% endif %}">{{ label }}{% for key, total in action_counts.items %}{% if key == code %} · {{ total }}{% endif %}{% endfor %}</a>
+        {% endfor %}
+    </div>
+
+    <form method="get" class="cc-toolbar">
+        {% if filters.action %}<input type="hidden" name="action" value="{{ filters.action }}">{% endif %}
+        <label class="cc-field cc-field--grow"><span>Поиск</span><input type="search" name="q" value="{{ filters.q }}" class="form-control" placeholder="Кто сделал, над кем или текст"></label>
+        <div class="cc-toolbar__actions"><button type="submit" class="btn btn-primary btn-sm">Найти</button></div>
+    </form>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Записей: {{ page_obj.paginator.count }}</h2><span class="ops-panel__hint">счётчики за 30 дней</span></div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead><tr><th>Когда</th><th>Действие</th><th>Кто</th><th>Над кем</th><th>Детали</th><th>IP</th></tr></thead>
+                <tbody>
+                    {% for entry in page_obj %}
+                        <tr>
+                            <td class="cc-mono">{{ entry.created_at|date:"d.m.Y H:i:s" }}</td>
+                            <td><span class="cc-chip cc-chip--action-{{ entry.action }}">{{ entry.action_label_ru }}</span></td>
+                            <td>{% include "control_center/partials/_user_cell.html" with u=entry.actor %}</td>
+                            <td>{% if entry.target_user %}{% include "control_center/partials/_user_cell.html" with u=entry.target_user %}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                            <td class="cc-summary">{{ entry.summary|default:"—" }}</td>
+                            <td class="cc-mono text-muted">{{ entry.ip_address|default:"—" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6" class="text-muted">Записей нет.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+    {% include "control_center/partials/_pagination.html" %}
+</section>
