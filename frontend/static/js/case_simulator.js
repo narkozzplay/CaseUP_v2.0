@@ -223,6 +223,7 @@
             }
         });
         dialog.dataset.soldTotal = '0';
+        dialog.dataset.revealId = String(Number(dialog.dataset.revealId || 0) + 1);
         const sell = dialog.querySelector('[data-sim-sell]');
         if (sell) {
             sell.hidden = !sellable || !cards.some((card) => card.dataset.openingId);
@@ -364,6 +365,7 @@
             return;
         }
         button.disabled = true;
+        const revealId = dialog.dataset.revealId;
         const body = new FormData();
         cards.forEach((card) => body.append('ids', card.dataset.openingId));
         let payload;
@@ -380,6 +382,10 @@
             }
         } catch (error) {
             payload = { ok: false, error: 'Нет связи с сервером. Попробуй ещё раз.' };
+        }
+        if (dialog.dataset.revealId !== revealId) {
+            // The dialog already shows a newer opening; don't paint this result onto it.
+            return;
         }
         if (!payload.ok) {
             button.disabled = false;
