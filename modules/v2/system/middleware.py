@@ -39,6 +39,7 @@ class MaintenanceModeMiddleware:
         "/auth/login/",
         "/auth/logout/",
         "/telegram/",
+        "/payments/webhook/",
     )
 
     def __init__(self, get_response):

@@ -91,12 +91,6 @@ class _AdminBaseForm(forms.Form):
 
 class AdminProfileIdentityForm(_AdminBaseForm):
     username = forms.CharField(max_length=150, label="Username")
-    balance_coins = forms.DecimalField(
-        max_digits=14,
-        decimal_places=2,
-        min_value=Decimal("0.00"),
-        label="Balance",
-    )
     role = forms.ChoiceField(
         choices=UserRole.choices,
         label="Role",
@@ -128,7 +122,6 @@ class AdminProfileIdentityForm(_AdminBaseForm):
             self.initial.setdefault("username", target_user.username)
 
         if target_profile is not None and not self.is_bound:
-            self.initial.setdefault("balance_coins", target_profile.balance_coins)
             self.initial.setdefault("role", target_profile.role)
             self.initial.setdefault("is_store_author", bool(target_profile.is_store_author))
 
@@ -163,6 +156,67 @@ class AdminProfileIdentityForm(_AdminBaseForm):
             raise forms.ValidationError("Нельзя назначить роль выше собственного уровня доступа.")
 
         return role
+
+
+class AdminBalanceAdjustForm(_AdminBaseForm):
+    OPERATION_ADD = "add"
+    OPERATION_SUBTRACT = "subtract"
+    OPERATION_SET = "set"
+    OPERATION_CHOICES = (
+        (OPERATION_ADD, "Начислить"),
+        (OPERATION_SUBTRACT, "Списать"),
+        (OPERATION_SET, "Установить точное значение"),
+    )
+
+    balance_operation = forms.ChoiceField(choices=OPERATION_CHOICES, initial=OPERATION_ADD, label="Действие")
+    balance_amount = forms.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        min_value=Decimal("0.00"),
+        label="Сумма",
+        widget=forms.NumberInput(attrs={"placeholder": "0.00", "step": "0.01", "min": "0"}),
+    )
+    balance_comment = forms.CharField(
+        max_length=200,
+        label="Причина",
+        widget=forms.TextInput(attrs={"placeholder": "Например: компенсация за сбой открытия кейса"}),
+    )
+
+    def __init__(self, *args, current_balance: Decimal | None = None, **kwargs):
+        self.current_balance = Decimal(current_balance or Decimal("0.00")).quantize(Decimal("0.01"))
+        super().__init__(*args, **kwargs)
+
+    def clean_balance_comment(self):
+        comment = (self.cleaned_data.get("balance_comment") or "").strip()
+        if not comment:
+            raise forms.ValidationError("Укажите причину изменения баланса.")
+        return comment
+
+    def clean(self):
+        cleaned_data = super().clean()
+        operation = cleaned_data.get("balance_operation")
+        amount = cleaned_data.get("balance_amount")
+        if operation is None or amount is None:
+            return cleaned_data
+
+        if operation == self.OPERATION_SET:
+            delta = amount - self.current_balance
+            if delta == Decimal("0.00"):
+                raise forms.ValidationError("Баланс уже равен этому значению.")
+        else:
+            if amount <= Decimal("0.00"):
+                self.add_error("balance_amount", "Сумма должна быть больше нуля.")
+                return cleaned_data
+            delta = amount if operation == self.OPERATION_ADD else -amount
+            if self.current_balance + delta < Decimal("0.00"):
+                self.add_error(
+                    "balance_amount",
+                    f"Нельзя списать больше текущего баланса ({self.current_balance:.2f}).",
+                )
+                return cleaned_data
+
+        cleaned_data["balance_delta"] = delta.quantize(Decimal("0.01"))
+        return cleaned_data
 
 
 class AdminSiteSubscriptionForm(_AdminBaseForm):

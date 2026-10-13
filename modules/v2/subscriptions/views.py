@@ -100,7 +100,7 @@ def _attach_purchase_ui(*, plans, user, viewer_balance):
                         f"Для покупки нужно {quote.charge_amount:.2f} ₽, "
                         f"на балансе {viewer_balance:.2f} ₽."
                     ),
-                    "href": reverse("subscriptions:balance_topup"),
+                    "href": reverse("payments:topup"),
                     "show_amount": True,
                 }
             )
@@ -217,10 +217,8 @@ def purchase_plan_with_balance_view(request, plan_id: int):
 
 @login_required
 def balance_topup_placeholder_view(request):
-    context = {
-        "viewer_balance": _get_viewer_balance(request.user),
-    }
-    return render(request, "subscriptions/balance_topup.html", context)
+    # Old entry point, kept so existing links keep working.
+    return redirect("payments:topup")
 
 
 def _bind_family_formset(formset_class, *, request=None, queryset, prefix: str, family: str):

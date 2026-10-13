@@ -75,6 +75,8 @@ def apply_ledger_delta(
     case_opening_id: int | None = None,
     inventory_item_id: int | None = None,
     withdraw_request_id: int | None = None,
+    comment: str = "",
+    created_by=None,
 ) -> LedgerResult:
     if delta is None:
         raise LedgerError("Delta must not be empty")
@@ -129,6 +131,8 @@ def apply_ledger_delta(
         case_opening_id=case_opening_id,
         inventory_item_id=inventory_item_id,
         withdraw_request_id=withdraw_request_id,
+        comment=(comment or "").strip()[:255],
+        created_by=created_by,
     )
 
     return LedgerResult(entry=entry, profile=profile)

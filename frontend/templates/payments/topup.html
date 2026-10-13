@@ -1,0 +1,7 @@
+{% extends "layouts/base_dashboard.html" %}
+
+{% block title %}Пополнение баланса | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
+
+{% block content %}
+    {% include "payments/partials/topup_content.html" %}
+{% endblock %}

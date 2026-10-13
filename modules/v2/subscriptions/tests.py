@@ -375,11 +375,10 @@ class SubscriptionViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "У вас действует подписка более высокого уровня.")
 
-    def test_balance_topup_placeholder_page_renders(self):
-        user = User.objects.create_user(username="topup_user", password="StrongPass123")
+    def test_balance_topup_old_url_redirects_to_payments(self):
+        User.objects.create_user(username="topup_user", password="StrongPass123")
         self.client.login(username="topup_user", password="StrongPass123")
 
         response = self.client.get(reverse("subscriptions:balance_topup"))
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Пополнение баланса")
+        self.assertRedirects(response, reverse("payments:topup"), fetch_redirect_response=False)

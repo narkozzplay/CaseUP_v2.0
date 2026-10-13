@@ -1,0 +1,27 @@
+<section class="section section--compact topup">
+    <div class="devpay">
+        <div class="devpay__head">
+            <span class="topup-mode topup-mode--test">TEST</span>
+            <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Заглушка платёжной страницы{% else %}Fake checkout{% endif %}</span>
+        </div>
+        <p class="devpay__label">{% if LANGUAGE_CODE == "ru" %}К оплате{% else %}Amount due{% endif %}</p>
+        <p class="devpay__amount">{% money_value payment.amount %} <span>₽</span></p>
+        <p class="devpay__text">
+            {% if LANGUAGE_CODE == "ru" %}
+                Так выглядит возврат с платёжки без реального шлюза: выберите исход, и сайт обработает его так же, как ответ ЮKassa. Работает только при DEBUG=True.
+            {% else %}
+                This stands in for the payment gateway: pick an outcome and the site handles it like a YooKassa response. DEBUG only.
+            {% endif %}
+        </p>
+        <code class="devpay__id">{{ payment.public_id }}</code>
+        {% if payment.is_final %}
+            <a href="{% url 'payments:topup' %}" class="btn btn-secondary btn-block">{% if LANGUAGE_CODE == "ru" %}Платёж уже обработан, назад{% else %}Already processed, back{% endif %}</a>
+        {% else %}
+            <form method="post" class="devpay__actions">
+                {% csrf_token %}
+                <button type="submit" name="outcome" value="pay" class="btn btn-primary">{% if LANGUAGE_CODE == "ru" %}Оплатить{% else %}Pay{% endif %}</button>
+                <button type="submit" name="outcome" value="cancel" class="btn btn-ghost">{% if LANGUAGE_CODE == "ru" %}Отменить{% else %}Cancel{% endif %}</button>
+            </form>
+        {% endif %}
+    </div>
+</section>

@@ -1,0 +1,130 @@
+<section class="section section--compact topup">
+    <header class="topup-hero">
+        <div class="topup-hero__main">
+            <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Кошелёк{% else %}Wallet{% endif %}</span>
+            <h1 class="topup-hero__title">{% if LANGUAGE_CODE == "ru" %}Пополнение баланса{% else %}Top up balance{% endif %}</h1>
+            <p class="topup-hero__text">
+                {% if LANGUAGE_CODE == "ru" %}
+                    Баланс тратится на кейсы, подписки и покупки в магазине. Оплата проходит на стороне платёжного сервиса, деньги зачисляются сразу после подтверждения.
+                {% else %}
+                    Balance pays for cases, subscriptions and store purchases. Payment happens on the provider's page and is credited as soon as it is confirmed.
+                {% endif %}
+            </p>
+        </div>
+        <dl class="topup-hero__meta">
+            <div>
+                <dt>{% if LANGUAGE_CODE == "ru" %}Баланс{% else %}Balance{% endif %}</dt>
+                <dd class="topup-hero__balance">{% money topup_balance %}</dd>
+            </div>
+            <div>
+                <dt>{% if LANGUAGE_CODE == "ru" %}Оплата{% else %}Provider{% endif %}</dt>
+                <dd>{% if topup_provider %}{{ topup_provider.title }}{% else %}—{% endif %}</dd>
+            </div>
+            {% if topup_provider %}
+                <div>
+                    <dt>{% if LANGUAGE_CODE == "ru" %}Режим{% else %}Mode{% endif %}</dt>
+                    <dd>{% if topup_provider.is_test_mode %}<span class="topup-mode topup-mode--test">TEST</span>{% else %}<span class="topup-mode topup-mode--live">LIVE</span>{% endif %}</dd>
+                </div>
+            {% endif %}
+        </dl>
+    </header>
+
+    {% if not topup_provider %}
+        <div class="topup-off">
+            <strong>{% if LANGUAGE_CODE == "ru" %}Пополнение временно недоступно{% else %}Top-up is temporarily unavailable{% endif %}</strong>
+            <p>{% if LANGUAGE_CODE == "ru" %}Платёжный сервис ещё не подключён. Администратору нужно указать ключи ЮKassa в настройках окружения.{% else %}No payment provider is configured yet. An admin needs to set the YooKassa keys in the environment.{% endif %}</p>
+        </div>
+    {% else %}
+        <div class="topup-grid">
+            <article class="topup-card">
+                <h2 class="topup-card__title">{% if LANGUAGE_CODE == "ru" %}Выберите сумму{% else %}Choose amount{% endif %}</h2>
+                <form method="post" action="{% url 'payments:topup' %}" class="topup-presets">
+                    {% csrf_token %}
+                    {% for preset in topup_presets %}
+                        <button type="submit" name="amount" value="{{ preset|floatformat:'0' }}" class="topup-preset">
+                            <span class="topup-preset__value">{{ preset|floatformat:"0" }}</span>
+                            <span class="topup-preset__cur">₽</span>
+                        </button>
+                    {% endfor %}
+                </form>
+
+                <div class="topup-divider"><span>{% if LANGUAGE_CODE == "ru" %}или своя сумма{% else %}or custom amount{% endif %}</span></div>
+
+                <form method="post" action="{% url 'payments:topup' %}" class="topup-custom">
+                    {% csrf_token %}
+                    <div class="topup-custom__row">
+                        <label class="topup-custom__field">
+                            <span class="sr-only">{% if LANGUAGE_CODE == "ru" %}Сумма{% else %}Amount{% endif %}</span>
+                            {{ topup_form.amount }}
+                            <span class="topup-custom__cur">₽</span>
+                        </label>
+                        <button type="submit" class="btn btn-primary">{% if LANGUAGE_CODE == "ru" %}Перейти к оплате{% else %}Continue to payment{% endif %}</button>
+                    </div>
+                    {% if topup_form.amount.errors %}<div class="topup-custom__error">{{ topup_form.amount.errors }}</div>{% endif %}
+                    <p class="topup-custom__hint">{% if LANGUAGE_CODE == "ru" %}От {{ topup_min|floatformat:"0" }} до {{ topup_max|floatformat:"0" }} ₽. 1 ₽ = 1 единица баланса.{% else %}From {{ topup_min|floatformat:"0" }} to {{ topup_max|floatformat:"0" }} ₽. 1 ₽ = 1 balance unit.{% endif %}</p>
+                </form>
+            </article>
+
+            <aside class="topup-card topup-card--info">
+                <h2 class="topup-card__title">{% if LANGUAGE_CODE == "ru" %}Как это работает{% else %}How it works{% endif %}</h2>
+                <ol class="topup-steps">
+                    <li><b>01</b><span>{% if LANGUAGE_CODE == "ru" %}Выбираете сумму и переходите к оплате ({{ topup_provider.title }}).{% else %}Pick an amount and continue to payment ({{ topup_provider.title }}).{% endif %}</span></li>
+                    <li><b>02</b><span>{% if LANGUAGE_CODE == "ru" %}Платите картой, СБП или кошельком, данные карты мы не видим.{% else %}Pay by card, SBP or wallet; we never see your card details.{% endif %}</span></li>
+                    <li><b>03</b><span>{% if LANGUAGE_CODE == "ru" %}Возвращаетесь на сайт, сумма уже на балансе и в истории операций.{% else %}Come back: the amount is on your balance and in the history.{% endif %}</span></li>
+                </ol>
+                {% if topup_provider.is_test_mode %}
+                    <div class="topup-testnote">
+                        <span class="topup-mode topup-mode--test">TEST</span>
+                        {% if topup_provider.code == "yookassa" %}
+                            <p>{% if LANGUAGE_CODE == "ru" %}Тестовый магазин ЮKassa: настоящие деньги не списываются. Карта <code>5555 5555 5555 4477</code>, любой срок и CVC.{% else %}YooKassa test shop: no real money. Card <code>5555 5555 5555 4477</code>, any expiry and CVC.{% endif %}</p>
+                        {% else %}
+                            <p>{% if LANGUAGE_CODE == "ru" %}Локальная заглушка платёжки (DEBUG). Подключите ключи ЮKassa, чтобы принимать реальные платежи.{% else %}Local fake checkout (DEBUG). Add YooKassa keys to accept real payments.{% endif %}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </aside>
+        </div>
+    {% endif %}
+
+    <article class="topup-card topup-history">
+        <h2 class="topup-card__title">{% if LANGUAGE_CODE == "ru" %}История пополнений{% else %}Top-up history{% endif %}</h2>
+        {% if topup_payments %}
+            <div class="topup-table-wrap">
+                <table class="topup-table">
+                    <thead>
+                        <tr>
+                            <th>{% if LANGUAGE_CODE == "ru" %}Дата{% else %}Date{% endif %}</th>
+                            <th>{% if LANGUAGE_CODE == "ru" %}Сумма{% else %}Amount{% endif %}</th>
+                            <th>{% if LANGUAGE_CODE == "ru" %}Способ{% else %}Provider{% endif %}</th>
+                            <th>{% if LANGUAGE_CODE == "ru" %}Статус{% else %}Status{% endif %}</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in topup_payments %}
+                            <tr>
+                                <td class="topup-table__mono">{{ payment.created_at|date:"d.m.Y H:i" }}</td>
+                                <td class="topup-table__mono topup-table__amount">{% money payment.amount %}</td>
+                                <td>{% if payment.provider == "yookassa" %}ЮKassa{% elif payment.provider == "dev" %}Dev{% else %}{{ payment.provider }}{% endif %}</td>
+                                <td><span class="topup-status topup-status--{{ payment.status }}">{{ payment.get_status_display }}</span></td>
+                                <td class="topup-table__actions">
+                                    <div>
+                                    {% if payment.status == "pending" %}
+                                        {% if payment.confirmation_url %}<a href="{{ payment.confirmation_url }}" class="btn btn-secondary btn-sm" data-dashboard-nav="false">{% if LANGUAGE_CODE == "ru" %}Оплатить{% else %}Pay{% endif %}</a>{% endif %}
+                                        <form method="post" action="{% url 'payments:recheck' payment.public_id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-ghost btn-sm">{% if LANGUAGE_CODE == "ru" %}Проверить{% else %}Check{% endif %}</button>
+                                        </form>
+                                    {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="topup-empty">{% if LANGUAGE_CODE == "ru" %}Пополнений пока не было.{% else %}No top-ups yet.{% endif %}</p>
+        {% endif %}
+    </article>
+</section>

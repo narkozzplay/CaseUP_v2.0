@@ -79,6 +79,7 @@ PROJECT_APPS = [
     "modules.v2.tg_notifier.apps.TgNotifierConfig",
     "modules.v2.game_servers.apps.GameServersConfig",
     "modules.v2.case_simulator.apps.CaseSimulatorConfig",
+    "modules.v2.payments.apps.PaymentsConfig",
     "modules.v2.store.apps.StoreConfig",
     "modules.v2.web_constructor.apps.WebConstructorConfig",
 ]
@@ -267,3 +268,16 @@ CELERY_BEAT_CS2_STEAM_STATS_SYNC_SECONDS = int(
 CELERY_BEAT_CS2_FACEIT_STATS_SYNC_SECONDS = int(
     os.getenv("CELERY_BEAT_CS2_FACEIT_STATS_SYNC_SECONDS", "1800")  # default: 30 min
 )
+
+# Balance top-up. PAYMENTS_PROVIDER: auto | yookassa | dev.
+# auto = ЮKassa when YOOKASSA_SHOP_ID/YOOKASSA_SECRET_KEY are set, otherwise the fake "dev" checkout (DEBUG only).
+PAYMENTS_PROVIDER = os.getenv("PAYMENTS_PROVIDER", "auto").strip().lower()
+PAYMENTS_CURRENCY = os.getenv("PAYMENTS_CURRENCY", "RUB").strip().upper()
+PAYMENTS_TOPUP_MIN = os.getenv("PAYMENTS_TOPUP_MIN", "50")
+PAYMENTS_TOPUP_MAX = os.getenv("PAYMENTS_TOPUP_MAX", "100000")
+PAYMENTS_TOPUP_PRESETS = os.getenv("PAYMENTS_TOPUP_PRESETS", "100,300,500,1000,2500")
+YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID", "").strip()
+YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY", "").strip()
+YOOKASSA_TIMEOUT_SECONDS = float(os.getenv("YOOKASSA_TIMEOUT_SECONDS", "15"))
+YOOKASSA_SEND_RECEIPT = os.getenv("YOOKASSA_SEND_RECEIPT", "0").lower() in {"1", "true", "yes"}
+YOOKASSA_VAT_CODE = int(os.getenv("YOOKASSA_VAT_CODE", "1"))
