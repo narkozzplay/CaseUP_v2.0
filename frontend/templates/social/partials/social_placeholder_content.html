@@ -1,121 +1,97 @@
-<section class="section section--compact social-placeholder" data-social-page="{{ social_page.key }}">
-    <div class="dashboard-hero card">
-        <div class="card-body dashboard-hero__body">
-            <div>
-                <span class="eyebrow">{{ social_page.eyebrow }}</span>
-                <h1 class="page-title page-title--sm">
-                    {% if LANGUAGE_CODE == "ru" %}{{ social_page.title_ru }}{% else %}{{ social_page.title_en }}{% endif %}
-                </h1>
-                <p class="text-muted dashboard-hero__text">
-                    {% if LANGUAGE_CODE == "ru" %}{{ social_page.description_ru }}{% else %}{{ social_page.description_en }}{% endif %}
-                </p>
-            </div>
-            <div class="dashboard-hero__meta">
-                <span class="status-pill">Social</span>
-                <span class="status-pill">Stage 4</span>
-                {% if social_page.create_url_name %}
-                    <a href="{% url social_page.create_url_name %}" class="btn btn-primary btn-sm" data-dashboard-nav="true">
-                        {% if LANGUAGE_CODE == "ru" %}{{ social_page.create_label_ru }}{% else %}{{ social_page.create_label_en }}{% endif %}
-                    </a>
-                {% endif %}
-            </div>
+{% load static %}
+<section class="section section--compact chat-page" data-social-page="{{ social_page.key }}">
+    <div class="page-header page-header--compact chat-page__head">
+        <div>
+            <span class="eyebrow">{{ social_page.eyebrow }}</span>
+            <h1>{% if LANGUAGE_CODE == "ru" %}{{ social_page.title_ru }}{% else %}{{ social_page.title_en }}{% endif %}</h1>
+            <p class="text-muted">{% if LANGUAGE_CODE == "ru" %}{{ social_page.description_ru }}{% else %}{{ social_page.description_en }}{% endif %}</p>
         </div>
+        {% if social_page.create_url_name %}
+            <a href="{% url social_page.create_url_name %}" class="btn btn-primary" data-dashboard-nav="true">
+                {% include "components/icon.html" with name="plus" %}
+                {% if LANGUAGE_CODE == "ru" %}{{ social_page.create_label_ru }}{% else %}{{ social_page.create_label_en }}{% endif %}
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="chip-tabs chat-tabs">
+        <a href="{% url 'social:chats' %}" class="chip-tab{% if social_page.key == 'social_chats' %} is-active{% endif %}" data-dashboard-nav="true">
+            {% include "components/icon.html" with name="chat" %}{% if LANGUAGE_CODE == "ru" %}Личные{% else %}Direct{% endif %}
+            <span class="chip-tabs__count">{{ social_counts.direct|default:0 }}</span>
+        </a>
+        <a href="{% url 'social:groups' %}" class="chip-tab{% if social_page.key == 'social_groups' %} is-active{% endif %}" data-dashboard-nav="true">
+            {% include "components/icon.html" with name="group" %}{% if LANGUAGE_CODE == "ru" %}Группы{% else %}Groups{% endif %}
+            <span class="chip-tabs__count">{{ social_counts.group|default:0 }}</span>
+        </a>
+        <a href="{% url 'social:conversations' %}" class="chip-tab{% if social_page.key == 'social_conversations' %} is-active{% endif %}" data-dashboard-nav="true">
+            {% include "components/icon.html" with name="conversation" %}{% if LANGUAGE_CODE == "ru" %}Беседы{% else %}Conversations{% endif %}
+            <span class="chip-tabs__count">{{ social_counts.conversation|default:0 }}</span>
+        </a>
     </div>
 
     {% if social_space_cards %}
-        <div class="social-space-grid">
+        <div class="chat-list">
             {% for card in social_space_cards %}
-                <article class="card social-space-card">
-                    <div class="card-body">
-                        <div class="social-space-card__head">
-                            <span class="social-space-card__avatar-wrap">
-                                {% if card.has_custom_avatar %}
-                                    <img src="{{ card.display_avatar_url }}" alt="{{ card.display_title }}" class="social-space-card__avatar">
-                                {% else %}
-                                    <span class="social-space-card__avatar-fallback" aria-hidden="true">{{ card.avatar_initial }}</span>
-                                {% endif %}
-                            </span>
-                            <div class="social-space-card__title-wrap">
-                                <span class="eyebrow">{{ card.space_type_label }}</span>
-                                <h2 class="social-space-card__title">{{ card.display_title }}</h2>
-                            </div>
-                        </div>
+                <article class="chat-row{% if card.unread_count %} has-unread{% endif %}">
+                    <span class="chat-avatar">
+                        {% if card.has_custom_avatar %}
+                            <img src="{{ card.display_avatar_url }}" alt="">
+                        {% else %}
+                            <span class="chat-avatar__initial" aria-hidden="true">{{ card.avatar_initial }}</span>
+                        {% endif %}
+                    </span>
 
-                        <p class="text-muted social-space-card__description">
-                            {% if card.description %}
+                    <div class="chat-row__main">
+                        <div class="chat-row__top">
+                            <a href="{{ card.url }}" class="chat-row__link" data-dashboard-nav="true">{{ card.display_title }}</a>
+                            {% if card.last_message %}
+                                <time datetime="{{ card.last_message.created_at|date:'c' }}" title="{{ card.last_message.created_at|date:'d.m.Y H:i' }}">{{ card.last_message.created_at|date:"d.m H:i" }}</time>
+                            {% endif %}
+                        </div>
+                        <p class="chat-row__preview">
+                            {% if card.last_message %}
+                                <b>{% if card.last_message.is_own %}{% if LANGUAGE_CODE == "ru" %}Вы{% else %}You{% endif %}{% else %}{{ card.last_message.author_display_name }}{% endif %}:</b> {{ card.last_message.body }}
+                            {% elif card.description %}
                                 {{ card.description }}
                             {% else %}
-                                {% if LANGUAGE_CODE == "ru" %}Описание пока не задано.{% else %}No description yet.{% endif %}
+                                <span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Сообщений пока нет{% else %}No messages yet{% endif %}</span>
                             {% endif %}
                         </p>
-
-                        <div class="social-space-card__meta">
-                            <span class="status-pill status-pill--sm">{{ card.privacy_label }}</span>
-                            <a href="{{ card.members_url }}" class="status-pill status-pill--sm status-pill--link" data-dashboard-nav="true">
-                                {% if LANGUAGE_CODE == "ru" %}Участники:{% else %}Members:{% endif %} {{ card.member_count }}
-                            </a>
-                            <span class="status-pill status-pill--sm">
-                                {% if LANGUAGE_CODE == "ru" %}Ваша роль:{% else %}Your role:{% endif %} {{ card.role_label }}
-                            </span>
+                        <div class="chat-row__meta">
+                            <span>{{ card.privacy_label }}</span>
+                            {% if card.role_label %}<span>{{ card.role_label }}</span>{% endif %}
+                            <a href="{{ card.members_url }}" class="chat-row__members-link" data-dashboard-nav="true">{% if LANGUAGE_CODE == "ru" %}Участники:{% else %}Members:{% endif %} {{ card.member_count }}</a>
                         </div>
+                    </div>
 
-                        <div class="social-member-preview" aria-label="{% if LANGUAGE_CODE == 'ru' %}Участники{% else %}Members{% endif %}">
+                    <div class="chat-row__side">
+                        {% if card.unread_count %}<span class="chat-badge">{{ card.unread_count }}</span>{% endif %}
+                        <div class="chat-faces" aria-label="{% if LANGUAGE_CODE == 'ru' %}Участники{% else %}Members{% endif %}">
                             {% for member in card.member_preview %}
-                                <a href="{{ member.profile_url }}" class="social-member-preview__item" title="{{ member.display_name }}" data-dashboard-nav="true">
-                                    <span class="presence-avatar-wrap presence-avatar-wrap--sm">
-                                        <img src="{{ member.avatar_url }}" alt="{{ member.display_name }}" class="social-member-preview__avatar">
-                                        <span class="presence-indicator {% if member.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if member.is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if member.is_online %}Online{% else %}Offline{% endif %}"></span>
-                                    </span>
-                                    <span class="social-member-preview__name">{{ member.display_name }}</span>
+                                <a href="{{ member.profile_url }}" class="chat-faces__item presence-avatar-wrap presence-avatar-wrap--sm" title="{{ member.display_name }}" data-dashboard-nav="true">
+                                    <img src="{{ member.avatar_url }}" alt="{{ member.display_name }}">
+                                    <span class="presence-indicator {% if member.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" aria-label="{% if member.is_online %}Online{% else %}Offline{% endif %}"></span>
                                 </a>
-                            {% empty %}
-                                <span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Участников пока нет.{% else %}No members yet.{% endif %}</span>
                             {% endfor %}
-                        </div>
-
-                        <div class="social-space-card__actions">
-                            <a href="{{ card.url }}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
-                                {% if LANGUAGE_CODE == "ru" %}Открыть{% else %}Open{% endif %}
-                            </a>
                         </div>
                     </div>
                 </article>
             {% endfor %}
         </div>
     {% else %}
-    <div class="dashboard-grid">
-        <article class="card dashboard-panel">
-            <div class="card-body">
-                <div class="section-head-inline">
-                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Статус раздела{% else %}Section status{% endif %}</h2>
-                </div>
-                <p class="text-muted empty-state">
-                    {% if LANGUAGE_CODE == "ru" %}{{ social_page.empty_ru }}{% else %}{{ social_page.empty_en }}{% endif %}
-                </p>
-            </div>
-        </article>
-
-        <article class="card dashboard-panel">
-            <div class="card-body">
-                <div class="section-head-inline">
-                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Навигация{% else %}Navigation{% endif %}</h2>
-                </div>
-                <div class="quick-actions-grid">
-                    <a href="{% url 'social:chats' %}" class="quick-action-card" data-dashboard-nav="true">
-                        <strong>{% if LANGUAGE_CODE == "ru" %}Чаты{% else %}Chats{% endif %}</strong>
-                        <span>{% if LANGUAGE_CODE == "ru" %}Личные сообщения позже{% else %}Private messages later{% endif %}</span>
-                    </a>
-                    <a href="{% url 'social:groups' %}" class="quick-action-card" data-dashboard-nav="true">
-                        <strong>{% if LANGUAGE_CODE == "ru" %}Группы{% else %}Groups{% endif %}</strong>
-                        <span>{% if LANGUAGE_CODE == "ru" %}Сообщества и роли позже{% else %}Communities and roles later{% endif %}</span>
-                    </a>
-                    <a href="{% url 'social:conversations' %}" class="quick-action-card" data-dashboard-nav="true">
-                        <strong>{% if LANGUAGE_CODE == "ru" %}Беседы{% else %}Conversations{% endif %}</strong>
-                        <span>{% if LANGUAGE_CODE == "ru" %}Групповые беседы позже{% else %}Group conversations later{% endif %}</span>
-                    </a>
-                </div>
-            </div>
-        </article>
-    </div>
+        <div class="empty-panel chat-empty">
+            <span class="chat-empty__icon" aria-hidden="true">{% include "components/icon.html" with name="chats" %}</span>
+            <strong>{% if LANGUAGE_CODE == "ru" %}{{ social_page.empty_ru }}{% else %}{{ social_page.empty_en }}{% endif %}</strong>
+            <p class="text-muted">
+                {% if social_page.key == "social_chats" %}
+                    {% if LANGUAGE_CODE == "ru" %}Личный чат появится, когда ты напишешь другу из его профиля или из списка участников группы.{% else %}A direct chat appears when you message a friend from their profile or a group member list.{% endif %}
+                {% else %}
+                    {% if LANGUAGE_CODE == "ru" %}Создай первую и пригласи участников.{% else %}Create the first one and invite members.{% endif %}
+                {% endif %}
+            </p>
+            {% if social_page.create_url_name %}
+                <a href="{% url social_page.create_url_name %}" class="btn btn-primary btn-sm" data-dashboard-nav="true">{% if LANGUAGE_CODE == "ru" %}{{ social_page.create_label_ru }}{% else %}{{ social_page.create_label_en }}{% endif %}</a>
+            {% endif %}
+        </div>
     {% endif %}
 </section>

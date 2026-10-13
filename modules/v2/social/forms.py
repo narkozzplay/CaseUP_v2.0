@@ -57,7 +57,7 @@ class SocialMessageCreateForm(forms.Form):
             "required": "Message cannot be empty.",
             "max_length": "Message must be 4000 characters or fewer.",
         },
-        widget=forms.Textarea(attrs={"rows": 3, "class": "form-control"}),
+        widget=forms.Textarea(attrs={"rows": 2, "class": "form-control", "placeholder": "Сообщение… Ctrl+Enter — отправить"}),
     )
 
     def clean_body(self):

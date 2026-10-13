@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.db import IntegrityError
 from django.db import transaction
-from django.db.models import Count, Exists, F, OuterRef, Q
+from django.db.models import Count, Exists, F, OuterRef, Q, Subquery
 from django.http import Http404
 from django.templatetags.static import static
 from django.urls import reverse
@@ -308,10 +308,49 @@ def _membership_map_for_user(user, spaces: list[SocialSpace]) -> dict[int, Socia
     return {membership.space_id: membership for membership in memberships}
 
 
+LAST_MESSAGE_PREVIEW_LENGTH = 90
+
+
+def attach_last_messages(user, cards: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Add a short preview of the latest visible message to each space card."""
+    space_ids = [card["id"] for card in cards]
+    if not space_ids:
+        return cards
+    latest = (
+        SocialMessage.objects.filter(space_id=OuterRef("pk"), is_deleted=False)
+        .order_by("-created_at", "-id")
+        .values("id")[:1]
+    )
+    last_ids = dict(SocialSpace.objects.filter(pk__in=space_ids).annotate(last_id=Subquery(latest)).values_list("pk", "last_id"))
+    messages = {
+        message.space_id: message
+        for message in SocialMessage.objects.filter(pk__in=[pk for pk in last_ids.values() if pk]).select_related("author", "author__profile_v2")
+    }
+    for card in cards:
+        message = messages.get(card["id"])
+        if message is None:
+            card["last_message"] = None
+            continue
+        body = " ".join(str(message.body or "").split())
+        if len(body) > LAST_MESSAGE_PREVIEW_LENGTH:
+            body = body[: LAST_MESSAGE_PREVIEW_LENGTH - 1].rstrip() + "…"
+        card["last_message"] = {
+            "body": body,
+            "created_at": message.created_at,
+            "is_own": message.author_id == user.pk,
+            "author_display_name": get_profile_display_name(_get_user_profile(message.author), fallback_username=message.author.username),
+        }
+    return cards
+
+
 def build_space_cards(user, *, space_type: str) -> list[dict[str, object]]:
     spaces = list(list_user_spaces(user, space_type=space_type))
     memberships_by_space = _membership_map_for_user(user, spaces)
-    return [_build_space_card(user, space, memberships_by_space.get(space.id)) for space in spaces]
+    cards = [_build_space_card(user, space, memberships_by_space.get(space.id)) for space in spaces]
+    unread_by_space_id = count_unread_messages_for_user(user)["by_space_id"]
+    for card in cards:
+        card["unread_count"] = unread_by_space_id.get(card["id"], 0)
+    return attach_last_messages(user, cards)
 
 
 def build_sidebar_context(user) -> dict[str, object]:
@@ -351,6 +390,7 @@ def build_sidebar_context(user) -> dict[str, object]:
     recent_cards = [_build_space_card(user, space, memberships_by_space.get(space.id)) for space in recent_spaces]
     for card in recent_cards:
         card["unread_count"] = unread_by_space_id.get(card["id"], 0)
+    attach_last_messages(user, recent_cards)
     return {
         "social_counts": counts,
         "social_recent_spaces": recent_cards,

@@ -127,7 +127,6 @@ class SocialLayerTests(TestCase):
             response = self.client.get(reverse(route_name))
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, empty_text)
-            self.assertContains(response, "Stage 4")
 
     def test_create_social_space_creates_owner_membership(self):
         space = create_social_space(

@@ -8,27 +8,31 @@
         data-right-social-sidebar-toggle
         aria-controls="right-social-sidebar"
         aria-expanded="true"
+        title="{% if LANGUAGE_CODE == 'ru' %}Чаты{% else %}Chats{% endif %}"
+        aria-label="{% if LANGUAGE_CODE == 'ru' %}Чаты{% else %}Chats{% endif %}"
     >
-        Communication
+        {% include "components/icon.html" with name="chats" %}
+        {% if social_unread_total %}<span class="chat-badge">{{ social_unread_total }}</span>{% endif %}
     </button>
 
-    <aside class="right-social-sidebar" id="right-social-sidebar" data-right-social-sidebar aria-label="Communication">
+    <aside class="right-social-sidebar" id="right-social-sidebar" data-right-social-sidebar aria-label="{% if LANGUAGE_CODE == 'ru' %}Чаты{% else %}Chats{% endif %}">
         <div class="right-social-sidebar__inner">
             <div class="right-social-sidebar__head">
-                <div>
-                    <span class="eyebrow">Communication</span>
-                    <h2 class="right-social-sidebar__title">
-                        {% if LANGUAGE_CODE == "ru" %}Связь{% else %}Communication{% endif %}
-                    </h2>
-                </div>
+                <span class="right-social-sidebar__mark" aria-hidden="true">{% include "components/icon.html" with name="chats" %}</span>
+                <h2 class="right-social-sidebar__title">{% if LANGUAGE_CODE == "ru" %}Чаты{% else %}Chats{% endif %}</h2>
+                {% if social_unread_total %}
+                    <span class="right-social-sidebar__unread-pill" title="{% if LANGUAGE_CODE == 'ru' %}Непрочитанные{% else %}Unread{% endif %}">{{ social_unread_total }} {% if LANGUAGE_CODE == "ru" %}нов.{% else %}new{% endif %}</span>
+                {% endif %}
                 <button
                     type="button"
-                    class="btn btn-secondary btn-sm right-social-sidebar__toggle"
+                    class="right-social-sidebar__toggle"
                     data-right-social-sidebar-toggle
                     aria-controls="right-social-sidebar"
                     aria-expanded="true"
+                    title="{% if LANGUAGE_CODE == 'ru' %}Скрыть{% else %}Hide{% endif %}"
+                    aria-label="{% if LANGUAGE_CODE == 'ru' %}Скрыть чаты{% else %}Hide chats{% endif %}"
                 >
-                    {% if LANGUAGE_CODE == "ru" %}Скрыть{% else %}Hide{% endif %}
+                    {% include "components/icon.html" with name="collapse_right" %}
                 </button>
             </div>
 
@@ -39,7 +43,7 @@
                 </span>
                 <div>
                     <strong>{{ current_user_display_name|default:request.user.username }}</strong>
-                    <p class="text-muted">
+                    <p>
                         {% if current_user_is_online %}
                             {% if LANGUAGE_CODE == "ru" %}Сейчас онлайн{% else %}Online now{% endif %}
                         {% else %}
@@ -49,58 +53,48 @@
                 </div>
             </div>
 
-            <div class="right-social-sidebar__unread">
-                <span>{% if LANGUAGE_CODE == "ru" %}Непрочитанные{% else %}Unread{% endif %}</span>
-                <strong>{{ social_unread_total|default:0 }}</strong>
-            </div>
-
-            <nav class="right-social-sidebar__nav" aria-label="Communication sections">
+            <nav class="right-social-sidebar__nav" aria-label="{% if LANGUAGE_CODE == 'ru' %}Разделы чатов{% else %}Chat sections{% endif %}">
                 <a href="{% url 'social:chats' %}" data-dashboard-nav="true" data-social-menu-key="social_chats">
-                    <span class="right-social-sidebar__nav-row">
-                        <strong>{% if LANGUAGE_CODE == "ru" %}Чаты{% else %}Chats{% endif %}</strong>
-                        <span>
-                            {% with unread=social_unread_counts.by_type.direct|default:0 %}
-                                {% if unread %}<span class="right-social-sidebar__recent-unread">{{ unread }}</span>{% endif %}
-                            {% endwith %}
-                            <span class="right-social-sidebar__count">{{ social_counts.direct|default:0 }}</span>
-                        </span>
+                    {% include "components/icon.html" with name="chat" %}
+                    <span class="right-social-sidebar__nav-label">
+                        <strong>{% if LANGUAGE_CODE == "ru" %}Личные{% else %}Direct{% endif %}</strong>
+                        <span>{% if LANGUAGE_CODE == "ru" %}Чаты один на один{% else %}One-on-one chats{% endif %}</span>
                     </span>
-                    <span>{% if LANGUAGE_CODE == "ru" %}Личные пространства{% else %}Direct spaces{% endif %}</span>
+                    <span class="right-social-sidebar__nav-counts">
+                        {% with unread=social_unread_counts.by_type.direct|default:0 %}{% if unread %}<span class="chat-badge">{{ unread }}</span>{% endif %}{% endwith %}
+                        <span class="right-social-sidebar__count">{{ social_counts.direct|default:0 }}</span>
+                    </span>
                 </a>
                 <a href="{% url 'social:groups' %}" data-dashboard-nav="true" data-social-menu-key="social_groups">
-                    <span class="right-social-sidebar__nav-row">
+                    {% include "components/icon.html" with name="group" %}
+                    <span class="right-social-sidebar__nav-label">
                         <strong>{% if LANGUAGE_CODE == "ru" %}Группы{% else %}Groups{% endif %}</strong>
-                        <span>
-                            {% with unread=social_unread_counts.by_type.group|default:0 %}
-                                {% if unread %}<span class="right-social-sidebar__recent-unread">{{ unread }}</span>{% endif %}
-                            {% endwith %}
-                            <span class="right-social-sidebar__count">{{ social_counts.group|default:0 }}</span>
-                        </span>
+                        <span>{% if LANGUAGE_CODE == "ru" %}Сообщества{% else %}Communities{% endif %}</span>
                     </span>
-                    <span>{% if LANGUAGE_CODE == "ru" %}Сообщества{% else %}Communities{% endif %}</span>
+                    <span class="right-social-sidebar__nav-counts">
+                        {% with unread=social_unread_counts.by_type.group|default:0 %}{% if unread %}<span class="chat-badge">{{ unread }}</span>{% endif %}{% endwith %}
+                        <span class="right-social-sidebar__count">{{ social_counts.group|default:0 }}</span>
+                    </span>
                 </a>
                 <a href="{% url 'social:conversations' %}" data-dashboard-nav="true" data-social-menu-key="social_conversations">
-                    <span class="right-social-sidebar__nav-row">
+                    {% include "components/icon.html" with name="conversation" %}
+                    <span class="right-social-sidebar__nav-label">
                         <strong>{% if LANGUAGE_CODE == "ru" %}Беседы{% else %}Conversations{% endif %}</strong>
-                        <span>
-                            {% with unread=social_unread_counts.by_type.conversation|default:0 %}
-                                {% if unread %}<span class="right-social-sidebar__recent-unread">{{ unread }}</span>{% endif %}
-                            {% endwith %}
-                            <span class="right-social-sidebar__count">{{ social_counts.conversation|default:0 }}</span>
-                        </span>
+                        <span>{% if LANGUAGE_CODE == "ru" %}Групповые беседы{% else %}Group conversations{% endif %}</span>
                     </span>
-                    <span>{% if LANGUAGE_CODE == "ru" %}Групповые беседы{% else %}Group conversations{% endif %}</span>
+                    <span class="right-social-sidebar__nav-counts">
+                        {% with unread=social_unread_counts.by_type.conversation|default:0 %}{% if unread %}<span class="chat-badge">{{ unread }}</span>{% endif %}{% endwith %}
+                        <span class="right-social-sidebar__count">{{ social_counts.conversation|default:0 }}</span>
+                    </span>
                 </a>
             </nav>
 
             {% if social_recent_spaces %}
                 <div class="right-social-sidebar__section">
-                    <div class="right-social-sidebar__section-head">
-                        <h3>{% if LANGUAGE_CODE == "ru" %}Последние{% else %}Recent{% endif %}</h3>
-                    </div>
+                    <h3 class="right-social-sidebar__section-title">{% if LANGUAGE_CODE == "ru" %}Последние{% else %}Recent{% endif %}</h3>
                     <div class="right-social-sidebar__recent-list">
                         {% for item in social_recent_spaces %}
-                            <a href="{{ item.url }}" class="right-social-sidebar__recent-item" data-dashboard-nav="true" data-social-menu-key="{% if item.space_type == 'direct' %}social_chats{% elif item.space_type == 'group' %}social_groups{% else %}social_conversations{% endif %}">
+                            <a href="{{ item.url }}" class="right-social-sidebar__recent-item{% if item.unread_count %} has-unread{% endif %}" data-dashboard-nav="true" data-social-menu-key="{% if item.space_type == 'direct' %}social_chats{% elif item.space_type == 'group' %}social_groups{% else %}social_conversations{% endif %}">
                                 <span class="right-social-sidebar__recent-avatar-wrap">
                                     {% if item.has_custom_avatar %}
                                         <img src="{{ item.display_avatar_url }}" alt="{{ item.display_title }}" class="right-social-sidebar__recent-avatar">
@@ -109,11 +103,16 @@
                                     {% endif %}
                                 </span>
                                 <span class="right-social-sidebar__recent-body">
-                                    <strong>{{ item.display_title }}</strong>
-                                    <span>{{ item.space_type_label }} · {{ item.member_count }}</span>
+                                    <span class="right-social-sidebar__recent-top">
+                                        <strong>{{ item.display_title }}</strong>
+                                        {% if item.last_message %}<time datetime="{{ item.last_message.created_at|date:'c' }}">{{ item.last_message.created_at|date:"H:i" }}</time>{% endif %}
+                                    </span>
+                                    <span class="right-social-sidebar__recent-preview">
+                                        {% if item.last_message %}{% if item.last_message.is_own %}{% if LANGUAGE_CODE == "ru" %}Вы:{% else %}You:{% endif %} {% endif %}{{ item.last_message.body }}{% else %}{{ item.space_type_label }} · {{ item.member_count }}{% endif %}
+                                    </span>
                                 </span>
                                 {% if item.unread_count %}
-                                    <span class="right-social-sidebar__recent-unread">{{ item.unread_count }}</span>
+                                    <span class="chat-badge">{{ item.unread_count }}</span>
                                 {% endif %}
                             </a>
                         {% endfor %}
@@ -123,15 +122,6 @@
         </div>
     </aside>
 
-    <button
-        type="button"
-        class="right-social-sidebar__mobile-close"
-        data-right-social-sidebar-toggle
-        aria-controls="right-social-sidebar"
-        aria-expanded="true"
-    >
-        {% if LANGUAGE_CODE == "ru" %}Закрыть{% else %}Close{% endif %}
-    </button>
     <div class="right-social-sidebar__backdrop" data-right-social-sidebar-backdrop></div>
 </div>
 {% endif %}

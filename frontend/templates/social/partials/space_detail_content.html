@@ -1,87 +1,69 @@
-<section class="section section--compact social-detail">
-    <header class="social-space-hero card">
-        <div class="card-body social-space-hero__body">
-            <div class="social-space-hero__avatar-wrap">
-                {% if space_presentation.has_custom_avatar %}
-                    <img src="{{ space_presentation.avatar_url }}" alt="{{ space_presentation.title }}" class="social-space-hero__avatar">
-                {% else %}
-                    <span class="social-space-hero__avatar-fallback" aria-hidden="true">{{ space_presentation.avatar_initial }}</span>
-                {% endif %}
-            </div>
-            <div class="social-space-hero__main">
-                <span class="eyebrow">{{ space_type_label }}</span>
-                <h1 class="social-space-hero__title">{{ space_presentation.title }}</h1>
-                <p class="social-space-hero__description">
-                    {% if space.description %}
-                        {{ space.description }}
+<section class="section section--compact chat-page chat-room">
+    <div class="chat-room__layout">
+        <article class="chat-room__main social-messages">
+            <header class="chat-room__head">
+                <a href="{% if is_direct_space %}{% url 'social:chats' %}{% elif space.space_type == 'group' %}{% url 'social:groups' %}{% else %}{% url 'social:conversations' %}{% endif %}" class="chat-room__back" data-dashboard-nav="true" title="{% if LANGUAGE_CODE == 'ru' %}Ко всем чатам{% else %}All chats{% endif %}" aria-label="{% if LANGUAGE_CODE == 'ru' %}Ко всем чатам{% else %}All chats{% endif %}">←</a>
+                <span class="chat-avatar chat-avatar--lg">
+                    {% if space_presentation.has_custom_avatar %}
+                        <img src="{{ space_presentation.avatar_url }}" alt="{{ space_presentation.title }}">
                     {% else %}
-                        {% if LANGUAGE_CODE == "ru" %}Описание пока не задано.{% else %}No description yet.{% endif %}
+                        <span class="chat-avatar__initial" aria-hidden="true">{{ space_presentation.avatar_initial }}</span>
                     {% endif %}
-                </p>
-                <div class="social-space-hero__meta">
-                    <span class="status-pill">{{ privacy_label }}</span>
-                    <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Ваша роль:{% else %}Your role:{% endif %} {{ membership_role_label }}</span>
+                </span>
+                <div class="chat-room__title">
+                    <h1>{{ space_presentation.title }}</h1>
+                    <p class="chat-room__meta">
+                        <span>{{ space_type_label }}</span>
+                        <span>{{ privacy_label }}</span>
+                        <span>{% if LANGUAGE_CODE == "ru" %}Ваша роль:{% else %}Your role:{% endif %} {{ membership_role_label }}</span>
+                        {% if can_manage_space %}
+                            <a href="{{ members_manage_url }}" data-dashboard-nav="true">{% if LANGUAGE_CODE == "ru" %}Участники:{% else %}Members:{% endif %} {{ member_count }}</a>
+                        {% else %}
+                            <a href="#social-members">{% if LANGUAGE_CODE == "ru" %}Участники:{% else %}Members:{% endif %} {{ member_count }}</a>
+                        {% endif %}
+                        {% if unread_count %}<span class="chat-badge">{{ unread_count }} {% if LANGUAGE_CODE == "ru" %}нов.{% else %}new{% endif %}</span>{% endif %}
+                    </p>
+                    {% if space.description %}<p class="chat-room__description">{{ space.description }}</p>{% endif %}
+                </div>
+                <div class="chat-room__actions social-space-hero__actions">
+                    {% if can_update_space_settings %}
+                        <a
+                            href="{{ settings_url }}"
+                            class="social-space-settings-button social-space-settings-button--edit"
+                            data-dashboard-nav="true"
+                            title="{% if LANGUAGE_CODE == 'ru' %}Настройки пространства{% else %}Space settings{% endif %}"
+                            aria-label="{% if LANGUAGE_CODE == 'ru' %}Настройки пространства{% else %}Space settings{% endif %}"
+                        >
+                            <svg class="social-space-settings-button__icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M4 20h4l10.5-10.5a2.8 2.8 0 0 0-4-4L4 16v4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                                <path d="m13.5 6.5 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                            </svg>
+                        </a>
+                    {% endif %}
                     {% if can_manage_space %}
-                        <a href="{{ members_manage_url }}" class="status-pill status-pill--link" data-dashboard-nav="true">
-                            {% if LANGUAGE_CODE == "ru" %}Участники:{% else %}Members:{% endif %} {{ member_count }}
-                        </a>
-                    {% else %}
-                        <a href="#social-members" class="status-pill status-pill--link">
-                            {% if LANGUAGE_CODE == "ru" %}Участники:{% else %}Members:{% endif %} {{ member_count }}
+                        <a
+                            href="{{ members_manage_url }}"
+                            class="social-space-settings-button social-space-settings-button--gear"
+                            data-dashboard-nav="true"
+                            title="{% if LANGUAGE_CODE == 'ru' %}Управление участниками{% else %}Manage members{% endif %}"
+                            aria-label="{% if LANGUAGE_CODE == 'ru' %}Управление участниками{% else %}Manage members{% endif %}"
+                        >
+                            <svg class="social-space-settings-button__icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M12 8.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Z" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                                <path d="M19.4 15a8 8 0 0 0 .05-1l2-1.55-2-3.46-2.5 1a8.1 8.1 0 0 0-1.72-1L14.85 6h-4l-.38 3a8.1 8.1 0 0 0-1.72 1l-2.5-1-2 3.46 2 1.55a8 8 0 0 0 .05 1l-2.05 1.6 2 3.46 2.56-1.04c.52.42 1.1.76 1.72 1l.32 2.97h4l.32-2.97a8.1 8.1 0 0 0 1.72-1l2.56 1.04 2-3.46L19.4 15Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                            </svg>
                         </a>
                     {% endif %}
-                </div>
-            </div>
-            <div class="social-space-hero__actions">
-                {% if can_update_space_settings %}
-                    <a
-                        href="{{ settings_url }}"
-                        class="social-space-settings-button social-space-settings-button--edit"
-                        data-dashboard-nav="true"
-                        title="{% if LANGUAGE_CODE == 'ru' %}Настройки пространства{% else %}Space settings{% endif %}"
-                        aria-label="{% if LANGUAGE_CODE == 'ru' %}Настройки пространства{% else %}Space settings{% endif %}"
-                    >
-                        <svg class="social-space-settings-button__icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M4 20h4l10.5-10.5a2.8 2.8 0 0 0-4-4L4 16v4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                            <path d="m13.5 6.5 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                        </svg>
-                    </a>
-                {% endif %}
-                {% if can_manage_space %}
-                    <a
-                        href="{{ members_manage_url }}"
-                        class="social-space-settings-button social-space-settings-button--gear"
-                        data-dashboard-nav="true"
-                        title="{% if LANGUAGE_CODE == 'ru' %}Управление участниками{% else %}Manage members{% endif %}"
-                        aria-label="{% if LANGUAGE_CODE == 'ru' %}Управление участниками{% else %}Manage members{% endif %}"
-                    >
-                        <svg class="social-space-settings-button__icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M12 8.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Z" fill="none" stroke="currentColor" stroke-width="1.8"/>
-                            <path d="M19.4 15a8 8 0 0 0 .05-1l2-1.55-2-3.46-2.5 1a8.1 8.1 0 0 0-1.72-1L14.85 6h-4l-.38 3a8.1 8.1 0 0 0-1.72 1l-2.5-1-2 3.46 2 1.55a8 8 0 0 0 .05 1l-2.05 1.6 2 3.46 2.56-1.04c.52.42 1.1.76 1.72 1l.32 2.97h4l.32-2.97a8.1 8.1 0 0 0 1.72-1l2.56 1.04 2-3.46L19.4 15Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                        </svg>
-                    </a>
-                {% endif %}
-                {% if can_leave_space %}
-                    <form method="post" action="{{ leave_space_url }}" class="inline-form">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-secondary btn-sm social-danger-action">
-                            {% if LANGUAGE_CODE == "ru" %}Выйти{% else %}Leave{% endif %}
-                        </button>
-                    </form>
-                {% endif %}
-            </div>
-        </div>
-    </header>
-
-    <div class="social-detail__grid">
-        <article class="card social-messages">
-            <div class="card-body">
-                <div class="section-head-inline">
-                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Сообщения{% else %}Messages{% endif %}</h2>
-                    {% if unread_count %}
-                        <span class="status-pill status-pill--sm">{% if LANGUAGE_CODE == "ru" %}Новых:{% else %}Unread:{% endif %} {{ unread_count }}</span>
+                    {% if can_leave_space %}
+                        <form method="post" action="{{ leave_space_url }}" class="inline-form">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-secondary btn-sm social-danger-action">
+                                {% if LANGUAGE_CODE == "ru" %}Выйти{% else %}Leave{% endif %}
+                            </button>
+                        </form>
                     {% endif %}
                 </div>
+            </header>
 
                 <div class="social-message-list" id="social-msg-list">
                     {% for message in social_messages %}
@@ -131,7 +113,7 @@
                     {% endfor %}
                 </div>
 
-                <form method="post" action="{{ message_send_url }}" class="social-message-form" id="social-msg-form">
+            <form method="post" action="{{ message_send_url }}" class="social-message-form" id="social-msg-form">
                     {% csrf_token %}
                     {% if message_form.non_field_errors %}
                         <div class="faceit-error" style="margin-bottom:8px;">{{ message_form.non_field_errors }}</div>
@@ -140,9 +122,7 @@
                     <div class="social-message-form__input-row">
                         {{ message_form.body }}
                         <button type="submit" class="social-send-btn" title="{% if LANGUAGE_CODE == 'ru' %}Отправить (Ctrl+Enter){% else %}Send (Ctrl+Enter){% endif %}">
-                            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                <path d="M2.5 3.5a.5.5 0 0 1 .5-.5h14a.5.5 0 0 1 .354.854l-7 7a.5.5 0 0 1-.708 0l-7-7A.5.5 0 0 1 2.5 3.5ZM3 15.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5Z"/>
-                            </svg>
+                            {% include "components/icon.html" with name="send" %}
                         </button>
                     </div>
                 </form>
@@ -165,15 +145,13 @@
                     }
                 })();
                 </script>
-            </div>
         </article>
 
-        <article class="card social-detail__members" id="social-members">
-            <div class="card-body">
-                <div class="section-head-inline">
-                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Участники{% else %}Members{% endif %}</h2>
-                    <span class="text-muted">{{ member_count }}</span>
-                </div>
+        <aside class="chat-room__members social-detail__members" id="social-members">
+            <div class="chat-room__members-head">
+                <h2>{% if LANGUAGE_CODE == "ru" %}Участники{% else %}Members{% endif %}</h2>
+                <span>{{ member_count }}</span>
+            </div>
                 <div class="social-detail__member-list">
                     {% for member in members %}
                         <div class="social-detail__member-wrap" data-social-member-menu-wrap>
@@ -266,7 +244,6 @@
                         <p class="text-muted empty-state">{% if LANGUAGE_CODE == "ru" %}Участников пока нет.{% else %}No members yet.{% endif %}</p>
                     {% endfor %}
                 </div>
-            </div>
-        </article>
+        </aside>
     </div>
 </section>

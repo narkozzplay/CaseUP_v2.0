@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="{% static 'css/modules/store.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/cs2_stats.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/case_simulator.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modules/social.css' %}">
     {% if active_theme and active_theme.key == "midnight" and feature_flags.midnight_theme %}
         <link rel="stylesheet" href="{% static 'css/themes/midnight_dashboard.css' %}">
     {% endif %}
@@ -35,6 +36,7 @@
                         {% for group in dashboard_menu_groups %}{% for item in group.items %}{% if item.is_active %}<span data-dashboard-crumb-group>{{ group.label }}</span><b data-dashboard-crumb-item>{{ item.label }}</b>{% endif %}{% endfor %}{% endfor %}
                     </p>
                     <div class="dashboard-topbar__actions">
+                        {% if request.user.is_authenticated %}<button type="button" class="topbar-chats" data-right-social-sidebar-toggle aria-controls="right-social-sidebar" aria-expanded="true" title="{% if LANGUAGE_CODE == 'ru' %}Чаты{% else %}Chats{% endif %}">{% include "components/icon.html" with name="chats" %}<span class="topbar-chats__label">{% if LANGUAGE_CODE == "ru" %}Чаты{% else %}Chats{% endif %}</span>{% if social_unread_total %}<span class="chat-badge">{{ social_unread_total }}</span>{% endif %}</button>{% endif %}
                         {% if request.user.is_authenticated %}<span class="wallet-chip"><span class="wallet-chip__label">{% if LANGUAGE_CODE == "ru" %}Баланс{% else %}Balance{% endif %}</span><span data-sim-balance>{% money coins %}</span></span>{% endif %}
                         <a href="{% url 'frontend:home' %}" class="btn btn-ghost btn-sm" data-dashboard-nav="false">{% if LANGUAGE_CODE == "ru" %}На сайт{% else %}Website{% endif %}</a>
                     </div>

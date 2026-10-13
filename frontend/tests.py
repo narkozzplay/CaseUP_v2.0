@@ -40,8 +40,9 @@ class FrontendStaticCssTests(SimpleTestCase):
         self.assertNotIn(".dashboard-sidebar__inner::-webkit-scrollbar", css)
 
     def test_right_social_sidebar_css_is_present(self):
-        css_path = Path(settings.BASE_DIR) / "frontend" / "static" / "css" / "layout.css"
-        css = css_path.read_text(encoding="utf-8")
+        css_dir = Path(settings.BASE_DIR) / "frontend" / "static" / "css"
+        css = (css_dir / "layout.css").read_text(encoding="utf-8")
+        css += (css_dir / "modules" / "social.css").read_text(encoding="utf-8")
 
         self.assertIn(".right-social-sidebar", css)
         self.assertIn(".is-social-sidebar-collapsed", css)
