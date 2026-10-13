@@ -277,7 +277,11 @@ def inventory(request):
 @login_required
 @require_POST
 def inventory_sell(request):
-    """Sell one item, the selected items, or everything shown under the current filter."""
+    """Sell one item, the selected items, or everything shown under the current filter.
+
+    JSON callers (the drop dialog on the case page) get the result back instead of a redirect.
+    """
+    wants_json = "application/json" in request.headers.get("Accept", "")
     rarity = request.POST.get("rarity") or ""
     if rarity not in SimCaseItem.Rarity.values:
         rarity = ""
@@ -290,8 +294,12 @@ def inventory_sell(request):
         else:
             count, total = services.sell_openings(user=request.user, opening_ids=request.POST.getlist("ids"))
     except services.SimulatorError as exc:
+        if wants_json:
+            return _error(str(exc))
         messages.error(request, str(exc))
     else:
+        if wants_json:
+            return JsonResponse({"ok": True, "sold": count, "total": str(total), "balance": str(_balance(request.user))})
         messages.success(request, f"Продано предметов: {count}. Баланс пополнен на {money({'site_settings': get_site_configuration()}, total)}.")
 
     params = {key: value for key, value in (("rarity", rarity), ("page", request.POST.get("page") or "")) if value}

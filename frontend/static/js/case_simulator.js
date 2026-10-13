@@ -205,6 +205,31 @@
 
         const again = dialog.querySelector('[data-sim-again]');
         again.textContent = payload.demo ? 'Ещё демо' : 'Открыть ещё';
+
+        const sellable = !payload.demo && Boolean(root.dataset.sellUrl);
+        const cards = Array.from(list.children);
+        payload.results.forEach((result, index) => {
+            const card = cards[index];
+            if (!card || !sellable || !result.opening_id) {
+                return;
+            }
+            card.dataset.openingId = result.opening_id;
+            card.dataset.value = result.value;
+            if (payload.results.length > 1) {
+                const button = el('button', 'sim-prize__sell', 'Продать');
+                button.type = 'button';
+                button.dataset.simSellOne = '';
+                card.appendChild(button);
+            }
+        });
+        dialog.dataset.soldTotal = '0';
+        dialog.dataset.revealId = String(Number(dialog.dataset.revealId || 0) + 1);
+        const sell = dialog.querySelector('[data-sim-sell]');
+        if (sell) {
+            sell.hidden = !sellable || !cards.some((card) => card.dataset.openingId);
+            syncDropSell(root, dialog);
+        }
+
         if (typeof dialog.showModal === 'function') {
             dialog.showModal();
         } else {
@@ -298,8 +323,87 @@
         if (event.target.closest('[data-sim-again]')) {
             dialog.close();
             openCase(root, root.dataset.lastDemo === '1');
+            return;
+        }
+        const sellOne = event.target.closest('[data-sim-sell-one]');
+        if (sellOne) {
+            sellCards(root, dialog, [sellOne.closest('.sim-prize')], sellOne);
+            return;
+        }
+        const sell = event.target.closest('[data-sim-sell]');
+        if (sell) {
+            sellCards(root, dialog, unsoldCards(dialog), sell);
         }
     });
+
+    function unsoldCards(dialog) {
+        return Array.from(dialog.querySelectorAll('.sim-prize[data-opening-id]')).filter((card) => !card.classList.contains('is-sold'));
+    }
+
+    function syncDropSell(root, dialog) {
+        const button = dialog.querySelector('[data-sim-sell]');
+        if (!button) {
+            return;
+        }
+        const left = unsoldCards(dialog);
+        const soldTotal = Number(dialog.dataset.soldTotal || 0);
+        if (!left.length && soldTotal > 0) {
+            button.disabled = true;
+            button.classList.add('is-sold');
+            button.textContent = 'Продано · +' + money(root, soldTotal);
+            return;
+        }
+        const total = left.reduce((sum, card) => sum + Number(card.dataset.value || 0), 0);
+        button.disabled = false;
+        button.classList.remove('is-sold');
+        const several = left.length > 1 && left.length < dialog.querySelectorAll('.sim-prize[data-opening-id]').length;
+        button.textContent = (several ? 'Продать остальные за ' : 'Продать за ') + money(root, total);
+    }
+
+    async function sellCards(root, dialog, cards, button) {
+        if (!cards.length || button.disabled) {
+            return;
+        }
+        button.disabled = true;
+        const revealId = dialog.dataset.revealId;
+        const body = new FormData();
+        cards.forEach((card) => body.append('ids', card.dataset.openingId));
+        let payload;
+        try {
+            const response = await fetch(root.dataset.sellUrl, {
+                method: 'POST',
+                body,
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json', 'X-CSRFToken': csrf(root), 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            payload = await response.json().catch(() => ({}));
+            if (!response.ok || !payload.ok) {
+                payload = { ok: false, error: payload.error || 'Не удалось продать. Попробуй ещё раз.' };
+            }
+        } catch (error) {
+            payload = { ok: false, error: 'Нет связи с сервером. Попробуй ещё раз.' };
+        }
+        if (dialog.dataset.revealId !== revealId) {
+            // The dialog already shows a newer opening; don't paint this result onto it.
+            return;
+        }
+        if (!payload.ok) {
+            button.disabled = false;
+            button.textContent = payload.error;
+            return;
+        }
+        setBalance(root, payload.balance);
+        dialog.dataset.soldTotal = String(Number(dialog.dataset.soldTotal || 0) + Number(payload.total));
+        cards.forEach((card) => {
+            card.classList.add('is-sold');
+            const own = card.querySelector('[data-sim-sell-one]');
+            if (own) {
+                own.disabled = true;
+                own.textContent = 'Продано';
+            }
+        });
+        syncDropSell(root, dialog);
+    }
 
     document.addEventListener('change', (event) => {
         if (!event.target.matches('input[name="sim-count"]')) {

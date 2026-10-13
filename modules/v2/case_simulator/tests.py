@@ -291,3 +291,14 @@ class InventorySellTests(TestCase):
         response = self.client.get(reverse("case_simulator:inventory"))
         self.assertContains(response, 'class="sim-best__media"')
         self.assertContains(response, "https://example.com/gold.png")
+
+    def test_json_sell_from_drop_dialog(self):
+        response = self.client.post(
+            reverse("case_simulator:inventory_sell"),
+            {"ids": [self.cheap.pk, self.mid.pk]},
+            HTTP_ACCEPT="application/json",
+        )
+        self.assertEqual(response.json(), {"ok": True, "sold": 2, "total": "170.50", "balance": "180.50"})
+        again = self.client.post(reverse("case_simulator:inventory_sell"), {"ids": [self.cheap.pk]}, HTTP_ACCEPT="application/json")
+        self.assertEqual(again.status_code, 400)
+        self.assertFalse(again.json()["ok"])
