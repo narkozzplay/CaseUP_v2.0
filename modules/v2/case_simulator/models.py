@@ -152,6 +152,8 @@ class SimOpening(models.Model):
     is_stattrak = models.BooleanField(default=False)
     price_paid = models.DecimalField(max_digits=12, decimal_places=2, default=ZERO)
     item_value = models.DecimalField(max_digits=12, decimal_places=2, default=ZERO)
+    sold_at = models.DateTimeField(null=True, blank=True, db_index=True, help_text="Продан обратно за баланс сайта.")
+    sold_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
@@ -166,6 +168,10 @@ class SimOpening(models.Model):
         prefix = "StatTrak™ " if self.is_stattrak else ""
         suffix = f" ({self.exterior})" if self.exterior else ""
         return f"{prefix}{self.item.name}{suffix}"
+
+    @property
+    def is_sold(self) -> bool:
+        return self.sold_at is not None
 
 
 class TerminalSession(models.Model):

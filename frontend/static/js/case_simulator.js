@@ -528,8 +528,79 @@
         }
     }
 
+    function invSync(root) {
+        const checks = Array.from(root.querySelectorAll('[data-sim-check]'));
+        const picked = checks.filter((box) => box.checked);
+        let total = 0;
+        checks.forEach((box) => {
+            const card = box.closest('[data-sim-inv]');
+            if (card) {
+                card.classList.toggle('is-selected', box.checked);
+                if (box.checked) {
+                    total += Number(card.dataset.value || 0);
+                }
+            }
+        });
+        const summary = root.querySelector('[data-sim-sell-summary]');
+        if (summary) {
+            if (picked.length) {
+                summary.textContent = 'Выбрано: ' + picked.length + ' · ';
+                summary.appendChild(el('b', null, money(root, total)));
+            } else {
+                summary.textContent = 'Отметь предметы, чтобы продать несколько сразу';
+            }
+        }
+        const sellSelected = root.querySelector('[data-sim-sell-selected]');
+        if (sellSelected) {
+            sellSelected.disabled = picked.length === 0;
+            sellSelected.textContent = picked.length ? 'Продать выбранные · ' + money(root, total) : 'Продать выбранные';
+        }
+        const all = root.querySelector('[data-sim-select-all]');
+        if (all) {
+            all.checked = checks.length > 0 && picked.length === checks.length;
+            all.indeterminate = picked.length > 0 && picked.length < checks.length;
+        }
+    }
+
+    function initInventory(root) {
+        setBalance(root, root.dataset.balance);
+        if (root.dataset.simInventoryBound === 'true') {
+            return;
+        }
+        root.dataset.simInventoryBound = 'true';
+        root.addEventListener('change', (event) => {
+            if (event.target.matches('[data-sim-select-all]')) {
+                root.querySelectorAll('[data-sim-check]').forEach((box) => {
+                    box.checked = event.target.checked;
+                });
+            }
+            if (event.target.matches('[data-sim-check], [data-sim-select-all]')) {
+                invSync(root);
+            }
+        });
+        root.addEventListener('click', (event) => {
+            const confirmButton = event.target.closest('[data-sim-confirm]');
+            if (confirmButton && !window.confirm(confirmButton.dataset.simConfirm)) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+            const card = event.target.closest('[data-sim-inv]');
+            if (!card || event.target.closest('button, a, input, label')) {
+                return;
+            }
+            const box = card.querySelector('[data-sim-check]');
+            if (box) {
+                box.checked = !box.checked;
+                invSync(root);
+            }
+        });
+        invSync(root);
+    }
+
     function initAll() {
         document.querySelectorAll('[data-terminal]').forEach(initTerminal);
+        document.querySelectorAll('[data-sim-inventory]').forEach(initInventory);
     }
 
     document.addEventListener('click', (event) => {
