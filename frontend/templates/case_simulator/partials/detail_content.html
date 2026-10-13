@@ -2,6 +2,7 @@
 <section class="section section--compact sim-page sim-case" style="--case-accent: {{ case.accent_color|default:'#f5a623' }}"
     data-case-sim
     data-open-url="{% url 'case_simulator:open' case.slug %}"
+    data-sell-url="{% url 'case_simulator:inventory_sell' %}"
     data-open-price="{{ case.open_price|stringformat:"s" }}"
     data-currency-symbol="{{ site_settings.site_currency_symbol|default:'₽' }}"
     data-currency-rate="{{ site_settings.site_currency_rate|default:1|stringformat:"s" }}">
@@ -84,6 +85,7 @@
             <p class="sim-reveal__total" data-sim-reveal-total></p>
             <div class="sim-reveal__actions">
                 <button type="button" class="btn btn-primary" data-sim-again>Открыть ещё</button>
+                <button type="button" class="btn btn-secondary" data-sim-sell hidden>Продать</button>
                 <button type="button" class="btn btn-ghost" data-sim-close>Закрыть</button>
             </div>
         </div>

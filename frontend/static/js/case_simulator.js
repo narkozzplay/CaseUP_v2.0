@@ -205,6 +205,16 @@
 
         const again = dialog.querySelector('[data-sim-again]');
         again.textContent = payload.demo ? 'Ещё демо' : 'Открыть ещё';
+
+        const sell = dialog.querySelector('[data-sim-sell]');
+        if (sell) {
+            const ids = payload.results.map((result) => result.opening_id).filter(Boolean);
+            sell.hidden = payload.demo || !ids.length || !root.dataset.sellUrl;
+            sell.disabled = false;
+            sell.classList.remove('is-sold');
+            sell.dataset.ids = ids.join(',');
+            sell.textContent = 'Продать за ' + money(root, payload.total_value);
+        }
         if (typeof dialog.showModal === 'function') {
             dialog.showModal();
         } else {
@@ -298,8 +308,46 @@
         if (event.target.closest('[data-sim-again]')) {
             dialog.close();
             openCase(root, root.dataset.lastDemo === '1');
+            return;
+        }
+        const sell = event.target.closest('[data-sim-sell]');
+        if (sell) {
+            sellDrop(root, dialog, sell);
         }
     });
+
+    async function sellDrop(root, dialog, button) {
+        if (button.disabled || !button.dataset.ids) {
+            return;
+        }
+        button.disabled = true;
+        const body = new FormData();
+        button.dataset.ids.split(',').forEach((id) => body.append('ids', id));
+        let payload;
+        try {
+            const response = await fetch(root.dataset.sellUrl, {
+                method: 'POST',
+                body,
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json', 'X-CSRFToken': csrf(root), 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            payload = await response.json().catch(() => ({}));
+            if (!response.ok || !payload.ok) {
+                payload = { ok: false, error: payload.error || 'Не удалось продать. Попробуй ещё раз.' };
+            }
+        } catch (error) {
+            payload = { ok: false, error: 'Нет связи с сервером. Попробуй ещё раз.' };
+        }
+        if (!payload.ok) {
+            button.disabled = false;
+            button.textContent = payload.error;
+            return;
+        }
+        setBalance(root, payload.balance);
+        button.classList.add('is-sold');
+        button.textContent = 'Продано · +' + money(root, payload.total);
+        dialog.querySelectorAll('.sim-prize').forEach((card) => card.classList.add('is-sold'));
+    }
 
     document.addEventListener('change', (event) => {
         if (!event.target.matches('input[name="sim-count"]')) {

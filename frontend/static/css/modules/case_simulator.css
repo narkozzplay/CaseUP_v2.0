@@ -1130,7 +1130,22 @@
 
 .sim-reveal__actions {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 10px;
+}
+
+.sim-reveal__actions [data-sim-sell].is-sold {
+    border-color: color-mix(in srgb, var(--up) 60%, transparent);
+    color: var(--up);
+    opacity: 1;
+    cursor: default;
+}
+
+.sim-prize.is-sold {
+    opacity: 0.55;
+    filter: grayscale(0.5);
+    transition: opacity 0.2s ease, filter 0.2s ease;
 }
 
 /* ---------- terminal ---------- */
