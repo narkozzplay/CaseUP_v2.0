@@ -27,6 +27,10 @@ app.conf.beat_schedule = {
         "task": "celery_tasks.auto_sync_cs2_steam_stats",
         "schedule": float(settings.CELERY_BEAT_CS2_STEAM_STATS_SYNC_SECONDS),
     },
+    "lift-expired-user-bans": {
+        "task": "control_center.lift_expired_bans",
+        "schedule": 300.0,
+    },
     "auto-sync-cs2-faceit-stats": {
         "task": "celery_tasks.auto_sync_cs2_faceit_stats",
         "schedule": float(settings.CELERY_BEAT_CS2_FACEIT_STATS_SYNC_SECONDS),

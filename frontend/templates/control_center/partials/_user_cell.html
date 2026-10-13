@@ -1,0 +1,9 @@
+{# expects: u (User) #}
+{% if u %}
+    <a href="{% url 'control_center:user_detail' u.pk %}" class="cc-user">
+        <span class="cc-user__avatar">{% if u.profile_v2.uploaded_avatar %}<img src="{{ u.profile_v2.uploaded_avatar.url }}" alt="">{% elif u.profile_v2.steam_avatar %}<img src="{{ u.profile_v2.steam_avatar }}" alt="">{% else %}<span>{{ u.username|slice:":1"|upper }}</span>{% endif %}</span>
+        <span class="cc-user__name">{{ u.profile_v2.steam_personaname|default:u.username }}</span>
+    </a>
+{% else %}
+    <span class="text-muted">система</span>
+{% endif %}

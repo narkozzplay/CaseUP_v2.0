@@ -76,6 +76,7 @@ PROJECT_APPS = [
     "modules.v2.tradehub.apps.TradehubConfig",
     "modules.v2.steam_trading.apps.SteamTradingConfig",
     "modules.v2.celery_tasks.apps.CeleryTasksConfig",
+    "modules.v2.control_center.apps.ControlCenterConfig",
     "modules.v2.tg_notifier.apps.TgNotifierConfig",
     "modules.v2.game_servers.apps.GameServersConfig",
     "modules.v2.case_simulator.apps.CaseSimulatorConfig",

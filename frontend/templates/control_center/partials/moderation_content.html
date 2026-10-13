@@ -1,0 +1,69 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Модерация каталога</h1>
+            <p class="ops-hero__text">Новые позиции из Steam Market попадают сюда на проверку. Одобрите, чтобы показать в каталоге, или скройте.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>На проверке</dt><dd>{{ scope_counts.review }}</dd></div>
+            <div><dt>Скрыто</dt><dd>{{ scope_counts.hidden }}</dd></div>
+            <div><dt>Без цены</dt><dd>{{ scope_counts.no_price }}</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    {% if verifications_pending %}
+        <a href="{% url 'profiles:verification_requests' %}" class="cc-banner cc-banner--info">
+            {% include "components/icon.html" with name="verification_requests" %}
+            <div><strong>Заявок на верификацию: {{ verifications_pending }}</strong><span>Открыть очередь заявок</span></div>
+        </a>
+    {% endif %}
+
+    <div class="cc-filters-chips">
+        <a href="?scope=review" class="cc-chip cc-chip--link{% if filters.scope == 'review' %} is-active{% endif %}">На проверке · {{ scope_counts.review }}</a>
+        <a href="?scope=no_price" class="cc-chip cc-chip--link{% if filters.scope == 'no_price' %} is-active{% endif %}">Без цены · {{ scope_counts.no_price }}</a>
+        <a href="?scope=hidden" class="cc-chip cc-chip--link{% if filters.scope == 'hidden' %} is-active{% endif %}">Скрытые · {{ scope_counts.hidden }}</a>
+    </div>
+
+    <form method="get" class="cc-toolbar">
+        <input type="hidden" name="scope" value="{{ filters.scope }}">
+        <label class="cc-field cc-field--grow"><span>Поиск</span><input type="search" name="q" value="{{ filters.q }}" class="form-control" placeholder="Market hash name или название"></label>
+        <label class="cc-field form-field"><span>Тип</span>
+            <select name="type"><option value="">Все типы</option>{% for code, label in type_options %}<option value="{{ code }}"{% if filters.type == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        </label>
+        <div class="cc-toolbar__actions"><button type="submit" class="btn btn-primary btn-sm">Найти</button></div>
+    </form>
+
+    <form method="post" action="{% url 'control_center:moderation_action' %}" class="ops-panel" data-cc-bulk>
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ current_url }}">
+        <div class="ops-panel__head">
+            <label class="cc-check-all"><input type="checkbox" data-cc-check-all> <span>Выбрать все на странице</span></label>
+            <div class="cc-row-actions">
+                <button type="submit" name="action" value="approve" class="btn btn-primary btn-sm">Одобрить</button>
+                <button type="submit" name="action" value="disable" class="btn btn-danger btn-sm">Скрыть</button>
+            </div>
+        </div>
+        <div class="cc-items">
+            {% for item in page_obj %}
+                <label class="cc-item{% if not item.is_active %} is-hidden{% endif %}">
+                    <input type="checkbox" name="items" value="{{ item.pk }}">
+                    <span class="cc-item__thumb">{% if item.icon_url %}<img src="{{ item.icon_cdn }}" alt="" loading="lazy">{% else %}{% include "components/icon.html" with name="steam_catalog" %}{% endif %}</span>
+                    <span class="cc-item__main">
+                        <strong>{{ item.display_name }}</strong>
+                        <span>{{ item.get_item_type_display }}{% if item.exterior %} · {{ item.exterior }}{% endif %}{% if item.rarity %} · {{ item.rarity }}{% endif %}</span>
+                    </span>
+                    <span class="cc-item__side">
+                        <b>{% if item.price_rub %}{% money item.price_rub %}{% else %}—{% endif %}</b>
+                        <a href="{% url 'steam_catalog:detail' item.pk %}" class="ops-panel__link">открыть</a>
+                    </span>
+                </label>
+            {% empty %}
+                <p class="ops-empty">Здесь пусто, всё проверено.</p>
+            {% endfor %}
+        </div>
+    </form>
+    {% include "control_center/partials/_pagination.html" %}
+</section>

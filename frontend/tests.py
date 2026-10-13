@@ -228,7 +228,7 @@ class FrontendDashboardTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "_NaRkOzZ_")
-        self.assertContains(response, reverse("profiles:profile_detail", args=[target.id]))
+        self.assertContains(response, reverse("control_center:user_detail", args=[target.id]))
         self.assertNotContains(response, "steam_76561199647175346")
 
     def test_admin_panel_recent_adjustments_uses_steam_nickname_and_profile_link(self):
@@ -250,7 +250,7 @@ class FrontendDashboardTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Recent Steam Nick")
-        self.assertContains(response, reverse("profiles:profile_detail", args=[target.id]))
+        self.assertContains(response, reverse("control_center:user_detail", args=[target.id]))
         self.assertNotContains(response, "internal_recent_user")
 
     def test_dashboard_shows_online_stats_and_clickable_links(self):

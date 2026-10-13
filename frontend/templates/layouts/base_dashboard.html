@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{% static 'css/modules/case_simulator.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/social.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modules/control_center.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/payments.css' %}">
     {% if active_theme and active_theme.key == "midnight" and feature_flags.midnight_theme %}
         <link rel="stylesheet" href="{% static 'css/themes/midnight_dashboard.css' %}">
@@ -63,4 +64,5 @@
     <script src="{% static 'js/market_search.js' %}"></script>
     <script src="{% static 'js/case_simulator.js' %}"></script>
     <script src="{% static 'js/price_chart.js' %}"></script>
+    <script src="{% static 'js/control_center.js' %}"></script>
 {% endblock %}

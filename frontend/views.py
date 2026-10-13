@@ -6,13 +6,12 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import DatabaseError
 from django.db.models import Count, Sum
-from django.http import HttpResponseForbidden
 from django.shortcuts import render
 from django.utils import timezone
 
 from common.errors import render_not_found_page
 from modules.v2.farm.models import FarmAccount
-from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserProfile, UserRole
+from modules.v2.profiles.models import LedgerEntry, UserProfile, UserRole
 from modules.v2.profiles.services.presence import ONLINE_THRESHOLD_MINUTES
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.steam_catalog.models import SteamItem, SteamItemPriceHistory, UserPriceAlertRule
@@ -194,45 +193,9 @@ def dashboard_preview(request):
 
 @login_required
 def admin_panel(request):
-    role_access = get_user_role(request.user)
-    if not role_access.is_admin_plus:
-        return HttpResponseForbidden("Control Center доступен только admin+.")
+    from modules.v2.control_center.views import overview
 
-    recent_admin_adjustments = (
-        LedgerEntry.objects
-        .select_related("user", "user__profile_v2")
-        .filter(reason=LedgerReason.ADMIN_ADJUST)
-        .order_by("-created_at")[:12]
-    )
-
-    top_profiles = (
-        UserProfile.objects
-        .select_related("user")
-        .order_by("-balance_coins", "-updated_at")[:8]
-    )
-
-    role_distribution = (
-        UserProfile.objects
-        .values("role")
-        .annotate(total=Count("id"))
-        .order_by("-total", "role")
-    )
-
-    context = {
-        "role_access": role_access,
-        "recent_admin_adjustments": recent_admin_adjustments,
-        "top_profiles": top_profiles,
-        "role_distribution": role_distribution,
-        **_dashboard_stats(),
-    }
-    return render_dashboard_page(
-        request,
-        full_template="frontend/admin_panel.html",
-        partial_template="frontend/partials/admin_panel_content.html",
-        context=context,
-        page_title=build_page_title("Control Center"),
-        active_menu_key="control_center",
-    )
+    return overview(request)
 
 
 def testing_preview(request):

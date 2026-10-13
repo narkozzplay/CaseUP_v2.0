@@ -1,0 +1,96 @@
+{% load l10n %}
+{% with currency=site_settings.site_currency_symbol|default:"₽" %}
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Финансы</h1>
+            <p class="ops-hero__text">Все движения внутреннего баланса: пополнения, кейсы, покупки, ручные корректировки.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Операций</dt><dd>{{ totals.count }}</dd></div>
+            <div><dt>Приход</dt><dd class="metric-positive">+{{ totals.income|stringformat:".2f" }}</dd></div>
+            <div><dt>Расход</dt><dd class="metric-negative">{{ totals.spent|stringformat:".2f" }}</dd></div>
+            <div><dt>Сальдо</dt><dd>{{ totals.net|stringformat:".2f" }} {{ currency }}</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <form method="get" class="cc-toolbar">
+        <label class="cc-field cc-field--grow"><span>Пользователь</span><input type="search" name="q" value="{{ filters.q }}" class="form-control" placeholder="Логин, Steam-имя или ID"></label>
+        <label class="cc-field form-field"><span>Тип</span>
+            <select name="reason"><option value="">Все типы</option>{% for code, label in reason_options %}<option value="{{ code }}"{% if filters.reason == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        </label>
+        <label class="cc-field form-field"><span>Направление</span>
+            <select name="direction"><option value="">Любое</option><option value="in"{% if filters.direction == "in" %} selected{% endif %}>Приход</option><option value="out"{% if filters.direction == "out" %} selected{% endif %}>Расход</option></select>
+        </label>
+        <label class="cc-field"><span>С</span><input type="date" name="from" value="{{ filters.from }}" class="form-control"></label>
+        <label class="cc-field"><span>По</span><input type="date" name="to" value="{{ filters.to }}" class="form-control"></label>
+        <div class="cc-toolbar__actions">
+            <button type="submit" class="btn btn-primary btn-sm">Показать</button>
+            <a href="{% url 'control_center:ledger_export' %}{% if export_query %}?{{ export_query }}{% endif %}" class="btn btn-ghost btn-sm" download>{% include "components/icon.html" with name="cc_download" %}CSV</a>
+        </div>
+    </form>
+
+    <div class="ops-grid">
+        <div class="ops-grid__main">
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Операции</h2><span class="ops-panel__hint">{{ page_obj.paginator.count }}</span></div>
+                <div class="table-wrap">
+                    <table class="table cc-table">
+                        <thead><tr><th>Когда</th><th>Пользователь</th><th>Тип</th><th class="cc-num">Сумма</th><th class="cc-num">Баланс после</th></tr></thead>
+                        <tbody>
+                            {% for entry in page_obj %}
+                                <tr>
+                                    <td class="cc-mono">{{ entry.created_at|date:"d.m.Y H:i" }}</td>
+                                    <td>{% include "control_center/partials/_user_cell.html" with u=entry.user %}</td>
+                                    <td><span class="cc-chip">{{ entry.get_reason_display }}</span></td>
+                                    <td class="cc-num {% if entry.delta >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% if entry.delta > 0 %}+{% endif %}{{ entry.delta|stringformat:".2f" }}</td>
+                                    <td class="cc-num">{{ entry.balance_after|stringformat:".2f" }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="5" class="text-muted">Операций по фильтрам нет.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+            {% include "control_center/partials/_pagination.html" %}
+        </div>
+        <aside class="ops-grid__side">
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">По типам</h2></div>
+                <div class="cc-roles">
+                    {% for row in breakdown %}
+                        <a href="?reason={{ row.reason }}" class="cc-roles__row">
+                            <span class="cc-roles__name">{{ row.label }}</span>
+                            <span class="cc-roles__bar"><span style="width: {{ row.percent|unlocalize }}%;"></span></span>
+                            <b>{{ row.count }}</b>
+                            <small class="{% if row.total >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{{ row.total|stringformat:".2f" }}</small>
+                        </a>
+                    {% empty %}
+                        <p class="ops-empty">Нет данных.</p>
+                    {% endfor %}
+                </div>
+            </article>
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Пополнения и баланс</h2></div>
+                <p class="ops-empty">Ручное изменение баланса делается в админ-настройках профиля пользователя. Все такие изменения попадают сюда с типом «Admin adjust».</p>
+                <nav class="ops-actions">
+                    <a href="?reason=admin_adjust" class="ops-action">
+                        <span class="ops-action__icon">{% include "components/icon.html" with name="cc_wallet" %}</span>
+                        <span class="ops-action__text"><strong>Ручные корректировки</strong><span>Фильтр admin adjust</span></span>
+                        {% include "components/icon.html" with name="arrow" %}
+                    </a>
+                    <a href="?reason=topup" class="ops-action">
+                        <span class="ops-action__icon">{% include "components/icon.html" with name="cc_ledger" %}</span>
+                        <span class="ops-action__text"><strong>Пополнения</strong><span>Фильтр top up</span></span>
+                        {% include "components/icon.html" with name="arrow" %}
+                    </a>
+                </nav>
+            </article>
+        </aside>
+    </div>
+</section>
+{% endwith %}

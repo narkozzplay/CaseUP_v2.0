@@ -1,0 +1,219 @@
+{% with currency=site_settings.site_currency_symbol|default:"₽" next_url=request.get_full_path %}
+<section class="section section--compact ops cc" data-control-center>
+    <header class="ops-hero cc-dossier{% if active_ban or not target.is_active %} is-banned{% endif %}">
+        <div class="cc-dossier__id">
+            <span class="cc-dossier__avatar"><img src="{{ avatar_url }}" alt=""></span>
+            <div class="ops-hero__main">
+                <span class="eyebrow">Досье · #{{ target.pk }}</span>
+                <h1 class="ops-hero__title">{{ display_name }}</h1>
+                <p class="cc-dossier__tags">
+                    <span class="cc-role ops-role--{{ profile.role }}"><span class="ops-role__swatch"></span>{{ role_label }}</span>
+                    {% if active_ban %}<span class="cc-chip cc-chip--fail">Бан{% if active_ban.expires_at %} до {{ active_ban.expires_at|date:"d.m.Y H:i" }}{% else %} навсегда{% endif %}</span>
+                    {% elif not target.is_active %}<span class="cc-chip cc-chip--fail">Заблокирован</span>
+                    {% elif is_online %}<span class="cc-chip cc-chip--ok">Онлайн</span>
+                    {% else %}<span class="cc-chip">Был {{ profile.last_seen_at|date:"d.m H:i"|default:"давно" }}</span>{% endif %}
+                    {% if profile.verification_level != "none" %}<span class="cc-chip cc-chip--info">{{ profile.get_verification_level_display }}</span>{% endif %}
+                    {% if profile.is_store_author %}<span class="cc-chip cc-chip--info">Автор магазина</span>{% endif %}
+                </p>
+            </div>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Баланс</dt><dd>{% money profile.balance_coins %}</dd></div>
+            <div><dt>Операций</dt><dd>{{ ledger_stats.count }}</dd></div>
+            <div><dt>С нами с</dt><dd>{{ target.date_joined|date:"d.m.Y" }}</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    {% if active_ban %}
+        <div class="cc-banner cc-banner--fail">
+            {% include "components/icon.html" with name="cc_ban" %}
+            <div>
+                <strong>Пользователь забанен{% if active_ban.expires_at %} до {{ active_ban.expires_at|date:"d.m.Y H:i" }}{% else %} навсегда{% endif %}</strong>
+                <span>Причина: {{ active_ban.reason }} · выдал {{ active_ban.banned_by.username|default:"система" }} {{ active_ban.created_at|date:"d.m.Y H:i" }}</span>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="ops-grid">
+        <div class="ops-grid__main">
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Аккаунт</h2>
+                    <a href="{% url 'profiles:profile_detail' target.pk %}" class="ops-panel__link">Открыть профиль →</a>
+                </div>
+                <dl class="cc-facts">
+                    <div><dt>Логин</dt><dd>{{ target.username }}</dd></div>
+                    <div><dt>Email</dt><dd>{{ target.email|default:"—" }}</dd></div>
+                    <div><dt>Steam</dt><dd>{% if profile.steam_profile_url %}<a href="{{ profile.steam_profile_url }}" target="_blank" rel="noopener" data-dashboard-nav="false">{{ profile.steam_personaname|default:profile.steam_id }}</a>{% else %}{{ profile.steam_id|default:"не привязан" }}{% endif %}</dd></div>
+                    <div><dt>Steam lvl</dt><dd>{{ profile.steam_level|default:"—" }}</dd></div>
+                    <div><dt>FACEIT</dt><dd>{% if profile.faceit_nickname %}{{ profile.faceit_nickname }} · lvl {{ profile.faceit_skill_level }} · {{ profile.faceit_elo }} elo{% else %}—{% endif %}</dd></div>
+                    <div><dt>Telegram</dt><dd>{% if profile.telegram_chat_id %}@{{ profile.telegram_username|default:profile.telegram_chat_id }}{% else %}—{% endif %}</dd></div>
+                    <div><dt>Последний вход</dt><dd>{{ target.last_login|date:"d.m.Y H:i"|default:"—" }}</dd></div>
+                    <div><dt>Активность</dt><dd>{{ profile.last_seen_at|date:"d.m.Y H:i"|default:"—" }}</dd></div>
+                </dl>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Финансы</h2>
+                    <a href="{% url 'control_center:ledger' %}?q={{ target.pk }}" class="ops-panel__link">Все операции →</a>
+                </div>
+                <div class="cc-money">
+                    <div><span>Пополнено / получено</span><b class="metric-positive">+{{ ledger_stats.income|default:0|stringformat:".2f" }} {{ currency }}</b></div>
+                    <div><span>Потрачено</span><b class="metric-negative">{{ ledger_stats.spent|default:0|stringformat:".2f" }} {{ currency }}</b></div>
+                    <div><span>Текущий баланс</span><b>{% money profile.balance_coins %}</b></div>
+                </div>
+                {% if reason_breakdown %}
+                    <div class="cc-breakdown">
+                        {% for row in reason_breakdown %}
+                            <span class="cc-chip">{{ row.label }} · {{ row.count }} · <b class="{% if row.total >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{{ row.total|stringformat:".2f" }}</b></span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="ops-list">
+                    {% for entry in recent_ledger %}
+                        <div class="ops-row">
+                            <span class="ops-row__badge ops-row__badge--{% if entry.delta >= 0 %}up{% else %}down{% endif %}" aria-hidden="true">{% if entry.delta >= 0 %}+{% else %}−{% endif %}</span>
+                            <span class="ops-row__main"><strong>{{ entry.get_reason_display }}</strong><span>Баланс после: {{ entry.balance_after|stringformat:".2f" }} {{ currency }}</span></span>
+                            <span class="ops-row__side">
+                                <b class="ops-row__amount {% if entry.delta >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% if entry.delta > 0 %}+{% endif %}{{ entry.delta|stringformat:".2f" }} {{ currency }}</b>
+                                <time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"d.m H:i" }}</time>
+                            </span>
+                        </div>
+                    {% empty %}
+                        <p class="ops-empty">Операций нет.</p>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">История действий команды</h2>
+                    <a href="{% url 'control_center:audit' %}?q={{ target.username|urlencode }}" class="ops-panel__link">В журнале →</a>
+                </div>
+                <div class="ops-list">
+                    {% for entry in audit_entries %}
+                        <div class="ops-row cc-audit-row">
+                            <span class="cc-action-icon cc-action-icon--{{ entry.action }}" aria-hidden="true">{% include "components/icon.html" with name="cc_audit" %}</span>
+                            <span class="ops-row__main"><strong>{{ entry.action_label_ru }}</strong><span>{{ entry.actor.username|default:"система" }}{% if entry.summary %} · {{ entry.summary }}{% endif %}</span></span>
+                            <span class="ops-row__side"><time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"d.m.Y H:i" }}</time></span>
+                        </div>
+                    {% empty %}
+                        <p class="ops-empty">С этим пользователем команда ещё ничего не делала.</p>
+                    {% endfor %}
+                </div>
+            </article>
+        </div>
+
+        <aside class="ops-grid__side">
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Действия</h2></div>
+                {% if can_manage %}
+                    <div class="cc-forms">
+                        <form method="post" action="{% url 'control_center:user_action' target.pk %}" class="cc-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="role">
+                            <input type="hidden" name="next" value="{{ next_url }}">
+                            <label class="cc-field form-field"><span>Роль</span>
+                                <select name="role">
+                                    {% for code, label in role_choices %}<option value="{{ code }}"{% if profile.role == code %} selected{% endif %}>{{ label }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <button type="submit" class="btn btn-secondary btn-sm btn-block">Сменить роль</button>
+                        </form>
+
+                        {% if active_ban or not target.is_active %}
+                            <form method="post" action="{% url 'control_center:user_action' target.pk %}" class="cc-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="unban">
+                                <input type="hidden" name="next" value="{{ next_url }}">
+                                <button type="submit" class="btn btn-primary btn-sm btn-block">Разбанить</button>
+                            </form>
+                        {% else %}
+                            <form method="post" action="{% url 'control_center:user_action' target.pk %}" class="cc-form cc-form--danger">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="ban">
+                                <input type="hidden" name="next" value="{{ next_url }}">
+                                <label class="cc-field"><span>Причина бана</span><input type="text" name="reason" class="form-control" maxlength="255" required placeholder="Например: мошенничество в трейдах"></label>
+                                <label class="cc-field form-field"><span>Срок</span>
+                                    <select name="duration">
+                                        {% for code, label in ban_durations %}<option value="{{ code }}"{% if code == "7d" %} selected{% endif %}>{{ label }}</option>{% endfor %}
+                                    </select>
+                                </label>
+                                <button type="submit" class="btn btn-danger btn-sm btn-block">Забанить</button>
+                            </form>
+                        {% endif %}
+
+                        <form method="post" action="{% url 'control_center:user_action' target.pk %}" class="cc-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="logout">
+                            <input type="hidden" name="next" value="{{ next_url }}">
+                            <button type="submit" class="btn btn-ghost btn-sm btn-block">Завершить все сессии</button>
+                        </form>
+                    </div>
+                {% else %}
+                    <p class="ops-empty">{% if is_self %}Это ваш аккаунт: бан и смена роли самому себе недоступны.{% else %}У этого пользователя роль не ниже вашей, управлять им нельзя.{% endif %}</p>
+                {% endif %}
+                <nav class="ops-actions cc-links">
+                    <a href="{% url 'profiles:profile_detail' target.pk %}" class="ops-action">
+                        <span class="ops-action__icon">{% include "components/icon.html" with name="cc_wallet" %}</span>
+                        <span class="ops-action__text"><strong>Изменить баланс</strong><span>Админ-настройки в профиле</span></span>
+                        {% include "components/icon.html" with name="arrow" %}
+                    </a>
+                    <a href="{% url 'admin:auth_user_change' target.pk %}" class="ops-action" data-dashboard-nav="false" target="_blank" rel="noopener">
+                        <span class="ops-action__icon">{% include "components/icon.html" with name="django_admin" %}</span>
+                        <span class="ops-action__text"><strong>Django Admin</strong><span>Сырые поля аккаунта</span></span>
+                        {% include "components/icon.html" with name="cc_external" %}
+                    </a>
+                </nav>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Заметка в журнал</h2></div>
+                <form method="post" action="{% url 'control_center:user_action' target.pk %}" class="cc-form cc-form--pad">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="note">
+                    <input type="hidden" name="next" value="{{ next_url }}">
+                    <textarea name="note" class="form-control cc-textarea" maxlength="2000" required placeholder="Видна всей команде в истории пользователя"></textarea>
+                    <button type="submit" class="btn btn-secondary btn-sm btn-block">Сохранить заметку</button>
+                </form>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">История банов</h2><span class="ops-panel__hint">{{ ban_history|length }}</span></div>
+                <div class="ops-list">
+                    {% for ban in ban_history %}
+                        <div class="ops-row cc-ban-row">
+                            <span class="cc-action-icon cc-action-icon--user_ban" aria-hidden="true">{% include "components/icon.html" with name="cc_ban" %}</span>
+                            <span class="ops-row__main">
+                                <strong>{{ ban.reason }}</strong>
+                                <span>{{ ban.created_at|date:"d.m.Y" }} · {{ ban.banned_by.username|default:"система" }} · {% if ban.lifted_at %}снят {{ ban.lifted_at|date:"d.m.Y" }}{% elif ban.is_active %}активен{% else %}истёк{% endif %}</span>
+                            </span>
+                            <span class="ops-row__side"><time>{% if ban.expires_at %}до {{ ban.expires_at|date:"d.m.Y" }}{% else %}навсегда{% endif %}</time></span>
+                        </div>
+                    {% empty %}
+                        <p class="ops-empty">Банов не было.</p>
+                    {% endfor %}
+                </div>
+            </article>
+
+            {% if verification_requests %}
+                <article class="ops-panel">
+                    <div class="ops-panel__head"><h2 class="ops-panel__title">Верификация</h2><a href="{% url 'profiles:verification_requests' %}" class="ops-panel__link">Заявки →</a></div>
+                    <div class="ops-list">
+                        {% for req in verification_requests %}
+                            <div class="ops-row">
+                                <span class="cc-action-icon" aria-hidden="true">{% include "components/icon.html" with name="verification_requests" %}</span>
+                                <span class="ops-row__main"><strong>{{ req.get_requested_level_display }}</strong><span>{{ req.get_status_display }}</span></span>
+                                <span class="ops-row__side"><time>{{ req.created_at|date:"d.m.Y" }}</time></span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </article>
+            {% endif %}
+        </aside>
+    </div>
+</section>
+{% endwith %}

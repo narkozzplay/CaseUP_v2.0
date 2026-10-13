@@ -241,6 +241,16 @@ def toggle_module_state_page(request, module_key: str):
 
     state_map = get_module_state_map()
     final_enabled = bool(state_map.get(module_key, MODULE_REGISTRY[module_key].default_enabled))
+    from modules.v2.control_center.models import AuditAction
+    from modules.v2.control_center.services.audit import log_admin_action
+
+    log_admin_action(
+        actor=request.user,
+        action=AuditAction.MODULE_TOGGLE,
+        summary=f"{MODULE_REGISTRY[module_key].label}: {'on' if final_enabled else 'off'}",
+        payload={"module": module_key, "enabled": final_enabled},
+        request=request,
+    )
     return JsonResponse(
         {
             "ok": True,
