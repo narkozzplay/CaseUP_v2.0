@@ -20,6 +20,8 @@ def adjust_balance(
     inventory_item_id: int | None = None,
     withdraw_request_id: int | None = None,
     idempotency_key: str | None = None,
+    comment: str = "",
+    created_by=None,
 ) -> LedgerEntry:
     try:
         result = apply_ledger_delta(
@@ -31,6 +33,8 @@ def adjust_balance(
             case_opening_id=case_opening_id,
             inventory_item_id=inventory_item_id,
             withdraw_request_id=withdraw_request_id,
+            comment=comment,
+            created_by=created_by,
         )
     except LedgerError as exc:
         raise BalanceError(str(exc)) from exc

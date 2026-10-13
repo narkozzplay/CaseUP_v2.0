@@ -539,6 +539,15 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 33,
             },
             {
+                "key": "balance_topup",
+                "label_ru": "Пополнение",
+                "label_en": "Top up",
+                "url_name": "payments:topup",
+                "group": cls.Group.OVERVIEW,
+                "visibility_condition": cls.Visibility.AUTHENTICATED,
+                "sort_order": 34,
+            },
+            {
                 "key": "store",
                 "label_ru": "Магазин",
                 "label_en": "Store",

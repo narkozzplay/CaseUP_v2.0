@@ -8,6 +8,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from django.db import transaction
+from django.utils import timezone
 
 from modules.v2.profiles.models import LedgerReason
 from modules.v2.profiles.services.balance import BalanceError, adjust_balance
@@ -214,6 +215,42 @@ def open_case(*, user, case: SimCase, count: int = 1) -> list[SimOpening]:
             item_value=roll.value,
         ))
     return openings
+
+
+@transaction.atomic
+def sell_openings(*, user, opening_ids=None, rarity: str = "") -> tuple[int, Decimal]:
+    """Sell inventory items back for their estimated value. Returns (sold_count, credited_total).
+
+    opening_ids=None sells everything still in the inventory (optionally only one rarity).
+    """
+    queryset = SimOpening.objects.select_for_update().filter(user=user, sold_at__isnull=True)
+    if opening_ids is not None:
+        ids = {int(pk) for pk in opening_ids if str(pk).isdigit()}
+        queryset = queryset.filter(pk__in=ids)
+    elif rarity:
+        queryset = queryset.filter(item__rarity=rarity)
+    openings = list(queryset.order_by("id"))
+    if not openings:
+        raise SimulatorError("Нечего продавать: предметы уже проданы или не выбраны.")
+
+    now = timezone.now()
+    total = ZERO
+    for opening in openings:
+        price = _money(opening.item_value or ZERO)
+        if price > ZERO:
+            adjust_balance(
+                user=user,
+                delta=price,
+                reason=LedgerReason.ITEM_SALE,
+                amount_snapshot=price,
+                case_opening_id=opening.pk,
+                idempotency_key=f"sim_sell:{opening.pk}",
+            )
+        opening.sold_at = now
+        opening.sold_price = price
+        total += price
+    SimOpening.objects.bulk_update(openings, ["sold_at", "sold_price"])
+    return len(openings), total
 
 
 def _offer_price(case: SimCase, roll: Roll) -> Decimal:

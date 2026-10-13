@@ -38,6 +38,7 @@ from modules.v2.tg_notifier.services import (
 )
 
 from .forms import (
+    AdminBalanceAdjustForm,
     AdminFarmerSubscriptionForm,
     AdminProfileIdentityForm,
     AdminSiteSubscriptionForm,
@@ -282,6 +283,20 @@ def _build_profile_context(*, request, target_user):
     }
 
 
+LEDGER_REASON_LABELS_RU = {
+    LedgerReason.TOPUP: "Пополнение",
+    LedgerReason.CASE_OPEN: "Открытие кейса",
+    LedgerReason.ITEM_SALE: "Продажа предмета",
+    LedgerReason.WITHDRAW_LOCK: "Заявка на вывод",
+    LedgerReason.WITHDRAW_CANCEL: "Отмена вывода",
+    LedgerReason.ADMIN_ADJUST: "Правка админом",
+    LedgerReason.SUBSCRIPTION_PURCHASE: "Покупка подписки",
+    LedgerReason.THEME_PURCHASE: "Покупка темы",
+    LedgerReason.STORE_PURCHASE: "Покупка в магазине",
+    LedgerReason.BUNDLE_PURCHASE: "Покупка набора",
+}
+
+
 def _build_settings_context(*, request, target_user):
     """Build context for profile settings page (avatar, themes, privacy, customization, admin)."""
     profile, _ = UserProfile.objects.get_or_create(user=target_user)
@@ -328,7 +343,17 @@ def _build_settings_context(*, request, target_user):
     admin_identity_form = None
     admin_site_subscription_form = None
     admin_farmer_subscription_form = None
+    admin_balance_form = None
+    admin_balance_entries = []
     if viewer_role_access.is_admin_plus and can_view_private:
+        admin_balance_form = AdminBalanceAdjustForm(current_balance=profile.balance_coins)
+        admin_balance_entries = list(
+            LedgerEntry.objects.filter(user=target_user)
+            .select_related("created_by")
+            .order_by("-created_at", "-id")[:6]
+        )
+        for entry in admin_balance_entries:
+            entry.reason_label_ru = LEDGER_REASON_LABELS_RU.get(entry.reason, "")
         active_site_subscription = get_active_subscription(target_user, family=SubscriptionPlan.Family.SITE)
         active_farmer_subscription = get_active_subscription(target_user, family=SubscriptionPlan.Family.FARMER)
         admin_identity_form = AdminProfileIdentityForm(
@@ -364,6 +389,8 @@ def _build_settings_context(*, request, target_user):
         "admin_identity_form": admin_identity_form,
         "admin_site_subscription_form": admin_site_subscription_form,
         "admin_farmer_subscription_form": admin_farmer_subscription_form,
+        "admin_balance_form": admin_balance_form,
+        "admin_balance_entries": admin_balance_entries,
         "show_farmer_subscription_zone": target_role_access.is_farmer_plus,
     }
 
@@ -614,6 +641,7 @@ def profile_admin_update_view(request, user_id: int):
     farmer_form = AdminFarmerSubscriptionForm(
         active_farmer_subscription=active_farmer_subscription,
     )
+    balance_form = AdminBalanceAdjustForm(current_balance=profile.balance_coins)
 
     try:
         with transaction.atomic():
@@ -632,19 +660,6 @@ def profile_admin_update_view(request, user_id: int):
                     target_user.username = new_username
                     target_user.save(update_fields=["username"])
 
-                target_balance = identity_form.cleaned_data["balance_coins"]
-                current_balance = profile.balance_coins or Decimal("0.00")
-                balance_delta = target_balance - current_balance
-
-                if balance_delta != Decimal("0.00"):
-                    adjust_balance(
-                        user=target_user,
-                        delta=balance_delta,
-                        reason=LedgerReason.ADMIN_ADJUST,
-                        amount_snapshot=balance_delta,
-                        idempotency_key=f"profile-admin-balance:{target_user.id}:{uuid.uuid4()}",
-                    )
-
                 role_changed = _apply_profile_role(
                     target_user=target_user,
                     profile=profile,
@@ -657,6 +672,31 @@ def profile_admin_update_view(request, user_id: int):
                 messages.success(request, "Основные данные профиля обновлены.")
                 if role_changed:
                     messages.success(request, "Роль и staff-права пользователя синхронизированы.")
+
+            elif section == "balance":
+                profile = UserProfile.objects.select_for_update().get(pk=profile.pk)
+                balance_form = AdminBalanceAdjustForm(
+                    request.POST,
+                    current_balance=profile.balance_coins,
+                )
+                if not balance_form.is_valid():
+                    raise ValueError("balance_form_invalid")
+
+                balance_delta = balance_form.cleaned_data["balance_delta"]
+                entry = adjust_balance(
+                    user=target_user,
+                    delta=balance_delta,
+                    reason=LedgerReason.ADMIN_ADJUST,
+                    amount_snapshot=balance_delta,
+                    idempotency_key=f"profile-admin-balance:{target_user.id}:{uuid.uuid4()}",
+                    comment=balance_form.cleaned_data["balance_comment"],
+                    created_by=request.user,
+                )
+                sign = "+" if balance_delta > 0 else "−"
+                messages.success(
+                    request,
+                    f"Баланс изменён: {sign}{abs(balance_delta):.2f}, теперь {entry.balance_after:.2f}.",
+                )
 
             elif section == "site_subscription":
                 site_form = AdminSiteSubscriptionForm(
@@ -702,16 +742,31 @@ def profile_admin_update_view(request, user_id: int):
     except ValueError:
         messages.error(request, "Не удалось сохранить изменения профиля.")
     else:
+        if section == "balance":
+            if request.user.id == target_user.id:
+                settings_url = reverse("profiles:profile_settings")
+            else:
+                settings_url = reverse("profiles:profile_user_settings", args=[target_user.id])
+            return redirect(f"{settings_url}#settings-admin-balance")
         redirect_name = _profile_redirect_name(request.user, target_user)
         if redirect_name == "profiles:profile":
             return redirect(redirect_name)
         return redirect(redirect_name, user_id=target_user.id)
 
-    context = _build_profile_context(request=request, target_user=target_user)
+    context = _build_settings_context(request=request, target_user=target_user)
     context["admin_identity_form"] = identity_form
     context["admin_site_subscription_form"] = site_form
-    context["admin_farmer_subscription_form"] = farmer_form
-    return render(request, "profiles/profile.html", context, status=200)
+    if context.get("admin_farmer_subscription_form") is not None:
+        context["admin_farmer_subscription_form"] = farmer_form
+    context["admin_balance_form"] = balance_form
+    return render_dashboard_page(
+        request,
+        full_template="profiles/settings.html",
+        partial_template="profiles/partials/settings_content.html",
+        context=context,
+        page_title=build_page_title(f"Настройки — {context['profile_display_name']}"),
+        active_menu_key="profile",
+    )
 
 
 @login_required

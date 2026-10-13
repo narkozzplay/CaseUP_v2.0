@@ -15,6 +15,7 @@ urlpatterns = [
     path("health/", healthcheck, name="healthcheck"),
     path("oauth/", include("social_django.urls", namespace="social_auth")),
     path("telegram/", include("modules.v2.tg_notifier.public_urls")),
+    path("payments/", include("modules.v2.payments.public_urls")),
 ]
 
 urlpatterns += i18n_patterns(
@@ -31,6 +32,7 @@ urlpatterns += i18n_patterns(
     path("subscriptions/", include("modules.v2.subscriptions.urls")),
     path("servers/", include("modules.v2.game_servers.urls")),
     path("cases/", include("modules.v2.case_simulator.urls")),
+    path("payments/", include("modules.v2.payments.urls")),
     path("store/", include("modules.v2.store.urls")),
     path("constructor/", include("modules.v2.web_constructor.urls")),
     path("social/", include("modules.v2.social.urls")),

@@ -223,3 +223,71 @@ class CaseSimulatorViewTests(TestCase):
         state = self.client.post(reverse("case_simulator:terminal_accept", args=[session_id])).json()
         self.assertEqual(state["status"], "accepted")
         self.assertIn("result", state)
+
+
+class InventorySellTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="seller", password="pass12345")
+        self.other = get_user_model().objects.create_user(username="other", password="pass12345")
+        self.profile, _ = UserProfile.objects.get_or_create(user=self.user)
+        self.profile.balance_coins = Decimal("10.00")
+        self.profile.save()
+        self.client.force_login(self.user)
+        self.case = _make_case()
+        items = list(self.case.items.order_by("id"))
+        self.cheap = self._drop(self.user, items[0], "20.50")
+        self.mid = self._drop(self.user, items[3], "150.00")
+        self.top = self._drop(self.user, items[-1], "20000.00")
+        self.foreign = self._drop(self.other, items[0], "20.00")
+
+    def _drop(self, user, item, value):
+        return SimOpening.objects.create(user=user, case=self.case, item=item, price_paid=Decimal("150"), item_value=Decimal(value))
+
+    def _balance(self):
+        self.profile.refresh_from_db()
+        return self.profile.balance_coins
+
+    def test_sell_single_credits_value_and_hides_item(self):
+        response = self.client.post(reverse("case_simulator:inventory_sell"), {"sell": self.cheap.pk})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self._balance(), Decimal("30.50"))
+        self.cheap.refresh_from_db()
+        self.assertTrue(self.cheap.is_sold)
+        self.assertEqual(self.cheap.sold_price, Decimal("20.50"))
+        entry = LedgerEntry.objects.get(user=self.user, reason=LedgerReason.ITEM_SALE)
+        self.assertEqual((entry.delta, entry.case_opening_id), (Decimal("20.50"), self.cheap.pk))
+
+        page = self.client.get(reverse("case_simulator:inventory"))
+        self.assertNotIn(self.cheap, page.context["openings"])
+        self.assertEqual(page.context["stats"]["inventory_count"], 2)
+        self.assertEqual(page.context["stats"]["sold_value"], Decimal("20.50"))
+
+    def test_sell_selected_ignores_foreign_and_sold_items(self):
+        self.client.post(reverse("case_simulator:inventory_sell"), {"sell": self.cheap.pk})
+        self.client.post(
+            reverse("case_simulator:inventory_sell"),
+            {"action": "selected", "ids": [self.cheap.pk, self.mid.pk, self.foreign.pk]},
+        )
+        self.assertEqual(self._balance(), Decimal("180.50"))
+        self.foreign.refresh_from_db()
+        self.assertFalse(self.foreign.is_sold)
+        self.assertEqual(LedgerEntry.objects.filter(user=self.user, reason=LedgerReason.ITEM_SALE).count(), 2)
+
+    def test_sell_all_respects_rarity_filter(self):
+        self.client.post(reverse("case_simulator:inventory_sell"), {"action": "all", "rarity": "gold"})
+        self.assertEqual(self._balance(), Decimal("20010.00"))
+        self.client.post(reverse("case_simulator:inventory_sell"), {"action": "all"})
+        self.assertEqual(self._balance(), Decimal("20180.50"))
+        self.assertFalse(SimOpening.objects.filter(user=self.user, sold_at__isnull=True).exists())
+
+    def test_selling_nothing_reports_error(self):
+        response = self.client.post(reverse("case_simulator:inventory_sell"), {"action": "selected"}, follow=True)
+        self.assertContains(response, "Нечего продавать")
+        self.assertEqual(self._balance(), Decimal("10.00"))
+
+    def test_best_drop_shows_image(self):
+        self.top.item.image_url = "https://example.com/gold.png"
+        self.top.item.save()
+        response = self.client.get(reverse("case_simulator:inventory"))
+        self.assertContains(response, 'class="sim-best__media"')
+        self.assertContains(response, "https://example.com/gold.png")

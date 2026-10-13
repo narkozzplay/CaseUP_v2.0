@@ -273,13 +273,6 @@
                         {{ admin_identity_form.username.errors }}
                     </div>
                     <div class="form-field">
-                        <label for="{{ admin_identity_form.balance_coins.id_for_label }}">
-                            {% if LANGUAGE_CODE == "ru" %}Баланс{% else %}Balance{% endif %}
-                        </label>
-                        {{ admin_identity_form.balance_coins }}
-                        {{ admin_identity_form.balance_coins.errors }}
-                    </div>
-                    <div class="form-field">
                         <label for="{{ admin_identity_form.role.id_for_label }}">
                             {% if LANGUAGE_CODE == "ru" %}Роль пользователя{% else %}User role{% endif %}
                         </label>
@@ -295,6 +288,60 @@
                         {% if LANGUAGE_CODE == "ru" %}Сохранить основные данные{% else %}Save profile data{% endif %}
                     </button>
                 </form>
+            </div>
+        </article>
+        {% endif %}
+
+        {% if viewer_role_access.is_admin_plus and admin_balance_form %}
+        <article class="card profile-card-accent balance-admin" id="settings-admin-balance">
+            <div class="card-body">
+                <div class="balance-admin__head">
+                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Изменить баланс{% else %}Change balance{% endif %}</h2>
+                    <div class="balance-admin__current">
+                        <span>{% if LANGUAGE_CODE == "ru" %}Сейчас{% else %}Current{% endif %}</span>
+                        <strong>{% money profile.balance_coins %}</strong>
+                    </div>
+                </div>
+                <form method="post" action="{% url 'profiles:profile_admin_update' profile_user.id %}" class="form-stack">
+                    {% csrf_token %}
+                    <input type="hidden" name="admin_section" value="balance">
+                    {% if admin_balance_form.non_field_errors %}<div class="balance-admin__error">{{ admin_balance_form.non_field_errors }}</div>{% endif %}
+                    <div class="balance-admin__ops" role="radiogroup" aria-label="{% if LANGUAGE_CODE == 'ru' %}Действие{% else %}Operation{% endif %}">
+                        {% for value, label in admin_balance_form.fields.balance_operation.choices %}
+                            <label class="balance-admin__op">
+                                <input type="radio" name="{{ admin_balance_form.balance_operation.html_name }}" value="{{ value }}"{% if admin_balance_form.balance_operation.value == value %} checked{% endif %}>
+                                <span>{% if value == "add" %}{% if LANGUAGE_CODE == "ru" %}+ Начислить{% else %}+ Credit{% endif %}{% elif value == "subtract" %}{% if LANGUAGE_CODE == "ru" %}− Списать{% else %}− Debit{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}= Задать{% else %}= Set{% endif %}{% endif %}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ admin_balance_form.balance_amount.id_for_label }}">{% if LANGUAGE_CODE == "ru" %}Сумма{% else %}Amount{% endif %}</label>
+                        {{ admin_balance_form.balance_amount }}
+                        {{ admin_balance_form.balance_amount.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ admin_balance_form.balance_comment.id_for_label }}">{% if LANGUAGE_CODE == "ru" %}Причина (попадёт в историю операций){% else %}Reason (saved to the ledger){% endif %}</label>
+                        {{ admin_balance_form.balance_comment }}
+                        {{ admin_balance_form.balance_comment.errors }}
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        {% if LANGUAGE_CODE == "ru" %}Применить{% else %}Apply{% endif %}
+                    </button>
+                </form>
+                {% if admin_balance_entries %}
+                    <h3 class="balance-admin__subtitle">{% if LANGUAGE_CODE == "ru" %}Последние операции{% else %}Recent operations{% endif %}</h3>
+                    <ul class="balance-admin__log">
+                        {% for entry in admin_balance_entries %}
+                            <li>
+                                <span class="balance-admin__delta {% if entry.delta > 0 %}is-up{% else %}is-down{% endif %}">{% money entry.delta signed=True %}</span>
+                                <span class="balance-admin__meta">
+                                    <b>{% if LANGUAGE_CODE == "ru" %}{{ entry.reason_label_ru|default:entry.get_reason_display }}{% else %}{{ entry.get_reason_display }}{% endif %}</b>{% if entry.comment %}<span>{{ entry.comment }}</span>{% endif %}
+                                    <small>{{ entry.created_at|date:"d.m.Y H:i" }}{% if entry.created_by %} · {{ entry.created_by.username }}{% endif %} · {% if LANGUAGE_CODE == "ru" %}итог{% else %}after{% endif %} {% money entry.balance_after %}</small>
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             </div>
         </article>
         {% endif %}
