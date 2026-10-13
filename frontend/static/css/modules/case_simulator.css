@@ -1142,10 +1142,38 @@
     cursor: default;
 }
 
-.sim-prize.is-sold {
-    opacity: 0.55;
+.sim-prize.is-sold > :not(.sim-prize__sell) {
+    opacity: 0.5;
     filter: grayscale(0.5);
     transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+.sim-prize__sell {
+    position: relative;
+    margin-top: 10px;
+    padding: 6px 10px;
+    border: 1px solid var(--border-strong, var(--border));
+    background: transparent;
+    color: var(--text-soft);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.sim-prize__sell:hover:not(:disabled),
+.sim-prize__sell:focus-visible {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #111;
+}
+
+.sim-prize__sell:disabled {
+    border-color: color-mix(in srgb, var(--up) 50%, transparent);
+    color: var(--up);
+    cursor: default;
 }
 
 /* ---------- terminal ---------- */
