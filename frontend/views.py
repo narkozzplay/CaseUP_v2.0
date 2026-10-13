@@ -28,6 +28,14 @@ ROLE_LABELS = {
     UserRole.CHIEF_ADMIN: "Chief admin",
     UserRole.SUPER_ADMIN: "Super admin",
 }
+ROLE_LABELS_RU = {
+    UserRole.USER: "Юзер",
+    UserRole.FARMER: "Фермер",
+    UserRole.MOD: "Модер",
+    UserRole.ADMIN: "Админ",
+    UserRole.CHIEF_ADMIN: "Зам. руководителя",
+    UserRole.SUPER_ADMIN: "Руководитель",
+}
 
 
 HOME_TRACKER_LIMIT = 4
@@ -96,6 +104,7 @@ def _build_online_role_stats() -> list[dict[str, object]]:
         {
             "code": role_code,
             "label": ROLE_LABELS[role_code],
+            "label_ru": ROLE_LABELS_RU[role_code],
             "total": online_counts.get(role_code, 0),
         }
         for role_code in (
@@ -132,6 +141,19 @@ def _dashboard_stats():
     latest_items = SteamItem.objects.order_by("-updated_at")[:6]
     latest_ledger = LedgerEntry.objects.select_related("user", "user__profile_v2").order_by("-created_at")[:8]
     online_role_stats = _build_online_role_stats()
+    online_total = sum(row["total"] for row in online_role_stats)
+    for row in online_role_stats:
+        row["percent"] = round(row["total"] * 100 / online_total, 2) if online_total else 0
+
+    now = timezone.now()
+    users_new_week = UserProfile.objects.filter(created_at__gte=now - timedelta(days=7)).count()
+    ledger_day = LedgerEntry.objects.filter(created_at__gte=now - timedelta(hours=24)).aggregate(
+        count=Count("id"),
+        net=Sum("delta"),
+    )
+    farm_accounts_active_percent = (
+        round(farm_accounts_active * 100 / farm_accounts_total) if farm_accounts_total else 0
+    )
 
     return {
         "total_users": total_users,
@@ -146,7 +168,11 @@ def _dashboard_stats():
         "latest_items": latest_items,
         "latest_ledger": latest_ledger,
         "online_role_stats": online_role_stats,
-        "online_total": sum(row["total"] for row in online_role_stats),
+        "online_total": online_total,
+        "users_new_week": users_new_week,
+        "ledger_day_count": ledger_day["count"] or 0,
+        "ledger_day_net": ledger_day["net"] or 0,
+        "farm_accounts_active_percent": farm_accounts_active_percent,
     }
 
 

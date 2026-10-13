@@ -1,278 +1,261 @@
-<section class="section section--compact">
-    <div class="dashboard-hero card">
-        <div class="card-body dashboard-hero__body">
-            <div>
-                <span class="eyebrow">Dashboard</span>
-                <h1 class="page-title page-title--sm">
-                    {% if LANGUAGE_CODE == "ru" %}
-                        Операционный центр {{ site_settings.site_name|default:"CaseUP" }}
-                    {% else %}
-                        {{ site_settings.site_name|default:"CaseUP" }} operations center
-                    {% endif %}
-                </h1>
-                <p class="text-muted dashboard-hero__text">
-                    {% if LANGUAGE_CODE == "ru" %}
-                        Здесь собраны ключевые метрики проекта, быстрые переходы по модулям и последние изменения.
-                    {% else %}
-                        Core project metrics, quick links and latest changes are collected here.
-                    {% endif %}
-                </p>
-            </div>
-
-            <div class="dashboard-hero__meta">
-                <span class="status-pill">
-                    {% if LANGUAGE_CODE == "ru" %}Роль:{% else %}Role:{% endif %} {{ role_access.code }}
-                </span>
-                <span class="status-pill">
-                    Steam lvl:
-                    {% if request.user.profile_v2.steam_level %}
-                        {{ request.user.profile_v2.steam_level }}
-                    {% else %}
-                        —
-                    {% endif %}
-                </span>
-            </div>
+{% load l10n %}
+<section class="section section--compact ops" data-ops-dashboard>
+    {% with currency=site_settings.site_currency_symbol|default:"₽" %}
+    <header class="ops-hero">
+        <div class="ops-hero__main">
+            <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Привет, {% else %}Hi, {% endif %}{{ current_user_display_name|default:request.user.username }}</span>
+            <h1 class="ops-hero__title">
+                {% if LANGUAGE_CODE == "ru" %}
+                    Операционный центр {{ site_settings.site_name|default:"CaseUP" }}
+                {% else %}
+                    {{ site_settings.site_name|default:"CaseUP" }} operations center
+                {% endif %}
+            </h1>
+            <p class="ops-hero__text">
+                {% if LANGUAGE_CODE == "ru" %}
+                    Метрики проекта, онлайн команды, быстрые переходы и последние изменения на одном экране.
+                {% else %}
+                    Project metrics, who is online, quick links and the latest changes on one screen.
+                {% endif %}
+            </p>
         </div>
-    </div>
+        <dl class="ops-hero__meta">
+            <div>
+                <dt>{% if LANGUAGE_CODE == "ru" %}Роль{% else %}Role{% endif %}</dt>
+                <dd>{{ request.user.profile_v2.get_role_display|default:role_access.code }}</dd>
+            </div>
+            <div>
+                <dt>Steam lvl</dt>
+                <dd>{{ request.user.profile_v2.steam_level|default:"—" }}</dd>
+            </div>
+            <div>
+                <dt>{% if LANGUAGE_CODE == "ru" %}Онлайн{% else %}Online{% endif %}</dt>
+                <dd class="ops-live"><span class="ops-live__dot" aria-hidden="true"></span>{{ online_total }}</dd>
+            </div>
+        </dl>
+    </header>
 
-    <div class="stats-grid stats-grid--dashboard">
-        {% include "components/stats_card.html" with label="Users" value=total_users meta="Profiles: "|add:total_profiles %}
-        {% include "components/stats_card.html" with label="Staff" value=staff_users meta="Admin / Mod / Chief" %}
+    <div class="ops-kpis">
+        <article class="ops-kpi">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="users_catalog" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">{% if LANGUAGE_CODE == "ru" %}Пользователи{% else %}Users{% endif %}</span>
+                <strong class="ops-kpi__value">{{ total_users }}</strong>
+                <span class="ops-kpi__meta">{% if users_new_week %}<b class="text-up">+{{ users_new_week }}</b> {% if LANGUAGE_CODE == "ru" %}за 7 дней{% else %}in 7 days{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}Новых за неделю нет{% else %}No new this week{% endif %}{% endif %}</span>
+            </div>
+        </article>
+        <article class="ops-kpi">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="control_center" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">{% if LANGUAGE_CODE == "ru" %}Команда{% else %}Staff{% endif %}</span>
+                <strong class="ops-kpi__value">{{ staff_users }}</strong>
+                <span class="ops-kpi__meta">{% if LANGUAGE_CODE == "ru" %}Модеры и админы{% else %}Mods and admins{% endif %}</span>
+            </div>
+        </article>
         {% if feature_flags.steam_catalog %}
-            {% include "components/stats_card.html" with label="Steam Catalog" value=steam_items_total meta="Review: "|add:steam_items_review %}
-            {% include "components/stats_card.html" with label="Steam Stock" value=steam_stock_total meta="Current total stock" %}
+            <a href="{% url 'steam_catalog:list' %}" class="ops-kpi ops-kpi--link{% if steam_items_review %} ops-kpi--warn{% endif %}">
+                <span class="ops-kpi__icon">{% include "components/icon.html" with name="steam_catalog" %}</span>
+                <div class="ops-kpi__body">
+                    <span class="ops-kpi__label">Steam Catalog</span>
+                    <strong class="ops-kpi__value">{{ steam_items_total }}</strong>
+                    <span class="ops-kpi__meta">{% if steam_items_review %}<b>{{ steam_items_review }}</b> {% if LANGUAGE_CODE == "ru" %}на проверке{% else %}need review{% endif %}{% else %}Stock: {{ steam_stock_total }}{% endif %}</span>
+                </div>
+            </a>
         {% endif %}
         {% if feature_flags.farm %}
-            {% include "components/stats_card.html" with label="Farm Accounts" value=farm_accounts_total meta="Active: "|add:farm_accounts_active %}
+            <a href="{% url 'farm:dashboard' %}" class="ops-kpi ops-kpi--link">
+                <span class="ops-kpi__icon">{% include "components/icon.html" with name="farm_accounts" %}</span>
+                <div class="ops-kpi__body">
+                    <span class="ops-kpi__label">{% if LANGUAGE_CODE == "ru" %}Фарм-аккаунты{% else %}Farm accounts{% endif %}</span>
+                    <strong class="ops-kpi__value">{{ farm_accounts_active }}<small> / {{ farm_accounts_total }}</small></strong>
+                    <span class="ops-kpi__meta">{% if LANGUAGE_CODE == "ru" %}Активны{% else %}Active{% endif %} {{ farm_accounts_active_percent }}%</span>
+                    <span class="ops-meter" aria-hidden="true"><span style="width: {{ farm_accounts_active_percent|unlocalize }}%;"></span></span>
+                </div>
+            </a>
         {% endif %}
-        {% include "components/stats_card.html" with label="Ledger Entries" value=latest_ledger|length meta="Recent loaded entries" %}
+        <article class="ops-kpi">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="steam_investments" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">{% if LANGUAGE_CODE == "ru" %}Операции за 24 ч{% else %}Ledger, 24h{% endif %}</span>
+                <strong class="ops-kpi__value">{{ ledger_day_count }}</strong>
+                <span class="ops-kpi__meta">{% if LANGUAGE_CODE == "ru" %}Сальдо{% else %}Net{% endif %} <b class="{% if ledger_day_net > 0 %}text-up{% elif ledger_day_net < 0 %}text-down{% endif %}">{% if ledger_day_net > 0 %}+{% endif %}{{ ledger_day_net|stringformat:".2f" }} {{ currency }}</b></span>
+            </div>
+        </article>
     </div>
-    
-    <article class="card dashboard-panel">
-        <div class="card-body">
-            <div class="section-head-inline">
-                <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Кто сейчас онлайн{% else %}Who is online now{% endif %}</h2>
-                <span class="text-muted">
-                    {% if LANGUAGE_CODE == "ru" %}
-                        Активность за последние 5 минут: {{ online_total }}
-                    {% else %}
-                        Active in the last 5 minutes: {{ online_total }}
-                    {% endif %}
-                </span>
-            </div>
 
-            <div class="online-role-grid">
-                {% for row in online_role_stats %}
-                    <div class="online-role-card">
-                        <div class="online-role-card__value">{{ row.total }}</div>
-                        <div class="online-role-card__label">
-                            {% if row.code == "user" %}Юзер{% elif row.code == "farmer" %}Фермер{% elif row.code == "mod" %}Модер{% elif row.code == "admin" %}Админ{% elif row.code == "chief_admin" %}Зам. руководителя{% elif row.code == "super_admin" %}Руководитель{% else %}{{ row.label }}{% endif %}
-                        </div>
-                        <div class="text-muted online-role-card__meta">{{ row.label }}</div>
-                    </div>
-                {% endfor %}
-            </div>
+    <article class="ops-panel ops-online">
+        <div class="ops-panel__head">
+            <h2 class="ops-panel__title">{% if LANGUAGE_CODE == "ru" %}Кто сейчас онлайн{% else %}Who is online now{% endif %}</h2>
+            <span class="ops-panel__hint">
+                {% if LANGUAGE_CODE == "ru" %}Активность за последние 5 минут: {{ online_total }}{% else %}Active in the last 5 minutes: {{ online_total }}{% endif %}
+            </span>
+        </div>
+        <div class="ops-online__bar" aria-hidden="true">
+            {% for row in online_role_stats %}{% if row.total %}<span class="ops-online__seg ops-role--{{ row.code }}" style="flex-grow: {{ row.total }};" title="{{ row.label_ru }}: {{ row.total }}"></span>{% endif %}{% empty %}{% endfor %}
+            {% if not online_total %}<span class="ops-online__seg ops-online__seg--empty"></span>{% endif %}
+        </div>
+        <div class="ops-online__roles">
+            {% for row in online_role_stats %}
+                <div class="ops-role ops-role--{{ row.code }}{% if not row.total %} is-zero{% endif %}">
+                    <span class="ops-role__swatch" aria-hidden="true"></span>
+                    <strong class="ops-role__value">{{ row.total }}</strong>
+                    <span class="ops-role__label">{% if LANGUAGE_CODE == "ru" %}{{ row.label_ru }}{% else %}{{ row.label }}{% endif %}</span>
+                </div>
+            {% endfor %}
         </div>
     </article>
 
-    <div class="dashboard-grid">
-        <article class="card dashboard-panel">
-            <div class="card-body">
-                <div class="section-head-inline">
-                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Быстрые действия{% else %}Quick actions{% endif %}</h2>
+    <div class="ops-grid">
+        <div class="ops-grid__main">
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">{% if LANGUAGE_CODE == "ru" %}Последние операции{% else %}Recent ledger{% endif %}</h2>
+                    <span class="ops-panel__hint">{{ latest_ledger|length }}</span>
                 </div>
-
-                <div class="quick-actions-grid">
-                    <a href="{% url 'profiles:profile' %}" class="quick-action-card">
-                        <strong>{% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}</strong>
-                        <span>{% if LANGUAGE_CODE == "ru" %}Steam, FACEIT, баланс{% else %}Steam, FACEIT, balance{% endif %}</span>
-                    </a>
-
-                    {% if feature_flags.steam_catalog and subscription_context.feature_map.steam_catalog_view %}
-                        <a href="{% url 'steam_catalog:list' %}" class="quick-action-card">
-                            <strong>Steam Catalog</strong>
-                            <span>{% if LANGUAGE_CODE == "ru" %}Предметы, цены, stock{% else %}Items, prices, stock{% endif %}</span>
-                        </a>
-                    {% endif %}
-
-                    {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}" class="quick-action-card">
-                        <strong>{% if LANGUAGE_CODE == "ru" %}Подписки{% else %}Subscriptions{% endif %}</strong>
-                        <span>{% if LANGUAGE_CODE == "ru" %}Текущий тариф и доступные апгрейды{% else %}Current plan and upgrade path{% endif %}</span>
-                    </a>{% endif %}
-
-                    {% if feature_flags.farm %}
-                        <a href="{% url 'farm:dashboard' %}" class="quick-action-card">
-                            <strong>Farm</strong>
-                            <span>{% if LANGUAGE_CODE == "ru" %}Аккаунты и статусы{% else %}Accounts and statuses{% endif %}</span>
-                        </a>
-                    {% endif %}
-
-                    {% if role_access.is_admin_plus %}
-                        <a href="{% url 'frontend:admin_panel' %}" class="quick-action-card">
-                            <strong>Control Center</strong>
-                            <span>{% if LANGUAGE_CODE == "ru" %}Admin metrics и настройки{% else %}Admin metrics and settings{% endif %}</span>
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
-        </article>
-
-        <article class="card dashboard-panel">
-            <div class="card-body">
-                <div class="section-head-inline">
-                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Последние пользователи{% else %}Latest users{% endif %}</h2>
-                </div>
-
-                <div class="dashboard-list">
-                    {% for profile in latest_users %}
-                        {% with display_name=profile.steam_personaname|default:profile.user.username %}
+                <div class="ops-list">
+                    {% for entry in latest_ledger %}
+                        {% with name=entry.user.profile_v2.steam_personaname|default:entry.user.username %}
                         {% if role_access.is_moder_plus or request.user.is_staff or request.user.is_superuser %}
-                            <a href="{% url 'profiles:profile_detail' profile.user_id %}" class="dashboard-list__row dashboard-list__row--link">
-                                <div class="dashboard-list__row-person">
-                                    <div class="user-hover-wrap">
-                                        <span class="presence-avatar-wrap presence-avatar-wrap--xs">
-                                            {% if profile.uploaded_avatar %}
-                                                <img src="{{ profile.uploaded_avatar.url }}" alt="{{ display_name }}" class="dashboard-list__avatar">
-                                            {% elif profile.steam_avatar %}
-                                                <img src="{{ profile.steam_avatar }}" alt="{{ display_name }}" class="dashboard-list__avatar">
-                                            {% else %}
-                                                <span class="dashboard-list__avatar-fallback">{{ display_name|slice:":1"|upper }}</span>
-                                            {% endif %}
-                                        </span>
-                                        <div class="user-mini-card">
-                                            <div class="user-mini-card__head">
-                                                {% if profile.uploaded_avatar %}
-                                                    <img src="{{ profile.uploaded_avatar.url }}" class="user-mini-card__avatar" alt="">
-                                                {% elif profile.steam_avatar %}
-                                                    <img src="{{ profile.steam_avatar }}" class="user-mini-card__avatar" alt="">
-                                                {% else %}
-                                                    <span class="user-mini-card__avatar" style="display:flex;align-items:center;justify-content:center;background:rgba(111,124,255,.15);font-weight:700;">{{ display_name|slice:":1"|upper }}</span>
-                                                {% endif %}
-                                                <div class="user-mini-card__info">
-                                                    <span class="user-mini-card__name">{{ display_name }}</span>
-                                                    <span class="user-mini-card__role">{{ profile.get_role_display }}</span>
-                                                    {% if profile.steam_level %}<span class="user-mini-card__role">Steam {{ profile.steam_level }}</span>{% endif %}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <strong>{{ display_name }}</strong>
-                                        <div class="text-muted">{{ profile.get_role_display }}</div>
-                                    </div>
-                                </div>
-                                <span class="text-muted">{{ profile.created_at|date:"d.m.Y H:i" }}</span>
+                            <a href="{% url 'profiles:profile_detail' entry.user_id %}#recent-operations" class="ops-row ops-row--link">
+                        {% else %}
+                            <div class="ops-row">
+                        {% endif %}
+                                <span class="ops-row__badge ops-row__badge--{% if entry.delta >= 0 %}up{% else %}down{% endif %}" aria-hidden="true">{% if entry.delta >= 0 %}+{% else %}−{% endif %}</span>
+                                <span class="ops-row__main">
+                                    <strong>{{ entry.get_reason_display }}</strong>
+                                    <span>{{ name }}</span>
+                                </span>
+                                <span class="ops-row__side">
+                                    <b class="ops-row__amount {% if entry.delta >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% if entry.delta > 0 %}+{% endif %}{{ entry.delta|stringformat:".2f" }} {{ currency }}</b>
+                                    <time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"d.m H:i" }}</time>
+                                </span>
+                        {% if role_access.is_moder_plus or request.user.is_staff or request.user.is_superuser %}
                             </a>
                         {% else %}
-                            <div class="dashboard-list__row">
-                                <div class="dashboard-list__row-person">
-                                    <div class="user-hover-wrap">
-                                        <span class="presence-avatar-wrap presence-avatar-wrap--xs">
-                                            {% if profile.uploaded_avatar %}
-                                                <img src="{{ profile.uploaded_avatar.url }}" alt="{{ display_name }}" class="dashboard-list__avatar">
-                                            {% elif profile.steam_avatar %}
-                                                <img src="{{ profile.steam_avatar }}" alt="{{ display_name }}" class="dashboard-list__avatar">
-                                            {% else %}
-                                                <span class="dashboard-list__avatar-fallback">{{ display_name|slice:":1"|upper }}</span>
-                                            {% endif %}
-                                        </span>
-                                        <div class="user-mini-card">
-                                            <div class="user-mini-card__head">
-                                                {% if profile.uploaded_avatar %}
-                                                    <img src="{{ profile.uploaded_avatar.url }}" class="user-mini-card__avatar" alt="">
-                                                {% elif profile.steam_avatar %}
-                                                    <img src="{{ profile.steam_avatar }}" class="user-mini-card__avatar" alt="">
-                                                {% else %}
-                                                    <span class="user-mini-card__avatar" style="display:flex;align-items:center;justify-content:center;background:rgba(111,124,255,.15);font-weight:700;">{{ display_name|slice:":1"|upper }}</span>
-                                                {% endif %}
-                                                <div class="user-mini-card__info">
-                                                    <span class="user-mini-card__name">{{ display_name }}</span>
-                                                    <span class="user-mini-card__role">{{ profile.get_role_display }}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <strong>{{ display_name }}</strong>
-                                        <div class="text-muted">{{ profile.get_role_display }}</div>
-                                    </div>
-                                </div>
-                                <span class="text-muted">{{ profile.created_at|date:"d.m.Y H:i" }}</span>
                             </div>
                         {% endif %}
                         {% endwith %}
                     {% empty %}
-                        <p class="text-muted">No data.</p>
+                        <p class="ops-empty">{% if LANGUAGE_CODE == "ru" %}Операций пока нет.{% else %}No data.{% endif %}</p>
                     {% endfor %}
-                </div>
-            </div>
-        </article>
-
-        {% if feature_flags.steam_catalog %}
-            <article class="card dashboard-panel">
-                <div class="card-body">
-                    <div class="section-head-inline">
-                        <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Последние предметы{% else %}Latest items{% endif %}</h2>
-                    </div>
-
-                    <div class="dashboard-list">
-                        {% for item in latest_items %}
-                            <a href="{% url 'steam_catalog:detail' item.id %}" class="dashboard-list__row dashboard-list__row--link">
-                                <div class="dashboard-list__row-person">
-                                    {% if item.icon_url %}
-                                        <img src="{{ item.icon_cdn }}" alt="{{ item.group_name }}" class="dashboard-list__item-icon">
-                                    {% else %}
-                                        <span class="dashboard-list__item-icon-fallback">?</span>
-                                    {% endif %}
-                                    <div>
-                                        <strong>{{ item.group_name }}</strong>
-                                        <div class="text-muted">{{ item.get_item_type_display }}</div>
-                                    </div>
-                                </div>
-                                <span class="text-muted">{{ item.updated_at|date:"d.m.Y H:i" }}</span>
-                            </a>
-                        {% empty %}
-                            <p class="text-muted">No data.</p>
-                        {% endfor %}
-                    </div>
                 </div>
             </article>
-        {% endif %}
 
-        <article class="card dashboard-panel">
-            <div class="card-body">
-                <div class="section-head-inline">
-                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Последние операции{% else %}Recent ledger{% endif %}</h2>
-                </div>
-
-                <div class="dashboard-list">
-                    {% for entry in latest_ledger %}
-                        {% if role_access.is_moder_plus or request.user.is_staff or request.user.is_superuser %}
-                            <a href="{% url 'profiles:profile_detail' entry.user_id %}#recent-operations" class="dashboard-list__row dashboard-list__row--link">
-                                <div>
-                                    <strong>{{ entry.user.profile_v2.steam_personaname|default:entry.user.username }}</strong>
-                                    <div class="text-muted">{{ entry.get_reason_display }}</div>
-                                </div>
-                                <span class="{% if entry.delta >= 0 %}metric-positive{% else %}metric-negative{% endif %}">
-                                    {{ entry.delta }}
+            {% if feature_flags.steam_catalog %}
+                <article class="ops-panel">
+                    <div class="ops-panel__head">
+                        <h2 class="ops-panel__title">{% if LANGUAGE_CODE == "ru" %}Последние предметы{% else %}Latest items{% endif %}</h2>
+                        <a href="{% url 'steam_catalog:list' %}" class="ops-panel__link">{% if LANGUAGE_CODE == "ru" %}Весь каталог{% else %}Catalog{% endif %} →</a>
+                    </div>
+                    <div class="ops-list">
+                        {% for item in latest_items %}
+                            <a href="{% url 'steam_catalog:detail' item.id %}" class="ops-row ops-row--link">
+                                <span class="ops-row__thumb">
+                                    {% if item.icon_url %}
+                                        <img src="{{ item.icon_cdn }}" alt="{{ item.group_name }}">
+                                    {% else %}
+                                        {% include "components/icon.html" with name="steam_catalog" %}
+                                    {% endif %}
+                                </span>
+                                <span class="ops-row__main">
+                                    <strong>{{ item.group_name }}</strong>
+                                    <span>{{ item.get_item_type_display }}{% if item.exterior %} · {{ item.exterior }}{% endif %}</span>
+                                </span>
+                                <span class="ops-row__side">
+                                    <b class="ops-row__amount">{% if item.price_rub %}{% money item.price_rub %}{% else %}—{% endif %}</b>
+                                    <time datetime="{{ item.updated_at|date:'c' }}">{{ item.updated_at|date:"d.m H:i" }}</time>
                                 </span>
                             </a>
+                        {% empty %}
+                            <p class="ops-empty">{% if LANGUAGE_CODE == "ru" %}Предметов пока нет.{% else %}No data.{% endif %}</p>
+                        {% endfor %}
+                    </div>
+                </article>
+            {% endif %}
+        </div>
+
+        <aside class="ops-grid__side">
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">{% if LANGUAGE_CODE == "ru" %}Быстрые действия{% else %}Quick actions{% endif %}</h2>
+                </div>
+                <nav class="ops-actions">
+                    <a href="{% url 'profiles:profile' %}" class="ops-action">
+                        <span class="ops-action__icon">{% include "components/icon.html" with name="profile" %}</span>
+                        <span class="ops-action__text"><strong>{% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}</strong><span>{% if LANGUAGE_CODE == "ru" %}Steam, FACEIT, баланс{% else %}Steam, FACEIT, balance{% endif %}</span></span>
+                        {% include "components/icon.html" with name="arrow" %}
+                    </a>
+                    {% if feature_flags.steam_catalog and subscription_context.feature_map.steam_catalog_view %}
+                        <a href="{% url 'steam_catalog:list' %}" class="ops-action">
+                            <span class="ops-action__icon">{% include "components/icon.html" with name="steam_catalog" %}</span>
+                            <span class="ops-action__text"><strong>Steam Catalog</strong><span>{% if LANGUAGE_CODE == "ru" %}Предметы, цены, stock{% else %}Items, prices, stock{% endif %}</span></span>
+                            {% include "components/icon.html" with name="arrow" %}
+                        </a>
+                    {% endif %}
+                    {% if feature_flags.subscriptions %}
+                        <a href="{% url 'subscriptions:plans' %}" class="ops-action">
+                            <span class="ops-action__icon">{% include "components/icon.html" with name="subscriptions" %}</span>
+                            <span class="ops-action__text"><strong>{% if LANGUAGE_CODE == "ru" %}Подписки{% else %}Subscriptions{% endif %}</strong><span>{% if LANGUAGE_CODE == "ru" %}Тариф и апгрейды{% else %}Plan and upgrades{% endif %}</span></span>
+                            {% include "components/icon.html" with name="arrow" %}
+                        </a>
+                    {% endif %}
+                    {% if feature_flags.farm %}
+                        <a href="{% url 'farm:dashboard' %}" class="ops-action">
+                            <span class="ops-action__icon">{% include "components/icon.html" with name="farm_dashboard" %}</span>
+                            <span class="ops-action__text"><strong>Farm</strong><span>{% if LANGUAGE_CODE == "ru" %}Аккаунты и статусы{% else %}Accounts and statuses{% endif %}</span></span>
+                            {% include "components/icon.html" with name="arrow" %}
+                        </a>
+                    {% endif %}
+                    {% if role_access.is_admin_plus %}
+                        <a href="{% url 'frontend:admin_panel' %}" class="ops-action">
+                            <span class="ops-action__icon">{% include "components/icon.html" with name="control_center" %}</span>
+                            <span class="ops-action__text"><strong>Control Center</strong><span>{% if LANGUAGE_CODE == "ru" %}Метрики и настройки{% else %}Admin metrics and settings{% endif %}</span></span>
+                            {% include "components/icon.html" with name="arrow" %}
+                        </a>
+                    {% endif %}
+                </nav>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">{% if LANGUAGE_CODE == "ru" %}Новые пользователи{% else %}Latest users{% endif %}</h2>
+                </div>
+                <div class="ops-list">
+                    {% for profile in latest_users %}
+                        {% with display_name=profile.steam_personaname|default:profile.user.username %}
+                        {% if role_access.is_moder_plus or request.user.is_staff or request.user.is_superuser %}
+                            <a href="{% url 'profiles:profile_detail' profile.user_id %}" class="ops-row ops-row--link">
                         {% else %}
-                            <div class="dashboard-list__row">
-                                <div>
-                                    <strong>{{ entry.user.profile_v2.steam_personaname|default:entry.user.username }}</strong>
-                                    <div class="text-muted">{{ entry.get_reason_display }}</div>
-                                </div>
-                                <span class="{% if entry.delta >= 0 %}metric-positive{% else %}metric-negative{% endif %}">
-                                    {{ entry.delta }}
+                            <div class="ops-row">
+                        {% endif %}
+                                <span class="ops-row__avatar">
+                                    {% if profile.uploaded_avatar %}
+                                        <img src="{{ profile.uploaded_avatar.url }}" alt="{{ display_name }}">
+                                    {% elif profile.steam_avatar %}
+                                        <img src="{{ profile.steam_avatar }}" alt="{{ display_name }}">
+                                    {% else %}
+                                        <span>{{ display_name|slice:":1"|upper }}</span>
+                                    {% endif %}
                                 </span>
+                                <span class="ops-row__main">
+                                    <strong>{{ display_name }}</strong>
+                                    <span>{{ profile.get_role_display }}</span>
+                                </span>
+                                <span class="ops-row__side">
+                                    <time datetime="{{ profile.created_at|date:'c' }}">{{ profile.created_at|date:"d.m H:i" }}</time>
+                                </span>
+                        {% if role_access.is_moder_plus or request.user.is_staff or request.user.is_superuser %}
+                            </a>
+                        {% else %}
                             </div>
                         {% endif %}
+                        {% endwith %}
                     {% empty %}
-                        <p class="text-muted">No data.</p>
+                        <p class="ops-empty">No data.</p>
                     {% endfor %}
                 </div>
-            </div>
-        </article>
+            </article>
+        </aside>
     </div>
+    {% endwith %}
 </section>
