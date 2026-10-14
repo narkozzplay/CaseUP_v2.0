@@ -1067,7 +1067,6 @@ def get_theme_template_map() -> dict[str, str]:
     return {
         "theme_head_template": resolve_theme_template("components/head.html", "components/head.html"),
         "theme_navbar_public_template": resolve_theme_template("components/navbar_public.html", "components/navbar_public.html"),
-        "theme_navbar_testing_template": resolve_theme_template("components/navbar_testing.html", "components/navbar_testing.html"),
         "theme_footer_template": resolve_theme_template("components/footer.html", "components/footer.html"),
     }
 

@@ -46,6 +46,7 @@ urlpatterns += i18n_patterns(
 
 
 handler404 = "frontend.views.not_found_page"
+handler403 = "frontend.views.permission_denied_page"
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

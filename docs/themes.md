@@ -15,7 +15,6 @@
 
 - `components/head.html`
 - `components/navbar_public.html`
-- `components/navbar_testing.html`
 - `components/footer.html`
 
 Это значит, что новая тема не обязана переопределять всё сразу. Достаточно CSS и только тех компонентов, которые реально отличаются.
@@ -37,7 +36,6 @@
 
 - `frontend/templates/themes/midnight/components/head.html`
 - `frontend/templates/themes/midnight/components/navbar_public.html`
-- `frontend/templates/themes/midnight/components/navbar_testing.html`
 - `frontend/templates/themes/midnight/components/footer.html`
 
 Если какой-то файл отсутствует, будет использован стандартный fallback.
