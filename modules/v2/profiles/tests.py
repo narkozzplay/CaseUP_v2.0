@@ -11,7 +11,7 @@ from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
-from django.test import Client, RequestFactory, TestCase, TransactionTestCase
+from django.test import Client, RequestFactory, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -830,11 +830,9 @@ class UsersCatalogTests(TestCase):
         """
         self.assertEqual(extract_background_url(html), "")
 
+    @override_settings(FACEIT_API_KEY="test-key")
     @patch("modules.v2.profiles.services.faceit.urlopen")
-    @patch("modules.v2.profiles.services.faceit.settings")
-    def test_sync_faceit_profile_success(self, settings_mock, urlopen_mock):
-        settings_mock.FACEIT_API_KEY = "test-key"
-
+    def test_sync_faceit_profile_success(self, urlopen_mock):
         class DummyResponse:
             def __enter__(self):
                 return self
@@ -874,10 +872,8 @@ class UsersCatalogTests(TestCase):
         self.assertEqual(profile.faceit_elo, 1789)
         self.assertEqual(profile.faceit_level_image_url, build_faceit_level_image_url(8))
 
-    @patch("modules.v2.profiles.services.faceit.settings")
-    def test_sync_faceit_profile_without_api_key_sets_error(self, settings_mock):
-        settings_mock.FACEIT_API_KEY = ""
-
+    @override_settings(FACEIT_API_KEY="")
+    def test_sync_faceit_profile_without_api_key_sets_error(self):
         user = User.objects.create_user(username="user6", password="StrongPass123")
         profile = UserProfile.objects.get(user=user)
         profile.steam_id = "76561199647175346"
@@ -889,11 +885,9 @@ class UsersCatalogTests(TestCase):
         profile.refresh_from_db()
         self.assertIn("FACEIT_API_KEY", profile.faceit_last_error)
 
-    @patch("modules.v2.profiles.services.steam_profile.settings")
+    @override_settings(SOCIAL_AUTH_STEAM_API_KEY="steam-key")
     @patch("modules.v2.profiles.services.steam_profile.urllib.request.urlopen")
-    def test_fetch_steam_level_success(self, urlopen_mock, settings_mock):
-        settings_mock.SOCIAL_AUTH_STEAM_API_KEY = "steam-key"
-
+    def test_fetch_steam_level_success(self, urlopen_mock):
         class DummyResponse:
             def __enter__(self):
                 return self

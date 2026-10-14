@@ -59,7 +59,9 @@ def get_telegram_notifier_config() -> TelegramNotifierConfig:
 
 def resolve_bot_token(config: TelegramNotifierConfig | None = None) -> str:
     config = config or get_telegram_notifier_config()
-    return (config.bot_token or settings.TELEGRAM_BOT_TOKEN or "").strip()
+    from modules.v2.system.services import get_integration_secret
+
+    return (config.bot_token or get_integration_secret("telegram_bot_token") or "").strip()
 
 
 def resolve_default_chat_id(config: TelegramNotifierConfig | None = None) -> str:

@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone as dt_timezone
 from typing import Any
 
-from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
@@ -39,11 +38,15 @@ def _get_json(url: str, *, headers: dict | None = None, timeout: float = 12.0) -
 
 
 def _steam_api_key() -> str:
-    return str(getattr(settings, "SOCIAL_AUTH_STEAM_API_KEY", "") or "").strip()
+    from modules.v2.system.services import get_integration_secret
+
+    return get_integration_secret("steam_api_key")
 
 
 def _faceit_api_key() -> str:
-    return str(getattr(settings, "FACEIT_API_KEY", "") or "").strip()
+    from modules.v2.system.services import get_integration_secret
+
+    return get_integration_secret("faceit_api_key")
 
 
 # ---------------------------------------------------------------------------

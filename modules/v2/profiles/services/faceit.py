@@ -7,7 +7,6 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from django.conf import settings
 from django.utils import timezone
 
 from modules.v2.profiles.models import UserProfile
@@ -49,7 +48,9 @@ def _save_faceit_error(profile: UserProfile, message: str) -> FaceitSyncResult:
 
 
 def sync_faceit_profile(profile: UserProfile) -> FaceitSyncResult:
-    api_key = getattr(settings, "FACEIT_API_KEY", "").strip()
+    from modules.v2.system.services import get_integration_secret
+
+    api_key = get_integration_secret("faceit_api_key")
     steam_id = (profile.steam_id or "").strip()
 
     if not api_key:

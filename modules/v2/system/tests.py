@@ -1132,3 +1132,44 @@ class SystemBulkCompatibilityServicesTests(TestCase):
                 project_version_to=self.version_2,
             ).exists()
         )
+
+
+class IntegrationSecretTests(TestCase):
+    """Keys entered in System Settings → Интеграции must be the ones the services use."""
+
+    @override_settings(FACEIT_API_KEY="env-faceit", SOCIAL_AUTH_STEAM_API_KEY="env-steam", TELEGRAM_BOT_TOKEN="")
+    def test_admin_key_wins_and_env_is_the_fallback(self):
+        from .services import get_external_service_integration, get_integration_secret
+
+        self.assertEqual(get_integration_secret("faceit_api_key"), "env-faceit")
+        self.assertEqual(get_integration_secret("telegram_bot_token"), "")
+
+        integration = get_external_service_integration()
+        integration.faceit_api_key = "admin-faceit"
+        integration.telegram_bot_token = "123:admin"
+        integration.save()
+
+        self.assertEqual(get_integration_secret("faceit_api_key"), "admin-faceit")
+        self.assertEqual(get_integration_secret("steam_api_key"), "env-steam")
+        self.assertEqual(get_integration_secret("telegram_bot_token"), "123:admin")
+
+    @override_settings(FACEIT_API_KEY="")
+    def test_faceit_sync_uses_the_key_from_system_settings(self):
+        from unittest import mock
+
+        from modules.v2.profiles.services.faceit import sync_faceit_profile
+
+        from .services import get_external_service_integration
+
+        integration = get_external_service_integration()
+        integration.faceit_api_key = "admin-faceit"
+        integration.save()
+        user = get_user_model().objects.create_user(username="faceit_user", password="StrongPass123")
+        profile = UserProfile.objects.get(user=user)
+        profile.steam_id = "76561199647175346"
+        profile.save(update_fields=["steam_id"])
+
+        with mock.patch("modules.v2.profiles.services.faceit.urlopen", side_effect=OSError("offline")) as urlopen:
+            sync_faceit_profile(profile)
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.get_header("Authorization"), "Bearer admin-faceit")

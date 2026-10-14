@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 import requests
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import OperationalError, ProgrammingError, transaction
+from django.db import DatabaseError, OperationalError, ProgrammingError, transaction
 from django.template.loader import get_template
 from django.template import TemplateDoesNotExist
 
@@ -205,6 +205,25 @@ def get_external_service_integration() -> ExternalServiceIntegration:
     return integration
 
 
+# Settings that hold the same secrets when they are configured through the environment (.env).
+INTEGRATION_ENV_SETTINGS = {
+    "steam_api_key": "SOCIAL_AUTH_STEAM_API_KEY",
+    "faceit_api_key": "FACEIT_API_KEY",
+    "telegram_bot_token": "TELEGRAM_BOT_TOKEN",
+}
+
+
+def get_integration_secret(name: str) -> str:
+    """API key/token for an external service: the one saved in System Settings → Интеграции wins,
+    the environment setting is the fallback. Every service reads keys through here, so a key entered
+    in the admin UI is the key actually used."""
+    try:
+        value = str(getattr(get_external_service_integration(), name, "") or "").strip()
+    except DatabaseError:
+        value = ""
+    return value or str(getattr(settings, INTEGRATION_ENV_SETTINGS[name], "") or "").strip()
+
+
 def save_external_service_integration(*, payload: dict[str, object]) -> ExternalServiceIntegration:
     integration = get_external_service_integration()
     health_fields = {"steam_health_mode", "faceit_health_mode", "telegram_health_mode"}
@@ -253,9 +272,9 @@ def get_external_service_health() -> list[ExternalServiceHealth]:
     }
 
     checks = [
-        ("steam", "Steam API", integration.steam_api_key, integration.steam_health_mode, _check_steam),
-        ("faceit", "FaceIT API", integration.faceit_api_key, integration.faceit_health_mode, _check_faceit),
-        ("telegram", "Telegram Bot API", integration.telegram_bot_token, integration.telegram_health_mode, _check_telegram),
+        ("steam", "Steam API", get_integration_secret("steam_api_key"), integration.steam_health_mode, _check_steam),
+        ("faceit", "FaceIT API", get_integration_secret("faceit_api_key"), integration.faceit_health_mode, _check_faceit),
+        ("telegram", "Telegram Bot API", get_integration_secret("telegram_bot_token"), integration.telegram_health_mode, _check_telegram),
     ]
     results: list[ExternalServiceHealth] = []
     for key, label, secret, mode, checker in checks:
