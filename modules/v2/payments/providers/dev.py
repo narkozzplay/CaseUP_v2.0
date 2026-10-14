@@ -27,6 +27,7 @@ class DevPaymentProvider(BasePaymentProvider):
             amount=payment.amount,
             currency=payment.currency,
             confirmation_url=reverse("payments:dev_checkout", args=[payment.public_id]),
+            is_test=True,
         )
 
     def fetch_payment(self, payment) -> ProviderPayment:
@@ -37,6 +38,7 @@ class DevPaymentProvider(BasePaymentProvider):
             amount=payment.amount,
             currency=payment.currency,
             confirmation_url=payment.confirmation_url,
+            is_test=True,
         )
 
     def extract_webhook_payment_id(self, payload: dict) -> str:

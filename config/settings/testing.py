@@ -52,3 +52,5 @@ else:
 PAYMENTS_PROVIDER = "auto"
 YOOKASSA_SHOP_ID = ""
 YOOKASSA_SECRET_KEY = ""
+# The test runner forces DEBUG=False, which would switch the "auto" source-IP check on for test clients.
+PAYMENTS_WEBHOOK_IP_CHECK = "off"

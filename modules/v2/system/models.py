@@ -96,6 +96,18 @@ class SiteConfiguration(models.Model):
     )
     support_email = models.EmailField(blank=True, default="")
     public_base_url = models.URLField(max_length=255, blank=True, default="")
+    # Shown in the public user agreement (/agreement/): who sells the services.
+    legal_owner_name = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Например: ИП Иванов Иван Иванович или Иванов Иван Иванович (самозанятый).",
+    )
+    legal_owner_details = models.TextField(
+        blank=True,
+        default="",
+        help_text="ИНН, ОГРНИП (если есть), регион или адрес для претензий.",
+    )
     maintenance_mode_enabled = models.BooleanField(default=False)
     maintenance_message = models.TextField(blank=True, default="")
     registration_enabled = models.BooleanField(default=True)

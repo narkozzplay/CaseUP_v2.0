@@ -18,6 +18,7 @@
             <a href="{% url 'frontend:dashboard_preview' %}">{% if LANGUAGE_CODE == "ru" %}Дашборд{% else %}Dashboard{% endif %}</a>
             <a href="{% url 'game_servers:list' %}">{% if LANGUAGE_CODE == "ru" %}Серверы CS2{% else %}CS2 servers{% endif %}</a>
             {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}">{% if LANGUAGE_CODE == "ru" %}Подписки{% else %}Subscriptions{% endif %}</a>{% endif %}
+            <a href="{% url 'frontend:agreement' %}">{% if LANGUAGE_CODE == "ru" %}Пользовательское соглашение{% else %}User agreement{% endif %}</a>
         </div>
 
         <div class="footer-meta">

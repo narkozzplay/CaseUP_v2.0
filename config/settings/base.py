@@ -256,12 +256,14 @@ SOCIAL_AUTH_PIPELINE = (
     "social_core.pipeline.social_auth.social_uid",
     "social_core.pipeline.social_auth.auth_allowed",
     "social_core.pipeline.social_auth.social_user",
+    "modules.v2.accounts.social_pipeline.require_legal_consent",
     "modules.v2.accounts.social_pipeline.enforce_registration_enabled",
     "social_core.pipeline.user.get_username",
     "social_core.pipeline.user.create_user",
     "social_core.pipeline.social_auth.associate_user",
     "social_core.pipeline.social_auth.load_extra_data",
     "social_core.pipeline.user.user_details",
+    "modules.v2.accounts.social_pipeline.record_legal_consent",
 )
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
@@ -317,6 +319,12 @@ YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY", "").strip()
 YOOKASSA_TIMEOUT_SECONDS = float(os.getenv("YOOKASSA_TIMEOUT_SECONDS", "15"))
 YOOKASSA_SEND_RECEIPT = os.getenv("YOOKASSA_SEND_RECEIPT", "0").lower() in {"1", "true", "yes"}
 YOOKASSA_VAT_CODE = int(os.getenv("YOOKASSA_VAT_CODE", "1"))
+PAYMENTS_MAX_OPEN_PER_USER = int(os.getenv("PAYMENTS_MAX_OPEN_PER_USER", "5"))
+# Accept provider webhooks only from the provider's addresses: auto = on unless DEBUG.
+PAYMENTS_WEBHOOK_IP_CHECK = os.getenv("PAYMENTS_WEBHOOK_IP_CHECK", "auto").strip().lower()
+# Reverse proxies in front of Django that append to X-Forwarded-For (prod: Nginx = 1; 0 = use REMOTE_ADDR).
+PAYMENTS_WEBHOOK_PROXY_COUNT = int(os.getenv("PAYMENTS_WEBHOOK_PROXY_COUNT", "1"))
+CELERY_BEAT_PAYMENTS_RECONCILE_SECONDS = int(os.getenv("CELERY_BEAT_PAYMENTS_RECONCILE_SECONDS", "300"))
 
 # Secrets stored in the DB (API keys, bot tokens) are encrypted with these Fernet keys (common.encryption).
 # Comma-separated: the first encrypts, all decrypt. Empty = key derived from SECRET_KEY.

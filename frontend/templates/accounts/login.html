@@ -29,15 +29,37 @@
                     {% endif %}
                 </p>
 
-                <div class="auth-actions auth-actions--stack">
-                    <a href="{% url 'social_auth:begin' 'steam' %}" class="btn btn-primary btn-block">
-                        {% include "components/icon.html" with name="steam" %}
-                        {% if LANGUAGE_CODE == "ru" %}Войти через Steam{% else %}Login via Steam{% endif %}
-                    </a>
-                    <a href="{% url 'admin:index' %}" class="btn btn-ghost btn-block">
-                        Admin / Superuser
-                    </a>
-                </div>
+                {% if consent_required %}
+                    <div class="auth-consent__alert" role="alert">{% if LANGUAGE_CODE == "ru" %}Чтобы войти, примите условия ниже. Если документы обновились, их нужно принять заново.{% else %}To sign in, accept the terms below. If the documents were updated, they need to be accepted again.{% endif %}</div>
+                {% endif %}
+
+                <form method="post" action="{% url 'accounts:login' %}" class="auth-consent" novalidate>
+                    {% csrf_token %}
+                    {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+                    <p class="auth-consent__title">{% if LANGUAGE_CODE == "ru" %}Перед входом примите условия:{% else %}Before signing in, accept the terms:{% endif %}</p>
+
+                    <label class="auth-consent__item{% if consent_form.accept_agreement.errors %} is-invalid{% endif %}">
+                        <input type="checkbox" name="accept_agreement" value="on" required{% if consent_form.accept_agreement.value %} checked{% endif %}>
+                        <span>{% if LANGUAGE_CODE == "ru" %}Я принимаю <a href="{% url 'frontend:agreement' %}" target="_blank" rel="noopener">Пользовательское соглашение</a> и подтверждаю, что мне исполнилось 18 лет.{% else %}I accept the <a href="{% url 'frontend:agreement' %}" target="_blank" rel="noopener">User agreement</a> and confirm that I am 18 or older.{% endif %}</span>
+                    </label>
+                    {% for error in consent_form.accept_agreement.errors %}<p class="auth-consent__error">{{ error }}</p>{% endfor %}
+
+                    <label class="auth-consent__item{% if consent_form.accept_privacy.errors %} is-invalid{% endif %}">
+                        <input type="checkbox" name="accept_privacy" value="on" required{% if consent_form.accept_privacy.value %} checked{% endif %}>
+                        <span>{% if LANGUAGE_CODE == "ru" %}Я ознакомился(ась) с <a href="{% url 'frontend:privacy' %}" target="_blank" rel="noopener">Политикой конфиденциальности</a>, <a href="{% url 'frontend:cookies' %}" target="_blank" rel="noopener">Политикой cookie</a> и даю <a href="{% url 'frontend:pd_consent' %}" target="_blank" rel="noopener">согласие на обработку персональных данных</a>.{% else %}I have read the <a href="{% url 'frontend:privacy' %}" target="_blank" rel="noopener">Privacy policy</a> and <a href="{% url 'frontend:cookies' %}" target="_blank" rel="noopener">Cookie policy</a> and give my <a href="{% url 'frontend:pd_consent' %}" target="_blank" rel="noopener">consent to personal data processing</a>.{% endif %}</span>
+                    </label>
+                    {% for error in consent_form.accept_privacy.errors %}<p class="auth-consent__error">{{ error }}</p>{% endfor %}
+
+                    <div class="auth-actions auth-actions--stack">
+                        <button type="submit" class="btn btn-primary btn-block auth-consent__submit">
+                            {% include "components/icon.html" with name="steam" %}
+                            {% if LANGUAGE_CODE == "ru" %}Войти через Steam{% else %}Login via Steam{% endif %}
+                        </button>
+                        <a href="{% url 'admin:index' %}" class="btn btn-ghost btn-block">
+                            Admin / Superuser
+                        </a>
+                    </div>
+                </form>
 
                 <div class="auth-links">
                     <span class="text-muted">

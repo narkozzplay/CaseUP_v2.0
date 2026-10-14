@@ -301,3 +301,61 @@ class SystemSettingsToolsTests(TestCase):
             self.assertEqual(self.client.post(reverse(f"system_config:{name}")).status_code, 403, name)
         for name in ("export_settings", "maintenance_preview"):
             self.assertEqual(self.client.get(reverse(f"system_config:{name}")).status_code, 403, name)
+
+
+class PaymentsTabTests(TestCase):
+    def setUp(self):
+        from modules.v2.payments.models import Payment
+
+        self.admin = make_user("cc_payments_admin", UserRole.ADMIN)
+        self.payer = make_user("cc_payments_payer")
+        self.client.force_login(self.admin)
+        self.paid = Payment.objects.create(
+            user=self.payer, provider="yookassa", amount=Decimal("500.00"), status=Payment.Status.SUCCEEDED, external_id="yk-paid"
+        )
+        self.stuck = Payment.objects.create(
+            user=self.payer, provider="yookassa", amount=Decimal("300.00"), status=Payment.Status.PENDING, external_id="yk-stuck", is_test=True
+        )
+
+    def test_regular_user_has_no_access(self):
+        self.client.force_login(self.payer)
+        self.assertEqual(self.client.get(reverse("control_center:payments")).status_code, 403)
+        self.assertEqual(self.client.post(reverse("control_center:payment_recheck", args=[self.stuck.pk])).status_code, 403)
+
+    def test_list_shows_totals_and_filters(self):
+        response = self.client.get(reverse("control_center:payments"))
+        self.assertContains(response, "Платежи")
+        self.assertContains(response, "500.00 ₽")
+        self.assertContains(response, "cc_payments_payer")
+        self.assertEqual(response.context["totals"]["open"], 1)
+
+        response = self.client.get(reverse("control_center:payments"), {"mode": "test"})
+        self.assertEqual(list(response.context["page_obj"]), [self.stuck])
+
+        response = self.client.get(reverse("control_center:payments"), {"q": str(self.paid.public_id)})
+        self.assertEqual(list(response.context["page_obj"]), [self.paid])
+
+    def test_recheck_syncs_with_provider_and_is_audited(self):
+        from unittest import mock
+
+        from modules.v2.payments.models import Payment
+
+        def fake_sync(payment):
+            Payment.objects.filter(pk=payment.pk).update(status=Payment.Status.CANCELED)
+            payment.refresh_from_db()
+            return payment
+
+        with mock.patch("modules.v2.payments.services.sync_payment", side_effect=fake_sync) as sync:
+            response = self.client.post(reverse("control_center:payment_recheck", args=[self.stuck.pk]))
+
+        self.assertEqual(response.status_code, 302)
+        sync.assert_called_once()
+        entry = AdminAuditLog.objects.get(action=AuditAction.PAYMENT_RECHECK)
+        self.assertEqual(entry.payload["to"], Payment.Status.CANCELED)
+        self.assertEqual(entry.target_user, self.payer)
+
+    def test_csv_export(self):
+        response = self.client.get(reverse("control_center:payments_export"), {"status": "succeeded"})
+        body = response.content.decode("utf-8")
+        self.assertIn("yk-paid", body)
+        self.assertNotIn("yk-stuck", body)

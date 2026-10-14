@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import uuid
 from datetime import datetime, timedelta
 from decimal import Decimal
 
@@ -45,6 +46,7 @@ User = get_user_model()
 FULL_TEMPLATE = "control_center/page.html"
 USERS_PAGE_SIZE = 30
 LEDGER_PAGE_SIZE = 50
+PAYMENTS_PAGE_SIZE = 50
 AUDIT_PAGE_SIZE = 40
 MODERATION_PAGE_SIZE = 40
 CSV_EXPORT_LIMIT = 10000
@@ -551,6 +553,171 @@ def ledger_export(request):
             ]
         )
     return response
+
+
+# --------------------------------------------------------------------------- payments
+
+
+def _filtered_payments(request):
+    from modules.v2.payments.models import Payment
+
+    status = (request.GET.get("status") or "").strip()
+    provider = (request.GET.get("provider") or "").strip()
+    mode = (request.GET.get("mode") or "").strip()
+    q = (request.GET.get("q") or "").strip()
+    date_from = _parse_date(request.GET.get("from", ""))
+    date_to = _parse_date(request.GET.get("to", ""))
+
+    qs = Payment.objects.select_related("user", "user__profile_v2")
+    if status in Payment.Status.values:
+        qs = qs.filter(status=status)
+    else:
+        status = ""
+    if provider:
+        qs = qs.filter(provider=provider)
+    if mode == "test":
+        qs = qs.filter(is_test=True)
+    elif mode == "live":
+        qs = qs.filter(is_test=False)
+    else:
+        mode = ""
+    if q:
+        query = Q(user__username__icontains=q) | Q(external_id__icontains=q) | Q(user__profile_v2__steam_personaname__icontains=q)
+        if q.isdigit():
+            query |= Q(user_id=int(q))
+        try:
+            query |= Q(public_id=uuid.UUID(q))
+        except ValueError:
+            pass
+        qs = qs.filter(query)
+    if date_from:
+        qs = qs.filter(created_at__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(created_at__date__lte=date_to)
+    filters = {
+        "status": status,
+        "provider": provider,
+        "mode": mode,
+        "q": q,
+        "from": date_from.isoformat() if date_from else "",
+        "to": date_to.isoformat() if date_to else "",
+    }
+    return qs.order_by("-created_at", "-id"), filters
+
+
+def _payments_setup_summary() -> dict:
+    from django.conf import settings
+
+    from modules.v2.payments.ip_allowlist import webhook_ip_check_enabled
+    from modules.v2.payments.providers import get_provider
+
+    provider = get_provider()
+    base_url = (getattr(settings, "SITE_BASE_URL", "") or "").rstrip("/")
+    return {
+        "provider": provider,
+        "webhook_url": f"{base_url}{reverse('payments_public:webhook', args=[provider.code])}" if provider else "",
+        "ip_check": webhook_ip_check_enabled(),
+        "reconcile_minutes": int(getattr(settings, "CELERY_BEAT_PAYMENTS_RECONCILE_SECONDS", 300)) // 60,
+    }
+
+
+@login_required
+def payments(request):
+    from modules.v2.payments.models import Payment
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    qs, filters = _filtered_payments(request)
+    totals = qs.aggregate(
+        count=Count("id"),
+        succeeded_sum=Sum("amount", filter=Q(status=Payment.Status.SUCCEEDED)),
+        succeeded=Count("id", filter=Q(status=Payment.Status.SUCCEEDED)),
+        open=Count("id", filter=Q(status__in=(Payment.Status.CREATED, Payment.Status.PENDING))),
+        failed=Count("id", filter=Q(status__in=(Payment.Status.FAILED, Payment.Status.CANCELED))),
+    )
+    status_labels = dict(Payment.Status.choices)
+    breakdown = [
+        {**row, "label": status_labels.get(row["status"], row["status"])}
+        for row in qs.order_by().values("status").annotate(total=Sum("amount"), count=Count("id")).order_by("-count")
+    ]
+    peak = max((row["count"] for row in breakdown), default=0)
+    for row in breakdown:
+        row["percent"] = round(row["count"] * 100 / peak) if peak else 0
+
+    page_obj = Paginator(qs, PAYMENTS_PAGE_SIZE).get_page(request.GET.get("page") or 1)
+    context = {
+        "role_access": role_access,
+        "page_obj": page_obj,
+        "filters": filters,
+        "totals": {key: (value if value is not None else Decimal("0")) for key, value in totals.items()},
+        "breakdown": breakdown,
+        "status_options": Payment.Status.choices,
+        "provider_options": list(Payment.objects.order_by().values_list("provider", flat=True).distinct()),
+        "setup": _payments_setup_summary(),
+        "pagination_query": _querystring(request),
+        "export_query": _querystring(request),
+        "current_path": request.get_full_path(),
+    }
+    return _render(request, partial="control_center/partials/payments_content.html", context=context, title="Платежи · Control Center", tab="payments")
+
+
+@login_required
+def payments_export(request):
+    if _admin_access(request) is None:
+        return _forbidden()
+    qs, _filters = _filtered_payments(request)
+    response, writer = _csv_response(f"caseup-payments-{timezone.localdate():%Y%m%d}.csv")
+    writer.writerow(["public_id", "created_at", "paid_at", "user_id", "username", "provider", "external_id", "amount", "currency", "status", "is_test", "error"])
+    for payment in qs[:CSV_EXPORT_LIMIT]:
+        writer.writerow(
+            [
+                payment.public_id,
+                timezone.localtime(payment.created_at).strftime("%Y-%m-%d %H:%M:%S"),
+                timezone.localtime(payment.paid_at).strftime("%Y-%m-%d %H:%M:%S") if payment.paid_at else "",
+                payment.user_id,
+                payment.user.username,
+                payment.provider,
+                payment.external_id,
+                payment.amount,
+                payment.currency,
+                payment.status,
+                int(payment.is_test),
+                payment.error_message,
+            ]
+        )
+    return response
+
+
+@login_required
+@require_POST
+def payment_recheck(request, payment_id: int):
+    from modules.v2.payments.models import Payment
+    from modules.v2.payments.providers import PaymentProviderError
+    from modules.v2.payments.services import sync_payment
+
+    if _admin_access(request) is None:
+        return _forbidden()
+    payment = get_object_or_404(Payment.objects.select_related("user"), pk=payment_id)
+    previous = payment.status
+    try:
+        payment = sync_payment(payment)
+    except PaymentProviderError as exc:
+        messages.error(request, f"Провайдер не ответил: {exc}")
+    else:
+        if payment.status != previous:
+            messages.success(request, f"Статус обновлён: {previous} → {payment.status}.")
+        else:
+            messages.info(request, f"Статус не изменился: {payment.get_status_display()}.")
+    log_admin_action(
+        actor=request.user,
+        action=AuditAction.PAYMENT_RECHECK,
+        target_user=payment.user,
+        summary=f"{payment.public_id}: {previous} → {payment.status}",
+        payload={"payment": str(payment.public_id), "from": previous, "to": payment.status},
+        request=request,
+    )
+    return redirect(_safe_next(request, reverse("control_center:payments")))
 
 
 # --------------------------------------------------------------------------- catalog moderation

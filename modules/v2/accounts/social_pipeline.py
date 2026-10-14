@@ -99,3 +99,33 @@ def enforce_registration_enabled(backend: Any, user: Any = None, *args, **kwargs
         return
 
     raise AuthForbidden(backend, "Steam registration is disabled")
+
+
+def require_legal_consent(strategy, backend: Any, user: Any = None, *args, **kwargs):
+    """Stop the Steam sign-in unless the documents were accepted on the login page (or earlier).
+
+    Covers direct links to /oauth/login/steam/ that skip the login page, and users whose consent
+    predates the current document editions.
+    """
+    from django.urls import reverse
+
+    from .consent import SESSION_KEY, session_consent_is_current, user_has_current_consent
+
+    if "steam" not in (getattr(backend, "name", "") or ""):
+        return None
+    if session_consent_is_current(strategy.session_get(SESSION_KEY)):
+        return None
+    if user is not None and user_has_current_consent(user):
+        return None
+    return strategy.redirect(f"{reverse('accounts:login')}?consent=required")
+
+
+def record_legal_consent(strategy, backend: Any, user: Any = None, *args, **kwargs):
+    from .consent import SESSION_KEY, record_consent, session_consent_is_current
+
+    data = strategy.session_get(SESSION_KEY)
+    if user is None or not session_consent_is_current(data):
+        return None
+    record_consent(user, data)
+    strategy.session_pop(SESSION_KEY)
+    return None

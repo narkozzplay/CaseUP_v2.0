@@ -200,6 +200,46 @@ def admin_panel(request):
 
 
 
+def _render_legal_document(request, document, template_name: str):
+    from django.conf import settings
+
+    from .legal import LEGAL_DOCUMENTS
+
+    return render(
+        request,
+        template_name,
+        {
+            "legal_doc": document,
+            "legal_documents": LEGAL_DOCUMENTS,
+            "site_base_url": (getattr(settings, "SITE_BASE_URL", "") or "").rstrip("/"),
+        },
+    )
+
+
+def agreement_page(request):
+    from .legal import AGREEMENT
+
+    return _render_legal_document(request, AGREEMENT, "legal/agreement.html")
+
+
+def privacy_page(request):
+    from .legal import PRIVACY
+
+    return _render_legal_document(request, PRIVACY, "legal/privacy.html")
+
+
+def pd_consent_page(request):
+    from .legal import PD_CONSENT
+
+    return _render_legal_document(request, PD_CONSENT, "legal/consent.html")
+
+
+def cookies_page(request):
+    from .legal import COOKIES
+
+    return _render_legal_document(request, COOKIES, "legal/cookies.html")
+
+
 def not_found_page(request, exception=None):
     return render_not_found_page(request)
 

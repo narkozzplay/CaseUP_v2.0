@@ -22,6 +22,16 @@ STATUS_MAP = {
 class YooKassaProvider(BasePaymentProvider):
     code = "yookassa"
     title = "ЮKassa"
+    # Addresses YooKassa sends HTTP notifications from (yookassa.ru/developers/using-api/webhooks).
+    webhook_ip_networks = (
+        "185.71.76.0/27",
+        "185.71.77.0/27",
+        "77.75.153.0/25",
+        "77.75.156.11/32",
+        "77.75.156.35/32",
+        "77.75.154.128/25",
+        "2a02:5180::/32",
+    )
 
     def __init__(self):
         self.shop_id = getattr(settings, "YOOKASSA_SHOP_ID", "")
@@ -72,6 +82,7 @@ class YooKassaProvider(BasePaymentProvider):
             currency=str(amount_data.get("currency") or ""),
             confirmation_url=str((data.get("confirmation") or {}).get("confirmation_url") or ""),
             error_message=str(cancellation.get("reason") or ""),
+            is_test=bool(data.get("test")),
             raw=data,
         )
 
@@ -110,6 +121,10 @@ class YooKassaProvider(BasePaymentProvider):
         if not payment.external_id:
             raise PaymentProviderError("У платежа нет идентификатора ЮKassa.")
         return self._to_provider_payment(self._request("GET", f"/payments/{payment.external_id}"))
+
+    def get_account_info(self) -> dict:
+        """Shop info for the configured keys (GET /v3/me): proves the keys work, shows test/live mode."""
+        return self._request("GET", "/me")
 
     def extract_webhook_payment_id(self, payload: dict) -> str:
         obj = payload.get("object") or {}

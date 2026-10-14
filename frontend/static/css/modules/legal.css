@@ -1,0 +1,218 @@
+/* Public legal documents (/agreement/). */
+.legal-layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+.legal-nav {
+    position: sticky;
+    top: 96px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-elevated);
+}
+
+.legal-nav__title {
+    padding: 14px 18px 6px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.legal-nav__link {
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    border-left: 2px solid transparent;
+    color: var(--text-soft);
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+
+.legal-nav__link:hover {
+    color: var(--text);
+    background: var(--surface);
+}
+
+.legal-nav__link.is-active {
+    border-left-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.legal-nav__contacts {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.legal-nav__contacts a,
+.legal-nav__contacts span:not(.legal-nav__title) {
+    padding: 0 18px;
+    color: var(--accent);
+    font-size: 0.88rem;
+    overflow-wrap: anywhere;
+}
+
+.legal-doc {
+    min-width: 0;
+    padding: 32px 36px 40px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-elevated);
+    color: var(--text-soft);
+    font-size: 0.95rem;
+    line-height: 1.65;
+}
+
+.legal-doc__head {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.legal-doc__title {
+    margin: 6px 0 8px;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    line-height: 1.15;
+}
+
+.legal-doc__version,
+.legal-doc__note {
+    margin: 0;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+}
+
+.legal-doc__notice {
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    background: var(--accent-soft);
+    color: var(--text);
+}
+
+.legal-doc h2 {
+    margin: 32px 0 12px;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+}
+
+.legal-doc p {
+    margin: 0 0 12px;
+}
+
+.legal-doc strong {
+    color: var(--text);
+}
+
+.legal-doc a {
+    color: var(--accent);
+    overflow-wrap: anywhere;
+}
+
+.legal-list {
+    margin: 0;
+    padding-left: 22px;
+}
+
+.legal-list > li {
+    margin-bottom: 10px;
+    padding-left: 4px;
+}
+
+.legal-list > li::marker {
+    color: var(--accent);
+    font-family: var(--font-mono);
+}
+
+.legal-list ul {
+    margin: 8px 0 0;
+    padding-left: 20px;
+}
+
+.legal-terms {
+    display: grid;
+    grid-template-columns: minmax(140px, 200px) 1fr;
+    gap: 10px 20px;
+    margin: 0;
+}
+
+.legal-terms dt {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.legal-terms dd {
+    margin: 0;
+}
+
+.legal-table-wrap {
+    overflow-x: auto;
+}
+
+.legal-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.legal-table th,
+.legal-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+}
+
+.legal-table th {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.legal-doc code {
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+}
+
+@media (max-width: 900px) {
+    .legal-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .legal-nav {
+        position: static;
+    }
+}
+
+@media (max-width: 640px) {
+    .legal-doc {
+        padding: 22px 16px 28px;
+    }
+
+    .legal-terms {
+        grid-template-columns: 1fr;
+        gap: 2px;
+    }
+
+    .legal-terms dd {
+        margin-bottom: 10px;
+    }
+}

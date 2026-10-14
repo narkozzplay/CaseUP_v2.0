@@ -1522,3 +1522,40 @@
         flex-basis: 100%;
     }
 }
+
+/* Facts with long values (URLs): label above value, value wraps instead of being clipped. */
+.cc-facts--stack {
+    grid-template-columns: 1fr;
+}
+
+.cc-facts--stack div {
+    min-width: 0;
+}
+
+.cc-facts--stack dd {
+    overflow: visible;
+    overflow-wrap: anywhere;
+    word-break: break-all;
+    font-size: 0.82rem;
+}
+
+.cc-sub {
+    display: block;
+    max-width: 190px;
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cc-inline-form {
+    display: inline-flex;
+    vertical-align: middle;
+}
+
+.cc-inline-form .btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+}

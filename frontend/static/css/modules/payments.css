@@ -499,3 +499,36 @@ a.wallet-chip:hover {
         justify-content: flex-start;
     }
 }
+
+/* agreement consent */
+
+.topup-terms {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 18px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    background: rgba(9, 11, 15, 0.35);
+    color: var(--text-soft);
+    font-size: 0.85rem;
+    line-height: 1.45;
+    cursor: pointer;
+}
+
+.topup-terms input {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin: 1px 0 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.topup-terms a {
+    color: var(--accent);
+}
+
+.topup-terms--error {
+    border-color: var(--danger);
+}

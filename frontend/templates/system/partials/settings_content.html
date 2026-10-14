@@ -53,6 +53,9 @@
                         <small class="cc-help" data-cc-currency-preview data-rub="1000">Балансы хранятся в RUB, валюта меняет только отображение.</small>{{ form.site_currency_rate.errors }}</label>
                     <label class="cc-field form-field"><span>Версия проекта</span>{{ form.current_project_version }}{{ form.current_project_version.errors }}</label>
                     <label class="cc-field form-field"><span>Активная тема</span>{{ form.active_theme }}{{ form.active_theme.errors }}</label>
+                    <label class="cc-field form-field cc-span-2"><span>Владелец сайта (для соглашения)</span>{{ form.legal_owner_name }}
+                        <small class="cc-help">Публикуется в <a href="{% url 'frontend:agreement' %}" target="_blank" rel="noopener" data-dashboard-nav="false">пользовательском соглашении</a>: кто оказывает услуги и принимает платежи.</small>{{ form.legal_owner_name.errors }}</label>
+                    <label class="cc-field form-field cc-span-2"><span>Реквизиты владельца</span>{{ form.legal_owner_details }}{{ form.legal_owner_details.errors }}</label>
                 </div>
             </article>
 

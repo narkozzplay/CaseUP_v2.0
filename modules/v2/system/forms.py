@@ -60,6 +60,8 @@ class SiteConfigurationForm(forms.ModelForm):
             "site_currency_rate",
             "support_email",
             "public_base_url",
+            "legal_owner_name",
+            "legal_owner_details",
             "maintenance_mode_enabled",
             "maintenance_message",
             "registration_enabled",
@@ -73,6 +75,8 @@ class SiteConfigurationForm(forms.ModelForm):
             "support_email": forms.EmailInput(attrs={"class": "form-control"}),
             "public_base_url": forms.URLInput(attrs={"class": "form-control", "placeholder": "https://caseup.example.com"}),
             "maintenance_message": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            "legal_owner_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "ИП Иванов Иван Иванович"}),
+            "legal_owner_details": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "ИНН 000000000000, ОГРНИП 000000000000000, г. Москва"}),
         }
 
     def clean_site_currency_rate(self):

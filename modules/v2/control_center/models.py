@@ -18,6 +18,7 @@ class AuditAction(models.TextChoices):
     CATALOG_DISABLE = "catalog_disable", "Catalog item disabled"
     SETTINGS_UPDATE = "settings_update", "Settings updated"
     CACHE_CLEAR = "cache_clear", "Cache cleared"
+    PAYMENT_RECHECK = "payment_recheck", "Payment rechecked"
 
 
 AUDIT_ACTION_LABELS_RU = {
@@ -33,6 +34,7 @@ AUDIT_ACTION_LABELS_RU = {
     AuditAction.CATALOG_DISABLE: "Предмет скрыт",
     AuditAction.SETTINGS_UPDATE: "Изменение настроек",
     AuditAction.CACHE_CLEAR: "Сброс кэша",
+    AuditAction.PAYMENT_RECHECK: "Перепроверка платежа",
 }
 
 

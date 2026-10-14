@@ -38,30 +38,39 @@
         <div class="topup-grid">
             <article class="topup-card">
                 <h2 class="topup-card__title">{% if LANGUAGE_CODE == "ru" %}Выберите сумму{% else %}Choose amount{% endif %}</h2>
-                <form method="post" action="{% url 'payments:topup' %}" class="topup-presets">
+                <form method="post" action="{% url 'payments:topup' %}" class="topup-form">
                     {% csrf_token %}
-                    {% for preset in topup_presets %}
-                        <button type="submit" name="amount" value="{{ preset|floatformat:'0' }}" class="topup-preset">
-                            <span class="topup-preset__value">{{ preset|floatformat:"0" }}</span>
-                            <span class="topup-preset__cur">₽</span>
-                        </button>
-                    {% endfor %}
-                </form>
-
-                <div class="topup-divider"><span>{% if LANGUAGE_CODE == "ru" %}или своя сумма{% else %}or custom amount{% endif %}</span></div>
-
-                <form method="post" action="{% url 'payments:topup' %}" class="topup-custom">
-                    {% csrf_token %}
-                    <div class="topup-custom__row">
-                        <label class="topup-custom__field">
-                            <span class="sr-only">{% if LANGUAGE_CODE == "ru" %}Сумма{% else %}Amount{% endif %}</span>
-                            {{ topup_form.amount }}
-                            <span class="topup-custom__cur">₽</span>
-                        </label>
-                        <button type="submit" class="btn btn-primary">{% if LANGUAGE_CODE == "ru" %}Перейти к оплате{% else %}Continue to payment{% endif %}</button>
+                    {# Enter in the amount field submits this first (unnamed) button, not the first preset. #}
+                    <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true"></button>
+                    <div class="topup-presets">
+                        {% for preset in topup_presets %}
+                            <button type="submit" name="preset" value="{{ preset|floatformat:'0' }}" class="topup-preset">
+                                <span class="topup-preset__value">{{ preset|floatformat:"0" }}</span>
+                                <span class="topup-preset__cur">₽</span>
+                            </button>
+                        {% endfor %}
                     </div>
-                    {% if topup_form.amount.errors %}<div class="topup-custom__error">{{ topup_form.amount.errors }}</div>{% endif %}
-                    <p class="topup-custom__hint">{% if LANGUAGE_CODE == "ru" %}От {{ topup_min|floatformat:"0" }} до {{ topup_max|floatformat:"0" }} ₽. 1 ₽ = 1 единица баланса.{% else %}From {{ topup_min|floatformat:"0" }} to {{ topup_max|floatformat:"0" }} ₽. 1 ₽ = 1 balance unit.{% endif %}</p>
+
+                    <div class="topup-divider"><span>{% if LANGUAGE_CODE == "ru" %}или своя сумма{% else %}or custom amount{% endif %}</span></div>
+
+                    <div class="topup-custom">
+                        <div class="topup-custom__row">
+                            <label class="topup-custom__field">
+                                <span class="sr-only">{% if LANGUAGE_CODE == "ru" %}Сумма{% else %}Amount{% endif %}</span>
+                                {{ topup_form.amount }}
+                                <span class="topup-custom__cur">₽</span>
+                            </label>
+                            <button type="submit" class="btn btn-primary">{% if LANGUAGE_CODE == "ru" %}Перейти к оплате{% else %}Continue to payment{% endif %}</button>
+                        </div>
+                        {% if topup_form.amount.errors %}<div class="topup-custom__error">{{ topup_form.amount.errors }}</div>{% endif %}
+                        <p class="topup-custom__hint">{% if LANGUAGE_CODE == "ru" %}От {{ topup_min|floatformat:"0" }} до {{ topup_max|floatformat:"0" }} ₽. 1 ₽ = 1 единица баланса.{% else %}From {{ topup_min|floatformat:"0" }} to {{ topup_max|floatformat:"0" }} ₽. 1 ₽ = 1 balance unit.{% endif %}</p>
+                    </div>
+
+                    <label class="topup-terms{% if topup_form.accept_terms.errors %} topup-terms--error{% endif %}">
+                        <input type="checkbox" name="accept_terms" value="on" required{% if topup_form.accept_terms.value %} checked{% endif %}>
+                        <span>{% if LANGUAGE_CODE == "ru" %}Я принимаю условия <a href="{% url 'frontend:agreement' %}" target="_blank" rel="noopener" data-dashboard-nav="false">Пользовательского соглашения</a>, включая правила возврата средств{% else %}I accept the <a href="{% url 'frontend:agreement' %}" target="_blank" rel="noopener" data-dashboard-nav="false">User agreement</a>, including the refund rules{% endif %}</span>
+                    </label>
+                    {% if topup_form.accept_terms.errors %}<div class="topup-custom__error">{{ topup_form.accept_terms.errors }}</div>{% endif %}
                 </form>
             </article>
 
