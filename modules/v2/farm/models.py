@@ -12,6 +12,15 @@ from modules.v2.steam_catalog.models import SteamItem
 
 ZERO_MONEY = Decimal("0.00")
 
+EXTERIOR_CODES = {
+    "Factory New": "FN",
+    "Minimal Wear": "MW",
+    "Field-Tested": "FT",
+    "Well-Worn": "WW",
+    "Battle-Scarred": "BS",
+}
+EXTERIOR_SUFFIX_RE = re.compile(r"\s*\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)\s*$")
+
 STATUS_LABELS_RU = {
     "active": "Активен",
     "paused": "Пауза",
@@ -141,6 +150,8 @@ class FarmAccountInventoryItem(models.Model):
 
     market_hash_name = models.CharField(max_length=255, db_index=True)
     icon_url = models.TextField(blank=True, default="")
+    rarity_color = models.CharField(max_length=8, blank=True, default="")
+    float_value = models.FloatField(null=True, blank=True)
 
     tradable = models.BooleanField(default=False, db_index=True)
     marketable = models.BooleanField(default=False, db_index=True)
@@ -194,6 +205,50 @@ class FarmAccountInventoryItem(models.Model):
             return value
 
         return f"https://community.cloudflare.steamstatic.com/economy/image/{value}/96fx96f"
+
+    @property
+    def icon_large(self) -> str:
+        value = (self.icon_url or "").strip()
+        if not value or value.startswith(("http://", "https://")):
+            return value
+        return f"https://community.cloudflare.steamstatic.com/economy/image/{value}/256fx256f"
+
+    @property
+    def name_parts(self) -> tuple[str, str]:
+        """Split a market name into a small kicker and the main title, like
+        "AK-47" / "Wintergreen" or "Sticker | Austin 2025" / "ropz (Champion)"."""
+        name = EXTERIOR_SUFFIX_RE.sub("", self.market_hash_name or "").strip()
+        parts = [part.strip() for part in name.split(" | ") if part.strip()]
+        if len(parts) < 2:
+            return "", name
+        if len(parts) == 2:
+            return parts[0], parts[1]
+        return f"{parts[0]} | {' | '.join(parts[2:])}", parts[1]
+
+    @property
+    def exterior_code(self) -> str:
+        match = EXTERIOR_SUFFIX_RE.search(self.market_hash_name or "")
+        return EXTERIOR_CODES.get(match.group(1), "") if match else ""
+
+    @property
+    def block_label(self) -> str:
+        if self.sale_state == self.SaleState.RESERVED:
+            return "В продаже"
+        if self.sale_state == self.SaleState.SOLD:
+            return "Продан"
+        if self.is_sellable:
+            return ""
+        if not self.tradable:
+            return "Трейд-лок"
+        if self.matched_item_id is None:
+            return "Нет в каталоге"
+        if self.catalog_price_rub_snapshot is None:
+            return "Нет цены"
+        return "Недоступен"
+
+    @property
+    def is_selectable(self) -> bool:
+        return self.is_sellable and self.sale_state == self.SaleState.AVAILABLE
 
     @property
     def payout_price_safe(self) -> Decimal:

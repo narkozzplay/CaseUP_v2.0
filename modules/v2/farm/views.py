@@ -3,7 +3,7 @@ from __future__ import annotations
 from urllib.parse import urlencode
 
 from django.contrib import messages
-from django.db.models import Count, Q
+from django.db.models import Count, F, Q, Sum
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -14,7 +14,7 @@ from common.search import render_search_not_found
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.steam_catalog.models import SteamItem
 from modules.v2.system.dashboard_shell import render_dashboard_page
-from modules.v2.system.services import build_page_title
+from modules.v2.system.services import build_page_title, get_module_state_map
 
 from .auth import get_farm_access
 from .decorators import farm_required, farm_staff_required
@@ -426,6 +426,9 @@ def accounts_refresh_profiles(request):
     return redirect("farm:accounts_list")
 
 
+INVENTORY_GRID_LIMIT = 500
+
+
 @farm_required
 def account_detail(request, account_id: int):
     access = get_farm_access(request.user)
@@ -454,6 +457,12 @@ def account_detail(request, account_id: int):
     inventory_sellable_total = inventory_stats_base.filter(is_sellable=True).count()
     inventory_blocked_total = inventory_stats_base.filter(is_sellable=False).count()
     inventory_unmatched_total = inventory_stats_base.filter(matched_item__isnull=True).count()
+    inventory_qs = inventory_qs.order_by(
+        F("catalog_price_rub_snapshot").desc(nulls_last=True), "market_hash_name", "asset_id"
+    )
+    inventory_value_rub = inventory_stats_base.filter(is_sellable=True).aggregate(
+        total=Sum(F("catalog_price_rub_snapshot") * F("amount"))
+    )["total"] or ZERO_MONEY
     sessions = account.drop_sessions.prefetch_related("items__steam_item", "items__sales").order_by("-collected_at", "-id")
     analytics_locked = not feature_state.deep_analytics
     recent_sessions = list(sessions[:10])
@@ -477,7 +486,9 @@ def account_detail(request, account_id: int):
             "board_row": build_account_board(_get_account_queryset_for_user(request.user, access).filter(pk=account.pk))[0],
             "active_tab": tab,
             "latest_sync": latest_sync,
-            "inventory_items": inventory_qs[:250],
+            "inventory_items": inventory_qs[:INVENTORY_GRID_LIMIT],
+            "inventory_value_rub": inventory_value_rub,
+            "can_sell_via_tradehub": tab == "inventory" and get_module_state_map().get("tradehub", True),
             "inventory_filter": inventory_filter,
             "inventory_total": inventory_total,
             "inventory_sellable_total": inventory_sellable_total,

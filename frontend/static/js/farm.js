@@ -247,6 +247,103 @@
         });
     }
 
+    /* ---------- Account inventory: search, sort, selection ---------- */
+
+    function inventoryCards(box) {
+        return Array.prototype.slice.call(box.querySelectorAll('[data-inv-item]'));
+    }
+
+    function selectableVisible(box) {
+        return inventoryCards(box).filter(function (card) {
+            return !card.hidden && !card.classList.contains('is-blocked');
+        });
+    }
+
+    function renderInventory(box) {
+        var selected = inventoryCards(box).filter(function (card) { return card.classList.contains('is-selected'); });
+        var sum = 0;
+        var payout = 0;
+        var inputs = box.querySelector('[data-inv-selected-inputs]');
+        var html = '';
+        selected.forEach(function (card) {
+            sum += parsePrice(card.dataset.price);
+            payout += parsePrice(card.dataset.payout);
+            html += '<input type="hidden" name="inventory_item_ids" value="' + escapeHtml(card.dataset.invItem) + '">';
+        });
+        if (inputs) {
+            inputs.innerHTML = html;
+        }
+        var set = function (selector, text) {
+            var node = box.querySelector(selector);
+            if (node) {
+                node.textContent = text;
+            }
+        };
+        set('[data-inv-count]', String(selected.length));
+        set('[data-inv-sum]', money(sum));
+        set('[data-inv-payout]', money(payout));
+        var submit = box.querySelector('[data-inv-submit]');
+        if (submit) {
+            submit.disabled = selected.length === 0;
+        }
+        var candidates = selectableVisible(box);
+        var allOn = candidates.length > 0 && candidates.every(function (card) { return card.classList.contains('is-selected'); });
+        var toggle = box.querySelector('[data-inv-select-all]');
+        if (toggle) {
+            toggle.classList.toggle('is-on', allOn);
+            toggle.disabled = candidates.length === 0;
+            set('[data-inv-select-all-label]', allOn ? 'Снять выбор' : 'Выбрать все');
+        }
+    }
+
+    function setCardSelected(card, on) {
+        card.classList.toggle('is-selected', on);
+        card.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+
+    function filterInventory(box) {
+        var input = box.querySelector('[data-inv-search]');
+        var query = input ? input.value.trim().toLowerCase() : '';
+        var shown = 0;
+        inventoryCards(box).forEach(function (card) {
+            card.hidden = Boolean(query) && card.dataset.name.indexOf(query) === -1;
+            if (!card.hidden) {
+                shown += 1;
+            }
+        });
+        var empty = box.querySelector('[data-inv-empty]');
+        if (empty) {
+            empty.hidden = shown > 0;
+        }
+        renderInventory(box);
+    }
+
+    function sortInventory(box) {
+        var grid = box.querySelector('[data-inv-grid]');
+        var select = box.querySelector('[data-inv-sort]');
+        if (!grid || !select) {
+            return;
+        }
+        var mode = select.value;
+        var price = function (card) {
+            return card.dataset.price === '' ? null : parsePrice(card.dataset.price);
+        };
+        inventoryCards(box).sort(function (a, b) {
+            if (mode === 'name') {
+                return a.dataset.name.localeCompare(b.dataset.name);
+            }
+            var pa = price(a);
+            var pb = price(b);
+            if (pa === null || pb === null) {
+                // Items without a price always go last.
+                return pa === pb ? a.dataset.order - b.dataset.order : (pa === null ? 1 : -1);
+            }
+            return mode === 'price-asc' ? pa - pb : pb - pa;
+        }).forEach(function (card) {
+            grid.appendChild(card);
+        });
+    }
+
     /* ---------- Delegated events ---------- */
 
     document.addEventListener('input', function (event) {
@@ -260,6 +357,8 @@
             searchTimer = setTimeout(function () { runItemSearch(target); }, 250);
         } else if (target.matches('[data-farm-account-filter]')) {
             filterAccounts(target);
+        } else if (target.matches('[data-inv-search]')) {
+            filterInventory(target.closest('[data-farm-inventory]'));
         } else if (dropForm(target)) {
             renderSummary(dropForm(target));
         }
@@ -267,6 +366,10 @@
 
     document.addEventListener('change', function (event) {
         var target = event.target;
+        if (target.matches('[data-inv-sort]')) {
+            sortInventory(target.closest('[data-farm-inventory]'));
+            return;
+        }
         if (target.matches('.fm-item__check')) {
             var tile = target.closest('[data-farm-item]');
             var form = dropForm(target);
@@ -287,7 +390,7 @@
 
     document.addEventListener('keydown', function (event) {
         // Enter in the catalog search must not submit the drop form.
-        if (event.key === 'Enter' && event.target.matches('[data-farm-item-search], [data-farm-account-filter]')) {
+        if (event.key === 'Enter' && event.target.matches('[data-farm-item-search], [data-farm-account-filter], [data-inv-search]')) {
             event.preventDefault();
         }
     });
@@ -311,6 +414,25 @@
         renderSummary(dropForm(button));
     });
 
+    document.addEventListener('click', function (event) {
+        var card = event.target.closest('[data-inv-item]');
+        var toggle = event.target.closest('[data-inv-select-all]');
+        if (!card && !toggle) {
+            return;
+        }
+        var box = (card || toggle).closest('[data-farm-inventory]');
+        if (card) {
+            if (!card.classList.contains('is-blocked')) {
+                setCardSelected(card, !card.classList.contains('is-selected'));
+            }
+        } else {
+            var candidates = selectableVisible(box);
+            var allOn = candidates.every(function (node) { return node.classList.contains('is-selected'); });
+            candidates.forEach(function (node) { setCardSelected(node, !allOn); });
+        }
+        renderInventory(box);
+    });
+
     document.addEventListener('submit', function (event) {
         var form = event.target;
         var message = form && form.dataset && form.dataset.farmConfirm;
@@ -324,6 +446,7 @@
         (root || document).querySelectorAll('[data-farm-drop-form]').forEach(renderSummary);
         (root || document).querySelectorAll('[data-farm-connect-form]').forEach(updateTradePreview);
         (root || document).querySelectorAll('[data-farm-import-input]').forEach(updateImportCount);
+        (root || document).querySelectorAll('[data-farm-inventory]').forEach(renderInventory);
     }
 
     if (document.readyState === 'loading') {

@@ -20,6 +20,7 @@ from .models import (
 from .services import (
     STEAM_INVENTORY_PAGE_SIZE,
     _steam_inventory_fetch_page,
+    fetch_public_inventory,
     get_drop_week_by_index,
     parse_trade_url,
     sync_account_inventory,
@@ -350,8 +351,9 @@ class FarmTests(TestCase):
         response = self.client.get(reverse("farm:accounts_detail", args=[account.id]), {"tab": "inventory"})
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "USP-S | Ticket to Hell (Field-Tested)")
-        self.assertContains(response, "Готов к продаже")
+        self.assertContains(response, 'title="USP-S | Ticket to Hell (Field-Tested)"')
+        self.assertContains(response, 'data-price="250.00"')
+        self.assertContains(response, reverse("tradehub:create_order"))
 
     @patch("modules.v2.farm.services.urlopen")
     def test_inventory_fetch_page_maps_http_400_to_human_error(self, mocked_urlopen):
@@ -937,3 +939,69 @@ class FarmReworkTests(TestCase):
         account.refresh_from_db()
         self.assertEqual(account.persona_name, "vortex")
         self.assertEqual(account.avatar_url, "https://avatars.example/a.jpg")
+
+
+class FarmInventoryGridTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="farmer_grid", password="StrongPass123")
+        profile = UserProfile.objects.get(user=self.user)
+        profile.role = UserRole.FARMER
+        profile.save(update_fields=["role"])
+        self.client.login(username="farmer_grid", password="StrongPass123")
+        self.account = FarmAccount.objects.create(owner=self.user, title="Grid", status="active")
+
+    def _item(self, asset_id, name, **extra):
+        return FarmAccountInventoryItem.objects.create(
+            account=self.account, asset_id=asset_id, market_hash_name=name, tradable=True, **extra
+        )
+
+    def test_card_labels_from_market_name(self):
+        skin = self._item("1", "AK-47 | Wintergreen (Minimal Wear)")
+        sticker = self._item("2", "Sticker | ropz (Champion) | Austin 2025")
+        case = self._item("3", "Revolution Case")
+        self.assertEqual(skin.name_parts, ("AK-47", "Wintergreen"))
+        self.assertEqual(skin.exterior_code, "MW")
+        self.assertEqual(sticker.name_parts, ("Sticker | Austin 2025", "ropz (Champion)"))
+        self.assertEqual(sticker.exterior_code, "")
+        self.assertEqual(case.name_parts, ("", "Revolution Case"))
+        self.assertEqual(case.block_label, "Нет в каталоге")
+
+    def test_inventory_tab_renders_grid_sorted_by_price_with_blocked_items_disabled(self):
+        cheap = self._item("1", "Recoil Case", catalog_price_rub_snapshot=Decimal("64.30"),
+                           payout_price_rub_snapshot=Decimal("41.80"), is_sellable=True)
+        pricey = self._item("2", "Kilowatt Case", catalog_price_rub_snapshot=Decimal("152.40"),
+                            payout_price_rub_snapshot=Decimal("99.06"), is_sellable=True)
+        reserved = self._item("3", "Fever Case", catalog_price_rub_snapshot=Decimal("200.00"), is_sellable=True,
+                              sale_state=FarmAccountInventoryItem.SaleState.RESERVED)
+        blocked = self._item("4", "AK-47 | Wintergreen (Minimal Wear)", float_value=0.14143, rarity_color="4b69ff")
+
+        response = self.client.get(reverse("farm:accounts_detail", args=[self.account.id]), {"tab": "inventory"})
+
+        self.assertEqual(response.status_code, 200)
+        ids = [item.id for item in response.context["inventory_items"]]
+        self.assertEqual(ids, [reserved.id, pricey.id, cheap.id, blocked.id])
+        self.assertEqual(response.context["inventory_value_rub"], Decimal("416.70"))
+        self.assertContains(response, "MW<i> · </i>0.1414")
+        self.assertContains(response, "--rarity: #4b69ff")
+        self.assertContains(response, "В продаже")
+        self.assertContains(response, "Нет в каталоге")
+        self.assertContains(response, 'aria-disabled="true"', count=2)
+
+    @patch("modules.v2.farm.services._steam_inventory_fetch_page")
+    def test_fetch_inventory_reads_rarity_and_wear_float(self, mocked_page):
+        mocked_page.return_value = {
+            "success": 1,
+            "assets": [{"assetid": "11", "classid": "1", "instanceid": "0", "amount": "1"}],
+            "descriptions": [{
+                "classid": "1", "instanceid": "0", "tradable": 1, "marketable": 1,
+                "market_hash_name": "AK-47 | Wintergreen (Minimal Wear)", "icon_url": "abc",
+                "tags": [{"category": "Rarity", "color": "4b69ff"}],
+            }],
+            "asset_properties": [{"assetid": "11", "asset_properties": [
+                {"propertyid": 1, "int_value": "641", "name": "Pattern Template"},
+                {"propertyid": 2, "float_value": "0.1414253", "name": "Wear Rating"},
+            ]}],
+        }
+        rows = fetch_public_inventory("76561198000000000")
+        self.assertEqual(rows[0]["rarity_color"], "4b69ff")
+        self.assertAlmostEqual(rows[0]["float_value"], 0.1414253)
