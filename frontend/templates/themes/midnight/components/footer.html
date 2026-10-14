@@ -8,7 +8,6 @@
         <div class="footer-links">
             <a href="{% url 'frontend:home' %}">{% trans "Home" %}</a>
             <a href="{% url 'frontend:dashboard_preview' %}">{% trans "Dashboard" %}</a>
-            <a href="{% url 'frontend:testing_preview' %}">{% trans "Testing" %}</a>
             {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}">{% trans "Subscriptions" %}</a>{% endif %}
             <span>theme={{ active_theme.key|default:"default" }}</span>
             <span>runtime={{ runtime_environment|default:"dev" }}</span>

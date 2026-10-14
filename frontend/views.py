@@ -198,9 +198,6 @@ def admin_panel(request):
     return overview(request)
 
 
-def testing_preview(request):
-    return render(request, "frontend/testing_preview.html")
-
 
 
 def not_found_page(request, exception=None):

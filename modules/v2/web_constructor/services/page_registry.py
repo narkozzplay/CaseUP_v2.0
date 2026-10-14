@@ -94,8 +94,6 @@ def _discover_layout_template(template_name: str) -> str:
         pass
     if "dashboard" in template_name or template_name.startswith("web_constructor/"):
         return "layouts/base_dashboard.html"
-    if "testing" in template_name:
-        return "layouts/base_testing.html"
     return "layouts/base_public.html"
 
 

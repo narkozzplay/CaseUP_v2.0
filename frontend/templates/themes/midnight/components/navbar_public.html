@@ -7,7 +7,6 @@
             <a href="{% url 'frontend:dashboard_preview' %}">{% trans "Dashboard" %}</a>
             {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}">{% trans "Subscriptions" %}</a>{% endif %}
             {% if feature_flags.game_servers %}<a href="{% url 'game_servers:list' %}">CS2</a>{% endif %}
-            <a href="{% url 'frontend:testing_preview' %}">{% trans "Testing" %}</a>
             <a href="{% url 'admin:index' %}" class="btn btn-secondary btn-sm">Admin</a>
         </nav>
         <div class="nav-links nav-links--auth">
