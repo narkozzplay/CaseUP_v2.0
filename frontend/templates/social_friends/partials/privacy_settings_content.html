@@ -1,22 +1,13 @@
-<section class="section section--compact social-friends-privacy">
-    <div class="dashboard-hero card">
-        <div class="card-body dashboard-hero__body">
-            <div>
-                <span class="eyebrow">Social</span>
-                <h1 class="page-title page-title--sm">
-                    {% if LANGUAGE_CODE == "ru" %}Настройки приватности{% else %}Privacy Settings{% endif %}
-                </h1>
-                <p class="text-muted dashboard-hero__text">
-                    {% if LANGUAGE_CODE == "ru" %}Управляйте тем, кто может отправлять вам заявки в друзья, сообщения и видеть ваш статус.{% else %}Control who can send you friend requests, messages and see your status.{% endif %}
-                </p>
-            </div>
-            <div class="dashboard-hero__meta">
-                <a href="{% url 'social_friends:friends' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
-                    {% if LANGUAGE_CODE == "ru" %}← Друзья{% else %}← Friends{% endif %}
-                </a>
-            </div>
+<section class="section section--compact chat-page friends-page social-friends-privacy">
+    <div class="page-header page-header--compact chat-page__head">
+        <div>
+            <span class="eyebrow">Social</span>
+            <h1>{% if LANGUAGE_CODE == "ru" %}Настройки приватности{% else %}Privacy settings{% endif %}</h1>
+            <p class="text-muted">{% if LANGUAGE_CODE == "ru" %}Управляйте тем, кто может отправлять вам заявки в друзья, сообщения и видеть ваш статус.{% else %}Control who can send you friend requests, messages and see your status.{% endif %}</p>
         </div>
     </div>
+
+    {% include "social_friends/partials/_friends_tabs.html" with friends_tab="privacy" %}
 
     <article class="card dashboard-panel">
         <div class="card-body">

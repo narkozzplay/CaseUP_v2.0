@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 
+from modules.v2.notifications.views import safe_next_url
 from modules.v2.profiles.presentation import get_profile_avatar_url, get_profile_display_name
 from modules.v2.profiles.services.presence import is_profile_online
 from modules.v2.system.dashboard_shell import render_dashboard_page
@@ -53,6 +54,7 @@ def _build_request_row(req: FriendRequest, *, direction: str) -> dict:
         "request": req,
         "request_id": req.pk,
         "other_user": other_user,
+        "user_id": other_user.pk,
         "display_name": get_profile_display_name(profile, fallback_username=other_user.username),
         "avatar_url": get_profile_avatar_url(profile),
         "is_online": is_profile_online(profile),
@@ -107,11 +109,14 @@ def send_friend_request_view(request, user_id: int):
         return HttpResponseNotAllowed(["POST"])
     target = get_object_or_404(User, pk=user_id, is_active=True)
     try:
-        send_friend_request(request.user, target)
-        messages.success(request, "Заявка отправлена.")
+        friend_request = send_friend_request(request.user, target)
+        if friend_request.status == FriendRequest.Status.ACCEPTED:
+            messages.success(request, "Пользователь уже отправил вам заявку. Теперь вы друзья.")
+        else:
+            messages.success(request, "Заявка отправлена.")
     except (ValueError, PermissionError) as exc:
         messages.error(request, str(exc))
-    return redirect(request.POST.get("next") or "social_friends:friends")
+    return redirect(safe_next_url(request, "social_friends:friends"))
 
 
 @login_required
@@ -121,9 +126,9 @@ def cancel_friend_request_view(request, request_id: int):
     try:
         cancel_friend_request(request.user, request_id)
         messages.success(request, "Заявка отозвана.")
-    except PermissionError as exc:
-        messages.error(request, str(exc))
-    return redirect(request.POST.get("next") or "social_friends:friend_requests")
+    except PermissionError:
+        messages.error(request, "Заявка не найдена или уже обработана.")
+    return redirect(safe_next_url(request, "social_friends:friend_requests"))
 
 
 @login_required
@@ -133,9 +138,9 @@ def accept_friend_request_view(request, request_id: int):
     try:
         accept_friend_request(request.user, request_id)
         messages.success(request, "Заявка принята. Теперь вы друзья.")
-    except PermissionError as exc:
-        messages.error(request, str(exc))
-    return redirect(request.POST.get("next") or "social_friends:friend_requests")
+    except PermissionError:
+        messages.error(request, "Заявка не найдена или уже обработана.")
+    return redirect(safe_next_url(request, "social_friends:friend_requests"))
 
 
 @login_required
@@ -145,9 +150,9 @@ def decline_friend_request_view(request, request_id: int):
     try:
         decline_friend_request(request.user, request_id)
         messages.success(request, "Заявка отклонена.")
-    except PermissionError as exc:
-        messages.error(request, str(exc))
-    return redirect(request.POST.get("next") or "social_friends:friend_requests")
+    except PermissionError:
+        messages.error(request, "Заявка не найдена или уже обработана.")
+    return redirect(safe_next_url(request, "social_friends:friend_requests"))
 
 
 @login_required
@@ -157,7 +162,7 @@ def remove_friend_view(request, user_id: int):
     target = get_object_or_404(User, pk=user_id)
     remove_friend(request.user, target)
     messages.success(request, "Пользователь удалён из друзей.")
-    return redirect(request.POST.get("next") or "social_friends:friends")
+    return redirect(safe_next_url(request, "social_friends:friends"))
 
 
 @login_required
@@ -170,7 +175,7 @@ def block_user_view(request, user_id: int):
         messages.success(request, "Пользователь заблокирован.")
     except (ValueError, PermissionError) as exc:
         messages.error(request, str(exc))
-    return redirect(request.POST.get("next") or "social_friends:friends")
+    return redirect(safe_next_url(request, "social_friends:friends"))
 
 
 @login_required
@@ -180,7 +185,7 @@ def unblock_user_view(request, user_id: int):
     target = get_object_or_404(User, pk=user_id)
     unblock_user(request.user, target)
     messages.success(request, "Пользователь разблокирован.")
-    return redirect(request.POST.get("next") or "social_friends:friends")
+    return redirect(safe_next_url(request, "social_friends:friends"))
 
 
 @login_required

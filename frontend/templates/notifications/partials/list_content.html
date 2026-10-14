@@ -1,0 +1,40 @@
+<section class="section section--compact notif-page">
+    <div class="page-header page-header--compact chat-page__head">
+        <div>
+            <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Центр событий{% else %}Activity{% endif %}</span>
+            <h1>{% if LANGUAGE_CODE == "ru" %}Уведомления{% else %}Notifications{% endif %}</h1>
+            <p class="text-muted">{% if LANGUAGE_CODE == "ru" %}Заявки в друзья и другие события вашего аккаунта.{% else %}Friend requests and other account activity.{% endif %}</p>
+        </div>
+        {% if notifications_page_unread %}
+            <form method="post" action="{% url 'notifications:mark_all_read' %}" class="inline-form">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="btn btn-secondary">{% if LANGUAGE_CODE == "ru" %}Прочитать все{% else %}Mark all as read{% endif %}</button>
+            </form>
+        {% endif %}
+    </div>
+
+    <div class="chip-tabs chat-tabs">
+        <a href="{% url 'notifications:list' %}" class="chip-tab{% if notifications_filter == 'all' %} is-active{% endif %}" data-dashboard-nav="true">
+            {% if LANGUAGE_CODE == "ru" %}Все{% else %}All{% endif %}
+        </a>
+        <a href="{% url 'notifications:list' %}?filter=unread" class="chip-tab{% if notifications_filter == 'unread' %} is-active{% endif %}" data-dashboard-nav="true">
+            {% if LANGUAGE_CODE == "ru" %}Непрочитанные{% else %}Unread{% endif %}
+            <span class="chip-tabs__count">{{ notifications_page_unread }}</span>
+        </a>
+    </div>
+
+    {% if notification_rows %}
+        <div class="notif-list notif-list--page">
+            {% for row in notification_rows %}
+                {% include "notifications/partials/_item.html" %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-panel chat-empty">
+            {% include "components/icon.html" with name="bell" %}
+            <strong>{% if notifications_filter == "unread" %}{% if LANGUAGE_CODE == "ru" %}Всё прочитано{% else %}All caught up{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}Уведомлений пока нет{% else %}No notifications yet{% endif %}{% endif %}</strong>
+            <p class="text-muted">{% if LANGUAGE_CODE == "ru" %}Здесь появятся заявки в друзья и другие события.{% else %}Friend requests and other events will show up here.{% endif %}</p>
+        </div>
+    {% endif %}
+</section>

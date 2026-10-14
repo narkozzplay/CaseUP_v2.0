@@ -1,0 +1,31 @@
+<article class="notif-item{% if not row.is_read %} is-unread{% endif %}" data-notif-item="{{ row.id }}">
+    <span class="notif-item__avatar">
+        {% if row.view.actor_avatar_url %}
+            <img src="{{ row.view.actor_avatar_url }}" alt="">
+        {% else %}
+            {% include "components/icon.html" with name=row.view.icon %}
+        {% endif %}
+        <span class="notif-item__kind" aria-hidden="true">{% include "components/icon.html" with name=row.view.icon %}</span>
+    </span>
+    <div class="notif-item__main">
+        <a href="{% url 'notifications:open' row.id %}" class="notif-item__link" data-dashboard-nav="false">{{ row.view.title }}</a>
+        <p class="notif-item__meta">
+            {% if row.view.body %}<span>{{ row.view.body }}</span>{% endif %}
+            <time datetime="{{ row.created_at|date:'c' }}" title="{{ row.created_at|date:'d.m.Y H:i' }}">{% if row.is_fresh %}{% if LANGUAGE_CODE == "ru" %}только что{% else %}just now{% endif %}{% else %}{{ row.created_at|timesince }} {% if LANGUAGE_CODE == "ru" %}назад{% else %}ago{% endif %}{% endif %}</time>
+        </p>
+        {% if row.view.actions %}
+            <div class="notif-item__actions">
+                {% for action in row.view.actions %}
+                    <form method="post" action="{{ action.url }}" class="inline-form" data-notif-action-form>
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="btn btn-{{ action.style }} btn-sm">{{ action.label }}</button>
+                    </form>
+                {% endfor %}
+            </div>
+        {% elif row.view.state_label %}
+            <span class="notif-item__state">{{ row.view.state_label }}</span>
+        {% endif %}
+    </div>
+    {% if not row.is_read %}<span class="notif-item__dot" title="{% if LANGUAGE_CODE == 'ru' %}Не прочитано{% else %}Unread{% endif %}"></span>{% endif %}
+</article>

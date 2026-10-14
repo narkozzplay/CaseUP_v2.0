@@ -1,0 +1,5 @@
+<form method="post" action="{% url 'social_friends:cancel_friend_request' row.request_id %}" class="inline-form">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{% url 'social_friends:friend_requests' %}">
+    <button type="submit" class="btn btn-ghost btn-sm">{% if LANGUAGE_CODE == "ru" %}Отозвать{% else %}Cancel{% endif %}</button>
+</form>
