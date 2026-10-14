@@ -26,7 +26,7 @@ def move_customization_back(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("system_config", "0009_disable_farm_legacy_logs_menu"),
+        ("system_config", "0010_remove_testing_preview_menu"),
     ]
 
     operations = [
