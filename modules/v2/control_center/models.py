@@ -134,3 +134,65 @@ class UserBan(models.Model):
     @property
     def is_permanent(self) -> bool:
         return self.expires_at is None
+
+
+class ActivityCategory(models.TextChoices):
+    AUTH = "auth", "Вход и выход"
+    ACCOUNT = "account", "Аккаунт"
+    BALANCE = "balance", "Баланс"
+    PAYMENT = "payment", "Платежи"
+    CASE = "case", "Кейсы"
+    STORE = "store", "Магазин"
+    SUBSCRIPTION = "subscription", "Подписки"
+    TRADING = "trading", "Торговля"
+    FARM = "farm", "Ферма"
+    SOCIAL = "social", "Социальное"
+    CONSTRUCTOR = "constructor", "Конструктор"
+    SECURITY = "security", "Безопасность"
+    ADMIN = "admin", "Администрирование"
+    REQUEST = "request", "Запросы"
+
+
+class ActivityLog(models.Model):
+    """Site-wide activity journal: every meaningful action, who did it, to whom, from where.
+
+    ``user`` is whose activity it is (the payer, the case opener); ``actor`` is who performed it
+    (the same user, an admin acting on them, or None for the system/anonymous). Usernames are
+    snapshotted so the journal stays readable after an account is gone.
+    """
+
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    category = models.CharField(max_length=16, choices=ActivityCategory.choices, db_index=True)
+    event = models.CharField(max_length=64, db_index=True)
+    summary = models.CharField(max_length=255, blank=True, default="")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="activity_logs"
+    )
+    username = models.CharField(max_length=150, blank=True, default="")
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="activity_logs_as_actor"
+    )
+    actor_username = models.CharField(max_length=150, blank=True, default="")
+    amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    object_type = models.CharField(max_length=64, blank=True, default="")
+    object_id = models.CharField(max_length=64, blank=True, default="")
+    payload = models.JSONField(default=dict, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=255, blank=True, default="")
+    method = models.CharField(max_length=8, blank=True, default="")
+    path = models.CharField(max_length=255, blank=True, default="")
+    status_code = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        verbose_name = "Activity log entry"
+        verbose_name_plural = "Activity log"
+        indexes = [
+            models.Index(fields=["category", "created_at"]),
+            models.Index(fields=["user", "created_at"]),
+            models.Index(fields=["event", "created_at"]),
+            models.Index(fields=["ip_address", "created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.created_at:%Y-%m-%d %H:%M:%S} {self.event} {self.username or '-'}"

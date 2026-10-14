@@ -10,6 +10,8 @@ from pathlib import Path
 from django.db import transaction
 from django.utils import timezone
 
+from modules.v2.control_center.models import ActivityCategory
+from modules.v2.control_center.services.activity import log_activity
 from modules.v2.profiles.models import LedgerReason
 from modules.v2.profiles.services.balance import BalanceError, adjust_balance
 
@@ -250,6 +252,17 @@ def sell_openings(*, user, opening_ids=None, rarity: str = "") -> tuple[int, Dec
         opening.sold_price = price
         total += price
     SimOpening.objects.bulk_update(openings, ["sold_at", "sold_price"])
+    # bulk_update sends no post_save, so the journal entries are written here.
+    item_names = dict(SimCaseItem.objects.filter(pk__in={opening.item_id for opening in openings}).values_list("pk", "name"))
+    for opening in openings:
+        log_activity(
+            category=ActivityCategory.CASE,
+            event="case.item_sold",
+            summary=f"Продал {item_names.get(opening.item_id, opening.item_id)} за {opening.sold_price:.2f} ₽",
+            user=user,
+            amount=opening.sold_price,
+            obj=opening,
+        )
     return len(openings), total
 
 

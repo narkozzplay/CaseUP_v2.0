@@ -1,0 +1,124 @@
+{% load l10n %}
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Логи</h1>
+            <p class="ops-hero__text">Все действия на сайте: входы, регистрации, пополнения, открытия кейсов, покупки, продажи, социальные и админские действия — кто, когда и с какого IP.</p>
+        </div>
+        <dl class="ops-hero__meta cc-activity-meta" title="За сегодня">
+            <div><dt>События за день</dt><dd>{{ today.events }}</dd></div>
+            <div><dt>Игроки</dt><dd>{{ today.users }}</dd></div>
+            <div><dt>Пополнено</dt><dd class="metric-positive">{{ today.topups|stringformat:".2f" }} ₽</dd></div>
+            <div><dt>Ошибки входа</dt><dd{% if today.failed_logins %} class="metric-negative"{% endif %}>{{ today.failed_logins }}</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <div class="cc-filters-chips">
+        <a href="?{% if filters.user %}user={{ filters.user }}{% endif %}" class="cc-chip cc-chip--link{% if not filters.category %} is-active{% endif %}">Все</a>
+        {% for code, label in category_options %}
+            <a href="?category={{ code }}{% if filters.user %}&amp;user={{ filters.user }}{% endif %}" class="cc-chip cc-chip--link{% if filters.category == code %} is-active{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </div>
+
+    <form method="get" class="cc-toolbar">
+        {% if filters.category %}<input type="hidden" name="category" value="{{ filters.category }}">{% endif %}
+        {% if filters.user %}<input type="hidden" name="user" value="{{ filters.user }}">{% endif %}
+        <label class="cc-field cc-field--grow"><span>Поиск</span><input type="search" name="q" value="{{ filters.q }}" class="form-control" placeholder="Логин, IP, текст события, ID объекта"></label>
+        <label class="cc-field form-field"><span>Событие</span>
+            <select name="event"><option value="">Любое</option>{% for code, label in event_options %}<option value="{{ code }}"{% if filters.event == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        </label>
+        <label class="cc-field"><span>С</span><input type="date" name="from" value="{{ filters.from }}" class="form-control"></label>
+        <label class="cc-field"><span>По</span><input type="date" name="to" value="{{ filters.to }}" class="form-control"></label>
+        {% if not filters.category %}
+            <label class="cc-field-check"><input type="checkbox" name="requests" value="1"{% if filters.requests %} checked{% endif %}><span>HTTP-запросы</span></label>
+        {% endif %}
+        <div class="cc-toolbar__actions">
+            <button type="submit" class="btn btn-primary btn-sm">Показать</button>
+            <a href="{% url 'control_center:activity_export' %}{% if export_query %}?{{ export_query }}{% endif %}" class="btn btn-ghost btn-sm" download>{% include "components/icon.html" with name="cc_download" %}CSV</a>
+        </div>
+    </form>
+
+    {% if filters.user %}
+        <p class="cc-activity-scope">
+            Действия пользователя {% if target_user %}<a href="{% url 'control_center:user_detail' target_user.pk %}">{{ target_user.username }}</a>{% else %}#{{ filters.user }}{% endif %}
+            (сам или над ним) · <a href="?{% if filters.category %}category={{ filters.category }}{% endif %}">сбросить</a>
+        </p>
+    {% endif %}
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">События</h2><span class="ops-panel__hint">{{ page_obj.paginator.count }}</span></div>
+        <div class="table-wrap">
+            <table class="table cc-table cc-activity">
+                <thead><tr><th>Когда</th><th>Пользователь</th><th>Событие</th><th class="cc-num">Сумма</th></tr></thead>
+                <tbody>
+                    {% for entry in page_obj %}
+                        <tr>
+                            <td class="cc-mono cc-activity__time"><time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"d.m.Y" }}<span class="cc-sub">{{ entry.created_at|date:"H:i:s" }}</span></time></td>
+                            <td class="cc-activity__user">
+                                {% if entry.user %}
+                                    {% include "control_center/partials/_user_cell.html" with u=entry.user %}
+                                {% elif entry.username %}
+                                    <span class="text-muted" title="Пользователь удалён">{{ entry.username }}</span>
+                                {% else %}
+                                    <span class="text-muted">гость</span>
+                                {% endif %}
+                                {% if entry.ip_address %}<a href="?q={{ entry.ip_address }}" class="cc-sub cc-mono" title="{{ entry.user_agent }}">{{ entry.ip_address }}</a>{% endif %}
+                            </td>
+                            <td class="cc-activity__event">
+                                <a href="?event={{ entry.event|urlencode }}" class="cc-chip cc-chip--link cc-chip--cat-{{ entry.category }}">{{ entry.event_label }}</a>
+                                {% if entry.status_code %}<span class="cc-chip {% if entry.status_code < 400 %}cc-chip--ok{% elif entry.status_code < 500 %}cc-chip--warn{% else %}cc-chip--fail{% endif %}">{{ entry.status_code }}</span>{% endif %}
+                                <span class="cc-activity__summary">{{ entry.summary|default:entry.event }}</span>
+                                {% if entry.actor_id and entry.actor_id != entry.user_id %}<span class="cc-activity__meta">выполнил: <a href="{% url 'control_center:user_detail' entry.actor_id %}">{{ entry.actor_username }}</a></span>{% elif not entry.actor_id and entry.actor_username and entry.actor_username != entry.username %}<span class="cc-activity__meta">выполнил: {{ entry.actor_username }}</span>{% endif %}
+                                {% if entry.method %}<span class="cc-activity__meta cc-mono">{{ entry.method }} {{ entry.path }}</span>{% endif %}
+                                {% if entry.payload_text or entry.object_type %}
+                                    <details class="cc-activity__details">
+                                        <summary>Подробнее</summary>
+                                        {% if entry.object_type %}<p class="cc-mono">{{ entry.object_type }} #{{ entry.object_id }}</p>{% endif %}
+                                        {% if entry.user_agent %}<p class="cc-activity__ua">{{ entry.user_agent }}</p>{% endif %}
+                                        {% if entry.payload_text %}<pre>{{ entry.payload_text }}</pre>{% endif %}
+                                    </details>
+                                {% endif %}
+                            </td>
+                            <td class="cc-num cc-activity__amount">{% if entry.amount is not None %}<span class="{% if entry.amount > 0 %}metric-positive{% elif entry.amount < 0 %}metric-negative{% endif %}">{{ entry.amount|stringformat:"+.2f" }} ₽</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="4" class="text-muted">Событий по фильтрам нет.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+    {% include "control_center/partials/_pagination.html" %}
+
+    <div class="ops-grid">
+        <div class="ops-grid__main">
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">По разделам</h2></div>
+                <div class="cc-roles">
+                    {% for row in breakdown %}
+                        <a href="?category={{ row.category }}{% if filters.user %}&amp;user={{ filters.user }}{% endif %}" class="cc-roles__row">
+                            <span class="cc-roles__name">{{ row.label }}</span>
+                            <span class="cc-roles__bar"><span style="width: {{ row.percent|unlocalize }}%;"></span></span>
+                            <b>{{ row.count }}</b>
+                        </a>
+                    {% empty %}
+                        <p class="ops-empty">Событий пока нет.</p>
+                    {% endfor %}
+                </div>
+            </article>
+        </div>
+        <aside class="ops-grid__side">
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Хранение</h2></div>
+                <dl class="cc-facts cc-facts--stack">
+                    <div><dt>События</dt><dd>{{ retention.events }} дн.</dd></div>
+                    <div><dt>HTTP-запросы</dt><dd>{{ retention.requests }} дн.</dd></div>
+                    <div><dt>Не пишется</dt><dd>пароли, тела запросов, текст сообщений</dd></div>
+                </dl>
+            </article>
+        </aside>
+    </div>
+</section>
