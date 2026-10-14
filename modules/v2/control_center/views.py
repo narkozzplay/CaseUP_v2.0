@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import csv
+import ipaddress
+import json
 import uuid
 from datetime import datetime, timedelta
 from decimal import Decimal
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
@@ -49,6 +52,7 @@ LEDGER_PAGE_SIZE = 50
 PAYMENTS_PAGE_SIZE = 50
 AUDIT_PAGE_SIZE = 40
 MODERATION_PAGE_SIZE = 40
+ACTIVITY_PAGE_SIZE = 50
 CSV_EXPORT_LIMIT = 10000
 
 USER_STATUS_FILTERS = (
@@ -606,8 +610,6 @@ def _filtered_payments(request):
 
 
 def _payments_setup_summary() -> dict:
-    from django.conf import settings
-
     from modules.v2.payments.ip_allowlist import webhook_ip_check_enabled
     from modules.v2.payments.providers import get_provider
 
@@ -843,3 +845,150 @@ def system_health(request):
         "checked_at": timezone.now(),
     }
     return _render(request, partial="control_center/partials/health_content.html", context=context, title="Система · Control Center", tab="health")
+
+
+# --------------------------------------------------------------------------- activity log
+
+
+def _filtered_activity(request):
+    from .models import ActivityCategory, ActivityLog
+
+    category = (request.GET.get("category") or "").strip()
+    event = (request.GET.get("event") or "").strip()[:64]
+    q = (request.GET.get("q") or "").strip()
+    user_raw = (request.GET.get("user") or "").strip()
+    include_requests = request.GET.get("requests") == "1"
+    date_from = _parse_date(request.GET.get("from", ""))
+    date_to = _parse_date(request.GET.get("to", ""))
+
+    qs = ActivityLog.objects.select_related("user", "user__profile_v2", "actor")
+    if category in ActivityCategory.values:
+        qs = qs.filter(category=category)
+    else:
+        category = ""
+        if not include_requests and not event.startswith("request"):
+            # Raw HTTP requests duplicate the domain events; they are opt-in to keep the feed readable.
+            qs = qs.exclude(category=ActivityCategory.REQUEST)
+    if event:
+        qs = qs.filter(event=event)
+    target_user = None
+    if user_raw.isdigit():
+        target_user = User.objects.filter(pk=int(user_raw)).first()
+        qs = qs.filter(Q(user_id=int(user_raw)) | Q(actor_id=int(user_raw)))
+    else:
+        user_raw = ""
+    if q:
+        query = (
+            Q(username__icontains=q)
+            | Q(actor_username__icontains=q)
+            | Q(summary__icontains=q)
+            | Q(object_id=q)
+            | Q(path__icontains=q)
+        )
+        try:
+            query |= Q(ip_address=str(ipaddress.ip_address(q)))
+        except ValueError:
+            pass
+        qs = qs.filter(query)
+    if date_from:
+        qs = qs.filter(created_at__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(created_at__date__lte=date_to)
+    filters = {
+        "category": category,
+        "event": event,
+        "q": q,
+        "user": user_raw,
+        "requests": include_requests,
+        "from": date_from.isoformat() if date_from else "",
+        "to": date_to.isoformat() if date_to else "",
+    }
+    return qs.order_by("-created_at", "-id"), filters, target_user
+
+
+@login_required
+def activity_log(request):
+    from .models import ActivityCategory, ActivityLog
+    from .services.activity import EVENT_LABELS, event_label
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    qs, filters, target_user = _filtered_activity(request)
+
+    day_start = timezone.localtime().replace(hour=0, minute=0, second=0, microsecond=0)
+    today = ActivityLog.objects.filter(created_at__gte=day_start).exclude(category=ActivityCategory.REQUEST)
+    today_stats = today.aggregate(
+        events=Count("id"),
+        users=Count("user", distinct=True),
+        topups=Sum("amount", filter=Q(event="balance.topup")),
+        failed_logins=Count("id", filter=Q(event="auth.login_failed")),
+    )
+
+    category_labels = dict(ActivityCategory.choices)
+    breakdown = [
+        {**row, "label": category_labels.get(row["category"], row["category"])}
+        for row in qs.order_by().values("category").annotate(count=Count("id")).order_by("-count")
+    ]
+    peak = max((row["count"] for row in breakdown), default=0)
+    for row in breakdown:
+        row["percent"] = round(row["count"] * 100 / peak) if peak else 0
+
+    page_obj = Paginator(qs, ACTIVITY_PAGE_SIZE).get_page(request.GET.get("page") or 1)
+    for entry in page_obj:
+        entry.event_label = event_label(entry.event)
+        entry.payload_text = json.dumps(entry.payload, ensure_ascii=False, indent=2, sort_keys=True) if entry.payload else ""
+
+    context = {
+        "role_access": role_access,
+        "page_obj": page_obj,
+        "filters": filters,
+        "target_user": target_user,
+        "today": {key: (value if value is not None else 0) for key, value in today_stats.items()},
+        "breakdown": breakdown,
+        "category_options": ActivityCategory.choices,
+        "event_options": sorted(EVENT_LABELS.items(), key=lambda item: item[0]),
+        "retention": {
+            "events": int(getattr(settings, "ACTIVITY_LOG_RETENTION_DAYS", 365)),
+            "requests": int(getattr(settings, "ACTIVITY_LOG_REQUEST_RETENTION_DAYS", 90)),
+        },
+        "pagination_query": _querystring(request),
+        "export_query": _querystring(request),
+    }
+    return _render(request, partial="control_center/partials/activity_content.html", context=context, title="Логи · Control Center", tab="activity")
+
+
+@login_required
+def activity_log_export(request):
+    from .services.activity import event_label
+
+    if _admin_access(request) is None:
+        return _forbidden()
+    qs, _filters, _target = _filtered_activity(request)
+    response, writer = _csv_response(f"caseup-activity-{timezone.localdate():%Y%m%d}.csv")
+    writer.writerow(["id", "created_at", "category", "event", "event_label", "summary", "user_id", "username", "actor_id", "actor_username", "amount", "object_type", "object_id", "ip", "user_agent", "method", "path", "status", "payload"])
+    for entry in qs[:CSV_EXPORT_LIMIT]:
+        writer.writerow(
+            [
+                entry.pk,
+                timezone.localtime(entry.created_at).strftime("%Y-%m-%d %H:%M:%S"),
+                entry.category,
+                entry.event,
+                event_label(entry.event),
+                entry.summary,
+                entry.user_id or "",
+                entry.username,
+                entry.actor_id or "",
+                entry.actor_username,
+                entry.amount if entry.amount is not None else "",
+                entry.object_type,
+                entry.object_id,
+                entry.ip_address or "",
+                entry.user_agent,
+                entry.method,
+                entry.path,
+                entry.status_code or "",
+                json.dumps(entry.payload, ensure_ascii=False, sort_keys=True) if entry.payload else "",
+            ]
+        )
+    return response

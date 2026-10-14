@@ -27,6 +27,10 @@ app.conf.beat_schedule = {
         "task": "celery_tasks.auto_sync_cs2_steam_stats",
         "schedule": float(settings.CELERY_BEAT_CS2_STEAM_STATS_SYNC_SECONDS),
     },
+    "prune-activity-log": {
+        "task": "control_center.prune_activity_log",
+        "schedule": 24 * 60 * 60.0,
+    },
     "lift-expired-user-bans": {
         "task": "control_center.lift_expired_bans",
         "schedule": 300.0,

@@ -92,6 +92,7 @@
                 <div class="ops-panel__head">
                     <h2 class="ops-panel__title">История действий команды</h2>
                     <a href="{% url 'control_center:audit' %}?q={{ target.username|urlencode }}" class="ops-panel__link">В журнале →</a>
+                    <a href="{% url 'control_center:activity' %}?user={{ target.pk }}" class="ops-panel__link">Все действия в логах →</a>
                 </div>
                 <div class="ops-list">
                     {% for entry in audit_entries %}
