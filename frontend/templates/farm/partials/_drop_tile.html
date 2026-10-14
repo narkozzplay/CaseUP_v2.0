@@ -1,0 +1,17 @@
+{% with item=tile.item %}
+<label class="fm-item{% if tile.selected %} is-selected{% endif %}" data-farm-item data-item-id="{{ item.id }}" data-item-name="{{ item.market_hash_name|lower }} {{ item.name|lower }} {{ item.name_ru|default:''|lower }}">
+    <input type="checkbox" name="item" value="{{ item.id }}" class="fm-item__check"{% if tile.selected %} checked{% endif %}>
+    <span class="fm-item__media">{% if item.icon_url %}<img src="{{ item.icon_cdn }}" alt="" loading="lazy">{% else %}{% include "components/icon.html" with name="farm_drops" %}{% endif %}</span>
+    <span class="fm-item__name">{{ item.group_name }}</span>
+    <span class="fm-item__meta">{{ item.get_item_type_display }}{% if item.price_rub is not None %} · {% money item.price_rub %}{% endif %}</span>
+    <span class="fm-item__mark" aria-hidden="true">{% include "components/icon.html" with name="check" %}</span>
+    <span class="fm-item__fields">
+        <span class="fm-qty">
+            <button type="button" class="fm-qty__btn" data-farm-qty="-1" aria-label="Меньше">−</button>
+            <input type="number" name="qty_{{ item.id }}" value="{{ tile.qty }}" min="1" max="999" class="fm-qty__input" aria-label="Количество" data-farm-qty-input>
+            <button type="button" class="fm-qty__btn" data-farm-qty="1" aria-label="Больше">+</button>
+        </span>
+        <span class="fm-price"><input type="text" inputmode="decimal" name="price_{{ item.id }}" value="{{ tile.price }}" class="fm-price__input" aria-label="Цена за штуку" data-farm-price-input><span>₽</span></span>
+    </span>
+</label>
+{% endwith %}

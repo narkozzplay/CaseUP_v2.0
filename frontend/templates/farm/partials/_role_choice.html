@@ -1,0 +1,13 @@
+<fieldset class="fm-roles">
+    <legend class="fm-field__label">Роль</legend>
+    {% for radio in field %}
+        <label class="fm-role{% if radio.data.selected %} is-selected{% endif %}">
+            {{ radio.tag }}
+            <span class="fm-role__icon">{% if radio.data.value == "storage" %}{% include "components/icon.html" with name="steam_investments" %}{% else %}{% include "components/icon.html" with name="farm_drops" %}{% endif %}</span>
+            <span class="fm-role__text">
+                <strong>{{ radio.choice_label }}</strong>
+                <span>{% if radio.data.value == "storage" %}Принимает дроп с ботов, основной аккаунт{% else %}Собирает недельный дроп{% endif %}</span>
+            </span>
+        </label>
+    {% endfor %}
+</fieldset>

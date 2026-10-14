@@ -1,0 +1,153 @@
+<section class="section section--compact ops fm" data-farm-drop-add>
+    <header class="ops-hero fm-hero">
+        <div class="ops-hero__main">
+            <span class="eyebrow"><a href="{% url 'farm:dashboard' %}" class="fm-back">← Ферма</a> · неделя #{{ week.index }}</span>
+            <h1 class="ops-hero__title">Добавить дроп</h1>
+            <p class="ops-hero__text">Выбери бота, отметь что выпало и сохрани. Цена подставляется из каталога, её можно поправить. «Сохранить и следующий бот» сразу откроет бота, у которого дропа ещё нет.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Ждут дропа</dt><dd>{{ week_pending_count }}</dd></div>
+            <div><dt>Неделя</dt><dd>{{ week.start|date:"d.m" }}–{{ week.end|date:"d.m" }}</dd></div>
+        </dl>
+    </header>
+
+    <form method="post" action="{% url 'farm:sessions_add' %}" class="fm-drop" data-farm-drop-form data-search-url="{% url 'farm:item_search' %}" data-max-items="{{ max_items }}">
+        {% csrf_token %}
+        <div class="fm-drop__main">
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title"><span class="fm-step__num">1</span>Аккаунт</h2>
+                    {% if accounts|length > 8 %}
+                        <label class="fm-search fm-search--sm">{% include "components/icon.html" with name="search" %}<input type="search" class="fm-search__input" placeholder="Найти бота" data-farm-account-filter></label>
+                    {% endif %}
+                </div>
+                {{ form.account.errors }}
+                {% if accounts %}
+                    <div class="fm-accounts" role="radiogroup" aria-label="Аккаунт">
+                        {% for account in accounts %}
+                            <label class="fm-acc{% if account.id in week_done_ids %} is-done{% endif %}{% if account.status != 'active' %} is-inactive{% endif %}" data-farm-account data-account-name="{{ account.title|lower }} {{ account.persona_name|lower }}">
+                                <input type="radio" name="account" value="{{ account.id }}" class="fm-acc__input"{% if selected_account_value == account.id|stringformat:"s" %} checked{% endif %} required>
+                                {% include "farm/partials/_avatar.html" with account=account size="sm" %}
+                                <span class="fm-acc__text">
+                                    <strong>{{ account.title }}</strong>
+                                    <span>{% if account.id in week_done_ids %}дроп уже есть{% elif account.role == "storage" %}склад{% elif account.status != "active" %}{{ account.status_label|lower }}{% else %}ждёт дропа{% endif %}</span>
+                                </span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="fm-empty">
+                        <strong>Сначала подключи аккаунт</strong>
+                        <a href="{% url 'farm:accounts_add' %}" class="btn btn-primary btn-sm">Подключить</a>
+                    </div>
+                {% endif %}
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title"><span class="fm-step__num">2</span>Что выпало</h2>
+                    <span class="ops-panel__hint">до {{ max_items }} позиций</span>
+                </div>
+                {% if item_errors %}<ul class="fm-alert">{% for error in item_errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+
+                <div class="fm-finder">
+                    <label class="fm-search">
+                        {% include "components/icon.html" with name="search" %}
+                        <input type="search" class="fm-search__input" placeholder="Найти кейс, скин или граффити в каталоге" autocomplete="off" data-farm-item-search>
+                    </label>
+                    <span class="fm-finder__status" data-farm-search-status></span>
+                </div>
+                <div class="fm-items" data-farm-search-results>
+                    {% for tile in extra_tiles %}{% include "farm/partials/_drop_tile.html" with tile=tile %}{% endfor %}
+                </div>
+
+                {% if pool_tiles %}
+                    <h3 class="fm-subtitle">Активный дроп-пул</h3>
+                    <div class="fm-items">
+                        {% for tile in pool_tiles %}{% include "farm/partials/_drop_tile.html" with tile=tile %}{% endfor %}
+                    </div>
+                {% endif %}
+                {% if frequent_tiles %}
+                    <h3 class="fm-subtitle">Часто выпадает у тебя</h3>
+                    <div class="fm-items">
+                        {% for tile in frequent_tiles %}{% include "farm/partials/_drop_tile.html" with tile=tile %}{% endfor %}
+                    </div>
+                {% endif %}
+                {% if not pool_tiles and not frequent_tiles %}
+                    <p class="ops-empty">Пул дропа пока пуст. Найди предмет поиском выше{% if farm_access.staff_access %} или <a href="{% url 'farm:drop_pool' %}">заполни пул</a>{% endif %}.</p>
+                {% endif %}
+
+                <details class="fm-more"{% if manual_rows %} open{% endif %}>
+                    <summary>Нет в каталоге? Добавить вручную</summary>
+                    <div class="fm-manual" data-farm-manual>
+                        {% for row in manual_rows %}
+                            <div class="fm-manual__row">
+                                <input type="text" name="manual_name" value="{{ row.name }}" class="form-control" placeholder="market_hash_name, например Kilowatt Case">
+                                <input type="number" name="manual_qty" value="{{ row.qty }}" min="1" max="999" class="form-control" aria-label="Количество">
+                                <input type="text" inputmode="decimal" name="manual_price" value="{{ row.price }}" class="form-control" placeholder="Цена ₽">
+                            </div>
+                        {% endfor %}
+                        <div class="fm-manual__row">
+                            <input type="text" name="manual_name" class="form-control" placeholder="market_hash_name, например Kilowatt Case">
+                            <input type="number" name="manual_qty" value="1" min="1" max="999" class="form-control" aria-label="Количество">
+                            <input type="text" inputmode="decimal" name="manual_price" class="form-control" placeholder="Цена ₽">
+                        </div>
+                    </div>
+                </details>
+            </article>
+        </div>
+
+        <aside class="fm-drop__side">
+            <article class="ops-panel fm-summary">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title"><span class="fm-step__num">3</span>Проверь и сохрани</h2>
+                </div>
+
+                <div class="fm-segment" role="radiogroup" aria-label="Тип дропа">
+                    {% for value, label in source_choices %}
+                        <label class="fm-segment__opt">
+                            <input type="radio" name="source_type" value="{{ value }}"{% if selected_source == value %} checked{% endif %}>
+                            <span>{% if value == "weekly" %}Недельный{% elif value == "bonus" %}Бонус{% elif value == "event" %}Ивент{% else %}Другое{% endif %}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+                {{ form.source_type.errors }}
+
+                <div class="fm-field">
+                    <label class="fm-field__label" for="{{ form.collected_at.id_for_label }}">Когда получен</label>
+                    {{ form.collected_at }}
+                    {{ form.collected_at.errors }}
+                </div>
+
+                <div class="fm-summary__list" data-farm-summary>
+                    <p class="fm-summary__empty" data-farm-summary-empty>Отметь предметы слева.</p>
+                </div>
+                <div class="fm-summary__total">
+                    <span>Итого</span>
+                    <strong data-farm-total>—</strong>
+                </div>
+
+                <details class="fm-more">
+                    <summary>Название и заметка</summary>
+                    <div class="fm-field">
+                        <label class="fm-field__label" for="{{ form.title.id_for_label }}">Название</label>
+                        {{ form.title }}
+                    </div>
+                    <div class="fm-field">
+                        <label class="fm-field__label" for="{{ form.notes.id_for_label }}">Заметка</label>
+                        {{ form.notes }}
+                    </div>
+                </details>
+
+                <div class="fm-summary__actions">
+                    {% if week_pending_count > 1 %}
+                        <button type="submit" name="after" value="next" class="btn btn-primary btn-block">Сохранить и следующий бот</button>
+                        <button type="submit" name="after" value="detail" class="btn btn-secondary btn-block">Сохранить и открыть дроп</button>
+                    {% else %}
+                        <button type="submit" name="after" value="detail" class="btn btn-primary btn-block">Сохранить дроп</button>
+                    {% endif %}
+                </div>
+            </article>
+        </aside>
+    </form>
+</section>

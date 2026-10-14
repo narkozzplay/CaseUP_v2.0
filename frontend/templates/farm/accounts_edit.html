@@ -1,0 +1,7 @@
+{% extends "layouts/base_dashboard.html" %}
+
+{% block title %}{{ account.title }} · настройки | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
+
+{% block content %}
+    {% include "farm/partials/pages/account_edit_content.html" %}
+{% endblock %}

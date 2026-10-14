@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from decimal import Decimal
 
 from django.conf import settings
@@ -11,6 +12,13 @@ from modules.v2.steam_catalog.models import SteamItem
 
 ZERO_MONEY = Decimal("0.00")
 
+STATUS_LABELS_RU = {
+    "active": "Активен",
+    "paused": "Пауза",
+    "banned": "Бан",
+    "review": "Проверка",
+}
+
 
 class FarmAccount(models.Model):
     class Status(models.TextChoices):
@@ -18,6 +26,12 @@ class FarmAccount(models.Model):
         PAUSED = "paused", "Paused"
         BANNED = "banned", "Banned"
         REVIEW = "review", "Review"
+
+    class Role(models.TextChoices):
+        # Farm bots collect weekly drops; a storage account receives them
+        # (target for the future drop auto-send between accounts).
+        FARM = "farm", "Фарм-бот"
+        STORAGE = "storage", "Склад"
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -29,6 +43,10 @@ class FarmAccount(models.Model):
     trade_url = models.URLField(blank=True, default="")
     login_hint = models.CharField(max_length=120, blank=True, default="")
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.REVIEW, db_index=True)
+    role = models.CharField(max_length=16, choices=Role.choices, default=Role.FARM, db_index=True)
+    persona_name = models.CharField(max_length=120, blank=True, default="")
+    avatar_url = models.URLField(max_length=500, blank=True, default="")
+    profile_synced_at = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True, default="")
     sort_order = models.PositiveIntegerField(default=0, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -48,6 +66,24 @@ class FarmAccount(models.Model):
         from django.urls import reverse
 
         return reverse("farm:accounts_detail", args=[self.id])
+
+    @property
+    def steam_profile_url(self) -> str:
+        if not self.steam_id64:
+            return ""
+        return f"https://steamcommunity.com/profiles/{self.steam_id64}"
+
+    @property
+    def initials(self) -> str:
+        value = (self.title or self.persona_name or "?").strip()
+        digits = re.search(r"(\d{1,3})\s*$", value)
+        if digits:
+            return digits.group(1)[-2:]
+        return value[:2].upper()
+
+    @property
+    def status_label(self) -> str:
+        return STATUS_LABELS_RU.get(self.status, self.get_status_display())
 
 
 class FarmAccountInventorySync(models.Model):

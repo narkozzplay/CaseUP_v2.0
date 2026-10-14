@@ -9,6 +9,7 @@ from django.utils import timezone
 from modules.v2.steam_catalog.models import SteamItem
 
 from .models import (
+    STATUS_LABELS_RU,
     ActiveDropPoolEntry,
     FarmAccount,
     FarmDropSale,
@@ -73,28 +74,75 @@ def build_drop_item_queryset(
     return qs.distinct().order_by("item_type", "family_name", "market_hash_name")
 
 
+RU_STATUS_CHOICES = [(value, STATUS_LABELS_RU.get(value, label)) for value, label in FarmAccount.Status.choices]
+
+
 class FarmAccountForm(forms.ModelForm):
+    """Connect or edit one farm account. A trade link is the main input:
+    SteamID64 is derived from it and the title falls back to "Bot NN"."""
+
     class Meta:
         model = FarmAccount
         fields = [
-            "title",
-            "steam_id64",
             "trade_url",
-            "login_hint",
+            "title",
+            "role",
             "status",
+            "steam_id64",
+            "login_hint",
             "notes",
         ]
-        widgets = {
-            "title": forms.TextInput(attrs={"class": "form-control"}),
-            "steam_id64": forms.TextInput(attrs={"class": "form-control"}),
-            "trade_url": forms.TextInput(attrs={"class": "form-control"}),
-            "login_hint": forms.TextInput(attrs={"class": "form-control"}),
-            "status": forms.Select(attrs={"class": "form-control"}),
-            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+        labels = {
+            "trade_url": "Трейд-ссылка",
+            "title": "Название",
+            "role": "Роль",
+            "status": "Статус",
+            "steam_id64": "SteamID64",
+            "login_hint": "Логин / подсказка",
+            "notes": "Заметки",
         }
+        help_texts = {
+            "trade_url": "Steam → Инвентарь → Предложения обмена → «Кто может отправлять мне предложения». SteamID определится сам.",
+            "title": "Можно оставить пустым: возьмём имя из Steam или назовём Bot NN.",
+            "role": "Фарм-бот собирает недельный дроп, склад принимает его (для будущей авто-отправки).",
+            "steam_id64": "Нужен, только если трейд-ссылки пока нет.",
+        }
+        widgets = {
+            "trade_url": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "https://steamcommunity.com/tradeoffer/new/?partner=…&token=…",
+                    "autocomplete": "off",
+                    "data-farm-trade-input": "true",
+                }
+            ),
+            "title": forms.TextInput(attrs={"class": "form-control", "placeholder": "Bot 01"}),
+            "steam_id64": forms.TextInput(attrs={"class": "form-control", "placeholder": "7656119…", "data-farm-steamid-input": "true"}),
+            "login_hint": forms.TextInput(attrs={"class": "form-control", "placeholder": "Не храни здесь пароли"}),
+            "role": forms.RadioSelect(attrs={"class": "farm-choice__input"}),
+            "status": forms.Select(attrs={"class": "form-control"}),
+            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+        }
+
+    def __init__(self, *args, owner=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.owner = owner
+        self.fields["title"].required = False
+        self.fields["role"].required = False
+        self.fields["status"].choices = RU_STATUS_CHOICES
+        self.fields["status"].required = False
+        if not self.instance.pk:
+            self.fields["status"].initial = FarmAccount.Status.ACTIVE
 
     def clean(self):
         cleaned_data = super().clean()
+
+        if not cleaned_data.get("role"):
+            cleaned_data["role"] = self.instance.role or FarmAccount.Role.FARM
+            self.instance.role = cleaned_data["role"]
+        if not cleaned_data.get("status"):
+            cleaned_data["status"] = self.instance.status if self.instance.pk else FarmAccount.Status.ACTIVE
+            self.instance.status = cleaned_data["status"]
 
         steam_id64 = (cleaned_data.get("steam_id64") or "").strip()
         trade_url = (cleaned_data.get("trade_url") or "").strip()
@@ -109,12 +157,55 @@ class FarmAccountForm(forms.ModelForm):
             if steam_id64 and steam_id64 != parsed.steam_id64:
                 self.add_error(
                     "steam_id64",
-                    "steam_id64 не совпадает с partner из trade URL.",
+                    "SteamID64 не совпадает с partner из трейд-ссылки.",
                 )
-            else:
-                cleaned_data["steam_id64"] = parsed.steam_id64
+                return cleaned_data
+            steam_id64 = parsed.steam_id64
+            cleaned_data["steam_id64"] = steam_id64
+        elif not steam_id64:
+            self.add_error("trade_url", "Вставь трейд-ссылку аккаунта или укажи SteamID64.")
+            return cleaned_data
+        elif not (steam_id64.isdigit() and len(steam_id64) == 17):
+            self.add_error("steam_id64", "SteamID64 — это 17 цифр, начинается с 7656.")
+            return cleaned_data
+
+        owner = self.owner or getattr(self.instance, "owner", None)
+        if owner is not None:
+            from .connect import find_duplicate_account
+
+            duplicate = find_duplicate_account(owner, steam_id64, exclude_id=self.instance.pk)
+            if duplicate is not None:
+                self.add_error("trade_url", f"Этот аккаунт уже подключён как «{duplicate.title}».")
 
         return cleaned_data
+
+
+class FarmAccountImportForm(forms.Form):
+    accounts_text = forms.CharField(
+        label="Аккаунты списком",
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control farm-import__textarea",
+                "rows": 8,
+                "spellcheck": "false",
+                "placeholder": "Bot 01; https://steamcommunity.com/tradeoffer/new/?partner=…&token=…\nhttps://steamcommunity.com/tradeoffer/new/?partner=…&token=…",
+                "data-farm-import-input": "true",
+            }
+        ),
+        help_text="По одному аккаунту в строке: «название; трейд-ссылка» или просто трейд-ссылка.",
+    )
+    role = forms.ChoiceField(
+        label="Роль",
+        choices=FarmAccount.Role.choices,
+        initial=FarmAccount.Role.FARM,
+        widget=forms.RadioSelect(attrs={"class": "farm-choice__input"}),
+    )
+    status = forms.ChoiceField(
+        label="Статус",
+        choices=RU_STATUS_CHOICES,
+        initial=FarmAccount.Status.ACTIVE,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
 
 
 class WeeklyDropForm(forms.Form):
@@ -365,7 +456,7 @@ class FarmDropItemForm(forms.Form):
             "steam_item": steam_item,
             "market_hash_name": market_hash_name,
             "name_snapshot": name_snapshot,
-            "icon_url_snapshot": getattr(steam_item, "image_url", "") or "",
+            "icon_url_snapshot": getattr(steam_item, "icon_url", "") or "",
             "quantity": self.cleaned_data["quantity"],
             "collected_price_rub_snapshot": self.cleaned_data["collected_price_rub_snapshot"],
             "notes": self.cleaned_data.get("notes") or "",
@@ -466,3 +557,115 @@ class FarmerRewardTierForm(forms.ModelForm):
             "sort_order": forms.NumberInput(attrs={"class": "form-control", "step": 1}),
             "is_active": forms.CheckboxInput(attrs={"class": "toggle-control__input"}),
         }
+
+
+MAX_DROP_ENTRY_ITEMS = 12
+MAX_DROP_ITEM_QUANTITY = 999
+
+
+def _parse_quantity(raw) -> int | None:
+    try:
+        value = int(str(raw or "1").strip() or "1")
+    except (TypeError, ValueError):
+        return None
+    if value < 1 or value > MAX_DROP_ITEM_QUANTITY:
+        return None
+    return value
+
+
+def _parse_price(raw):
+    from decimal import Decimal, InvalidOperation
+
+    text = str(raw or "").strip().replace(",", ".").replace(" ", "")
+    if not text:
+        return None, True
+    try:
+        value = Decimal(text)
+    except InvalidOperation:
+        return None, False
+    if value < 0 or value >= Decimal("10000000000"):
+        return None, False
+    return value.quantize(Decimal("0.01")), True
+
+
+def parse_drop_entry_items(data) -> tuple[list[dict], list[str]]:
+    """Reads drop positions from the quick drop form.
+
+    Catalog positions come as repeated `item=<SteamItem id>` with
+    `qty_<id>` / `price_<id>`; positions without a catalog match come as
+    parallel `manual_name` / `manual_qty` / `manual_price` lists."""
+    payloads: list[dict] = []
+    errors: list[str] = []
+
+    item_ids: list[int] = []
+    for raw in data.getlist("item"):
+        raw = str(raw).strip()
+        if raw.isdigit() and int(raw) not in item_ids:
+            item_ids.append(int(raw))
+
+    items = SteamItem.objects.filter(
+        pk__in=item_ids,
+        is_active=True,
+        item_type__in=ALLOWED_DROP_ITEM_TYPES,
+    ).in_bulk()
+
+    for item_id in item_ids:
+        item = items.get(item_id)
+        if item is None:
+            errors.append("Один из выбранных предметов недоступен для дропа.")
+            continue
+        quantity = _parse_quantity(data.get(f"qty_{item_id}"))
+        if quantity is None:
+            errors.append(f"{item.market_hash_name}: количество от 1 до {MAX_DROP_ITEM_QUANTITY}.")
+            continue
+        price, price_ok = _parse_price(data.get(f"price_{item_id}"))
+        if not price_ok:
+            errors.append(f"{item.market_hash_name}: некорректная цена.")
+            continue
+        if price is None:
+            price = item.price_rub or 0
+        payloads.append(
+            {
+                "steam_item": item,
+                "market_hash_name": item.market_hash_name,
+                "name_snapshot": item.name or item.market_hash_name,
+                "icon_url_snapshot": item.icon_url or "",
+                "quantity": quantity,
+                "collected_price_rub_snapshot": price,
+                "notes": "",
+            }
+        )
+
+    names = data.getlist("manual_name")
+    quantities = data.getlist("manual_qty")
+    prices = data.getlist("manual_price")
+    for index, raw_name in enumerate(names):
+        name = str(raw_name or "").strip()[:255]
+        if not name:
+            continue
+        quantity = _parse_quantity(quantities[index] if index < len(quantities) else "1")
+        if quantity is None:
+            errors.append(f"{name}: количество от 1 до {MAX_DROP_ITEM_QUANTITY}.")
+            continue
+        price, price_ok = _parse_price(prices[index] if index < len(prices) else "")
+        if not price_ok:
+            errors.append(f"{name}: некорректная цена.")
+            continue
+        matched = SteamItem.objects.filter(market_hash_name=name, is_active=True).first()
+        payloads.append(
+            {
+                "steam_item": matched,
+                "market_hash_name": name,
+                "name_snapshot": getattr(matched, "name", "") or name,
+                "icon_url_snapshot": getattr(matched, "icon_url", "") or "",
+                "quantity": quantity,
+                "collected_price_rub_snapshot": price if price is not None else (getattr(matched, "price_rub", None) or 0),
+                "notes": "",
+            }
+        )
+
+    if not payloads and not errors:
+        errors.append("Выбери хотя бы один предмет дропа.")
+    if len(payloads) > MAX_DROP_ENTRY_ITEMS:
+        errors.append(f"Не больше {MAX_DROP_ENTRY_ITEMS} позиций в одном дропе.")
+    return payloads, errors

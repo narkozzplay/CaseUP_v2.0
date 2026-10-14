@@ -1,0 +1,147 @@
+<section class="section section--compact ops fm" data-farm-connect>
+    <header class="ops-hero fm-hero">
+        <div class="ops-hero__main">
+            <span class="eyebrow"><a href="{% url 'farm:accounts_list' %}" class="fm-back">← Аккаунты</a></span>
+            <h1 class="ops-hero__title">Подключить аккаунты</h1>
+            <p class="ops-hero__text">Нужна только трейд-ссылка. SteamID, имя и аватар подтянутся сами, а та же ссылка понадобится для авто-отправки дропа на склад.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Уже подключено</dt><dd>{{ accounts_count }}</dd></div>
+        </dl>
+    </header>
+
+    <nav class="fm-tabs fm-tabs--lg" aria-label="Способ подключения">
+        <a href="?mode=single" class="fm-tab{% if mode == 'single' %} is-active{% endif %}">Один аккаунт</a>
+        <a href="?mode=bulk" class="fm-tab{% if mode == 'bulk' %} is-active{% endif %}">Списком</a>
+    </nav>
+
+    {% if mode == "bulk" %}
+        <div class="fm-connect">
+            <form method="post" class="ops-panel fm-form" data-farm-import>
+                {% csrf_token %}
+                <input type="hidden" name="mode" value="bulk">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Вставь список</h2>
+                    <span class="ops-panel__hint" data-farm-import-count>до 100 строк</span>
+                </div>
+                <div class="fm-field">
+                    {{ import_form.accounts_text }}
+                    <p class="fm-field__help">{{ import_form.accounts_text.help_text }}</p>
+                    {{ import_form.accounts_text.errors }}
+                </div>
+                {% include "farm/partials/_role_choice.html" with field=import_form.role %}
+                <div class="fm-field fm-field--inline">
+                    <label class="fm-field__label" for="{{ import_form.status.id_for_label }}">Статус</label>
+                    {{ import_form.status }}
+                </div>
+                <div class="fm-form__footer">
+                    <button type="submit" class="btn btn-primary">{% include "components/icon.html" with name="plus" %}Подключить списком</button>
+                    <span class="fm-field__help">Дубли и аккаунты, которые уже подключены, пропустим.</span>
+                </div>
+            </form>
+
+            <aside class="ops-panel fm-connect__side">
+                {% if import_result %}
+                    <div class="ops-panel__head">
+                        <h2 class="ops-panel__title">Результат</h2>
+                        <span class="ops-panel__hint">+{{ import_result.created_count }} · пропущено {{ import_result.skipped|length }}</span>
+                    </div>
+                    <div class="ops-list">
+                        {% for account in import_result.created %}
+                            <a href="{% url 'farm:accounts_detail' account.id %}" class="ops-row ops-row--link">
+                                {% include "farm/partials/_avatar.html" with account=account size="sm" %}
+                                <span class="ops-row__main"><strong>{{ account.title }}</strong><span>{{ account.steam_id64 }}</span></span>
+                                <span class="ops-row__side"><span class="fm-tag fm-tag--ok">подключён</span></span>
+                            </a>
+                        {% endfor %}
+                        {% for line_no, line, reason in import_result.skipped %}
+                            <div class="ops-row">
+                                <span class="ops-row__badge ops-row__badge--down" aria-hidden="true">{{ line_no }}</span>
+                                <span class="ops-row__main"><strong>{{ reason }}</strong><span class="fm-break">{{ line|truncatechars:80 }}</span></span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="ops-panel__head"><h2 class="ops-panel__title">Формат</h2></div>
+                    <pre class="fm-sample">Bot 01; https://steamcommunity.com/tradeoffer/new/?partner=…&amp;token=…
+Bot 02 | https://steamcommunity.com/tradeoffer/new/?partner=…&amp;token=…
+https://steamcommunity.com/tradeoffer/new/?partner=…&amp;token=…</pre>
+                    <p class="fm-field__help">Без названия бот получит имя из Steam или «Bot NN». Разделитель: «;», «|» или Tab, так что можно вставить две колонки из таблицы.</p>
+                {% endif %}
+            </aside>
+        </div>
+    {% else %}
+        <div class="fm-connect">
+            <form method="post" class="ops-panel fm-form" data-farm-connect-form>
+                {% csrf_token %}
+                <input type="hidden" name="mode" value="single">
+                {% if form.non_field_errors %}<div class="fm-alert">{{ form.non_field_errors }}</div>{% endif %}
+
+                <div class="fm-step">
+                    <span class="fm-step__num">1</span>
+                    <div class="fm-field fm-field--grow">
+                        <label class="fm-field__label" for="{{ form.trade_url.id_for_label }}">{{ form.trade_url.label }}</label>
+                        {{ form.trade_url }}
+                        <p class="fm-field__help">{{ form.trade_url.help_text }}</p>
+                        {{ form.trade_url.errors }}
+                    </div>
+                </div>
+
+                <div class="fm-step">
+                    <span class="fm-step__num">2</span>
+                    <div class="fm-field fm-field--grow">
+                        <label class="fm-field__label" for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+                        {{ form.title }}
+                        <p class="fm-field__help">{{ form.title.help_text }}</p>
+                        {{ form.title.errors }}
+                    </div>
+                </div>
+
+                <div class="fm-step">
+                    <span class="fm-step__num">3</span>
+                    <div class="fm-field--grow">
+                        {% include "farm/partials/_role_choice.html" with field=form.role %}
+                    </div>
+                </div>
+
+                <details class="fm-more"{% if form.steam_id64.errors or form.login_hint.errors or form.status.errors %} open{% endif %}>
+                    <summary>Дополнительно: статус, SteamID без ссылки, заметки</summary>
+                    <div class="fm-more__grid">
+                        {% for field in form %}
+                            {% if field.name in "status steam_id64 login_hint notes" %}
+                                <div class="fm-field{% if field.name == 'notes' %} fm-field--wide{% endif %}">
+                                    <label class="fm-field__label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {{ field }}
+                                    {% if field.help_text %}<p class="fm-field__help">{{ field.help_text }}</p>{% endif %}
+                                    {{ field.errors }}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </details>
+
+                <div class="fm-form__footer">
+                    <button type="submit" class="btn btn-primary">{% include "components/icon.html" with name="link" %}Подключить</button>
+                    <span class="fm-field__help">Пароли и shared secret здесь не нужны и не хранятся.</span>
+                </div>
+            </form>
+
+            <aside class="ops-panel fm-connect__side fm-preview" data-farm-trade-preview>
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Проверка ссылки</h2></div>
+                <div class="fm-preview__card">
+                    <span class="fm-avatar fm-avatar--lg"><span class="fm-avatar__initials" data-farm-preview-initials>?</span></span>
+                    <div class="fm-preview__id">
+                        <strong data-farm-preview-title>Новый аккаунт</strong>
+                        <span data-farm-preview-steamid>SteamID появится после вставки ссылки</span>
+                    </div>
+                </div>
+                <ul class="fm-checks">
+                    <li class="fm-check fm-check--idle" data-farm-preview-check="partner"><span class="fm-check__dot">·</span><span class="fm-check__text"><strong>partner → SteamID64</strong><span>из параметра partner</span></span></li>
+                    <li class="fm-check fm-check--idle" data-farm-preview-check="token"><span class="fm-check__dot">·</span><span class="fm-check__text"><strong>token</strong><span>нужен, чтобы отправлять трейды</span></span></li>
+                </ul>
+                <a href="#" class="ops-panel__link fm-preview__link" data-farm-preview-profile hidden target="_blank" rel="noopener">Открыть профиль Steam →</a>
+                <a href="https://steamcommunity.com/my/tradeoffers/privacy#trade_offer_access_url" class="ops-panel__link" target="_blank" rel="noopener">Где взять трейд-ссылку →</a>
+            </aside>
+        </div>
+    {% endif %}
+</section>

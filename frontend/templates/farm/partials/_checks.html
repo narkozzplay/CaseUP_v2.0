@@ -1,0 +1,8 @@
+<ul class="fm-checks{% if compact %} fm-checks--compact{% endif %}">
+    {% for check in checks %}
+        <li class="fm-check fm-check--{{ check.state }}" title="{{ check.label }}{% if check.hint %}: {{ check.hint }}{% endif %}">
+            <span class="fm-check__dot" aria-hidden="true">{% if check.state == "ok" %}{% include "components/icon.html" with name="check" %}{% elif check.state == "fail" %}!{% else %}·{% endif %}</span>
+            <span class="fm-check__text"><strong>{{ check.label }}</strong>{% if not compact and check.hint %}<span>{{ check.hint }}</span>{% endif %}</span>
+        </li>
+    {% endfor %}
+</ul>

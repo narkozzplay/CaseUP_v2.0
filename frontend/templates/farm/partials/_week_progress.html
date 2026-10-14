@@ -1,0 +1,34 @@
+<article class="ops-panel fm-week{% if week_progress.is_complete %} is-complete{% endif %}">
+    <div class="ops-panel__head">
+        <h2 class="ops-panel__title">Недельный дроп · неделя #{{ week_progress.week.index }}</h2>
+        <span class="ops-panel__hint">{{ week_progress.week.range_label }} · сброс через {{ week_progress.next_reset_at|timeuntil }}</span>
+    </div>
+    <div class="fm-week__body">
+        <div class="fm-week__score">
+            <strong>{{ week_progress.done }}<small> / {{ week_progress.target }}</small></strong>
+            <span>
+                {% if not week_progress.target %}Нет активных фарм-ботов
+                {% elif week_progress.is_complete %}Все боты собрали дроп
+                {% else %}ботов собрали дроп{% endif %}
+            </span>
+            <span class="ops-meter fm-week__meter" aria-hidden="true"><span style="width: {{ week_progress.percent }}%;"></span></span>
+        </div>
+        <div class="fm-week__history" aria-label="Боты с дропом за последние недели">
+            {% for bar in week_progress.history %}
+                <span class="fm-week__bar{% if bar.is_current %} is-current{% endif %}" title="Неделя #{{ bar.week.index }} · {{ bar.week.range_label }}: {{ bar.accounts_with_drop }}">
+                    <span class="fm-week__bar-fill" style="height: {{ bar.percent }}%;"></span>
+                    <span class="fm-week__bar-label">#{{ bar.week.index }}</span>
+                </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% if week_progress.pending and show_pending %}
+        <div class="fm-week__pending">
+            <span class="fm-week__pending-label">Ждут дропа:</span>
+            {% for row in week_progress.pending|slice:":12" %}
+                <a href="{% url 'farm:sessions_add' %}?account={{ row.account.id }}" class="fm-chip" title="Добавить дроп для {{ row.account.title }}">{% include "farm/partials/_avatar.html" with account=row.account size="xs" %}{{ row.account.title }}</a>
+            {% endfor %}
+            {% if week_progress.pending|length > 12 %}<span class="fm-chip fm-chip--muted">+{{ week_progress.pending|length|add:"-12" }}</span>{% endif %}
+        </div>
+    {% endif %}
+</article>

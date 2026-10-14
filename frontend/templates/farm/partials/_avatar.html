@@ -1,0 +1,1 @@
+<span class="fm-avatar{% if size %} fm-avatar--{{ size }}{% endif %}{% if account.role == 'storage' %} fm-avatar--storage{% endif %}">{% if account.avatar_url %}<img src="{{ account.avatar_url }}" alt="" loading="lazy">{% else %}<span class="fm-avatar__initials">{{ account.initials }}</span>{% endif %}</span>
