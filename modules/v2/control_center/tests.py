@@ -199,9 +199,11 @@ class HealthFormattingTests(TestCase):
         self.assertEqual(check.hint, "Занято 0.4% из 1000.0 ГБ")
 
     def test_database_check_reports_size(self):
+        from django.db import connection
+
         from .services.health import check_database
 
-        self.assertIn("sqlite", check_database().hint)
+        self.assertIn(connection.vendor, check_database().hint)
 
 
 class SystemSettingsToolsTests(TestCase):
