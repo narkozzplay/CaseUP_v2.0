@@ -49,3 +49,22 @@ class LegalOwnerDeployCheckTests(TestCase):
             config.legal_owner_name = "ИП Тестов"
             config.save()
             self.assertEqual(check_legal_owner_is_published(None), [])
+
+
+class LegalSectionTests(TestCase):
+    def test_all_documents_are_public_and_cross_linked(self):
+        for name in ("frontend:agreement", "frontend:privacy", "frontend:pd_consent", "frontend:cookies"):
+            response = self.client.get(reverse(name))
+            self.assertEqual(response.status_code, 200, name)
+            for other in ("frontend:agreement", "frontend:privacy", "frontend:pd_consent", "frontend:cookies"):
+                self.assertContains(response, reverse(other))
+
+    def test_privacy_policy_names_cross_border_transfer_to_steam(self):
+        self.assertContains(self.client.get(reverse("frontend:privacy")), "трансграничную передачу")
+
+    def test_cookie_policy_lists_the_cookies_actually_set(self):
+        from django.conf import settings
+
+        response = self.client.get(reverse("frontend:cookies"))
+        for cookie in (settings.SESSION_COOKIE_NAME, settings.CSRF_COOKIE_NAME, settings.LANGUAGE_COOKIE_NAME):
+            self.assertContains(response, f"<code>{cookie}</code>")

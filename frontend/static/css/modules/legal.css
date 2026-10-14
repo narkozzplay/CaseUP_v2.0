@@ -1,7 +1,69 @@
 /* Public legal documents (/agreement/). */
-.legal-doc {
-    max-width: 860px;
+.legal-layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+    max-width: 1180px;
     margin: 0 auto;
+}
+
+.legal-nav {
+    position: sticky;
+    top: 96px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-elevated);
+}
+
+.legal-nav__title {
+    padding: 14px 18px 6px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.legal-nav__link {
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    border-left: 2px solid transparent;
+    color: var(--text-soft);
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+
+.legal-nav__link:hover {
+    color: var(--text);
+    background: var(--surface);
+}
+
+.legal-nav__link.is-active {
+    border-left-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.legal-nav__contacts {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.legal-nav__contacts a,
+.legal-nav__contacts span:not(.legal-nav__title) {
+    padding: 0 18px;
+    color: var(--accent);
+    font-size: 0.88rem;
+    overflow-wrap: anywhere;
+}
+
+.legal-doc {
+    min-width: 0;
     padding: 32px 36px 40px;
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
@@ -96,6 +158,48 @@
 
 .legal-terms dd {
     margin: 0;
+}
+
+.legal-table-wrap {
+    overflow-x: auto;
+}
+
+.legal-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.legal-table th,
+.legal-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+}
+
+.legal-table th {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.legal-doc code {
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+}
+
+@media (max-width: 900px) {
+    .legal-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .legal-nav {
+        position: static;
+    }
 }
 
 @media (max-width: 640px) {

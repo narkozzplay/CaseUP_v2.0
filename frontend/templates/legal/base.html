@@ -1,0 +1,43 @@
+{% extends "layouts/base_public.html" %}
+{% load static %}
+
+{% block title %}{{ legal_doc.title }} | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
+
+{% block extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/modules/legal.css' %}">
+{% endblock %}
+
+{% block content %}
+{% with site=site_settings.site_name|default:"CaseUP" owner=site_settings.legal_owner_name support=site_settings.support_email %}
+<section class="section section--compact legal">
+    <div class="legal-layout">
+        <nav class="legal-nav" aria-label="Документы">
+            <span class="legal-nav__title">Документы</span>
+            {% for doc in legal_documents %}
+                <a href="{% url doc.url_name %}" class="legal-nav__link{% if doc.key == legal_doc.key %} is-active{% endif %}"{% if doc.key == legal_doc.key %} aria-current="page"{% endif %}>{{ doc.title }}</a>
+            {% endfor %}
+            <div class="legal-nav__contacts">
+                <span class="legal-nav__title">Контакты</span>
+                {% if support %}<a href="mailto:{{ support }}">{{ support }}</a>{% else %}<span>—</span>{% endif %}
+            </div>
+        </nav>
+
+        <article class="legal-doc" id="{{ legal_doc.key }}">
+            <header class="legal-doc__head">
+                <span class="eyebrow">{{ site }}</span>
+                <h1 class="legal-doc__title">{{ legal_doc.title }}</h1>
+                <p class="legal-doc__version">Редакция от {{ legal_doc.version_label }}</p>
+                {% if LANGUAGE_CODE != "ru" %}<p class="legal-doc__note">This document is published in Russian; the Russian text is binding.</p>{% endif %}
+            </header>
+
+            {% if not owner %}
+                <div class="legal-doc__notice">Сведения о владельце сайта ещё не заполнены. Они будут опубликованы до начала приёма реальных платежей.</div>
+            {% endif %}
+
+            {% block legal_body %}{% endblock %}
+        </article>
+    </div>
+</section>
+{% endwith %}
+{% endblock %}
