@@ -65,9 +65,18 @@ ACTIVE_VIEW_ALIASES = {
     "balance_topup": {"payments:topup", "payments:dev_checkout"},
     "case_simulator": {"case_simulator:list", "case_simulator:detail", "case_simulator:terminal", "case_simulator:inventory"},
     "notification_center": {"tg_notifier:center"},
+    "farm_hub": {"farm:hub"},
     "farm_dashboard": {"farm:dashboard"},
-    "farm_accounts": {"farm:accounts_list", "farm:accounts_add", "farm:accounts_detail", "farm:account_inventory_sync"},
-    "farm_drops": {"farm:sessions_list", "farm:sessions_add", "farm:sessions_detail"},
+    "farm_accounts": {
+        "farm:accounts_list",
+        "farm:accounts_add",
+        "farm:accounts_detail",
+        "farm:accounts_edit",
+        "farm:accounts_delete",
+        "farm:account_inventory_sync",
+        "farm:accounts_refresh_profiles",
+    },
+    "farm_drops": {"farm:sessions_list", "farm:sessions_add", "farm:sessions_detail", "farm:item_search"},
     "farm_legacy_logs": {"farm:drops_list", "farm:drops_add", "farm:drop_pool", "farm:drop_pool_remove"},
     "tradehub_dashboard": {"tradehub:dashboard", "tradehub:sales_list", "tradehub:sale_detail", "tradehub:create_order", "tradehub:sale_action", "tradehub:bots_list", "tradehub:bots_add"},
     "steam_catalog": {"steam_catalog:list", "steam_catalog:add", "steam_catalog:detail", "steam_catalog:alert_rules", "steam_catalog:alert_help", "steam_catalog:alert_history", "steam_catalog:alert_rule_create", "steam_catalog:alert_rule_edit", "steam_catalog:alert_rule_delete", "steam_catalog:user_alert_create", "steam_catalog:user_alert_toggle"},
@@ -98,6 +107,9 @@ ACTIVE_VIEW_ALIASES = {
     "web_constructor_moderation": {"web_constructor:moderation", "web_constructor:moderate_version"},
     "django_admin": {"admin:index"},
 }
+
+
+CLAIMED_VIEW_NAMES = frozenset(name for names in ACTIVE_VIEW_ALIASES.values() for name in names)
 
 
 def ensure_dashboard_menu_items() -> None:
@@ -171,6 +183,10 @@ def _is_item_active(item: DashboardMenuItem, request, url: str) -> bool:
     aliases = ACTIVE_VIEW_ALIASES.get(item.key, {item.url_name})
     if current_view_name in aliases:
         return True
+    if current_view_name in CLAIMED_VIEW_NAMES:
+        # Another menu item owns this view, so a URL prefix match (e.g. /farm/
+        # for /farm/hub/) must not highlight this one as well.
+        return False
     path = getattr(request, "path", "") or ""
     comparable_url = urlparse(url).path or url
     if comparable_url != "/" and path.startswith(comparable_url.rstrip("/") + "/"):

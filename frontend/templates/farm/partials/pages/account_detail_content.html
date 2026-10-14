@@ -1,69 +1,75 @@
-<section class="section section--compact">
-    <div class="section-head-inline">
-        <div>
-            <span class="eyebrow">Farmer zone</span>
-            <h1 class="page-title page-title--sm">{{ account.title }}</h1>
-            <p class="text-muted">SteamID64: {{ account.steam_id64|default:"—" }}</p>
+<section class="section section--compact ops fm">
+    {% with row=board_row %}
+    <header class="ops-hero fm-hero">
+        <div class="ops-hero__main fm-hero__account">
+            {% include "farm/partials/_avatar.html" with account=account size="lg" %}
+            <div>
+                <span class="eyebrow"><a href="{% url 'farm:accounts_list' %}" class="fm-back">← Аккаунты</a> · {% if account.role == "storage" %}Склад{% else %}Фарм-бот{% endif %}</span>
+                <h1 class="ops-hero__title">{{ account.title }}</h1>
+                <p class="ops-hero__text">
+                    {% if account.persona_name %}{{ account.persona_name }} · {% endif %}SteamID64 {{ account.steam_id64|default:"—" }}
+                    {% if account.steam_profile_url %} · <a href="{{ account.steam_profile_url }}" target="_blank" rel="noopener">профиль Steam</a>{% endif %}
+                </p>
+            </div>
         </div>
-
-        <div class="hero-actions dashboard-actions">
-            <a href="{% url 'farm:accounts_list' %}" class="btn btn-secondary">К списку</a>
-            <a href="{% url 'farm:sessions_add' %}?account={{ account.id }}" class="btn btn-secondary">Добавить дроп</a>
+        <div class="fm-hero__actions">
+            <a href="{% url 'farm:accounts_edit' account.id %}" class="btn btn-ghost">{% include "components/icon.html" with name="edit" %}Настройки</a>
             <form method="post" action="{% url 'farm:account_inventory_sync' account.id %}" class="inline-form">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-primary">Синхронизировать inventory</button>
+                <button type="submit" class="btn btn-secondary">{% include "components/icon.html" with name="refresh" %}Синхронизировать инвентарь</button>
             </form>
+            <a href="{% url 'farm:sessions_add' %}?account={{ account.id }}" class="btn btn-primary">{% include "components/icon.html" with name="plus" %}Добавить дроп</a>
         </div>
-    </div>
+    </header>
 
-    <div class="profile-grid">
-        <article class="card">
-            <div class="card-body">
-                <h2 class="section-title">Overview</h2>
-                <dl class="details-list">
-                    <div><dt>Статус</dt><dd>{{ account.get_status_display }}</dd></div>
-                    <div><dt>Trade URL</dt><dd class="farm-break">{{ account.trade_url|default:"—" }}</dd></div>
-                    <div><dt>Login hint</dt><dd>{{ account.login_hint|default:"—" }}</dd></div>
-                    <div><dt>Owner</dt><dd>{{ account.owner }}</dd></div>
-                    <div><dt>Notes</dt><dd>{{ account.notes|default:"—" }}</dd></div>
-                </dl>
+    <div class="fm-account-top">
+        <article class="ops-panel">
+            <div class="ops-panel__head">
+                <h2 class="ops-panel__title">Подключение</h2>
+                <span class="fm-tag fm-tag--{{ row.connection }}">{% if row.connection == "ok" %}всё в порядке{% elif row.connection == "fail" %}нужно действие{% else %}не всё проверено{% endif %}</span>
+            </div>
+            {% include "farm/partials/_checks.html" with checks=row.checks %}
+            <div class="fm-inline-actions">
+                <form method="post" action="{% url 'farm:accounts_refresh_profiles' %}" class="inline-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="account_id" value="{{ account.id }}">
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn btn-ghost btn-sm">{% include "components/icon.html" with name="refresh" %}Обновить профиль</button>
+                </form>
+                {% if account.trade_url %}<a href="{{ account.trade_url }}" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">{% include "components/icon.html" with name="link" %}Трейд-ссылка</a>{% endif %}
             </div>
         </article>
 
-        <article class="card">
-            <div class="card-body">
-                <h2 class="section-title">Inventory sync</h2>
-                {% if latest_sync %}
-                    <div class="farm-pill-row">
-                        <span class="status-pill status-pill--sm farm-sync-pill farm-sync-pill--{{ latest_sync.status }}">{{ latest_sync.get_status_display }}</span>
-                    </div>
-                    <dl class="details-list">
-                        <div><dt>Последний запуск</dt><dd>{{ latest_sync.started_at|date:"d.m.Y H:i" }}</dd></div>
-                        <div><dt>Assets</dt><dd>{{ latest_sync.total_assets }}</dd></div>
-                        <div><dt>Sellable</dt><dd>{{ latest_sync.total_sellable }}</dd></div>
-                        {% if latest_sync.error_text %}<div><dt>Ошибка</dt><dd>{{ latest_sync.error_text }}</dd></div>{% endif %}
-                    </dl>
-                {% else %}
-                    <p class="text-muted empty-state">Inventory еще не синхронизировался.</p>
-                {% endif %}
+        <article class="ops-panel">
+            <div class="ops-panel__head">
+                <h2 class="ops-panel__title">Сводка · неделя #{{ week.index }}</h2>
             </div>
+            <dl class="fm-kv">
+                <div><dt>Статус</dt><dd><span class="fm-status-text fm-status-text--{{ account.status }}">{{ account.status_label }}</span></dd></div>
+                <div><dt>Дроп этой недели</dt><dd>{% if row.has_week_drop %}<a href="{% url 'farm:sessions_detail' row.week_session.id %}">собран {{ row.week_session.collected_at|date:"d.m H:i" }}</a>{% elif account.role == "storage" %}склад{% else %}ещё нет{% endif %}</dd></div>
+                <div><dt>Последний дроп</dt><dd>{{ row.last_drop_at|date:"d.m.Y"|default:"—" }}</dd></div>
+                <div><dt>Инвентарь</dt><dd>{% if row.latest_sync %}{{ row.inventory_items }} шт. · {% money row.inventory_value_rub %}{% else %}—{% endif %}</dd></div>
+                <div><dt>Логин / подсказка</dt><dd>{{ account.login_hint|default:"—" }}</dd></div>
+                {% if account.notes %}<div><dt>Заметки</dt><dd>{{ account.notes }}</dd></div>{% endif %}
+            </dl>
         </article>
     </div>
+    {% endwith %}
 
-    <article class="card profile-history">
-        <div class="card-body">
-            <div class="farm-tabs">
-                <a href="{% url 'farm:accounts_detail' account.id %}?tab=overview" class="farm-tab {% if active_tab == 'overview' %}is-active{% endif %}">Overview</a>
-                <a href="{% url 'farm:accounts_detail' account.id %}?tab=inventory" class="farm-tab {% if active_tab == 'inventory' %}is-active{% endif %}">Inventory</a>
-                <a href="{% url 'farm:accounts_detail' account.id %}?tab=sessions" class="farm-tab {% if active_tab == 'sessions' %}is-active{% endif %}">Дропы</a>
-            </div>
+    <article class="ops-panel">
+        <div>
+            <nav class="fm-tabs fm-tabs--lg" aria-label="Разделы аккаунта">
+                <a href="{% url 'farm:accounts_detail' account.id %}?tab=overview" class="fm-tab {% if active_tab == 'overview' %}is-active{% endif %}">Обзор</a>
+                <a href="{% url 'farm:accounts_detail' account.id %}?tab=inventory" class="fm-tab {% if active_tab == 'inventory' %}is-active{% endif %}">Инвентарь</a>
+                <a href="{% url 'farm:accounts_detail' account.id %}?tab=sessions" class="fm-tab {% if active_tab == 'sessions' %}is-active{% endif %}">Дропы · {{ session_count }}</a>
+            </nav>
 
             {% if active_tab == "overview" %}
-                <div class="cards-grid farm-mini-stats">
-                    <article class="card card--soft"><div class="card-body"><h3>Inventory items</h3><p class="metric">{{ inventory_total }}</p></div></article>
-                    <article class="card card--soft"><div class="card-body"><h3>Sellable</h3><p class="metric">{{ inventory_sellable_total }}</p></div></article>
-                    <article class="card card--soft"><div class="card-body"><h3>Blocked</h3><p class="metric">{{ inventory_blocked_total }}</p></div></article>
-                    <article class="card card--soft"><div class="card-body"><h3>Дропы</h3><p class="metric">{{ session_count }}</p></div></article>
+                <div class="metric-strip fm-metrics">
+                    <div class="metric-strip__cell"><span class="metric-strip__label">Предметов</span><span class="metric-strip__value">{{ inventory_total }}</span></div>
+                    <div class="metric-strip__cell"><span class="metric-strip__label">Можно продать</span><span class="metric-strip__value">{{ inventory_sellable_total }}</span></div>
+                    <div class="metric-strip__cell"><span class="metric-strip__label">Заблокировано</span><span class="metric-strip__value">{{ inventory_blocked_total }}</span></div>
+                    <div class="metric-strip__cell"><span class="metric-strip__label">Дропов</span><span class="metric-strip__value">{{ session_count }}</span></div>
                 </div>
             {% elif active_tab == "sessions" %}
                 <div class="section-head-inline">

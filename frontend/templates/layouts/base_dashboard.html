@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="{% static 'css/modules/payments.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/profile_customization.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/profile_effects.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modules/farm_ops.css' %}">
     {% if active_theme and active_theme.key == "midnight" and feature_flags.midnight_theme %}
         <link rel="stylesheet" href="{% static 'css/themes/midnight_dashboard.css' %}">
     {% endif %}
@@ -71,4 +72,5 @@
     <script src="{% static 'js/price_chart.js' %}"></script>
     <script src="{% static 'js/control_center.js' %}"></script>
     <script src="{% static 'js/profile_customization.js' %}"></script>
+    <script src="{% static 'js/farm.js' %}"></script>
 {% endblock %}

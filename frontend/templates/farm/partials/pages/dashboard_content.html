@@ -1,165 +1,137 @@
-<section class="section section--compact">
-    <div class="section-head-inline">
-        <div>
-            <span class="eyebrow">Farmer zone</span>
-            <h1 class="page-title page-title--sm">Farm dashboard</h1>
-            <p class="text-muted">Единый контур farm: аккаунты, дропы, продажи и CaseUP как площадка продажи.</p>
+<section class="section section--compact ops fm" data-farm-board>
+    <header class="ops-hero fm-hero">
+        <div class="ops-hero__main">
+            <span class="eyebrow">Ферма · неделя #{{ week.index }}</span>
+            <h1 class="ops-hero__title">Ферма</h1>
+            <p class="ops-hero__text">Каждый бот одной карточкой: собран ли дроп на этой неделе, что лежит в инвентаре и всё ли в порядке с подключением.</p>
         </div>
-        <div class="hero-actions">
-            <a href="{% url 'farm:accounts_add' %}" class="btn btn-secondary">Добавить аккаунт</a>
-            <a href="{% url 'farm:sessions_add' %}" class="btn btn-primary">Добавить дроп</a>
+        <div class="fm-hero__actions">
+            <a href="{% url 'farm:accounts_add' %}" class="btn btn-secondary">{% include "components/icon.html" with name="plus" %}Подключить</a>
+            <a href="{% url 'farm:sessions_add' %}" class="btn btn-primary">{% include "components/icon.html" with name="farm_drops" %}Добавить дроп</a>
         </div>
-    </div>
+    </header>
 
-    <div class="farm-feature-strip">
-        <span class="status-pill status-pill--sm">Дропы: доступны</span>
-        <span class="status-pill status-pill--sm">Продажи: доступны</span>
-        <span class="status-pill status-pill--sm">{{ site_settings.site_name|default:"CaseUP" }} fee: {{ current_caseup_fee_percent|floatformat:2 }}%</span>
-        <span class="status-pill status-pill--sm {% if farmer_features.tg_alerts %}farm-flag-pill--on{% else %}farm-flag-pill--off{% endif %}">
-            TG alerts: {% if farmer_features.tg_alerts %}on{% else %}по farmer-плану{% endif %}
-        </span>
-        <span class="status-pill status-pill--sm {% if farmer_features.reduced_commission %}farm-flag-pill--on{% else %}farm-flag-pill--off{% endif %}">
-            Reduced commission: {% if farmer_features.reduced_commission %}on{% else %}locked{% endif %}
-        </span>
-        <span class="status-pill status-pill--sm {% if farmer_features.bonus_program %}farm-flag-pill--on{% else %}farm-flag-pill--off{% endif %}">
-            Bonus program: {% if farmer_features.bonus_program %}on{% else %}locked{% endif %}
-        </span>
-    </div>
-
-    <div class="stat-tiles farm-overview-grid">
-        <a href="{% url 'farm:accounts_list' %}" class="stat-tile farm-stat-card farm-stat-card--accounts">
-            <span class="stat-tile__label">Farm accounts</span>
-            <span class="stat-tile__value">{{ accounts_total }}</span>
-            <span class="stat-tile__meta">active: {{ accounts_active }} · review: {{ accounts_review }}</span>
+    <div class="ops-kpis">
+        <article class="ops-kpi">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="farm_accounts" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Аккаунты</span>
+                <strong class="ops-kpi__value">{{ board_summary.accounts_active }}<small> / {{ board_summary.accounts_total }}</small></strong>
+                <span class="ops-kpi__meta">{% if board_summary.accounts_attention %}<b>{{ board_summary.accounts_attention }}</b> с проблемой подключения{% else %}Активных из всех{% endif %}</span>
+            </div>
+        </article>
+        <article class="ops-kpi">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="box" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Инвентарь ботов</span>
+                <strong class="ops-kpi__value">{% money board_summary.inventory_value_rub %}</strong>
+                <span class="ops-kpi__meta">{{ board_summary.inventory_items }} предм. по последней синхронизации</span>
+            </div>
+        </article>
+        <a href="{% url 'farm:sessions_list' %}" class="ops-kpi ops-kpi--link">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="farm_drops" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Дропы и продажи</span>
+                <strong class="ops-kpi__value">{{ drop_sessions_total }}</strong>
+                <span class="ops-kpi__meta">Продаж {{ sales_total }} · через {{ site_settings.site_name|default:"CaseUP" }} {{ caseup_sales_total }}</span>
+            </div>
         </a>
-        <a href="{% url 'farm:sessions_list' %}" class="stat-tile farm-stat-card farm-stat-card--drops">
-            <span class="stat-tile__label">Farm drops</span>
-            <span class="stat-tile__value">{{ drop_sessions_total }}</span>
-            <span class="stat-tile__meta">сессии дропов на аккаунтах</span>
-        </a>
-        <div class="stat-tile farm-stat-card farm-stat-card--sales">
-            <span class="stat-tile__label">Продажи</span>
-            <span class="stat-tile__value">{{ sales_total }}</span>
-            <span class="stat-tile__meta">{{ site_settings.site_name|default:"CaseUP" }}: {{ caseup_sales_total }}</span>
-        </div>
-        <div class="stat-tile farm-stat-card farm-stat-card--commission">
-            <span class="stat-tile__label">{{ site_settings.site_name|default:"CaseUP" }} fee</span>
-            <span class="stat-tile__value">{{ current_caseup_fee_percent|floatformat:2 }}%</span>
-            <span class="stat-tile__meta">базовая {{ default_caseup_fee_percent|floatformat:2 }}% · по плану {{ subscribed_caseup_fee_percent|floatformat:2 }}%</span>
-        </div>
+        <article class="ops-kpi">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="farmer_plans" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Комиссия {{ site_settings.site_name|default:"CaseUP" }}</span>
+                <strong class="ops-kpi__value">{{ current_caseup_fee_percent|floatformat:2 }}%</strong>
+                <span class="ops-kpi__meta">базовая {{ default_caseup_fee_percent|floatformat:2 }}% · по плану {{ subscribed_caseup_fee_percent|floatformat:2 }}%</span>
+            </div>
+        </article>
     </div>
 
-    <div class="farm-locked-stack">
+    {% include "farm/partials/_week_progress.html" with show_pending=False %}
+
+    <article class="ops-panel">
+        <div class="ops-panel__head fm-board__head">
+            <h2 class="ops-panel__title">Боты</h2>
+            <nav class="fm-tabs" aria-label="Фильтр ботов">
+                {% for code, label in board_filters %}
+                    <a href="?show={{ code }}" class="fm-tab{% if board_filter == code %} is-active{% endif %}">{{ label }}</a>
+                {% endfor %}
+            </nav>
+        </div>
+        {% if board_rows %}
+            <div class="fm-board">
+                {% for row in board_rows %}
+                    {% include "farm/partials/_account_card.html" with row=row %}
+                {% endfor %}
+            </div>
+        {% elif board_summary.accounts_total %}
+            <p class="ops-empty">В этом фильтре ботов нет.</p>
+        {% else %}
+            <div class="fm-empty">
+                <span class="fm-empty__icon">{% include "components/icon.html" with name="farm_accounts" %}</span>
+                <strong>Подключи первого бота</strong>
+                <p>Нужна только трейд-ссылка: SteamID, имя и аватар подтянутся сами. Можно вставить сразу список.</p>
+                <a href="{% url 'farm:accounts_add' %}" class="btn btn-primary btn-sm">Подключить аккаунты</a>
+            </div>
+        {% endif %}
+    </article>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head">
+            <h2 class="ops-panel__title">Аналитика дропов</h2>
+            <a href="{% url 'farm:hub' %}" class="ops-panel__link">Сводка с инвестициями →</a>
+        </div>
         {% include "farm/partials/analytics_summary.html" with analytics=dashboard_analytics analytics_locked=analytics_locked analytics_plan_name=analytics_plan_name %}
-
         {% if analytics_locked %}
             {% include "farm/partials/analytics_locked_cta.html" %}
         {% else %}
-            <div class="profile-grid farm-dashboard-grid">
-                <article class="card">
-                    <div class="card-body">
-                        <div class="section-head-inline">
-                            <h2 class="section-title">Лучшие позиции</h2>
-                            <a href="{% url 'farm:sessions_list' %}" class="btn btn-secondary btn-sm">Все дропы</a>
-                        </div>
-                        {% if dashboard_analytics.best_positions %}
-                            <div class="farm-ranking-list">
-                                {% for row in dashboard_analytics.best_positions %}
-                                    <div class="farm-ranking-item">
-                                        <div>
-                                            <strong>{{ row.item.market_hash_name_snapshot }}</strong>
-                                            <div class="text-muted">{{ row.item.session.account.title }} · осталось {{ row.remaining_quantity }}</div>
-                                        </div>
-                                        <div class="farm-ranking-item__value farm-value-up">{% money row.total_pnl_rub %}</div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <p class="text-muted empty-state">Позиции для рейтинга пока не накоплены.</p>
-                        {% endif %}
+            <div class="fm-rank-grid">
+                <div>
+                    <h3 class="fm-subtitle">Лучшие позиции</h3>
+                    <div class="ops-list">
+                        {% for row in dashboard_analytics.best_positions %}
+                            <a href="{% url 'farm:sessions_detail' row.item.session_id %}" class="ops-row ops-row--link">
+                                <span class="ops-row__thumb">{% if row.item.icon_cdn %}<img src="{{ row.item.icon_cdn }}" alt="">{% else %}{% include "components/icon.html" with name="farm_drops" %}{% endif %}</span>
+                                <span class="ops-row__main"><strong>{{ row.item.name_snapshot|default:row.item.market_hash_name_snapshot }}</strong><span>{{ row.item.session.account.title }} · осталось {{ row.remaining_quantity }}</span></span>
+                                <span class="ops-row__side"><b class="ops-row__amount {% if row.total_pnl_rub >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% money row.total_pnl_rub signed=True %}</b></span>
+                            </a>
+                        {% empty %}
+                            <p class="ops-empty">Позиции для рейтинга пока не накоплены.</p>
+                        {% endfor %}
                     </div>
-                </article>
-
-                <article class="card">
-                    <div class="card-body">
-                        <h2 class="section-title">Худшие позиции</h2>
-                        {% if dashboard_analytics.worst_positions %}
-                            <div class="farm-ranking-list">
-                                {% for row in dashboard_analytics.worst_positions %}
-                                    <div class="farm-ranking-item">
-                                        <div>
-                                            <strong>{{ row.item.market_hash_name_snapshot }}</strong>
-                                            <div class="text-muted">{{ row.item.session.account.title }} · осталось {{ row.remaining_quantity }}</div>
-                                        </div>
-                                        <div class="farm-ranking-item__value {% if row.total_pnl_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{% money row.total_pnl_rub %}</div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <p class="text-muted empty-state">Недостаточно данных для ranking.</p>
-                        {% endif %}
+                </div>
+                <div>
+                    <h3 class="fm-subtitle">Худшие позиции</h3>
+                    <div class="ops-list">
+                        {% for row in dashboard_analytics.worst_positions %}
+                            <a href="{% url 'farm:sessions_detail' row.item.session_id %}" class="ops-row ops-row--link">
+                                <span class="ops-row__thumb">{% if row.item.icon_cdn %}<img src="{{ row.item.icon_cdn }}" alt="">{% else %}{% include "components/icon.html" with name="farm_drops" %}{% endif %}</span>
+                                <span class="ops-row__main"><strong>{{ row.item.name_snapshot|default:row.item.market_hash_name_snapshot }}</strong><span>{{ row.item.session.account.title }} · осталось {{ row.remaining_quantity }}</span></span>
+                                <span class="ops-row__side"><b class="ops-row__amount {% if row.total_pnl_rub >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% money row.total_pnl_rub signed=True %}</b></span>
+                            </a>
+                        {% empty %}
+                            <p class="ops-empty">Недостаточно данных.</p>
+                        {% endfor %}
                     </div>
-                </article>
-            </div>
-
-            <div class="profile-grid farm-dashboard-grid">
-                <article class="card">
-                    <div class="card-body">
-                        <h2 class="section-title">Продажи по площадкам</h2>
-                        {% if dashboard_analytics.platform_breakdown %}
-                            <div class="table-wrap">
-                                <table class="table table--dark">
-                                    <thead>
-                                        <tr>
-                                            <th>Площадка</th>
-                                            <th>Сделки</th>
-                                            <th>Оборот</th>
-                                            <th>PnL</th>
-                                            <th>Экономия комиссии</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for row in dashboard_analytics.platform_breakdown %}
-                                            <tr>
-                                                <td>{{ row.platform_label }}</td>
-                                                <td>{{ row.sales_count }}</td>
-                                                <td>{% money row.net_sale_rub %}</td>
-                                                <td class="{% if row.profit_rub >= 0 %}farm-value-up{% else %}farm-value-down{% endif %}">{% money row.profit_rub %}</td>
-                                                <td>{% money row.commission_saved_rub %}</td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        {% else %}
-                            <p class="text-muted empty-state">Продаж по farm пока нет.</p>
-                        {% endif %}
-                    </div>
-                </article>
-
-                <article class="card">
-                    <div class="card-body">
-                        <h2 class="section-title">Farmer bonus progress</h2>
-                        <div class="farm-bonus-stack">
-                            <div class="farm-bonus-row"><span>{{ site_settings.site_name|default:"CaseUP" }} turnover</span><strong>{% money dashboard_analytics.reward_progress.turnover_rub %}</strong></div>
-                            <div class="farm-bonus-row"><span>Current tier</span><strong>{{ dashboard_analytics.reward_progress.current_tier.title|default:'—' }}</strong></div>
-                            <div class="farm-bonus-row"><span>Next tier</span><strong>{{ dashboard_analytics.reward_progress.next_tier.title|default:'—' }}</strong></div>
-                            <div class="farm-bonus-row"><span>До следующего бонуса</span><strong>{% money dashboard_analytics.reward_progress.remaining_to_next_rub %}</strong></div>
-                            <div class="farm-bonus-row"><span>Saved on commission</span><strong>{% money dashboard_analytics.commission_saved_rub %}</strong></div>
-                        </div>
-                    </div>
-                </article>
+                </div>
+                <div>
+                    <h3 class="fm-subtitle">Бонусная программа</h3>
+                    <dl class="fm-kv">
+                        <div><dt>Оборот {{ site_settings.site_name|default:"CaseUP" }}</dt><dd>{% money dashboard_analytics.reward_progress.turnover_rub %}</dd></div>
+                        <div><dt>Текущий уровень</dt><dd>{{ dashboard_analytics.reward_progress.current_tier.title|default:"—" }}</dd></div>
+                        <div><dt>Следующий</dt><dd>{{ dashboard_analytics.reward_progress.next_tier.title|default:"—" }}</dd></div>
+                        <div><dt>До следующего</dt><dd>{% money dashboard_analytics.reward_progress.remaining_to_next_rub %}</dd></div>
+                        <div><dt>Сэкономлено на комиссии</dt><dd>{% money dashboard_analytics.commission_saved_rub %}</dd></div>
+                    </dl>
+                </div>
             </div>
         {% endif %}
-    </div>
+    </article>
 
-    <article class="card">
-        <div class="card-body">
-            <div class="section-head-inline">
-                <h2 class="section-title">Последние дропы</h2>
-                <a href="{% url 'farm:sessions_list' %}" class="btn btn-secondary btn-sm">Все дропы</a>
-            </div>
-            {% include "farm/partials/session_rows_table.html" with session_rows=recent_session_rows analytics_locked=analytics_locked %}
+    <article class="ops-panel">
+        <div class="ops-panel__head">
+            <h2 class="ops-panel__title">Последние дропы</h2>
+            <a href="{% url 'farm:sessions_list' %}" class="ops-panel__link">Все дропы →</a>
         </div>
+        {% include "farm/partials/session_rows_table.html" with session_rows=recent_session_rows analytics_locked=analytics_locked %}
     </article>
 </section>

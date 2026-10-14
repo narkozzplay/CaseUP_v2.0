@@ -1,0 +1,51 @@
+{% with account=row.account %}
+<article class="fm-bot fm-bot--{{ row.connection }}{% if row.has_week_drop %} is-done{% endif %}{% if account.status != 'active' %} is-inactive{% endif %}">
+    <a href="{% url 'farm:accounts_detail' account.id %}" class="fm-bot__head">
+        {% include "farm/partials/_avatar.html" with account=account %}
+        <span class="fm-bot__id">
+            <strong>{{ account.title }}</strong>
+            <span>{% if account.role == "storage" %}Склад{% else %}Фарм-бот{% endif %}{% if account.persona_name and account.persona_name != account.title %} · {{ account.persona_name }}{% endif %}</span>
+        </span>
+        <span class="fm-status fm-status--{{ account.status }}">{{ account.status_label }}</span>
+    </a>
+
+    {% if account.role == "farm" %}
+        <div class="fm-bot__week">
+            {% if row.has_week_drop %}
+                <span class="fm-bot__week-icon">{% include "components/icon.html" with name="check" %}</span>
+                <span>Дроп собран {{ row.week_session.collected_at|date:"d.m H:i" }}</span>
+            {% else %}
+                <span class="fm-bot__week-icon fm-bot__week-icon--wait">{% include "components/icon.html" with name="clock" %}</span>
+                <span>Ждёт дропа на этой неделе</span>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="fm-bot__week fm-bot__week--storage">
+            <span class="fm-bot__week-icon">{% include "components/icon.html" with name="box" %}</span>
+            <span>Принимает дроп с ботов</span>
+        </div>
+    {% endif %}
+
+    <dl class="fm-bot__stats">
+        <div><dt>Инвентарь</dt><dd>{% if row.latest_sync %}{{ row.inventory_items }} шт.{% else %}—{% endif %}</dd></div>
+        <div><dt>Оценка</dt><dd>{% if row.latest_sync %}{% money row.inventory_value_rub %}{% else %}—{% endif %}</dd></div>
+        <div><dt>Дропов</dt><dd>{{ row.drops_total }}</dd></div>
+    </dl>
+
+    {% include "farm/partials/_checks.html" with checks=row.checks compact=True %}
+
+    <div class="fm-bot__actions">
+        {% if row.is_farming and not row.has_week_drop %}
+            <a href="{% url 'farm:sessions_add' %}?account={{ account.id }}" class="btn btn-primary btn-sm">{% include "components/icon.html" with name="plus" %}Дроп</a>
+        {% else %}
+            <a href="{% url 'farm:sessions_add' %}?account={{ account.id }}" class="btn btn-secondary btn-sm">{% include "components/icon.html" with name="plus" %}Дроп</a>
+        {% endif %}
+        {% if account.trade_url %}
+            <form method="post" action="{% url 'farm:account_inventory_sync' account.id %}" class="inline-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-ghost btn-sm" title="Синхронизировать инвентарь">{% include "components/icon.html" with name="refresh" %}Инвентарь</button>
+            </form>
+        {% endif %}
+    </div>
+</article>
+{% endwith %}

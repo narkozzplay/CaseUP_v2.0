@@ -1,0 +1,47 @@
+<section class="section section--compact ops fm">
+    <header class="ops-hero fm-hero">
+        <div class="ops-hero__main fm-hero__account">
+            {% include "farm/partials/_avatar.html" with account=account size="lg" %}
+            <div>
+                <span class="eyebrow"><a href="{% url 'farm:accounts_detail' account.id %}" class="fm-back">← {{ account.title }}</a></span>
+                <h1 class="ops-hero__title">Настройки аккаунта</h1>
+            </div>
+        </div>
+    </header>
+
+    <div class="fm-connect">
+        <form method="post" class="ops-panel fm-form">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="fm-alert">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+                {% if field.name == "role" %}
+                    {% include "farm/partials/_role_choice.html" with field=field %}
+                {% else %}
+                    <div class="fm-field">
+                        <label class="fm-field__label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}<p class="fm-field__help">{{ field.help_text }}</p>{% endif %}
+                        {{ field.errors }}
+                    </div>
+                {% endif %}
+            {% endfor %}
+            <div class="fm-form__footer">
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+                <a href="{% url 'farm:accounts_detail' account.id %}" class="btn btn-ghost">Отмена</a>
+            </div>
+        </form>
+
+        <aside class="ops-panel fm-connect__side">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Удаление</h2></div>
+            {% if can_delete %}
+                <p class="fm-field__help">У аккаунта нет дропов и сделок, его можно удалить без следа.</p>
+                <form method="post" action="{% url 'farm:accounts_delete' account.id %}" class="inline-form" data-farm-confirm="Удалить аккаунт «{{ account.title }}»?">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">Удалить аккаунт</button>
+                </form>
+            {% else %}
+                <p class="fm-field__help">У аккаунта есть дропы или сделки, поэтому удалить его нельзя: история продаж на него ссылается. Поставь статус «Paused», чтобы убрать бота из недельного плана.</p>
+            {% endif %}
+        </aside>
+    </div>
+</section>

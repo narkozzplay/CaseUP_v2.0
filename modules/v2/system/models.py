@@ -593,6 +593,15 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 60,
             },
             {
+                "key": "farm_hub",
+                "label_ru": "Сводка",
+                "label_en": "Overview",
+                "url_name": "farm:hub",
+                "group": cls.Group.FARM,
+                "visibility_condition": cls.Visibility.FARM_ACCESS,
+                "sort_order": 5,
+            },
+            {
                 "key": "farm_dashboard",
                 "label_ru": "Ферма",
                 "label_en": "Farm",

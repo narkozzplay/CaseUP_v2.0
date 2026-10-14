@@ -680,20 +680,12 @@ class FarmViewsExpansionTests(TestCase):
                 "title": "New Session",
                 "collected_at": timezone.localtime().strftime("%Y-%m-%dT%H:%M"),
                 "notes": "seed",
-                "items-TOTAL_FORMS": "2",
-                "items-INITIAL_FORMS": "0",
-                "items-MIN_NUM_FORMS": "1",
-                "items-MAX_NUM_FORMS": "1000",
-                "items-1-steam_item": "",
-                "items-1-market_hash_name": "",
-                "items-1-quantity": "1",
-                "items-1-collected_price_rub_snapshot": "",
-                "items-1-notes": "",
-                "items-0-steam_item": str(self.item.id),
-                "items-0-market_hash_name": "",
-                "items-0-quantity": "2",
-                "items-0-collected_price_rub_snapshot": "100.00",
-                "items-0-notes": "",
+                "item": [str(self.item.id)],
+                f"qty_{self.item.id}": "2",
+                f"price_{self.item.id}": "100.00",
+                "manual_name": [""],
+                "manual_qty": ["1"],
+                "manual_price": [""],
             },
         )
         self.assertEqual(response.status_code, 302)
@@ -762,3 +754,186 @@ class FarmViewsExpansionTests(TestCase):
         response = csrf_client.post(reverse("farm:settings_dispatch_thresholds"))
 
         self.assertEqual(response.status_code, 403)
+
+
+from .connect import parse_account_line, refresh_account_profiles
+from .hub import build_account_board, build_week_progress, current_week
+
+
+class FarmReworkTests(TestCase):
+    TRADE_URL = "https://steamcommunity.com/tradeoffer/new/?partner=39734272&token=AbCdEf12"
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="farmer_rework", password="StrongPass123")
+        profile = UserProfile.objects.get(user=self.user)
+        profile.role = UserRole.FARMER
+        profile.save(update_fields=["role"])
+        self.client.login(username="farmer_rework", password="StrongPass123")
+        self.case = SteamItem.objects.create(
+            market_hash_name="Kilowatt Case",
+            family_name="Kilowatt Case",
+            name="Kilowatt Case",
+            item_type=SteamItem.ItemType.CASE,
+            price_rub=Decimal("150.00"),
+            icon_url="abc123",
+            is_active=True,
+        )
+
+    @patch("modules.v2.farm.views.refresh_account_profiles", return_value=0)
+    def test_connect_single_account_with_trade_url_only(self, _mocked_refresh):
+        response = self.client.post(reverse("farm:accounts_add"), {"mode": "single", "trade_url": self.TRADE_URL})
+        self.assertEqual(response.status_code, 302)
+        account = FarmAccount.objects.get(owner=self.user)
+        self.assertEqual(account.steam_id64, "76561198000000000")
+        self.assertEqual(account.title, "Bot 01")
+        self.assertEqual(account.role, FarmAccount.Role.FARM)
+        self.assertEqual(account.status, FarmAccount.Status.ACTIVE)
+
+    @patch("modules.v2.farm.views.refresh_account_profiles", return_value=0)
+    def test_connect_rejects_duplicate_steam_account(self, _mocked_refresh):
+        FarmAccount.objects.create(owner=self.user, title="Old", steam_id64="76561198000000000")
+        response = self.client.post(reverse("farm:accounts_add"), {"mode": "single", "trade_url": self.TRADE_URL})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "уже подключён")
+        self.assertEqual(FarmAccount.objects.filter(owner=self.user).count(), 1)
+
+    @patch("modules.v2.farm.connect.refresh_account_profiles", return_value=0)
+    def test_bulk_import_creates_accounts_and_reports_skipped_lines(self, _mocked_refresh):
+        text = "\n".join(
+            [
+                "Bot A; https://steamcommunity.com/tradeoffer/new/?partner=100&token=aa",
+                "https://steamcommunity.com/tradeoffer/new/?partner=101&token=bb | Bot B",
+                "https://steamcommunity.com/tradeoffer/new/?partner=100&token=aa",
+                "just text",
+            ]
+        )
+        response = self.client.post(
+            reverse("farm:accounts_add"),
+            {"mode": "bulk", "accounts_text": text, "role": "storage", "status": "active"},
+        )
+        self.assertEqual(response.status_code, 200)
+        titles = sorted(FarmAccount.objects.filter(owner=self.user).values_list("title", flat=True))
+        self.assertEqual(titles, ["Bot A", "Bot B"])
+        self.assertTrue(all(a.role == "storage" for a in FarmAccount.objects.filter(owner=self.user)))
+        self.assertContains(response, "Повтор в списке.")
+        self.assertContains(response, "В строке нет трейд-ссылки Steam.")
+
+    def test_quick_drop_entry_uses_catalog_price_and_moves_to_next_bot(self):
+        first = FarmAccount.objects.create(owner=self.user, title="Bot 01", status="active", sort_order=1)
+        second = FarmAccount.objects.create(owner=self.user, title="Bot 02", status="active", sort_order=2)
+        response = self.client.post(
+            reverse("farm:sessions_add"),
+            {
+                "account": first.id,
+                "source_type": "weekly",
+                "collected_at": timezone.localtime().strftime("%Y-%m-%dT%H:%M"),
+                "item": [str(self.case.id)],
+                f"qty_{self.case.id}": "2",
+                f"price_{self.case.id}": "",
+                "manual_name": ["Unknown Sticker Capsule"],
+                "manual_qty": ["1"],
+                "manual_price": ["12,50"],
+                "after": "next",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(f"account={second.id}", response["Location"])
+        session = FarmDropSession.objects.get(account=first)
+        catalog_row = session.items.get(steam_item=self.case)
+        self.assertEqual(catalog_row.quantity, 2)
+        self.assertEqual(catalog_row.collected_price_rub_snapshot, Decimal("150.00"))
+        self.assertEqual(catalog_row.icon_url_snapshot, "abc123")
+        manual_row = session.items.get(market_hash_name_snapshot="Unknown Sticker Capsule")
+        self.assertEqual(manual_row.collected_price_rub_snapshot, Decimal("12.50"))
+
+    def test_quick_drop_entry_requires_items(self):
+        account = FarmAccount.objects.create(owner=self.user, title="Bot 01", status="active")
+        response = self.client.post(
+            reverse("farm:sessions_add"),
+            {"account": account.id, "source_type": "weekly", "collected_at": timezone.localtime().strftime("%Y-%m-%dT%H:%M")},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Выбери хотя бы один предмет дропа.")
+        self.assertFalse(FarmDropSession.objects.exists())
+
+    def test_cannot_log_drop_for_foreign_account(self):
+        other = User.objects.create_user(username="other_farmer", password="StrongPass123")
+        foreign = FarmAccount.objects.create(owner=other, title="Foreign", status="active")
+        response = self.client.post(
+            reverse("farm:sessions_add"),
+            {
+                "account": foreign.id,
+                "source_type": "weekly",
+                "collected_at": timezone.localtime().strftime("%Y-%m-%dT%H:%M"),
+                "item": [str(self.case.id)],
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(FarmDropSession.objects.exists())
+
+    def test_board_and_hub_show_week_progress(self):
+        done = FarmAccount.objects.create(owner=self.user, title="Bot 01", status="active")
+        FarmAccount.objects.create(owner=self.user, title="Bot 02", status="active")
+        FarmAccount.objects.create(owner=self.user, title="Storage", status="active", role="storage")
+        create_drop_session(
+            account=done,
+            collected_at=timezone.now(),
+            source_type="weekly",
+            notes="",
+            created_by=self.user,
+            items_payload=[{"steam_item": self.case, "quantity": 1, "collected_price_rub_snapshot": Decimal("150.00")}],
+        )
+        week = current_week()
+        progress = build_week_progress(build_account_board(FarmAccount.objects.filter(owner=self.user)), week=week)
+        self.assertEqual((progress.done, progress.target), (1, 2))
+        self.assertEqual([row.account.title for row in progress.pending], ["Bot 02"])
+
+        response = self.client.get(reverse("farm:dashboard"), {"show": "pending"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Bot 02")
+        response = self.client.get(reverse("farm:hub"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Сводка портфеля")
+        self.assertContains(response, "Storage")
+
+    def test_item_search_returns_drop_items_only(self):
+        SteamItem.objects.create(
+            market_hash_name="Sticker | Kilowatt", name="Sticker | Kilowatt", item_type=SteamItem.ItemType.STICKER, is_active=True
+        )
+        response = self.client.get(reverse("farm:item_search"), {"q": "kilowatt"})
+        names = [row["market_hash_name"] for row in response.json()["results"]]
+        self.assertEqual(names, ["Kilowatt Case"])
+
+    def test_delete_account_only_without_history(self):
+        empty = FarmAccount.objects.create(owner=self.user, title="Empty")
+        used = FarmAccount.objects.create(owner=self.user, title="Used")
+        create_drop_session(
+            account=used,
+            collected_at=timezone.now(),
+            source_type="weekly",
+            notes="",
+            created_by=self.user,
+            items_payload=[{"steam_item": self.case, "quantity": 1, "collected_price_rub_snapshot": Decimal("1.00")}],
+        )
+        self.client.post(reverse("farm:accounts_delete", args=[empty.id]))
+        self.client.post(reverse("farm:accounts_delete", args=[used.id]))
+        self.assertFalse(FarmAccount.objects.filter(pk=empty.pk).exists())
+        self.assertTrue(FarmAccount.objects.filter(pk=used.pk).exists())
+
+    def test_parse_account_line_formats(self):
+        self.assertEqual(parse_account_line(f"Bot 7; {self.TRADE_URL}"), ("Bot 7", self.TRADE_URL))
+        self.assertEqual(parse_account_line(f"{self.TRADE_URL}\tBot 8"), ("Bot 8", self.TRADE_URL))
+        self.assertEqual(parse_account_line(self.TRADE_URL), ("", self.TRADE_URL))
+
+    @patch("modules.v2.farm.connect._steam_api_key", return_value="")
+    @patch("modules.v2.farm.connect._http_get")
+    def test_refresh_profile_reads_public_xml(self, mocked_get, _mocked_key):
+        mocked_get.return_value = (
+            "<?xml version='1.0'?><profile><steamID64>76561198000000000</steamID64>"
+            "<steamID><![CDATA[vortex]]></steamID><avatarFull><![CDATA[https://avatars.example/a.jpg]]></avatarFull></profile>"
+        )
+        account = FarmAccount.objects.create(owner=self.user, title="Bot", steam_id64="76561198000000000")
+        self.assertEqual(refresh_account_profiles([account]), 1)
+        account.refresh_from_db()
+        self.assertEqual(account.persona_name, "vortex")
+        self.assertEqual(account.avatar_url, "https://avatars.example/a.jpg")

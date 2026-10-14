@@ -1,0 +1,196 @@
+<section class="section section--compact ops fm" data-farm-hub>
+    <header class="ops-hero fm-hero">
+        <div class="ops-hero__main">
+            <span class="eyebrow">Ферма + Инвестиции</span>
+            <h1 class="ops-hero__title">Сводка портфеля</h1>
+            <p class="ops-hero__text">Боты, недельный дроп и закупки в одном месте: сколько стоит всё, что лежит на аккаунтах и в инвестициях, и что требует действия сегодня.</p>
+        </div>
+        <div class="fm-hero__total">
+            <span class="fm-hero__total-label">Портфель сейчас</span>
+            <strong class="fm-hero__total-value">{% money portfolio_total %}</strong>
+            {% if pnl_total is not None %}
+                <span class="fm-hero__total-meta">PnL <b class="{% if pnl_total >= 0 %}text-up{% else %}text-down{% endif %}">{% money pnl_total signed=True %}</b>{% if analytics_locked %} · без фермы{% endif %}</span>
+            {% endif %}
+            {% if portfolio_total %}
+                <span class="fm-split" aria-hidden="true">
+                    <span class="fm-split__farm" style="flex-grow: {{ farm_share }};"></span>
+                    <span class="fm-split__invest" style="flex-grow: {{ invest_share }};"></span>
+                </span>
+                <span class="fm-split__legend"><i class="fm-split__dot fm-split__dot--farm"></i>Ферма {{ farm_share }}%<i class="fm-split__dot fm-split__dot--invest"></i>Инвестиции {{ invest_share }}%</span>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="ops-kpis">
+        <a href="{% url 'farm:dashboard' %}" class="ops-kpi ops-kpi--link">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="farm_dashboard" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Ферма · инвентарь ботов</span>
+                <strong class="ops-kpi__value">{% money farm_value %}</strong>
+                <span class="ops-kpi__meta">{{ board_summary.inventory_items }} предм. на {{ board_summary.accounts_total }} акк.</span>
+            </div>
+        </a>
+        <a href="{% url 'farm:dashboard' %}?show=pending" class="ops-kpi ops-kpi--link{% if week_progress.pending %} ops-kpi--warn{% endif %}">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="farm_drops" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Дроп недели #{{ week.index }}</span>
+                <strong class="ops-kpi__value">{{ week_progress.done }}<small> / {{ week_progress.target }}</small></strong>
+                <span class="ops-kpi__meta">{% if week_progress.pending %}<b>{{ week_progress.pending|length }}</b> ботов ждут дропа{% elif week_progress.target %}Все боты собрали дроп{% else %}Подключи фарм-ботов{% endif %}</span>
+                <span class="ops-meter" aria-hidden="true"><span style="width: {{ week_progress.percent }}%;"></span></span>
+            </div>
+        </a>
+        {% if investments_enabled %}
+            <a href="{% url 'steam_trading:investments' %}" class="ops-kpi ops-kpi--link">
+                <span class="ops-kpi__icon">{% include "components/icon.html" with name="steam_investments" %}</span>
+                <div class="ops-kpi__body">
+                    <span class="ops-kpi__label">Инвестиции · в позициях</span>
+                    <strong class="ops-kpi__value">{% money invest_value %}</strong>
+                    <span class="ops-kpi__meta">Нереализ. <b class="{% if invest.kpi.unrealized_pnl_sum >= 0 %}text-up{% else %}text-down{% endif %}">{% money invest.kpi.unrealized_pnl_sum signed=True %}</b> · {{ invest.kpi.active_purchases_count }} поз.</span>
+                </div>
+            </a>
+            <a href="{% url 'steam_trading:investments' %}?status=ready" class="ops-kpi ops-kpi--link{% if invest.kpi.ready_count %} ops-kpi--warn{% endif %}">
+                <span class="ops-kpi__icon">{% include "components/icon.html" with name="clock" %}</span>
+                <div class="ops-kpi__body">
+                    <span class="ops-kpi__label">Готово к продаже</span>
+                    <strong class="ops-kpi__value">{{ invest.kpi.ready_count }}<small> / {{ invest.kpi.active_purchases_count }}</small></strong>
+                    <span class="ops-kpi__meta">{% if invest.kpi.nearest_unlock_at %}Анлок {{ invest.kpi.nearest_unlock_at|date:"d.m H:i" }}{% else %}Позиций в hold нет{% endif %}</span>
+                </div>
+            </a>
+        {% endif %}
+    </div>
+
+    {% include "farm/partials/_week_progress.html" with show_pending=True %}
+
+    <div class="ops-grid">
+        <div class="ops-grid__main">
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Ферма и инвестиции рядом</h2>
+                </div>
+                <div class="fm-compare">
+                    <div class="fm-compare__col">
+                        <span class="fm-compare__head"><i class="fm-split__dot fm-split__dot--farm"></i>Ферма</span>
+                        {% if analytics_locked %}
+                            <p class="fm-compare__locked">PnL фермы открывается с тарифом <strong>{{ analytics_plan_name }}</strong>. <a href="{% url 'subscriptions:farmer_plans' %}">Тарифы</a></p>
+                            <dl class="fm-kv">
+                                <div><dt>Инвентарь ботов</dt><dd>{% money farm_value %}</dd></div>
+                                <div><dt>Дропов записано</dt><dd>{{ farm_drops_total }}</dd></div>
+                            </dl>
+                        {% else %}
+                            <dl class="fm-kv">
+                                <div><dt>Открытые дропы</dt><dd>{% money farm_analytics.current_value_rub %}</dd></div>
+                                <div><dt>Реализовано</dt><dd class="{% if farm_analytics.realized_pnl_rub >= 0 %}text-up{% else %}text-down{% endif %}">{% money farm_analytics.realized_pnl_rub signed=True %}</dd></div>
+                                <div><dt>На бумаге</dt><dd class="{% if farm_analytics.unrealized_pnl_rub >= 0 %}text-up{% else %}text-down{% endif %}">{% money farm_analytics.unrealized_pnl_rub signed=True %}</dd></div>
+                                <div><dt>Оборот {{ site_settings.site_name|default:"CaseUP" }}</dt><dd>{% money farm_analytics.caseup_turnover_rub %}</dd></div>
+                            </dl>
+                        {% endif %}
+                    </div>
+                    <div class="fm-compare__col">
+                        <span class="fm-compare__head"><i class="fm-split__dot fm-split__dot--invest"></i>Инвестиции</span>
+                        {% if invest %}
+                            <dl class="fm-kv">
+                                <div><dt>Вложено в активные</dt><dd>{% money invest.kpi.active_cost_basis_sum %}</dd></div>
+                                <div><dt>Реализовано</dt><dd class="{% if invest.kpi.realized_pnl_sum >= 0 %}text-up{% else %}text-down{% endif %}">{% money invest.kpi.realized_pnl_sum signed=True %}</dd></div>
+                                <div><dt>На бумаге</dt><dd class="{% if invest.kpi.unrealized_pnl_sum >= 0 %}text-up{% else %}text-down{% endif %}">{% money invest.kpi.unrealized_pnl_sum signed=True %}</dd></div>
+                                <div><dt>Всего потрачено</dt><dd>{% money invest.kpi.total_spent_sum %}</dd></div>
+                            </dl>
+                        {% else %}
+                            <p class="fm-compare__locked">Модуль инвестиций выключен.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Последние события</h2>
+                    <a href="{% url 'farm:sessions_list' %}" class="ops-panel__link">Журнал дропов →</a>
+                </div>
+                <div class="ops-list">
+                    {% for entry in activity %}
+                        <a href="{{ entry.url }}" class="ops-row ops-row--link">
+                            <span class="ops-row__badge fm-event fm-event--{{ entry.kind }}" aria-hidden="true">{% if entry.kind == "drop" %}{% include "components/icon.html" with name="farm_drops" %}{% elif entry.kind == "purchase" %}{% include "components/icon.html" with name="steam_investments" %}{% else %}₽{% endif %}</span>
+                            <span class="ops-row__main">
+                                <strong>{{ entry.title }}</strong>
+                                <span>{{ entry.subtitle }}</span>
+                            </span>
+                            <span class="ops-row__side">
+                                {% if entry.amount_rub is not None %}<b class="ops-row__amount {% if entry.amount_rub >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% money entry.amount_rub signed=True %}</b>{% endif %}
+                                <time datetime="{{ entry.at|date:'c' }}">{{ entry.at|date:"d.m H:i" }}</time>
+                            </span>
+                        </a>
+                    {% empty %}
+                        <p class="ops-empty">Событий пока нет. Подключи ботов и добавь первый дроп.</p>
+                    {% endfor %}
+                </div>
+            </article>
+        </div>
+
+        <aside class="ops-grid__side">
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Быстрые действия</h2>
+                </div>
+                <nav class="ops-actions">
+                    <a href="{% url 'farm:sessions_add' %}" class="ops-action">
+                        <span class="ops-action__icon">{% include "components/icon.html" with name="farm_drops" %}</span>
+                        <span class="ops-action__text"><strong>Добавить дроп</strong><span>{% if week_progress.pending %}Следующий: {{ week_progress.pending.0.account.title }}{% else %}Быстрый ввод по пулу{% endif %}</span></span>
+                        {% include "components/icon.html" with name="arrow" %}
+                    </a>
+                    <a href="{% if board_summary.accounts_attention %}{% url 'farm:accounts_list' %}{% else %}{% url 'farm:accounts_add' %}{% endif %}" class="ops-action">
+                        <span class="ops-action__icon">{% include "components/icon.html" with name="plus" %}</span>
+                        <span class="ops-action__text"><strong>Аккаунты · {{ board_summary.accounts_active }} / {{ board_summary.accounts_total }}</strong><span>{% if board_summary.accounts_attention %}{{ board_summary.accounts_attention }} с проблемой подключения{% else %}Подключить по трейд-ссылке, можно списком{% endif %}</span></span>
+                        {% include "components/icon.html" with name="arrow" %}
+                    </a>
+                    {% if investments_enabled %}
+                        <a href="{% url 'steam_trading:add' %}" class="ops-action">
+                            <span class="ops-action__icon">{% include "components/icon.html" with name="steam_investments" %}</span>
+                            <span class="ops-action__text"><strong>Записать закупку</strong><span>Кейсы в инвестиции</span></span>
+                            {% include "components/icon.html" with name="arrow" %}
+                        </a>
+                    {% endif %}
+                </nav>
+            </article>
+
+            {% if investments_enabled %}
+                <article class="ops-panel">
+                    <div class="ops-panel__head">
+                        <h2 class="ops-panel__title">Ближайшие анлоки</h2>
+                        <span class="ops-panel__hint">7 дней</span>
+                    </div>
+                    <div class="ops-list">
+                        {% for row in upcoming_unlocks %}
+                            <a href="{% url 'steam_trading:sell' row.purchase.id %}" class="ops-row ops-row--link">
+                                <span class="ops-row__thumb">{% if row.purchase.item.icon_url %}<img src="{{ row.purchase.item.icon_cdn }}" alt="">{% else %}{% include "components/icon.html" with name="steam_investments" %}{% endif %}</span>
+                                <span class="ops-row__main">
+                                    <strong>{{ row.purchase.item.group_name }}</strong>
+                                    <span>{{ row.remaining_quantity }} шт. · {% money row.current_value_rub %}</span>
+                                </span>
+                                <span class="ops-row__side"><time datetime="{{ row.purchase.unlocked_at|date:'c' }}">{{ row.purchase.unlocked_at|date:"d.m H:i" }}</time></span>
+                            </a>
+                        {% empty %}
+                            <p class="ops-empty">На неделе анлоков нет.</p>
+                        {% endfor %}
+                    </div>
+                </article>
+            {% endif %}
+
+            <article class="ops-panel fm-transfer">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Авто-отправка дропа</h2>
+                    <span class="fm-soon">скоро</span>
+                </div>
+                <p class="fm-transfer__text">
+                    {% if board_summary.storage_accounts %}
+                        Дроп с фарм-ботов будет уходить на склад
+                        {% for account in board_summary.storage_accounts %}<strong>{{ account.title }}</strong>{% if not forloop.last %}, {% endif %}{% endfor %}
+                        по трейд-ссылке.
+                    {% else %}
+                        Отметь один аккаунт ролью «Склад», и дроп с фарм-ботов сможет уходить на него по трейд-ссылке.
+                    {% endif %}
+                </p>
+                <a href="{% url 'farm:accounts_list' %}?role=storage" class="ops-panel__link">Склады →</a>
+            </article>
+        </aside>
+    </div>
+</section>

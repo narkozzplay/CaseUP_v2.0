@@ -1,80 +1,82 @@
-<section class="section section--compact">
-    <div class="section-head-inline">
-        <div>
-            <span class="eyebrow">Farmer zone</span>
-            <h1 class="page-title page-title--sm">Farm accounts</h1>
-            <p class="text-muted">Аккаунты, дропы на аккаунтах и переход в единый сценарий FarmDropSession.</p>
+<section class="section section--compact ops fm" data-farm-accounts>
+    <header class="ops-hero fm-hero">
+        <div class="ops-hero__main">
+            <span class="eyebrow">Ферма</span>
+            <h1 class="ops-hero__title">Аккаунты</h1>
+            <p class="ops-hero__text">Фарм-боты и склады. Зелёная точка значит, что проверка пройдена: трейд-ссылка, профиль Steam и открытый инвентарь.</p>
         </div>
-        <div class="hero-actions dashboard-actions">
-            <a href="{% url 'farm:sessions_list' %}" class="btn btn-secondary">Открыть дропы</a>
-            <a href="{% url 'farm:sessions_add' %}" class="btn btn-primary">Добавить дроп</a>
-        </div>
-    </div>
-
-    <div class="card catalog-toolbar">
-        <div class="card-body">
-            <form method="get" class="toolbar-grid toolbar-grid--compact">
-                <div class="form-field">
-                    <label for="status">Статус</label>
-                    <select id="status" name="status" class="form-control">
-                        <option value="">Все</option>
-                        {% for value, label in statuses %}
-                            <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="toolbar-actions">
-                    <button type="submit" class="btn btn-secondary">Фильтровать</button>
-                </div>
+        <div class="fm-hero__actions">
+            <form method="post" action="{% url 'farm:accounts_refresh_profiles' %}" class="inline-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-ghost">{% include "components/icon.html" with name="refresh" %}Обновить профили</button>
             </form>
+            <a href="{% url 'farm:accounts_add' %}?mode=bulk" class="btn btn-secondary">Списком</a>
+            <a href="{% url 'farm:accounts_add' %}" class="btn btn-primary">{% include "components/icon.html" with name="plus" %}Подключить</a>
         </div>
-    </div>
+    </header>
 
-    <article class="card profile-history">
-        <div class="card-body">
-            {% if accounts %}
-                <div class="table-wrap">
-                    <table class="table table--dark">
-                        <thead>
-                            <tr>
-                                <th>Аккаунт</th>
-                                <th>Статус</th>
-                                <th>Дропы</th>
-                                <th>Inventory</th>
-                                <th>Trade URL</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for account in accounts %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ account.title }}</strong>
-                                        <div class="text-muted">SteamID64: {{ account.steam_id64|default:"—" }}</div>
-                                    </td>
-                                    <td>{{ account.get_status_display }}</td>
-                                    <td>
-                                        <strong>{{ account.session_count }}</strong>
-                                    </td>
-                                    <td>
-                                        <strong>{{ account.inventory_total }}</strong>
-                                        <div class="text-muted">sellable: {{ account.inventory_sellable_total }}</div>
-                                    </td>
-                                    <td class="farm-break">{{ account.trade_url|default:"—" }}</td>
-                                    <td>
-                                        <div class="farm-table-actions">
-                                            <a href="{% url 'farm:accounts_detail' account.id %}" class="btn btn-secondary btn-sm">Открыть</a>
-                                            <a href="{% url 'farm:sessions_add' %}?account={{ account.id }}" class="btn btn-secondary btn-sm">Добавить дроп</a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <p class="text-muted">Аккаунтов пока нет.</p>
-            {% endif %}
+    <form method="get" class="fm-toolbar">
+        <label class="fm-search">
+            {% include "components/icon.html" with name="search" %}
+            <input type="search" name="q" value="{{ q }}" placeholder="Название, имя в Steam или SteamID" class="fm-search__input">
+        </label>
+        <select name="role" class="form-control fm-toolbar__select" aria-label="Роль">
+            <option value="">Все роли</option>
+            {% for value, label in roles %}<option value="{{ value }}"{% if selected_role == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <select name="status" class="form-control fm-toolbar__select" aria-label="Статус">
+            <option value="">Все статусы</option>
+            {% for value, label in statuses %}<option value="{{ value }}"{% if selected_status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="btn btn-secondary">Показать</button>
+        {% if q or selected_role or selected_status %}<a href="{% url 'farm:accounts_list' %}" class="btn btn-ghost">Сбросить</a>{% endif %}
+    </form>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head">
+            <h2 class="ops-panel__title">Подключено {{ board_summary.accounts_total }}</h2>
+            <span class="ops-panel__hint">Активных {{ board_summary.accounts_active }}{% if board_summary.accounts_attention %} · с проблемой {{ board_summary.accounts_attention }}{% endif %} · инвентарь {% money board_summary.inventory_value_rub %}</span>
         </div>
+        {% if board_rows %}
+            <div class="fm-table">
+                <div class="fm-table__row fm-table__row--head" aria-hidden="true">
+                    <span>Аккаунт</span><span>Подключение</span><span>Неделя</span><span>Инвентарь</span><span></span>
+                </div>
+                {% for row in board_rows %}
+                    {% with account=row.account %}
+                    <div class="fm-table__row fm-conn--{{ row.connection }}">
+                        <a href="{% url 'farm:accounts_detail' account.id %}" class="fm-table__account">
+                            {% include "farm/partials/_avatar.html" with account=account size="sm" %}
+                            <span class="fm-bot__id">
+                                <strong>{{ account.title }}</strong>
+                                <span>{% if account.role == "storage" %}Склад{% else %}Фарм-бот{% endif %} · <span class="fm-status-text fm-status-text--{{ account.status }}">{{ account.status_label }}</span>{% if farm_access.staff_access and account.owner_id != request.user.id %} · {{ account.owner }}{% endif %}</span>
+                            </span>
+                        </a>
+                        <span class="fm-table__cell" data-label="Подключение">{% include "farm/partials/_checks.html" with checks=row.checks compact=True %}</span>
+                        <span class="fm-table__cell" data-label="Неделя">
+                            {% if account.role == "storage" %}<span class="fm-tag">склад</span>
+                            {% elif account.status != "active" %}<span class="fm-tag">{{ account.status_label|lower }}</span>
+                            {% elif row.has_week_drop %}<span class="fm-tag fm-tag--ok">дроп есть</span>
+                            {% else %}<span class="fm-tag fm-tag--wait">ждёт</span>{% endif %}
+                        </span>
+                        <span class="fm-table__cell fm-table__num" data-label="Инвентарь">{% if row.latest_sync %}<b>{% money row.inventory_value_rub %}</b><small>{{ row.inventory_items }} шт.</small>{% else %}<small>не синхр.</small>{% endif %}</span>
+                        <span class="fm-table__actions">
+                            <a href="{% url 'farm:sessions_add' %}?account={{ account.id }}" class="btn btn-secondary btn-sm" title="Добавить дроп">{% include "components/icon.html" with name="plus" %}Дроп</a>
+                            <a href="{% url 'farm:accounts_edit' account.id %}" class="btn btn-ghost btn-sm" title="Настройки">{% include "components/icon.html" with name="edit" %}</a>
+                        </span>
+                    </div>
+                    {% endwith %}
+                {% endfor %}
+            </div>
+        {% elif q or selected_role or selected_status %}
+            <p class="ops-empty">По фильтру ничего не найдено.</p>
+        {% else %}
+            <div class="fm-empty">
+                <span class="fm-empty__icon">{% include "components/icon.html" with name="farm_accounts" %}</span>
+                <strong>Аккаунтов пока нет</strong>
+                <p>Вставь трейд-ссылку бота или сразу список ссылок, остальное определится само.</p>
+                <a href="{% url 'farm:accounts_add' %}" class="btn btn-primary btn-sm">Подключить аккаунты</a>
+            </div>
+        {% endif %}
     </article>
 </section>
