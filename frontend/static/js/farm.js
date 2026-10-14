@@ -12,10 +12,15 @@
         return isNaN(value) || value < 0 ? 0 : value;
     }
 
+    // Results go into attributes too (src="...", value="..."), so quotes must be escaped;
+    // the textContent/innerHTML trick only escapes &, < and >.
     function escapeHtml(text) {
-        var node = document.createElement('span');
-        node.textContent = text == null ? '' : String(text);
-        return node.innerHTML;
+        return (text == null ? '' : String(text))
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
     /* ---------- Connect: live trade link check ---------- */

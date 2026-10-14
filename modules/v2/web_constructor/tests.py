@@ -168,6 +168,47 @@ class WebConstructorTests(TestCase):
         self.assertIn("https://example.com/outside", links)
         self.assertIn("https://cdn.example.com/img.png", links)
 
+    def _banner_schema(self, background_image_url: str, button_url: str = "/") -> dict:
+        return {
+            "page": {"style": {"theme": "light", "accent": "blue", "width": "standard", "spacing": "normal", "font_scale": "md", "surface": "plain", "radius": "md"}},
+            "blocks": [
+                {
+                    "id": "blk_banner",
+                    "type": "banner",
+                    "visible": True,
+                    "data": {
+                        "label": "x",
+                        "title": "x",
+                        "text": "x",
+                        "button_label": "Open",
+                        "button_url": button_url,
+                        "background_asset_id": None,
+                        "background_image_url": background_image_url,
+                    },
+                    "style": {"variant": "soft", "align": "left"},
+                }
+            ],
+        }
+
+    def test_background_url_cannot_break_out_of_css_url(self):
+        template = self._create_template()
+        payload = "https://cdn.example.com/a.png');background:url('https://tracker.example/x"
+        html, _payload = render_preview_fragment(template=template, schema_override=self._banner_schema(payload))
+
+        self.assertIn("url('https://cdn.example.com/a.png%27%29;background:url%28%27https://tracker.example/x')", html)
+        self.assertNotIn("');background", html)
+
+    def test_backslash_path_is_not_a_protocol_relative_link(self):
+        normalized, links = normalize_schema(self._banner_schema("", button_url="/\\evil.example/login"), asset_ids=set())
+
+        self.assertEqual(normalized["blocks"][0]["data"]["button_url"], "/%5Cevil.example/login")
+        self.assertEqual(links, [])
+
+    def test_regular_urls_with_parentheses_stay_usable(self):
+        normalized, _links = normalize_schema(self._banner_schema("https://cdn.example.com/img (1).png"), asset_ids=set())
+
+        self.assertEqual(normalized["blocks"][0]["data"]["background_image_url"], "https://cdn.example.com/img%20%281%29.png")
+
     def test_preview_fragment_endpoint_requires_owner_and_renders_safe_html(self):
         template = self._create_template()
         self._login(self.user)
