@@ -7,6 +7,8 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from common.encryption import EncryptedTextField
+
 
 DEFAULT_INVESTMENT_MESSAGE_TEMPLATE = """{{ trade_lock_label }}
 
@@ -44,10 +46,10 @@ def default_link_expiry():
 class TelegramNotifierConfig(models.Model):
     singleton_key = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
     is_enabled = models.BooleanField(default=False)
-    bot_token = models.CharField(max_length=255, blank=True, default="")
+    bot_token = EncryptedTextField(blank=True, default="")
     bot_username = models.CharField(max_length=128, blank=True, default="")
     default_chat_id = models.CharField(max_length=128, blank=True, default="")
-    webhook_secret = models.CharField(max_length=64, blank=True, default=generate_webhook_secret)
+    webhook_secret = EncryptedTextField(blank=True, default=generate_webhook_secret, plain_max_length=64)
     public_base_url = models.URLField(max_length=255, blank=True, default="")
     investment_message_template = models.TextField(default=DEFAULT_INVESTMENT_MESSAGE_TEMPLATE)
 

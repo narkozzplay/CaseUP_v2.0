@@ -6,6 +6,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from common.encryption import EncryptedTextField
+
 from .module_registry import MODULE_REGISTRY
 
 
@@ -183,9 +185,10 @@ class ExternalServiceIntegration(models.Model):
         FORCE_DOWN = "force_down", "Force DOWN"
 
     singleton_key = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
-    steam_api_key = models.CharField(max_length=255, blank=True, default="")
-    faceit_api_key = models.CharField(max_length=255, blank=True, default="")
-    telegram_bot_token = models.CharField(max_length=255, blank=True, default="")
+    # Encrypted at rest (common.encryption); code reads plaintext.
+    steam_api_key = EncryptedTextField(blank=True, default="")
+    faceit_api_key = EncryptedTextField(blank=True, default="")
+    telegram_bot_token = EncryptedTextField(blank=True, default="")
     steam_health_mode = models.CharField(max_length=24, choices=HealthMode.choices, default=HealthMode.AUTO)
     faceit_health_mode = models.CharField(max_length=24, choices=HealthMode.choices, default=HealthMode.AUTO)
     telegram_health_mode = models.CharField(max_length=24, choices=HealthMode.choices, default=HealthMode.AUTO)

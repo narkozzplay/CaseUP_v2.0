@@ -234,6 +234,58 @@ class SystemConfigurationTests(TestCase):
         self.assertEqual(integration.faceit_health_mode, "force_degraded")
         self.assertEqual(integration.telegram_health_mode, "force_down")
 
+    def _settings_post_data(self, **overrides):
+        data = {
+            "site_name": "CaseUP",
+            "site_currency_code": "RUB",
+            "site_currency_rate": "1.000000",
+            "support_email": "support@example.com",
+            "public_base_url": "https://caseup.example.com",
+            "maintenance_message": "Maint",
+            "registration_enabled": "on",
+            "module__tg_notifier": "on",
+            "module__subscriptions": "on",
+        }
+        data.update(overrides)
+        return data
+
+    def test_saving_settings_with_empty_secret_fields_keeps_stored_keys(self):
+        # The browser never receives stored secrets, so a normal save posts empty key fields.
+        admin = self._make_admin("admin_integrations_keep")
+        self.client.login(username=admin.username, password="StrongPass123")
+        ExternalServiceIntegration.objects.update_or_create(
+            singleton_key=1,
+            defaults={"steam_api_key": "steam-key-keep", "faceit_api_key": "faceit-key-keep", "telegram_bot_token": "tg-token-keep"},
+        )
+
+        page = self.client.get(reverse("system_config:settings"))
+        self.assertNotContains(page, "steam-key-keep")
+        self.assertNotContains(page, "tg-token-keep")
+
+        response = self.client.post(
+            reverse("system_config:settings"),
+            self._settings_post_data(steam_api_key="", faceit_api_key="", telegram_bot_token="", maintenance_message="Changed"),
+        )
+        self.assertEqual(response.status_code, 302)
+        integration = ExternalServiceIntegration.objects.get(singleton_key=1)
+        self.assertEqual(integration.steam_api_key, "steam-key-keep")
+        self.assertEqual(integration.faceit_api_key, "faceit-key-keep")
+        self.assertEqual(integration.telegram_bot_token, "tg-token-keep")
+
+    def test_clear_checkbox_removes_only_that_key(self):
+        admin = self._make_admin("admin_integrations_clear")
+        self.client.login(username=admin.username, password="StrongPass123")
+        ExternalServiceIntegration.objects.update_or_create(
+            singleton_key=1,
+            defaults={"steam_api_key": "steam-key-clear", "faceit_api_key": "faceit-key-stay"},
+        )
+
+        self.client.post(reverse("system_config:settings"), self._settings_post_data(clear_steam_api_key="on"))
+
+        integration = ExternalServiceIntegration.objects.get(singleton_key=1)
+        self.assertEqual(integration.steam_api_key, "")
+        self.assertEqual(integration.faceit_api_key, "faceit-key-stay")
+
     def test_external_service_health_respects_force_modes(self):
         integration = ExternalServiceIntegration.objects.create(
             steam_api_key="steam-key",

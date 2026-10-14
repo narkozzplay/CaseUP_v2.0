@@ -17,10 +17,23 @@ from .services import (
 )
 
 
+INTEGRATION_SECRET_FIELDS = ("steam_api_key", "faceit_api_key", "telegram_bot_token")
+_SECRET_INPUT_ATTRS = {
+    "class": "form-control",
+    "autocomplete": "new-password",
+    "placeholder": "Оставь пустым, чтобы не менять",
+}
+
+
 class SiteConfigurationForm(forms.ModelForm):
-    steam_api_key = forms.CharField(required=False, widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "new-password", "render_value": True}))
-    faceit_api_key = forms.CharField(required=False, widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "new-password", "render_value": True}))
-    telegram_bot_token = forms.CharField(required=False, widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "new-password", "render_value": True}))
+    # Secrets are never sent back to the browser: an empty field keeps the stored value,
+    # the matching clear_* checkbox removes it.
+    steam_api_key = forms.CharField(required=False, widget=forms.PasswordInput(render_value=False, attrs=_SECRET_INPUT_ATTRS))
+    faceit_api_key = forms.CharField(required=False, widget=forms.PasswordInput(render_value=False, attrs=_SECRET_INPUT_ATTRS))
+    telegram_bot_token = forms.CharField(required=False, widget=forms.PasswordInput(render_value=False, attrs=_SECRET_INPUT_ATTRS))
+    clear_steam_api_key = forms.BooleanField(required=False)
+    clear_faceit_api_key = forms.BooleanField(required=False)
+    clear_telegram_bot_token = forms.BooleanField(required=False)
     steam_health_mode = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
     faceit_health_mode = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
     telegram_health_mode = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
@@ -89,9 +102,6 @@ class SiteConfigurationForm(forms.ModelForm):
         self.fields["steam_health_mode"].choices = integration.HealthMode.choices
         self.fields["faceit_health_mode"].choices = integration.HealthMode.choices
         self.fields["telegram_health_mode"].choices = integration.HealthMode.choices
-        self.fields["steam_api_key"].initial = integration.steam_api_key
-        self.fields["faceit_api_key"].initial = integration.faceit_api_key
-        self.fields["telegram_bot_token"].initial = integration.telegram_bot_token
         self.fields["steam_health_mode"].initial = integration.steam_health_mode
         self.fields["faceit_health_mode"].initial = integration.faceit_health_mode
         self.fields["telegram_health_mode"].initial = integration.telegram_health_mode
@@ -145,6 +155,17 @@ class SiteConfigurationForm(forms.ModelForm):
             submitted[key] = bool(field.widget.value_from_datadict(self.data, self.files, self.add_prefix(field_name)))
         return submitted
 
+    def get_secret_updates(self) -> dict[str, str]:
+        updates = {}
+        for field in INTEGRATION_SECRET_FIELDS:
+            if self.cleaned_data.get(f"clear_{field}"):
+                updates[field] = ""
+            else:
+                value = (self.cleaned_data.get(field) or "").strip()
+                if value:
+                    updates[field] = value
+        return updates
+
     def save(self, commit=True):
         instance: SiteConfiguration = super().save(commit=False)
         module_states = self.get_module_states()
@@ -153,9 +174,7 @@ class SiteConfigurationForm(forms.ModelForm):
         config = save_site_configuration(config=instance, module_states=module_states)
         save_external_service_integration(
             payload={
-                "steam_api_key": self.cleaned_data.get("steam_api_key", ""),
-                "faceit_api_key": self.cleaned_data.get("faceit_api_key", ""),
-                "telegram_bot_token": self.cleaned_data.get("telegram_bot_token", ""),
+                **self.get_secret_updates(),
                 "steam_health_mode": self.cleaned_data.get("steam_health_mode"),
                 "faceit_health_mode": self.cleaned_data.get("faceit_health_mode"),
                 "telegram_health_mode": self.cleaned_data.get("telegram_health_mode"),
