@@ -380,7 +380,6 @@ class FrontendDashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "midnight-home")
         self.assertContains(response, reverse("frontend:dashboard_preview"))
-        self.assertContains(response, reverse("frontend:testing_preview"))
 
     def test_midnight_public_navbar_uses_named_routes(self):
         self._activate_midnight_theme()
@@ -390,7 +389,6 @@ class FrontendDashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, reverse("frontend:home"))
         self.assertContains(response, reverse("frontend:dashboard_preview"))
-        self.assertContains(response, reverse("frontend:testing_preview"))
         self.assertContains(response, reverse("accounts:login"))
         self.assertContains(response, "lang-switcher")
 

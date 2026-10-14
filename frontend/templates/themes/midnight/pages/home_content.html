@@ -17,9 +17,6 @@
                         <a href="{% url 'frontend:dashboard_preview' %}" class="btn btn-primary">
                             {% if LANGUAGE_CODE == "ru" %}Открыть dashboard{% else %}Open dashboard{% endif %}
                         </a>
-                        <a href="{% url 'frontend:testing_preview' %}" class="btn btn-secondary">
-                            {% if LANGUAGE_CODE == "ru" %}Открыть testing preview{% else %}Open testing preview{% endif %}
-                        </a>
                         {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}" class="btn btn-secondary">
                             {% if LANGUAGE_CODE == "ru" %}Тарифы и доступы{% else %}Plans and access{% endif %}
                         </a>{% endif %}
@@ -88,10 +85,6 @@
                     <a href="{% url 'frontend:dashboard_preview' %}" class="quick-action-card">
                         <strong>{% trans "Dashboard" %}</strong>
                         <span>{% if LANGUAGE_CODE == "ru" %}Метрики, активность и быстрые действия{% else %}Metrics, activity and quick actions{% endif %}</span>
-                    </a>
-                    <a href="{% url 'frontend:testing_preview' %}" class="quick-action-card">
-                        <strong>{% trans "Testing Preview" %}</strong>
-                        <span>{% if LANGUAGE_CODE == "ru" %}Проверка интеграций и UI-потоков{% else %}Integration and UI flow checks{% endif %}</span>
                     </a>
                     {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}" class="quick-action-card">
                         <strong>{% if LANGUAGE_CODE == "ru" %}Подписки{% else %}Subscriptions{% endif %}</strong>

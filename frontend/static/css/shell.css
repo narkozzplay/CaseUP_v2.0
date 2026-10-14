@@ -74,10 +74,6 @@
     backdrop-filter: blur(14px);
 }
 
-.site-header--testing {
-    border-bottom-color: rgba(245, 166, 35, 0.4);
-}
-
 .navbar {
     display: flex;
     align-items: center;
