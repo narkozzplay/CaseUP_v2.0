@@ -49,3 +49,26 @@ services:
       - media_data:/app/media
       - static_data:/app/staticfiles
       - celerybeat_data:/var/run/celery
+
+  # Public entry point: HTTPS (Let's Encrypt, renewed automatically), www → apex redirect, /media/.
+  # Only Caddy listens on the internet; Postgres/Redis stay internal, web is also on 127.0.0.1:18001.
+  caddy:
+    image: caddy:2.8.4-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    environment:
+      CADDY_DOMAIN: ${CADDY_DOMAIN:-example.com}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - media_data:/srv/media:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
