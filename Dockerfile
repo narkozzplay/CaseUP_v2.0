@@ -2,16 +2,20 @@ FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /app
 
+# Runtime tools only: nc for the DB wait in entrypoint.sh, pg_dump/pg_restore for backup_db/restore_db.
+# All Python dependencies ship as binary wheels (psycopg[binary], Pillow, cryptography), so no compiler
+# or libpq headers are needed in the image.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential libpq-dev netcat-openbsd postgresql-client \
+    && apt-get install -y --no-install-recommends netcat-openbsd postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt
-RUN pip install --upgrade pip && pip install -r /app/requirements.txt
+RUN pip install -r /app/requirements.txt
 
 COPY . /app
 
@@ -25,4 +29,6 @@ USER appuser
 EXPOSE 8000
 
 ENTRYPOINT ["sh", "/app/entrypoint.sh"]
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Compose sets the command explicitly (runserver in dev, gunicorn in prod); a bare `docker run`
+# gets the production server rather than Django's development one.
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2"]

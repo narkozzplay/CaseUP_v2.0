@@ -86,3 +86,24 @@ jobs:
           docker compose --env-file .env.dev config --quiet
       - name: Dependency vulnerabilities
         run: pip-audit -r requirements.txt
+
+  docker-image:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t caseup:ci .
+      - name: Runtime tools are present
+        run: docker run --rm --entrypoint sh caseup:ci -c "id -un && pg_dump --version && command -v nc && gunicorn --version"
+      - name: Django check inside the image
+        run: docker run --rm -e DJANGO_SETTINGS_MODULE=config.settings.testing caseup:ci python manage.py check
+      - name: collectstatic with prod settings as the image user
+        run: >-
+          docker run --rm
+          -e DJANGO_SETTINGS_MODULE=config.settings.prod
+          -e DJANGO_SECRET_KEY=ci-only-not-a-secret-0123456789-abcdefghijklmnopqrstuvwxyz
+          -e DJANGO_ALLOWED_HOSTS=example.com
+          -e FIELD_ENCRYPTION_KEYS=9ieEJei-bl9MhKen5IyFGe__2iZY-zj_tYn2-kaqquQ=
+          caseup:ci python manage.py collectstatic --noinput
