@@ -1,0 +1,20 @@
+{# One user in a friends list. Expects `row`; fills the side with the `actions` block of the caller via `row_actions`. #}
+<article class="chat-row friend-row{% if highlight %} has-unread{% endif %}">
+    <span class="chat-avatar presence-avatar-wrap">
+        <img src="{{ row.avatar_url }}" alt="">
+        <span class="presence-indicator {% if row.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" aria-label="{% if row.is_online %}Online{% else %}Offline{% endif %}"></span>
+    </span>
+    <div class="chat-row__main">
+        <div class="chat-row__top">
+            <a href="{% url 'profiles:profile_detail' row.user_id %}" class="chat-row__link" data-dashboard-nav="true">{{ row.display_name }}</a>
+            {% if row.created_at %}<time datetime="{{ row.created_at|date:'c' }}" title="{{ row.created_at|date:'d.m.Y H:i' }}">{{ row.created_at|date:"d.m H:i" }}</time>{% endif %}
+        </div>
+        <div class="chat-row__meta">
+            <span class="{% if row.is_online %}friend-row__online{% endif %}">{% if row.is_online %}{% if LANGUAGE_CODE == "ru" %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}Оффлайн{% else %}Offline{% endif %}{% endif %}</span>
+            {% if subtitle %}<span>{{ subtitle }}</span>{% endif %}
+        </div>
+    </div>
+    <div class="friend-row__actions">
+        {% include row_actions %}
+    </div>
+</article>

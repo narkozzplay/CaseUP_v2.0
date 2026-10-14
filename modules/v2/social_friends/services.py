@@ -3,6 +3,8 @@ from __future__ import annotations
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 
+from modules.v2.notifications.services import discard_notifications, notify, resolve_notifications
+
 from .models import (
     DMPrivacy,
     Friendship,
@@ -11,6 +13,7 @@ from .models import (
     UserBlock,
     UserPrivacySettings,
 )
+from .notifications import KIND_FRIEND_ACCEPTED, KIND_FRIEND_REQUEST
 
 
 # ---------------------------------------------------------------------------
@@ -133,6 +136,17 @@ def send_friend_request(from_user, to_user) -> FriendRequest:
         raise PermissionError("This user does not accept friend requests.")
 
     with transaction.atomic():
+        # The other user already asked us: sending back means accepting their request.
+        incoming = (
+            FriendRequest.objects.select_for_update()
+            .filter(from_user=to_user, to_user=from_user, status=FriendRequest.Status.PENDING)
+            .first()
+        )
+        if incoming:
+            accept_friend_request(from_user, incoming.pk)
+            incoming.refresh_from_db()
+            return incoming
+
         existing = (
             FriendRequest.objects.select_for_update()
             .filter(from_user=from_user, to_user=to_user)
@@ -141,31 +155,36 @@ def send_friend_request(from_user, to_user) -> FriendRequest:
         if existing:
             if existing.status == FriendRequest.Status.PENDING:
                 return existing
-            if existing.status in (FriendRequest.Status.CANCELLED, FriendRequest.Status.DECLINED):
-                existing.status = FriendRequest.Status.PENDING
-                existing.save(update_fields=["status", "updated_at"])
-                return existing
-            raise ValueError("Friend request is in a non-recoverable state.")
+            # Cancelled, declined, or accepted earlier and the friendship was removed
+            # since: the row is unique per pair, so a new request re-opens it.
+            existing.status = FriendRequest.Status.PENDING
+            existing.save(update_fields=["status", "updated_at"])
+            notify(to_user, KIND_FRIEND_REQUEST, actor=from_user, object_id=existing.pk)
+            return existing
 
         try:
             with transaction.atomic():
-                return FriendRequest.objects.create(from_user=from_user, to_user=to_user)
+                req = FriendRequest.objects.create(from_user=from_user, to_user=to_user)
         except IntegrityError:
             return FriendRequest.objects.get(from_user=from_user, to_user=to_user)
+        notify(to_user, KIND_FRIEND_REQUEST, actor=from_user, object_id=req.pk)
+        return req
 
 
 def cancel_friend_request(user, request_id: int) -> FriendRequest:
-    try:
-        req = FriendRequest.objects.select_for_update().get(
-            pk=request_id,
-            from_user=user,
-            status=FriendRequest.Status.PENDING,
-        )
-    except FriendRequest.DoesNotExist:
-        raise PermissionError("Friend request not found or cannot be cancelled.")
-    req.status = FriendRequest.Status.CANCELLED
-    req.save(update_fields=["status", "updated_at"])
-    return req
+    with transaction.atomic():
+        try:
+            req = FriendRequest.objects.select_for_update().get(
+                pk=request_id,
+                from_user=user,
+                status=FriendRequest.Status.PENDING,
+            )
+        except FriendRequest.DoesNotExist:
+            raise PermissionError("Friend request not found or cannot be cancelled.")
+        req.status = FriendRequest.Status.CANCELLED
+        req.save(update_fields=["status", "updated_at"])
+        discard_notifications(KIND_FRIEND_REQUEST, req.pk, recipient=req.to_user)
+        return req
 
 
 def accept_friend_request(user, request_id: int) -> Friendship:
@@ -184,21 +203,25 @@ def accept_friend_request(user, request_id: int) -> Friendship:
 
         low, high = _normalized_pair(req.from_user, req.to_user)
         friendship, _ = Friendship.objects.get_or_create(user_a=low, user_b=high)
+        resolve_notifications(KIND_FRIEND_REQUEST, req.pk, recipient=req.to_user)
+        notify(req.from_user, KIND_FRIEND_ACCEPTED, actor=req.to_user, object_id=req.pk)
         return friendship
 
 
 def decline_friend_request(user, request_id: int) -> FriendRequest:
-    try:
-        req = FriendRequest.objects.select_for_update().get(
-            pk=request_id,
-            to_user=user,
-            status=FriendRequest.Status.PENDING,
-        )
-    except FriendRequest.DoesNotExist:
-        raise PermissionError("Friend request not found or cannot be declined.")
-    req.status = FriendRequest.Status.DECLINED
-    req.save(update_fields=["status", "updated_at"])
-    return req
+    with transaction.atomic():
+        try:
+            req = FriendRequest.objects.select_for_update().get(
+                pk=request_id,
+                to_user=user,
+                status=FriendRequest.Status.PENDING,
+            )
+        except FriendRequest.DoesNotExist:
+            raise PermissionError("Friend request not found or cannot be declined.")
+        req.status = FriendRequest.Status.DECLINED
+        req.save(update_fields=["status", "updated_at"])
+        resolve_notifications(KIND_FRIEND_REQUEST, req.pk, recipient=req.to_user)
+        return req
 
 
 def remove_friend(user_a, user_b) -> bool:
@@ -250,10 +273,13 @@ def block_user(blocker, blocked) -> UserBlock:
         remove_friend(blocker, blocked)
 
         # Cancel any pending friend requests between them
-        FriendRequest.objects.filter(
+        pending = FriendRequest.objects.filter(
             Q(from_user=blocker, to_user=blocked) | Q(from_user=blocked, to_user=blocker),
             status=FriendRequest.Status.PENDING,
-        ).update(status=FriendRequest.Status.CANCELLED)
+        )
+        for pending_id in list(pending.values_list("pk", flat=True)):
+            discard_notifications(KIND_FRIEND_REQUEST, pending_id)
+        pending.update(status=FriendRequest.Status.CANCELLED)
 
         try:
             with transaction.atomic():

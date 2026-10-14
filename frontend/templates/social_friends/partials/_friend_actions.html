@@ -1,0 +1,10 @@
+<form method="post" action="{% url 'profiles:profile_start_direct_chat' row.user_id %}" class="inline-form">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{% url 'social_friends:friends' %}">
+    <button type="submit" class="btn btn-primary btn-sm">{% include "components/icon.html" with name="chat" %}{% if LANGUAGE_CODE == "ru" %}Написать{% else %}Message{% endif %}</button>
+</form>
+<form method="post" action="{% url 'social_friends:remove_friend' row.user_id %}" class="inline-form">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{% url 'social_friends:friends' %}">
+    <button type="submit" class="btn btn-ghost btn-sm">{% if LANGUAGE_CODE == "ru" %}Удалить{% else %}Remove{% endif %}</button>
+</form>

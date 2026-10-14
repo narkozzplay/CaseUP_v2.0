@@ -378,3 +378,109 @@ class FriendViewTests(TestCase):
         for url in urls:
             resp = anon_client.get(url)
             self.assertIn(resp.status_code, [302, 403])
+
+
+class FriendRequestLifecycleTests(TestCase):
+    def setUp(self):
+        self.alice = _make_user("alice_l")
+        self.bob = _make_user("bob_l")
+
+    def test_resend_after_friend_removed(self):
+        req = send_friend_request(self.alice, self.bob)
+        accept_friend_request(self.bob, req.pk)
+        remove_friend(self.alice, self.bob)
+        again = send_friend_request(self.alice, self.bob)
+        self.assertEqual(again.pk, req.pk)
+        self.assertEqual(again.status, FriendRequest.Status.PENDING)
+
+    def test_counter_request_accepts_incoming(self):
+        req = send_friend_request(self.alice, self.bob)
+        result = send_friend_request(self.bob, self.alice)
+        self.assertEqual(result.pk, req.pk)
+        self.assertEqual(result.status, FriendRequest.Status.ACCEPTED)
+        self.assertTrue(are_friends(self.alice, self.bob))
+        self.assertFalse(FriendRequest.objects.filter(from_user=self.bob, to_user=self.alice).exists())
+
+
+class FriendRequestNotificationTests(TestCase):
+    def setUp(self):
+        from modules.v2.notifications.models import Notification
+
+        self.Notification = Notification
+        self.alice = _make_user("alice_n")
+        self.bob = _make_user("bob_n")
+
+    def _for(self, user, kind):
+        return self.Notification.objects.filter(recipient=user, kind=kind)
+
+    def test_send_notifies_recipient(self):
+        req = send_friend_request(self.alice, self.bob)
+        notification = self._for(self.bob, "friend_request").get()
+        self.assertEqual(notification.actor, self.alice)
+        self.assertEqual(notification.object_id, req.pk)
+        self.assertFalse(notification.is_read)
+        self.assertFalse(self._for(self.alice, "friend_request").exists())
+
+    def test_accept_resolves_and_notifies_sender(self):
+        req = send_friend_request(self.alice, self.bob)
+        accept_friend_request(self.bob, req.pk)
+        self.assertTrue(self._for(self.bob, "friend_request").get().is_read)
+        accepted = self._for(self.alice, "friend_request_accepted").get()
+        self.assertEqual(accepted.actor, self.bob)
+        self.assertFalse(accepted.is_read)
+
+    def test_decline_resolves_without_telling_sender(self):
+        req = send_friend_request(self.alice, self.bob)
+        decline_friend_request(self.bob, req.pk)
+        self.assertTrue(self._for(self.bob, "friend_request").get().is_read)
+        self.assertFalse(self.Notification.objects.filter(recipient=self.alice).exists())
+
+    def test_cancel_removes_notification(self):
+        req = send_friend_request(self.alice, self.bob)
+        cancel_friend_request(self.alice, req.pk)
+        self.assertFalse(self._for(self.bob, "friend_request").exists())
+
+    def test_block_removes_notification(self):
+        send_friend_request(self.alice, self.bob)
+        block_user(self.bob, self.alice)
+        self.assertFalse(self._for(self.bob, "friend_request").exists())
+
+    def test_resend_does_not_duplicate(self):
+        req = send_friend_request(self.alice, self.bob)
+        decline_friend_request(self.bob, req.pk)
+        send_friend_request(self.alice, self.bob)
+        notification = self._for(self.bob, "friend_request").get()
+        self.assertFalse(notification.is_read)
+
+    def test_dropdown_renders_accept_and_decline(self):
+        req = send_friend_request(self.alice, self.bob)
+        client = Client()
+        client.force_login(self.bob)
+        response = client.get(reverse("social_friends:friends"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["notifications_unread_total"], 1)
+        self.assertEqual(response.context["friends_incoming_total"], 1)
+        self.assertContains(response, reverse("social_friends:accept_friend_request", args=[req.pk]))
+        self.assertContains(response, reverse("social_friends:decline_friend_request", args=[req.pk]))
+        self.assertContains(response, "data-notif-bell")
+
+    def test_accept_from_notification_redirects_back(self):
+        req = send_friend_request(self.alice, self.bob)
+        client = Client()
+        client.force_login(self.bob)
+        response = client.post(
+            reverse("social_friends:accept_friend_request", args=[req.pk]),
+            {"next": reverse("notifications:list")},
+        )
+        self.assertRedirects(response, reverse("notifications:list"), fetch_redirect_response=False)
+        self.assertTrue(are_friends(self.alice, self.bob))
+
+    def test_external_next_is_ignored(self):
+        req = send_friend_request(self.alice, self.bob)
+        client = Client()
+        client.force_login(self.bob)
+        response = client.post(
+            reverse("social_friends:decline_friend_request", args=[req.pk]),
+            {"next": "https://evil.example.com/"},
+        )
+        self.assertRedirects(response, reverse("social_friends:friend_requests"), fetch_redirect_response=False)

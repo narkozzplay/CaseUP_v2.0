@@ -1,0 +1,13 @@
+<div class="chip-tabs chat-tabs">
+    <a href="{% url 'social_friends:friends' %}" class="chip-tab{% if friends_tab == 'friends' %} is-active{% endif %}" data-dashboard-nav="true">
+        {% include "components/icon.html" with name="friends" %}{% if LANGUAGE_CODE == "ru" %}Друзья{% else %}Friends{% endif %}
+        <span class="chip-tabs__count">{{ friends_total|default:0 }}</span>
+    </a>
+    <a href="{% url 'social_friends:friend_requests' %}" class="chip-tab{% if friends_tab == 'requests' %} is-active{% endif %}" data-dashboard-nav="true">
+        {% include "components/icon.html" with name="user_plus" %}{% if LANGUAGE_CODE == "ru" %}Заявки{% else %}Requests{% endif %}
+        {% if friends_incoming_total %}<span class="chat-badge">{{ friends_incoming_total }}</span>{% else %}<span class="chip-tabs__count">0</span>{% endif %}
+    </a>
+    <a href="{% url 'social_friends:privacy_settings' %}" class="chip-tab{% if friends_tab == 'privacy' %} is-active{% endif %}" data-dashboard-nav="true">
+        {% include "components/icon.html" with name="verification_requests" %}{% if LANGUAGE_CODE == "ru" %}Приватность{% else %}Privacy{% endif %}
+    </a>
+</div>

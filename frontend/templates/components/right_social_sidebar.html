@@ -87,6 +87,17 @@
                         <span class="right-social-sidebar__count">{{ social_counts.conversation|default:0 }}</span>
                     </span>
                 </a>
+                <a href="{% url 'social_friends:friends' %}" data-dashboard-nav="true" data-social-menu-key="social_friends">
+                    {% include "components/icon.html" with name="friends" %}
+                    <span class="right-social-sidebar__nav-label">
+                        <strong>{% if LANGUAGE_CODE == "ru" %}Друзья{% else %}Friends{% endif %}</strong>
+                        <span>{% if LANGUAGE_CODE == "ru" %}Друзья и заявки{% else %}Friends and requests{% endif %}</span>
+                    </span>
+                    <span class="right-social-sidebar__nav-counts">
+                        {% if friends_incoming_total %}<span class="chat-badge" title="{% if LANGUAGE_CODE == 'ru' %}Входящие заявки{% else %}Incoming requests{% endif %}">{{ friends_incoming_total }}</span>{% endif %}
+                        <span class="right-social-sidebar__count">{{ friends_total|default:0 }}</span>
+                    </span>
+                </a>
             </nav>
 
             {% if social_recent_spaces %}

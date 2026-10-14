@@ -1,0 +1,31 @@
+{% if request.user.is_authenticated %}
+<div class="notif-bell" data-notif-bell data-notif-count-url="{% url 'notifications:unread_count' %}">
+    <button type="button" class="topbar-chats topbar-bell" data-notif-toggle aria-controls="notif-panel" aria-expanded="false" aria-haspopup="true" title="{% if LANGUAGE_CODE == 'ru' %}Уведомления{% else %}Notifications{% endif %}">
+        {% include "components/icon.html" with name="bell" %}
+        <span class="topbar-chats__label">{% if LANGUAGE_CODE == "ru" %}Уведомления{% else %}Alerts{% endif %}</span>
+        <span class="chat-badge" data-notif-badge{% if not notifications_unread_total %} hidden{% endif %}>{{ notifications_unread_total }}</span>
+    </button>
+    <div class="notif-panel" id="notif-panel" data-notif-panel hidden>
+        <div class="notif-panel__head">
+            <strong>{% if LANGUAGE_CODE == "ru" %}Уведомления{% else %}Notifications{% endif %}</strong>
+            {% if notifications_unread_total %}
+                <form method="post" action="{% url 'notifications:mark_all_read' %}" class="inline-form" data-notif-action-form>
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="notif-panel__link">{% if LANGUAGE_CODE == "ru" %}Прочитать все{% else %}Mark all read{% endif %}</button>
+                </form>
+            {% endif %}
+        </div>
+        {% if notifications_recent %}
+            <div class="notif-list">
+                {% for row in notifications_recent %}
+                    {% include "notifications/partials/_item.html" %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="notif-panel__empty">{% if LANGUAGE_CODE == "ru" %}Новых уведомлений нет{% else %}You're all caught up{% endif %}</p>
+        {% endif %}
+        <a href="{% url 'notifications:list' %}" class="notif-panel__footer" data-dashboard-nav="true">{% if LANGUAGE_CODE == "ru" %}Все уведомления{% else %}All notifications{% endif %} {% include "components/icon.html" with name="arrow" %}</a>
+    </div>
+</div>
+{% endif %}
