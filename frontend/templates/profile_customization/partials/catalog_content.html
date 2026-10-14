@@ -1,190 +1,212 @@
-<section class="section section--compact profile-customization-catalog">
-    <div class="dashboard-hero card">
-        <div class="card-body dashboard-hero__body">
+<section class="section section--compact pcz" data-pcz data-pcz-locked="{% if can_customize %}0{% else %}1{% endif %}">
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}</span>
+            <h1 class="cc-pagehead__title">{% if LANGUAGE_CODE == "ru" %}Оформление профиля{% else %}Profile appearance{% endif %}</h1>
+            <p class="ops-hero__text">
+                {% if LANGUAGE_CODE == "ru" %}Нажмите на фон или аватарку, чтобы примерить её на свой профиль. Понравилось, жмите «Применить».{% else %}Click a background or avatar to try it on your profile, then hit “Apply”.{% endif %}
+            </p>
+        </div>
+        <span class="pcz-access {% if can_customize %}is-open{% else %}is-locked{% endif %}">
+            {% if can_customize %}
+                {% if LANGUAGE_CODE == "ru" %}Доступно{% else %}Unlocked{% endif %}
+            {% else %}
+                {% if LANGUAGE_CODE == "ru" %}Нужен Level 5 Pro{% else %}Level 5 Pro required{% endif %}
+            {% endif %}
+        </span>
+    </header>
+
+    {% if not can_customize %}
+        <div class="pcz-lock">
             <div>
-                <span class="eyebrow">Профиль</span>
-                <h1 class="page-title page-title--sm">
-                    {% if LANGUAGE_CODE == "ru" %}Каталог кастомизации{% else %}Customization Catalog{% endif %}
-                </h1>
-                <p class="text-muted dashboard-hero__text">
-                    {% if LANGUAGE_CODE == "ru" %}
-                        Выберите анимированный фон или аватарку для своего профиля.
-                        {% if not can_customize %}Доступно при активном Level 5 Pro, для admin+ и авторов магазина.{% endif %}
-                    {% else %}
-                        Choose an animated background or avatar for your profile.
-                        {% if not can_customize %}Available with active Level 5 Pro, for admin+ and store authors.{% endif %}
-                    {% endif %}
-                </p>
+                <strong>{% if LANGUAGE_CODE == "ru" %}Примерять можно всем, применять с Level 5 Pro{% else %}Anyone can try, Level 5 Pro can apply{% endif %}</strong>
+                <p>{% if LANGUAGE_CODE == "ru" %}Анимированные фоны и аватарки из Steam входят в Site-план Level 5 Pro. Также доступны авторам магазина и администрации.{% else %}Animated Steam backgrounds and avatars come with the Level 5 Pro site plan. Store authors and staff have them too.{% endif %}</p>
             </div>
-            <div class="dashboard-hero__meta">
-                {% if is_admin %}
-                    <a href="{% url 'profile_customization:admin_add_background' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
-                        + {% if LANGUAGE_CODE == "ru" %}Добавить фон{% else %}Add background{% endif %}
-                    </a>
-                    <a href="{% url 'profile_customization:admin_add_avatar' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
-                        + {% if LANGUAGE_CODE == "ru" %}Добавить аватарку{% else %}Add avatar{% endif %}
-                    </a>
-                {% endif %}
-            </div>
+            <a href="{% url 'subscriptions:plans' %}" class="btn btn-primary btn-sm" data-dashboard-nav="false">{% if LANGUAGE_CODE == "ru" %}Смотреть тарифы{% else %}See plans{% endif %}</a>
         </div>
-    </div>
-
-    {# ===== BACKGROUNDS ===== #}
-    <div class="section-head-inline" style="margin-bottom:.75rem;">
-        <h2 class="section-title">
-            {% if LANGUAGE_CODE == "ru" %}Анимированные фоны{% else %}Animated backgrounds{% endif %}
-        </h2>
-        {% if selected_bg_id and can_customize %}
-            <form method="post" action="{% url 'profile_customization:clear_background' %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-secondary btn-sm">
-                    {% if LANGUAGE_CODE == "ru" %}Сбросить фон{% else %}Clear background{% endif %}
-                </button>
-            </form>
-        {% endif %}
-    </div>
-
-    {% if backgrounds %}
-        <div class="customization-grid customization-grid--backgrounds">
-            {% for bg in backgrounds %}
-                <article class="card customization-card {% if bg.pk == selected_bg_id %}customization-card--selected{% endif %}">
-                    <div class="customization-card__preview customization-card__preview--bg">
-                        <img src="{{ bg.static_url }}" alt="{{ bg.title }}" class="customization-card__img" loading="lazy">
-                        <video
-                            class="customization-card__video"
-                            autoplay muted loop playsinline
-                            poster="{{ bg.static_url }}">
-                            <source src="{{ bg.video_url }}" type="video/webm">
-                        </video>
-                        {% if bg.pk == selected_bg_id %}
-                            <span class="customization-card__badge">
-                                {% if LANGUAGE_CODE == "ru" %}Выбрано{% else %}Selected{% endif %}
-                            </span>
-                        {% endif %}
-                    </div>
-                    <div class="customization-card__body">
-                        <span class="customization-card__title">{{ bg.title }}</span>
-                        {% if bg.source_item_id %}
-                            <span class="customization-card__meta text-muted">Item #{{ bg.source_item_id }}</span>
-                        {% endif %}
-                        <div class="customization-card__actions">
-                            {% if can_customize and bg.pk != selected_bg_id %}
-                                <form method="post" action="{% url 'profile_customization:select_background' bg.pk %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-primary btn-sm">
-                                        {% if LANGUAGE_CODE == "ru" %}Выбрать{% else %}Select{% endif %}
-                                    </button>
-                                </form>
-                            {% endif %}
-                            {% if is_admin %}
-                                <form method="post" action="{% url 'profile_customization:admin_delete_background' bg.pk %}" style="display:inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-secondary btn-sm">
-                                        {% if LANGUAGE_CODE == "ru" %}Убрать{% else %}Remove{% endif %}
-                                    </button>
-                                </form>
-                            {% endif %}
-                        </div>
-                    </div>
-                </article>
-            {% endfor %}
-        </div>
-    {% else %}
-        <p class="text-muted empty-state">
-            {% if LANGUAGE_CODE == "ru" %}Фонов в каталоге пока нет.{% else %}No backgrounds in catalog yet.{% endif %}
-        </p>
     {% endif %}
 
-    {# ===== AVATARS ===== #}
-    <div class="section-head-inline" style="margin-top:2rem; margin-bottom:.75rem;">
-        <h2 class="section-title">
-            {% if LANGUAGE_CODE == "ru" %}Аватарки{% else %}Avatars{% endif %}
-        </h2>
-        {% if selected_av_id and can_customize %}
-            <form method="post" action="{% url 'profile_customization:clear_avatar' %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-secondary btn-sm">
-                    {% if LANGUAGE_CODE == "ru" %}Сбросить аватарку{% else %}Clear avatar{% endif %}
-                </button>
-            </form>
-        {% endif %}
+    {# ===== LIVE PREVIEW ===== #}
+    <div class="pcz-top">
+        <div class="pcz-stage{% if not current_bg_static %} is-empty{% endif %}" data-pcz-stage>
+            <div class="pcz-stage__media" data-pcz-stage-media {% if current_bg_static %}style="background-image: url('{{ current_bg_static }}');"{% endif %}>
+                <video class="pcz-stage__video" data-pcz-stage-video autoplay muted loop playsinline preload="metadata"
+                       {% if current_bg_static %}poster="{{ current_bg_static }}"{% endif %}
+                       {% if current_bg_video %}src="{{ current_bg_video }}"{% else %}hidden{% endif %}></video>
+            </div>
+            <div class="pcz-stage__shade"></div>
+            <span class="pcz-stage__tag" data-pcz-stage-tag
+                  data-label-live="{% if LANGUAGE_CODE == "ru" %}Ваш профиль сейчас{% else %}Your profile now{% endif %}"
+                  data-label-preview="{% if LANGUAGE_CODE == "ru" %}Предпросмотр{% else %}Preview{% endif %}">{% if LANGUAGE_CODE == "ru" %}Ваш профиль сейчас{% else %}Your profile now{% endif %}</span>
+            <div class="pcz-stage__body">
+                <img src="{{ current_avatar_url }}" alt="" class="pcz-stage__avatar" data-pcz-stage-avatar>
+                <div class="pcz-stage__who">
+                    <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}</span>
+                    <strong class="pcz-stage__name">{{ preview_display_name }}</strong>
+                </div>
+            </div>
+            {% if not current_bg_static %}
+                <p class="pcz-stage__empty" data-pcz-stage-empty>{% if LANGUAGE_CODE == "ru" %}Фон не выбран{% else %}No background yet{% endif %}</p>
+            {% endif %}
+        </div>
+
+        <aside class="ops-panel pcz-current">
+            <div class="ops-panel__head">
+                <h2 class="ops-panel__title">{% if LANGUAGE_CODE == "ru" %}Сейчас установлено{% else %}Currently set{% endif %}</h2>
+                <a href="{% url 'profiles:profile' %}" class="ops-panel__link" data-dashboard-nav="true">{% if LANGUAGE_CODE == "ru" %}Открыть профиль{% else %}Open profile{% endif %}</a>
+            </div>
+            <dl class="pcz-current__list">
+                <div class="pcz-current__row">
+                    <dt>{% if LANGUAGE_CODE == "ru" %}Фон{% else %}Background{% endif %}</dt>
+                    <dd>
+                        {% if selected_bg %}
+                            <span class="pcz-current__thumb pcz-current__thumb--bg" style="background-image: url('{{ selected_bg.static_url }}');"></span>
+                            <span class="pcz-current__name">{{ selected_bg.title }}</span>
+                        {% else %}
+                            <span class="pcz-current__name is-muted">{% if current_bg_static %}{% if LANGUAGE_CODE == "ru" %}Фон из Steam{% else %}Steam background{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}Не выбран{% else %}Not set{% endif %}{% endif %}</span>
+                        {% endif %}
+                    </dd>
+                    {% if selected_bg and can_customize %}
+                        <form method="post" action="{% url 'profile_customization:clear_background' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.path }}?tab=backgrounds">
+                            <button type="submit" class="btn btn-ghost btn-sm">{% if LANGUAGE_CODE == "ru" %}Сбросить{% else %}Reset{% endif %}</button>
+                        </form>
+                    {% endif %}
+                </div>
+                <div class="pcz-current__row">
+                    <dt>{% if LANGUAGE_CODE == "ru" %}Аватарка{% else %}Avatar{% endif %}</dt>
+                    <dd>
+                        {% if selected_av %}
+                            <span class="pcz-current__thumb" style="background-image: url('{{ selected_av.avatar_url }}');"></span>
+                            <span class="pcz-current__name">{{ selected_av.title }}</span>
+                        {% else %}
+                            <span class="pcz-current__name is-muted">{% if LANGUAGE_CODE == "ru" %}Из Steam или загруженная{% else %}Steam or uploaded{% endif %}</span>
+                        {% endif %}
+                    </dd>
+                    {% if selected_av and can_customize %}
+                        <form method="post" action="{% url 'profile_customization:clear_avatar' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.path }}?tab=avatars">
+                            <button type="submit" class="btn btn-ghost btn-sm">{% if LANGUAGE_CODE == "ru" %}Сбросить{% else %}Reset{% endif %}</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </dl>
+
+            <div class="pcz-try" data-pcz-try hidden>
+                <span class="pcz-try__label">{% if LANGUAGE_CODE == "ru" %}Примеряете{% else %}Trying on{% endif %}</span>
+                <strong class="pcz-try__title" data-pcz-try-title></strong>
+                <div class="pcz-try__actions">
+                    {% if can_customize %}
+                        <form method="post" action="" data-pcz-apply-form>
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="" data-pcz-apply-next>
+                            <button type="submit" class="btn btn-primary btn-sm">{% if LANGUAGE_CODE == "ru" %}Применить{% else %}Apply{% endif %}</button>
+                        </form>
+                    {% else %}
+                        <a href="{% url 'subscriptions:plans' %}" class="btn btn-primary btn-sm" data-dashboard-nav="false">{% if LANGUAGE_CODE == "ru" %}Открыть с Pro{% else %}Unlock with Pro{% endif %}</a>
+                    {% endif %}
+                    <button type="button" class="btn btn-ghost btn-sm" data-pcz-reset>{% if LANGUAGE_CODE == "ru" %}Вернуть как было{% else %}Undo{% endif %}</button>
+                </div>
+            </div>
+        </aside>
     </div>
 
-    {% if avatars %}
-        <div class="customization-grid customization-grid--avatars">
-            {% for av in avatars %}
-                <article class="card customization-card customization-card--avatar {% if av.pk == selected_av_id %}customization-card--selected{% endif %}">
-                    <div class="customization-card__preview customization-card__preview--avatar">
-                        <img src="{{ av.avatar_url }}" alt="{{ av.title }}" class="customization-card__avatar-img" loading="lazy">
-                        {% if av.pk == selected_av_id %}
-                            <span class="customization-card__badge">
-                                {% if LANGUAGE_CODE == "ru" %}Выбрано{% else %}Selected{% endif %}
-                            </span>
-                        {% endif %}
-                    </div>
-                    <div class="customization-card__body">
-                        <span class="customization-card__title">{{ av.title }}</span>
-                        <div class="customization-card__actions">
-                            {% if can_customize and av.pk != selected_av_id %}
-                                <form method="post" action="{% url 'profile_customization:select_avatar' av.pk %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-primary btn-sm">
-                                        {% if LANGUAGE_CODE == "ru" %}Выбрать{% else %}Select{% endif %}
-                                    </button>
-                                </form>
-                            {% endif %}
-                            {% if is_admin %}
-                                <form method="post" action="{% url 'profile_customization:admin_delete_avatar' av.pk %}" style="display:inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-secondary btn-sm">
-                                        {% if LANGUAGE_CODE == "ru" %}Убрать{% else %}Remove{% endif %}
-                                    </button>
-                                </form>
-                            {% endif %}
-                        </div>
-                    </div>
-                </article>
-            {% endfor %}
-        </div>
+    {# ===== TABS ===== #}
+    <div class="pcz-toolbar">
+        <nav class="cc-tabs pcz-tabs" aria-label="{% if LANGUAGE_CODE == "ru" %}Разделы каталога{% else %}Catalog sections{% endif %}">
+            <a href="?tab=backgrounds" class="cc-tab{% if active_tab == 'backgrounds' %} is-active{% endif %}" data-dashboard-nav="true">
+                <span>{% if LANGUAGE_CODE == "ru" %}Фоны{% else %}Backgrounds{% endif %}</span><b class="pcz-tabs__count">{{ backgrounds|length }}</b>
+            </a>
+            <a href="?tab=avatars" class="cc-tab{% if active_tab == 'avatars' %} is-active{% endif %}" data-dashboard-nav="true">
+                <span>{% if LANGUAGE_CODE == "ru" %}Аватарки{% else %}Avatars{% endif %}</span><b class="pcz-tabs__count">{{ avatars|length }}</b>
+            </a>
+            {% if is_admin %}
+                <a href="?tab=hidden" class="cc-tab{% if active_tab == 'hidden' %} is-active{% endif %}" data-dashboard-nav="true">
+                    <span>{% if LANGUAGE_CODE == "ru" %}Скрытые{% else %}Hidden{% endif %}</span><b class="pcz-tabs__count">{{ hidden_count }}</b>
+                </a>
+            {% endif %}
+        </nav>
+        <label class="pcz-search">
+            {% include "components/icon.html" with name="search" %}
+            <input type="search" placeholder="{% if LANGUAGE_CODE == "ru" %}Поиск по названию{% else %}Search by title{% endif %}" data-pcz-filter autocomplete="off">
+        </label>
+    </div>
+
+    {% if active_tab == "backgrounds" %}
+        {% if backgrounds %}
+            <div class="pcz-grid pcz-grid--bg" data-pcz-grid>
+                {% for bg in backgrounds %}
+                    {% include "profile_customization/partials/_background_card.html" with item=bg %}
+                {% endfor %}
+            </div>
+            <p class="pcz-empty" data-pcz-filter-empty hidden>{% if LANGUAGE_CODE == "ru" %}Ничего не нашлось.{% else %}Nothing found.{% endif %}</p>
+        {% else %}
+            <p class="pcz-empty">{% if LANGUAGE_CODE == "ru" %}Фонов в каталоге пока нет.{% else %}No backgrounds yet.{% endif %}{% if is_admin %} {% if LANGUAGE_CODE == "ru" %}Добавьте первый ниже.{% else %}Add the first one below.{% endif %}{% endif %}</p>
+        {% endif %}
+    {% elif active_tab == "avatars" %}
+        {% if avatars %}
+            <div class="pcz-grid pcz-grid--av" data-pcz-grid>
+                {% for av in avatars %}
+                    {% include "profile_customization/partials/_avatar_card.html" with item=av %}
+                {% endfor %}
+            </div>
+            <p class="pcz-empty" data-pcz-filter-empty hidden>{% if LANGUAGE_CODE == "ru" %}Ничего не нашлось.{% else %}Nothing found.{% endif %}</p>
+        {% else %}
+            <p class="pcz-empty">{% if LANGUAGE_CODE == "ru" %}Аватарок в каталоге пока нет.{% else %}No avatars yet.{% endif %}{% if is_admin %} {% if LANGUAGE_CODE == "ru" %}Добавьте первую ниже.{% else %}Add the first one below.{% endif %}{% endif %}</p>
+        {% endif %}
     {% else %}
-        <p class="text-muted empty-state">
-            {% if LANGUAGE_CODE == "ru" %}Аватарок в каталоге пока нет.{% else %}No avatars in catalog yet.{% endif %}
-        </p>
+        {% if hidden_count %}
+            <div class="pcz-grid pcz-grid--bg" data-pcz-grid>
+                {% for bg in hidden_backgrounds %}
+                    {% include "profile_customization/partials/_background_card.html" with item=bg hidden_item=True %}
+                {% endfor %}
+                {% for av in hidden_avatars %}
+                    {% include "profile_customization/partials/_avatar_card.html" with item=av hidden_item=True %}
+                {% endfor %}
+            </div>
+            <p class="pcz-empty" data-pcz-filter-empty hidden>{% if LANGUAGE_CODE == "ru" %}Ничего не нашлось.{% else %}Nothing found.{% endif %}</p>
+        {% else %}
+            <p class="pcz-empty">{% if LANGUAGE_CODE == "ru" %}Скрытых позиций нет. Сюда попадает то, что вы убрали из каталога.{% else %}Nothing hidden. Items you remove from the catalog land here.{% endif %}</p>
+        {% endif %}
+    {% endif %}
+
+    {# ===== ADMIN: ADD TO CATALOG ===== #}
+    {% if is_admin %}
+        <details class="ops-panel pcz-admin"{% if not backgrounds and not avatars %} open{% endif %}>
+            <summary class="ops-panel__head">
+                <h2 class="ops-panel__title">{% if LANGUAGE_CODE == "ru" %}Добавить в каталог{% else %}Add to catalog{% endif %}</h2>
+                <span class="ops-panel__hint">admin+</span>
+            </summary>
+            <div class="pcz-admin__forms">
+                <form method="post" action="{% url 'profile_customization:admin_add_background' %}" class="form-stack pcz-admin__form">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}?tab=backgrounds">
+                    <h3>{% if LANGUAGE_CODE == "ru" %}Фон{% else %}Background{% endif %}</h3>
+                    <p class="pcz-admin__hint">{% if LANGUAGE_CODE == "ru" %}Ссылки берутся со страницы предмета в магазине очков Steam: картинка .jpg и, для анимированного фона, видео .webm.{% else %}Take the links from the Steam Points Shop item page: a .jpg image and, for animated backgrounds, a .webm video.{% endif %}</p>
+                    {% for field in add_background_form %}
+                        <div class="form-field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary btn-sm">{% if LANGUAGE_CODE == "ru" %}Добавить фон{% else %}Add background{% endif %}</button>
+                </form>
+                <form method="post" action="{% url 'profile_customization:admin_add_avatar' %}" class="form-stack pcz-admin__form">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}?tab=avatars">
+                    <h3>{% if LANGUAGE_CODE == "ru" %}Аватарка{% else %}Avatar{% endif %}</h3>
+                    <p class="pcz-admin__hint">{% if LANGUAGE_CODE == "ru" %}Прямая ссылка на картинку, обычно оканчивается на _full.jpg или .gif.{% else %}A direct image link, usually ending in _full.jpg or .gif.{% endif %}</p>
+                    {% for field in add_avatar_form %}
+                        <div class="form-field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary btn-sm">{% if LANGUAGE_CODE == "ru" %}Добавить аватарку{% else %}Add avatar{% endif %}</button>
+                </form>
+            </div>
+        </details>
     {% endif %}
 </section>
-
-<style>
-.customization-grid {
-    display: grid;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-.customization-grid--backgrounds {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-}
-.customization-grid--avatars {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-}
-.customization-card { overflow: hidden; }
-.customization-card--selected { outline: 2px solid var(--color-accent, #7b61ff); }
-.customization-card__preview { position: relative; overflow: hidden; border-radius: 6px 6px 0 0; }
-.customization-card__preview--bg { aspect-ratio: 16/9; background: #111; }
-.customization-card__preview--avatar { aspect-ratio: 1/1; background: #111; max-width: 160px; margin: 0 auto; }
-.customization-card__img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.customization-card__video {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%; object-fit: cover;
-    opacity: 0; transition: opacity .3s;
-}
-.customization-card:hover .customization-card__video { opacity: 1; }
-.customization-card__avatar-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.customization-card__badge {
-    position: absolute; top: .4rem; right: .4rem;
-    background: var(--color-accent, #7b61ff); color: #fff;
-    padding: .15rem .5rem; border-radius: 4px; font-size: .75rem;
-}
-.customization-card__body { padding: .5rem .75rem; }
-.customization-card__title { font-weight: 600; font-size: .9rem; display: block; margin-bottom: .25rem; }
-.customization-card__meta { font-size: .75rem; display: block; margin-bottom: .35rem; }
-.customization-card__actions { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .4rem; }
-</style>

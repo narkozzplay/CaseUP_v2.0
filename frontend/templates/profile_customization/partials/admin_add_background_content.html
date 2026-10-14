@@ -2,15 +2,15 @@
     <div class="dashboard-hero card">
         <div class="card-body dashboard-hero__body">
             <div>
-                <span class="eyebrow">Каталог кастомизации</span>
+                <span class="eyebrow">Оформление профиля</span>
                 <h1 class="page-title page-title--sm">
                     {% if LANGUAGE_CODE == "ru" %}Добавить фон{% else %}Add Background{% endif %}
                 </h1>
                 <p class="text-muted">
                     {% if LANGUAGE_CODE == "ru" %}
-                        Введите название и URL изображения (.jpg) и видео (.webm) из Steam.
+                        Введите название и ссылку на изображение (.jpg). Для анимированного фона добавьте ссылку на видео (.webm).
                     {% else %}
-                        Enter a title and the Steam image (.jpg) and video (.webm) URLs.
+                        Enter a title and the image (.jpg) link. Add a video (.webm) link for an animated background.
                     {% endif %}
                 </p>
             </div>

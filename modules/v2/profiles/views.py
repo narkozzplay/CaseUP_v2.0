@@ -336,8 +336,9 @@ def _build_settings_context(*, request, target_user):
         privacy_form = SocialPrivacySettingsForm(instance=privacy_settings_obj)
 
     # Customization
-    viewer_can_customize = can_customize_profile(request.user)
-    customization = get_or_create_customization(target_user) if viewer_can_customize or viewer_role_access.is_admin_plus else None
+    # Select/clear actions always act on the viewer, so the card is shown on one's own settings only.
+    viewer_can_customize = is_owner and can_customize_profile(request.user)
+    customization = get_or_create_customization(target_user) if viewer_can_customize else None
 
     # Admin forms
     admin_identity_form = None

@@ -10,7 +10,9 @@ class SteamBackground(models.Model):
         help_text="URL статичного изображения (.jpg preview)",
     )
     video_url = models.URLField(
-        help_text="URL анимированного видео (.webm)",
+        blank=True,
+        default="",
+        help_text="URL анимированного видео (.webm). Пусто для статичного фона.",
     )
     source_item_id = models.CharField(
         max_length=32,

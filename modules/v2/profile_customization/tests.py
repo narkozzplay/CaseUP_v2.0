@@ -235,3 +235,106 @@ class CatalogViewTests(TestCase):
         for url in urls:
             resp = anon.get(url)
             self.assertIn(resp.status_code, [302, 403])
+
+
+class CatalogPolishTests(TestCase):
+    def setUp(self):
+        self.admin = _make_admin("admin_polish")
+        self.regular = _make_user("regular_polish")
+        self.client = Client()
+
+    def test_background_without_video_is_allowed(self):
+        self.client.force_login(self.admin)
+        resp = self.client.post(
+            reverse("profile_customization:admin_add_background"),
+            {"title": "Static BG", "static_url": "https://example.com/static.jpg", "video_url": ""},
+        )
+        self.assertEqual(resp.status_code, 302)
+        bg = SteamBackground.objects.get(title="Static BG")
+        self.assertEqual(bg.video_url, "")
+
+    def test_select_redirect_ignores_external_next(self):
+        bg = add_background(self.admin, title="Ext", static_url="https://example.com/e.jpg")
+        self.client.force_login(self.admin)
+        resp = self.client.post(
+            reverse("profile_customization:select_background", args=[bg.pk]),
+            {"next": "https://evil.example.com/steal"},
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp["Location"], reverse("profile_customization:catalog") + "?tab=backgrounds")
+
+    def test_select_redirect_keeps_local_next(self):
+        bg = add_background(self.admin, title="Local", static_url="https://example.com/l.jpg")
+        self.client.force_login(self.admin)
+        local = reverse("profile_customization:catalog") + "?tab=avatars"
+        resp = self.client.post(reverse("profile_customization:select_background", args=[bg.pk]), {"next": local})
+        self.assertEqual(resp["Location"], local)
+
+    def test_restore_background(self):
+        bg = add_background(self.admin, title="Hide me", static_url="https://example.com/h.jpg")
+        delete_background(self.admin, bg.pk)
+        self.client.force_login(self.admin)
+        resp = self.client.post(reverse("profile_customization:admin_restore_background", args=[bg.pk]))
+        self.assertEqual(resp.status_code, 302)
+        bg.refresh_from_db()
+        self.assertTrue(bg.is_active)
+
+    def test_restore_forbidden_for_regular(self):
+        av = add_avatar(self.admin, title="Hidden av", avatar_url="https://example.com/h.jpg")
+        delete_avatar(self.admin, av.pk)
+        self.client.force_login(self.regular)
+        self.client.post(reverse("profile_customization:admin_restore_avatar", args=[av.pk]))
+        av.refresh_from_db()
+        self.assertFalse(av.is_active)
+
+    def test_hidden_tab_only_for_admin(self):
+        av = add_avatar(self.admin, title="Gone avatar", avatar_url="https://example.com/g.jpg")
+        delete_avatar(self.admin, av.pk)
+        url = reverse("profile_customization:catalog") + "?tab=hidden"
+
+        self.client.force_login(self.admin)
+        resp = self.client.get(url, **PARTIAL_HEADERS)
+        self.assertContains(resp, "Gone avatar")
+
+        self.client.force_login(self.regular)
+        resp = self.client.get(url, **PARTIAL_HEADERS)
+        self.assertEqual(resp.context["active_tab"], "backgrounds")
+        self.assertNotContains(resp, "Gone avatar")
+
+    def test_locked_user_sees_plans_cta_and_no_apply(self):
+        add_background(self.admin, title="Locked BG", static_url="https://example.com/lb.jpg")
+        self.client.force_login(self.regular)
+        resp = self.client.get(reverse("profile_customization:catalog"), **PARTIAL_HEADERS)
+        self.assertContains(resp, "Locked BG")
+        self.assertContains(resp, reverse("subscriptions:plans"))
+        bg_pk = SteamBackground.objects.get(title="Locked BG").pk
+        self.assertNotContains(resp, 'action="' + reverse("profile_customization:select_background", args=[bg_pk]))
+        self.assertFalse(resp.context["can_customize"])
+
+    def test_current_selection_shown(self):
+        bg = add_background(self.admin, title="Mine BG", static_url="https://example.com/m.jpg", video_url="https://example.com/m.webm")
+        set_background(self.admin, bg.pk)
+        self.client.force_login(self.admin)
+        resp = self.client.get(reverse("profile_customization:catalog"), **PARTIAL_HEADERS)
+        self.assertEqual(resp.context["current_bg_video"], "https://example.com/m.webm")
+        self.assertContains(resp, "pcz-card--bg is-current")
+
+    def test_menu_item_visible_to_regular_user(self):
+        from django.test import RequestFactory
+
+        from modules.v2.system.dashboard_menu import build_dashboard_menu
+
+        request = RequestFactory().get(reverse("profile_customization:catalog"))
+        request.user = self.regular
+        request.LANGUAGE_CODE = "ru"
+        keys = [item["key"] if isinstance(item, dict) else item.key for group in build_dashboard_menu(request) for item in group["items"]]
+        self.assertIn("customization_catalog", keys)
+
+    def test_settings_card_hidden_when_admin_views_other_user(self):
+        self.client.force_login(self.admin)
+        resp = self.client.get(reverse("profiles:profile_user_settings", args=[self.regular.pk]), **PARTIAL_HEADERS)
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, 'id="settings-customization"')
+
+        resp = self.client.get(reverse("profiles:profile_settings"), **PARTIAL_HEADERS)
+        self.assertContains(resp, 'id="settings-customization"')

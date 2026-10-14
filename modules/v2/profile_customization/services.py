@@ -64,11 +64,13 @@ def _extract_source_item_id(url: str) -> str:
     return match.group(1) if match else ""
 
 
-def add_background(actor, *, title: str, static_url: str, video_url: str) -> SteamBackground:
+def add_background(actor, *, title: str, static_url: str, video_url: str = "") -> SteamBackground:
     _require_admin_plus(actor)
     clean_title = str(title or "").strip()
     if not clean_title:
         raise ValueError("Название обязательно.")
+    if not str(static_url or "").strip():
+        raise ValueError("Нужна ссылка на изображение фона.")
     source_id = _extract_source_item_id(static_url) or _extract_source_item_id(video_url)
     return SteamBackground.objects.create(
         title=clean_title,
@@ -107,6 +109,11 @@ def _clear_bg_from_profiles(background_id: int) -> None:
     UserCustomization.objects.filter(selected_background_id=background_id).update(
         selected_background=None
     )
+
+
+def restore_background(actor, background_id: int) -> None:
+    _require_admin_plus(actor)
+    SteamBackground.objects.filter(pk=background_id).update(is_active=True)
 
 
 def list_backgrounds(*, active_only: bool = True):
@@ -188,6 +195,11 @@ def _clear_avatar_from_profiles(avatar_id: int) -> None:
     UserCustomization.objects.filter(selected_avatar_id=avatar_id).update(
         selected_avatar=None
     )
+
+
+def restore_avatar(actor, avatar_id: int) -> None:
+    _require_admin_plus(actor)
+    SteamAvatar.objects.filter(pk=avatar_id).update(is_active=True)
 
 
 def list_avatars(*, active_only: bool = True):
