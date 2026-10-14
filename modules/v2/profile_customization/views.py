@@ -13,6 +13,7 @@ from modules.v2.profiles.rbac import get_user_role
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
 
+from .effects import SLOT_FRAME, SLOT_HERO, SLOT_NAME, SLOTS, effects_for_slot, get_effect
 from .forms import AddAvatarForm, AddBackgroundForm
 from .models import UserCustomization
 from .services import (
@@ -30,10 +31,11 @@ from .services import (
     restore_background,
     set_avatar,
     set_background,
+    set_effect,
 )
 
 
-CATALOG_TABS = ("backgrounds", "avatars", "hidden")
+CATALOG_TABS = ("effects", "backgrounds", "avatars", "hidden")
 
 
 def _redirect_back(request, *, tab: str = ""):
@@ -56,9 +58,9 @@ def catalog_view(request):
     is_admin = get_user_role(user).is_admin_plus
     customization: UserCustomization = get_or_create_customization(user)
 
-    tab = request.GET.get("tab") or "backgrounds"
+    tab = request.GET.get("tab") or "effects"
     if tab not in CATALOG_TABS or (tab == "hidden" and not is_admin):
-        tab = "backgrounds"
+        tab = "effects"
 
     backgrounds = list(list_backgrounds())
     avatars = list(list_avatars())
@@ -75,12 +77,35 @@ def catalog_view(request):
     current_bg_static = selected_bg.static_url if selected_bg else str(getattr(profile, "steam_profile_background", "") or "")
     current_bg_video = selected_bg.video_url if selected_bg else str(getattr(profile, "steam_profile_background_video", "") or "")
 
+    current_effects = {
+        SLOT_FRAME: get_effect(SLOT_FRAME, customization.avatar_frame),
+        SLOT_NAME: get_effect(SLOT_NAME, customization.name_effect),
+        SLOT_HERO: get_effect(SLOT_HERO, customization.hero_effect),
+    }
+    effect_groups = [
+        {
+            "slot": slot,
+            "title_ru": title_ru,
+            "title_en": title_en,
+            "effects": effects_for_slot(slot),
+            "current": current_effects[slot],
+        }
+        for slot, title_ru, title_en in (
+            (SLOT_FRAME, "Рамка аватарки", "Avatar frame"),
+            (SLOT_NAME, "Ник", "Nickname"),
+            (SLOT_HERO, "Шапка профиля", "Profile header"),
+        )
+    ]
+
     return render_dashboard_page(
         request,
         full_template="profile_customization/catalog.html",
         partial_template="profile_customization/partials/catalog_content.html",
         context={
             "active_tab": tab,
+            "effect_groups": effect_groups,
+            "current_effects": current_effects,
+            "effects_count": sum(len(group["effects"]) for group in effect_groups),
             "backgrounds": backgrounds,
             "avatars": avatars,
             "hidden_backgrounds": hidden_backgrounds,
@@ -260,3 +285,18 @@ def admin_restore_avatar_view(request, avatar_id: int):
     except PermissionError as exc:
         messages.error(request, str(exc))
     return _redirect_back(request, tab="hidden")
+
+
+@login_required
+def select_effect_view(request, slot: str):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    if slot not in SLOTS:
+        return redirect("profile_customization:catalog")
+    key = request.POST.get("key", "")
+    try:
+        set_effect(request.user, slot, key)
+        messages.success(request, "Эффект применён." if key else "Эффект снят.")
+    except (ValueError, PermissionError) as exc:
+        messages.error(request, str(exc))
+    return _redirect_back(request, tab="effects")

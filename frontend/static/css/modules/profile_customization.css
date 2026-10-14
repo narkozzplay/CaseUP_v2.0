@@ -97,6 +97,7 @@
 
 .pcz-stage__tag {
     position: absolute;
+    z-index: 3;
     top: 14px;
     left: 14px;
     padding: 5px 9px;
@@ -131,7 +132,11 @@
     object-fit: cover;
     border: 2px solid var(--accent);
     background: var(--panel-2);
-    box-shadow: var(--shadow-md);
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+
+.pcz-stage__body {
+    z-index: 2;
 }
 
 .pcz-stage__who {
@@ -605,6 +610,100 @@
     margin: 0;
     color: var(--text-muted);
     font-size: 0.82rem;
+}
+
+/* CaseUP effects tab */
+
+.pcz-fx-intro {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 0.9rem;
+}
+
+.pcz-fx-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.pcz-fx-group__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 32px;
+}
+
+.pcz-fx-group__head form {
+    margin: 0;
+}
+
+.pcz-grid--fx {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.pcz-fx-demo {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 16 / 9;
+    background:
+        radial-gradient(circle at 50% 120%, rgba(245, 166, 35, 0.12), transparent 60%),
+        repeating-linear-gradient(135deg, transparent 0 14px, var(--grid-line) 14px 15px),
+        var(--bg-elevated);
+}
+
+.pcz-fx-demo--hero {
+    background:
+        linear-gradient(120deg, #1d2430, #0d1016 70%),
+        var(--bg-elevated);
+}
+
+.pcz-fx-demo__avatar {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+.pcz-card__media .pcz-fx-demo__avatar,
+.pcz-card__media .pfx-frame {
+    position: relative;
+    inset: auto;
+    width: 64px;
+    height: 64px;
+}
+
+.pcz-fx-demo__name {
+    max-width: 90%;
+    overflow: hidden;
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.pcz-chip {
+    align-self: flex-start;
+    padding: 1px 7px;
+    border-left: 3px solid var(--pcz-rarity, var(--text-muted));
+    background: rgba(9, 11, 15, 0.55);
+    color: var(--pcz-rarity, var(--text-muted));
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.pcz-chip--milspec { --pcz-rarity: var(--rarity-milspec); }
+.pcz-chip--restricted { --pcz-rarity: var(--rarity-restricted); }
+.pcz-chip--classified { --pcz-rarity: var(--rarity-classified); }
+.pcz-chip--covert { --pcz-rarity: var(--rarity-covert); }
+.pcz-chip--contraband { --pcz-rarity: var(--rarity-contraband); }
+
+.pcz-current__fx {
+    flex-wrap: wrap;
+    gap: 6px !important;
 }
 
 /* settings page card */

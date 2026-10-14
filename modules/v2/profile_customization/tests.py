@@ -298,13 +298,13 @@ class CatalogPolishTests(TestCase):
 
         self.client.force_login(self.regular)
         resp = self.client.get(url, **PARTIAL_HEADERS)
-        self.assertEqual(resp.context["active_tab"], "backgrounds")
+        self.assertEqual(resp.context["active_tab"], "effects")
         self.assertNotContains(resp, "Gone avatar")
 
     def test_locked_user_sees_plans_cta_and_no_apply(self):
         add_background(self.admin, title="Locked BG", static_url="https://example.com/lb.jpg")
         self.client.force_login(self.regular)
-        resp = self.client.get(reverse("profile_customization:catalog"), **PARTIAL_HEADERS)
+        resp = self.client.get(reverse("profile_customization:catalog") + "?tab=backgrounds", **PARTIAL_HEADERS)
         self.assertContains(resp, "Locked BG")
         self.assertContains(resp, reverse("subscriptions:plans"))
         bg_pk = SteamBackground.objects.get(title="Locked BG").pk
@@ -315,7 +315,7 @@ class CatalogPolishTests(TestCase):
         bg = add_background(self.admin, title="Mine BG", static_url="https://example.com/m.jpg", video_url="https://example.com/m.webm")
         set_background(self.admin, bg.pk)
         self.client.force_login(self.admin)
-        resp = self.client.get(reverse("profile_customization:catalog"), **PARTIAL_HEADERS)
+        resp = self.client.get(reverse("profile_customization:catalog") + "?tab=backgrounds", **PARTIAL_HEADERS)
         self.assertEqual(resp.context["current_bg_video"], "https://example.com/m.webm")
         self.assertContains(resp, "pcz-card--bg is-current")
 
@@ -338,3 +338,60 @@ class CatalogPolishTests(TestCase):
 
         resp = self.client.get(reverse("profiles:profile_settings"), **PARTIAL_HEADERS)
         self.assertContains(resp, 'id="settings-customization"')
+
+
+class ProfileEffectsTests(TestCase):
+    def setUp(self):
+        self.admin = _make_admin("admin_fx")
+        self.regular = _make_user("regular_fx")
+        self.client = Client()
+
+    def test_set_effect_requires_access(self):
+        from .services import set_effect
+
+        with self.assertRaises(PermissionError):
+            set_effect(self.regular, "frame", "neon")
+
+    def test_set_effect_rejects_unknown_key_and_slot(self):
+        from .services import set_effect
+
+        with self.assertRaises(ValueError):
+            set_effect(self.admin, "frame", "does-not-exist")
+        with self.assertRaises(ValueError):
+            set_effect(self.admin, "shoes", "neon")
+
+    def test_select_and_clear_effect_view(self):
+        self.client.force_login(self.admin)
+        url = reverse("profile_customization:select_effect", args=["name"])
+        resp = self.client.post(url, {"key": "glitch"})
+        self.assertEqual(resp["Location"], reverse("profile_customization:catalog") + "?tab=effects")
+        self.assertEqual(get_or_create_customization(self.admin).name_effect, "glitch")
+
+        self.client.post(url, {"key": ""})
+        self.assertEqual(get_or_create_customization(self.admin).name_effect, "")
+
+    def test_profile_shows_effect_classes(self):
+        from .services import set_effect
+
+        set_effect(self.admin, "frame", "gold")
+        set_effect(self.admin, "hero", "embers")
+        self.client.force_login(self.admin)
+        resp = self.client.get(reverse("profiles:profile"), **PARTIAL_HEADERS)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "pfx-frame--gold")
+        self.assertContains(resp, "pfx-hero--embers")
+        self.assertNotContains(resp, "pfx-name--")
+
+    def test_effects_hidden_when_access_is_lost(self):
+        from .services import get_profile_effect_classes, set_effect
+
+        set_effect(self.admin, "frame", "neon")
+        self.admin.profile_v2.role = "user"
+        self.admin.profile_v2.save(update_fields=["role"])
+        self.assertEqual(get_profile_effect_classes(self.admin)["frame"], "")
+
+    def test_effects_tab_is_default(self):
+        self.client.force_login(self.regular)
+        resp = self.client.get(reverse("profile_customization:catalog"), **PARTIAL_HEADERS)
+        self.assertEqual(resp.context["active_tab"], "effects")
+        self.assertContains(resp, "pfx-frame--holo")

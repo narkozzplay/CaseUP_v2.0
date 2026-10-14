@@ -13,7 +13,12 @@
             var media = stage.querySelector('[data-pcz-stage-media]');
             var video = stage.querySelector('[data-pcz-stage-video]');
             var avatar = stage.querySelector('[data-pcz-stage-avatar]');
+            var fx = {};
+            stage.querySelectorAll('[data-pcz-stage-fx]').forEach(function (node) {
+                fx[node.dataset.pczStageFx] = node.className;
+            });
             stage.pczInitial = {
+                fx: fx,
                 background: media ? media.style.backgroundImage : '',
                 video: video && !video.hidden ? video.getAttribute('src') || '' : '',
                 poster: video ? video.getAttribute('poster') || '' : '',
@@ -50,6 +55,22 @@
         }
     }
 
+    function setEffect(stage, slot, fxClass) {
+        var node = stage.querySelector('[data-pcz-stage-fx="' + slot + '"]');
+        if (!node) {
+            return;
+        }
+        var prefix = 'pfx-' + slot + '--';
+        Array.prototype.slice.call(node.classList).forEach(function (name) {
+            if (name.indexOf(prefix) === 0) {
+                node.classList.remove(name);
+            }
+        });
+        if (fxClass) {
+            node.classList.add(fxClass);
+        }
+    }
+
     function setTag(stage, preview) {
         var tag = stage.querySelector('[data-pcz-stage-tag]');
         if (tag) {
@@ -73,6 +94,9 @@
         if (avatar) {
             avatar.setAttribute('src', initial.avatar);
         }
+        stage.querySelectorAll('[data-pcz-stage-fx]').forEach(function (node) {
+            node.className = initial.fx[node.dataset.pczStageFx] || node.className;
+        });
         setTag(stage, false);
         root.querySelectorAll('[data-pcz-item].is-trying').forEach(function (card) {
             card.classList.remove('is-trying');
@@ -88,7 +112,9 @@
         if (!stage) {
             return;
         }
-        if (card.dataset.kind === 'bg') {
+        if (card.dataset.kind === 'fx') {
+            setEffect(stage, card.dataset.slot, card.dataset.fxClass || '');
+        } else if (card.dataset.kind === 'bg') {
             setBackground(stage, card.dataset.static || '', card.dataset.video || '');
         } else {
             var avatar = stage.querySelector('[data-pcz-stage-avatar]');
@@ -115,6 +141,10 @@
         if (form) {
             form.hidden = !card.dataset.selectUrl || isCurrent;
             form.setAttribute('action', card.dataset.selectUrl || '');
+            var key = form.querySelector('[data-pcz-apply-key]');
+            if (key) {
+                key.value = card.dataset.key || '';
+            }
             var next = form.querySelector('[data-pcz-apply-next]');
             if (next) {
                 next.value = window.location.pathname + window.location.search;

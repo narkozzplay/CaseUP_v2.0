@@ -4,7 +4,7 @@
             <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}</span>
             <h1 class="cc-pagehead__title">{% if LANGUAGE_CODE == "ru" %}Оформление профиля{% else %}Profile appearance{% endif %}</h1>
             <p class="ops-hero__text">
-                {% if LANGUAGE_CODE == "ru" %}Нажмите на фон или аватарку, чтобы примерить её на свой профиль. Понравилось, жмите «Применить».{% else %}Click a background or avatar to try it on your profile, then hit “Apply”.{% endif %}
+                {% if LANGUAGE_CODE == "ru" %}Нажмите на эффект, фон или аватарку, чтобы примерить на свой профиль. Понравилось, жмите «Применить».{% else %}Click an effect, background or avatar to try it on your profile, then hit “Apply”.{% endif %}
             </p>
         </div>
         <span class="pcz-access {% if can_customize %}is-open{% else %}is-locked{% endif %}">
@@ -20,7 +20,7 @@
         <div class="pcz-lock">
             <div>
                 <strong>{% if LANGUAGE_CODE == "ru" %}Примерять можно всем, применять с Level 5 Pro{% else %}Anyone can try, Level 5 Pro can apply{% endif %}</strong>
-                <p>{% if LANGUAGE_CODE == "ru" %}Анимированные фоны и аватарки из Steam входят в Site-план Level 5 Pro. Также доступны авторам магазина и администрации.{% else %}Animated Steam backgrounds and avatars come with the Level 5 Pro site plan. Store authors and staff have them too.{% endif %}</p>
+                <p>{% if LANGUAGE_CODE == "ru" %}Эффекты CaseUP, анимированные фоны и аватарки из Steam входят в Site-план Level 5 Pro. Также доступны авторам магазина и администрации.{% else %}CaseUP effects and animated Steam backgrounds and avatars come with the Level 5 Pro site plan. Store authors and staff have them too.{% endif %}</p>
             </div>
             <a href="{% url 'subscriptions:plans' %}" class="btn btn-primary btn-sm" data-dashboard-nav="false">{% if LANGUAGE_CODE == "ru" %}Смотреть тарифы{% else %}See plans{% endif %}</a>
         </div>
@@ -35,14 +35,17 @@
                        {% if current_bg_video %}src="{{ current_bg_video }}"{% else %}hidden{% endif %}></video>
             </div>
             <div class="pcz-stage__shade"></div>
+            <div class="pfx-hero {{ current_effects.hero.css_class|default:'' }}" data-pcz-stage-fx="hero" data-pfx-slot="hero" aria-hidden="true"></div>
             <span class="pcz-stage__tag" data-pcz-stage-tag
                   data-label-live="{% if LANGUAGE_CODE == "ru" %}Ваш профиль сейчас{% else %}Your profile now{% endif %}"
                   data-label-preview="{% if LANGUAGE_CODE == "ru" %}Предпросмотр{% else %}Preview{% endif %}">{% if LANGUAGE_CODE == "ru" %}Ваш профиль сейчас{% else %}Your profile now{% endif %}</span>
             <div class="pcz-stage__body">
-                <img src="{{ current_avatar_url }}" alt="" class="pcz-stage__avatar" data-pcz-stage-avatar>
+                <span class="pcz-stage__frame pfx-frame {{ current_effects.frame.css_class|default:'' }}" data-pcz-stage-fx="frame" data-pfx-slot="frame">
+                    <img src="{{ current_avatar_url }}" alt="" class="pcz-stage__avatar" data-pcz-stage-avatar>
+                </span>
                 <div class="pcz-stage__who">
                     <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}</span>
-                    <strong class="pcz-stage__name">{{ preview_display_name }}</strong>
+                    <strong class="pcz-stage__name"><span class="pfx-name {{ current_effects.name.css_class|default:'' }}" data-pcz-stage-fx="name" data-pfx-slot="name" data-text="{{ preview_display_name }}">{{ preview_display_name }}</span></strong>
                 </div>
             </div>
             {% if not current_bg_static %}
@@ -92,6 +95,17 @@
                         </form>
                     {% endif %}
                 </div>
+                <div class="pcz-current__row">
+                    <dt>{% if LANGUAGE_CODE == "ru" %}Эффекты CaseUP{% else %}CaseUP effects{% endif %}</dt>
+                    <dd class="pcz-current__fx">
+                        {% for group in effect_groups %}
+                            {% if group.current %}<span class="pcz-chip pcz-chip--{{ group.current.rarity }}">{% if LANGUAGE_CODE == "ru" %}{{ group.current.title_ru }}{% else %}{{ group.current.title_en }}{% endif %}</span>{% endif %}
+                        {% endfor %}
+                        {% if not current_effects.frame and not current_effects.name and not current_effects.hero %}
+                            <span class="pcz-current__name is-muted">{% if LANGUAGE_CODE == "ru" %}Не выбраны{% else %}None yet{% endif %}</span>
+                        {% endif %}
+                    </dd>
+                </div>
             </dl>
 
             <div class="pcz-try" data-pcz-try hidden>
@@ -102,6 +116,7 @@
                         <form method="post" action="" data-pcz-apply-form>
                             {% csrf_token %}
                             <input type="hidden" name="next" value="" data-pcz-apply-next>
+                            <input type="hidden" name="key" value="" data-pcz-apply-key>
                             <button type="submit" class="btn btn-primary btn-sm">{% if LANGUAGE_CODE == "ru" %}Применить{% else %}Apply{% endif %}</button>
                         </form>
                     {% else %}
@@ -116,6 +131,9 @@
     {# ===== TABS ===== #}
     <div class="pcz-toolbar">
         <nav class="cc-tabs pcz-tabs" aria-label="{% if LANGUAGE_CODE == "ru" %}Разделы каталога{% else %}Catalog sections{% endif %}">
+            <a href="?tab=effects" class="cc-tab{% if active_tab == 'effects' %} is-active{% endif %}" data-dashboard-nav="true">
+                <span>{% if LANGUAGE_CODE == "ru" %}Эффекты CaseUP{% else %}CaseUP effects{% endif %}</span><b class="pcz-tabs__count">{{ effects_count }}</b>
+            </a>
             <a href="?tab=backgrounds" class="cc-tab{% if active_tab == 'backgrounds' %} is-active{% endif %}" data-dashboard-nav="true">
                 <span>{% if LANGUAGE_CODE == "ru" %}Фоны{% else %}Backgrounds{% endif %}</span><b class="pcz-tabs__count">{{ backgrounds|length }}</b>
             </a>
@@ -134,7 +152,9 @@
         </label>
     </div>
 
-    {% if active_tab == "backgrounds" %}
+    {% if active_tab == "effects" %}
+        {% include "profile_customization/partials/_effects_tab.html" %}
+    {% elif active_tab == "backgrounds" %}
         {% if backgrounds %}
             <div class="pcz-grid pcz-grid--bg" data-pcz-grid>
                 {% for bg in backgrounds %}

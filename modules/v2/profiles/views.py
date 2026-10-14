@@ -21,7 +21,11 @@ from modules.v2.profiles.services.balance import BalanceError, adjust_balance
 from modules.v2.profiles.services.faceit import sync_faceit_if_needed, sync_faceit_profile
 from modules.v2.profiles.services.presence import is_profile_online
 from modules.v2.profiles.services.steam_profile import sync_profile_steam_meta_if_needed
-from modules.v2.profile_customization.services import can_customize_profile, get_or_create_customization
+from modules.v2.profile_customization.services import (
+    can_customize_profile,
+    get_or_create_customization,
+    get_profile_effect_classes,
+)
 from modules.v2.social.services import build_space_url, get_or_create_direct_space
 from modules.v2.social_friends.forms import PrivacySettingsForm as SocialPrivacySettingsForm
 from modules.v2.social_friends.services import get_friendship_context, get_or_create_privacy_settings, update_privacy_settings
@@ -266,6 +270,7 @@ def _build_profile_context(*, request, target_user):
         "friendship_context": friendship_ctx,
         "effective_bg_static": effective_bg_static,
         "effective_bg_video": effective_bg_video,
+        "profile_effects": get_profile_effect_classes(target_user),
         "profile_verification_badge": profile_verification_badge,
         "active_telegram_connect_url": active_telegram_connect_url,
         "profile_subscription_context": target_site_subscription_context,
