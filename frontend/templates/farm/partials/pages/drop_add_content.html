@@ -62,7 +62,7 @@
                 </div>
 
                 {% if pool_tiles %}
-                    <h3 class="fm-subtitle">Активный дроп-пул</h3>
+                    <h3 class="fm-subtitle">Активный дроп-пул{% if farm_access.staff_access %} <a href="{% url 'farm:drop_pool' %}" class="fm-subtitle__link">изменить</a>{% endif %}</h3>
                     <div class="fm-items">
                         {% for tile in pool_tiles %}{% include "farm/partials/_drop_tile.html" with tile=tile %}{% endfor %}
                     </div>
@@ -74,7 +74,7 @@
                     </div>
                 {% endif %}
                 {% if not pool_tiles and not frequent_tiles %}
-                    <p class="ops-empty">Пул дропа пока пуст. Найди предмет поиском выше{% if farm_access.staff_access %} или <a href="{% url 'farm:drop_pool' %}">заполни пул</a>{% endif %}.</p>
+                    <p class="ops-empty">Пул дропа пока пуст. Найди предмет поиском выше{% if farm_access.staff_access %} или <a href="{% url 'farm:drop_pool' %}">заполни пул предметов</a>{% endif %}.</p>
                 {% endif %}
 
                 <details class="fm-more"{% if manual_rows %} open{% endif %}>

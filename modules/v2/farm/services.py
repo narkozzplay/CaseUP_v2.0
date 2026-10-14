@@ -253,6 +253,35 @@ def _steam_inventory_fetch_page(steam_id64: str, start_assetid: str | None = Non
     return data
 
 
+def _rarity_color(description: dict) -> str:
+    for tag in description.get("tags") or []:
+        if tag.get("category") == "Rarity":
+            color = str(tag.get("color") or "").strip().lstrip("#")
+            if len(color) == 6 and all(ch in "0123456789abcdefABCDEF" for ch in color):
+                return color.lower()
+    return ""
+
+
+def _asset_float_values(asset_properties: list) -> dict[str, float]:
+    """Steam returns the wear rating per asset in `asset_properties`."""
+    values: dict[str, float] = {}
+    for entry in asset_properties:
+        if not isinstance(entry, dict):
+            continue
+        for prop in entry.get("asset_properties") or []:
+            if not isinstance(prop, dict):
+                continue
+            if prop.get("propertyid") != 2 and "wear" not in str(prop.get("name") or "").lower():
+                continue
+            try:
+                value = float(prop.get("float_value"))
+            except (TypeError, ValueError):
+                continue
+            if 0 <= value <= 1:
+                values[str(entry.get("assetid") or "")] = value
+    return values
+
+
 def fetch_public_inventory(steam_id64: str) -> list[dict]:
     items: list[dict] = []
     start_assetid: str | None = None
@@ -268,6 +297,8 @@ def fetch_public_inventory(steam_id64: str) -> list[dict]:
             )
             descriptions[key] = description
 
+        float_by_asset = _asset_float_values(data.get("asset_properties") or [])
+
         for asset in data.get("assets", []):
             class_id = str(asset.get("classid") or "")
             instance_id = str(asset.get("instanceid") or "0")
@@ -281,6 +312,8 @@ def fetch_public_inventory(steam_id64: str) -> list[dict]:
                     "amount": int(asset.get("amount") or 1),
                     "market_hash_name": (desc.get("market_hash_name") or desc.get("market_name") or "").strip(),
                     "icon_url": (desc.get("icon_url_large") or desc.get("icon_url") or "").strip(),
+                    "rarity_color": _rarity_color(desc),
+                    "float_value": float_by_asset.get(str(asset.get("assetid") or "")),
                     "tradable": bool(desc.get("tradable")),
                     "marketable": bool(desc.get("marketable")),
                 }
@@ -384,6 +417,8 @@ def sync_account_inventory(*, account: FarmAccount) -> FarmAccountInventorySync:
                         amount=row["amount"],
                         market_hash_name=row["market_hash_name"],
                         icon_url=row["icon_url"],
+                        rarity_color=row.get("rarity_color", ""),
+                        float_value=row.get("float_value"),
                         tradable=row["tradable"],
                         marketable=row["marketable"],
                         matched_item=matched_item,
@@ -402,6 +437,8 @@ def sync_account_inventory(*, account: FarmAccount) -> FarmAccountInventorySync:
                 item.amount = row["amount"]
                 item.market_hash_name = row["market_hash_name"]
                 item.icon_url = row["icon_url"]
+                item.rarity_color = row.get("rarity_color", "")
+                item.float_value = row.get("float_value")
                 item.tradable = row["tradable"]
                 item.marketable = row["marketable"]
                 item.matched_item = matched_item
@@ -419,6 +456,8 @@ def sync_account_inventory(*, account: FarmAccount) -> FarmAccountInventorySync:
                         "amount",
                         "market_hash_name",
                         "icon_url",
+                        "rarity_color",
+                        "float_value",
                         "tradable",
                         "marketable",
                         "matched_item",

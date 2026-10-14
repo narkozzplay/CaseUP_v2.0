@@ -315,6 +315,11 @@ class ActiveDropPoolEntryForm(forms.ModelForm):
             is_active=True,
             item_type__in=ALLOWED_DROP_ITEM_TYPES,
         ).order_by("item_type", "family_name", "market_hash_name")
+        self.fields["sort_order"].required = False
+
+    def clean_sort_order(self):
+        value = self.cleaned_data.get("sort_order")
+        return 100 if value is None else value
 
     def clean_item(self):
         item = self.cleaned_data["item"]

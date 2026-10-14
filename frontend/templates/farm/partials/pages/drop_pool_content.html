@@ -1,0 +1,62 @@
+<section class="section section--compact ops fm">
+    <header class="ops-hero fm-hero">
+        <div class="ops-hero__main">
+            <span class="eyebrow"><a href="{% url 'farm:sessions_add' %}" class="fm-back">← Добавить дроп</a> · неделя #{{ week.index }}</span>
+            <h1 class="ops-hero__title">Пул предметов</h1>
+            <p class="ops-hero__text">Предметы, которые сейчас выпадают в недельном дропе CS2. Они первыми показываются плитками при добавлении дропа у всех фермеров.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>В пуле</dt><dd>{{ entries|length }}</dd></div>
+            <div><dt>Неделя</dt><dd>{{ week.start|date:"d.m" }}–{{ week.end|date:"d.m" }}</dd></div>
+        </dl>
+    </header>
+
+    <div class="fm-pool">
+        <article class="ops-panel">
+            <div class="ops-panel__head">
+                <h2 class="ops-panel__title">Добавить в пул</h2>
+            </div>
+            <form method="post" class="fm-pool__add" data-pool-form data-search-url="{% url 'farm:item_search' %}" data-pool-ids="{% for entry in entries %}{{ entry.item_id }}{% if not forloop.last %},{% endif %}{% endfor %}">
+                {% csrf_token %}
+                <label class="fm-inv__search">
+                    {% include "components/icon.html" with name="search" %}
+                    <input type="search" placeholder="Кейс, скин или граффити из каталога" data-pool-search autocomplete="off">
+                </label>
+                <input type="text" name="note" class="form-control" placeholder="Заметка, например «новый кейс»" maxlength="255">
+                <p class="fm-pool__status" data-pool-status>Начни вводить название, минимум 2 буквы.</p>
+                <div class="fm-pool__results" data-pool-results></div>
+            </form>
+        </article>
+
+        <article class="ops-panel">
+            <div class="ops-panel__head">
+                <h2 class="ops-panel__title">Сейчас в пуле</h2>
+                <span class="fm-pool__count">{{ entries|length }} предм.</span>
+            </div>
+            {% if entries %}
+                <div class="fm-pool__grid">
+                    {% for entry in entries %}
+                        {% with item=entry.item %}
+                        <div class="fm-pool__card">
+                            <span class="fm-pool__img">{% if item.icon_url %}<img src="{{ item.icon_cdn }}" alt="" loading="lazy">{% else %}{% include "components/icon.html" with name="farm_drops" %}{% endif %}</span>
+                            <strong class="fm-pool__name" title="{{ item.market_hash_name }}">{{ item.group_name }}</strong>
+                            <span class="fm-pool__meta">{{ item.get_item_type_display }}{% if item.price_rub is not None %} · {% money item.price_rub %}{% endif %}</span>
+                            {% if entry.note %}<span class="fm-pool__note">{{ entry.note }}</span>{% endif %}
+                            <form method="post" action="{% url 'farm:drop_pool_remove' entry.id %}" data-farm-confirm="Убрать {{ item.group_name }} из пула?">
+                                {% csrf_token %}
+                                <button type="submit" class="fm-pool__remove" title="Убрать из пула" aria-label="Убрать из пула">×</button>
+                            </form>
+                        </div>
+                        {% endwith %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="fm-empty">
+                    <span class="fm-empty__icon">{% include "components/icon.html" with name="farm_drops" %}</span>
+                    <strong>Пул пока пуст</strong>
+                    <p>Найди слева кейсы текущей недели и добавь их. Фермеры увидят их плитками на странице «Добавить дроп».</p>
+                </div>
+            {% endif %}
+        </article>
+    </div>
+</section>

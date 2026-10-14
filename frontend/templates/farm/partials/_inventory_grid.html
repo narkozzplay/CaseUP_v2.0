@@ -1,0 +1,104 @@
+<div class="fm-inv-host">
+<div class="fm-inv" data-farm-inventory>
+    <div class="fm-inv__main">
+        <div class="fm-inv__toolbar">
+            <form method="post" action="{% url 'farm:account_inventory_sync' account.id %}" class="fm-inv__sync">
+                {% csrf_token %}
+                <button type="submit" class="fm-inv__iconbtn" title="Обновить инвентарь из Steam" aria-label="Обновить инвентарь из Steam">{% include "components/icon.html" with name="refresh" %}</button>
+            </form>
+            <label class="fm-inv__search">
+                {% include "components/icon.html" with name="search" %}
+                <input type="search" placeholder="Поиск по предметам" data-inv-search autocomplete="off">
+            </label>
+            <label class="fm-inv__sort">
+                <span class="visually-hidden">Сортировка</span>
+                <select data-inv-sort>
+                    <option value="price-desc">Сначала дорогие</option>
+                    <option value="price-asc">Сначала дешёвые</option>
+                    <option value="name">По названию</option>
+                </select>
+            </label>
+            <button type="button" class="fm-inv__selectall" data-inv-select-all {% if not inventory_sellable_total %}disabled{% endif %}>
+                <span class="fm-inv__radio" aria-hidden="true"></span><span data-inv-select-all-label>Выбрать все</span>
+            </button>
+        </div>
+
+        <nav class="fm-inv__filters" aria-label="Фильтр инвентаря">
+            <a href="?tab=inventory&inventory_filter=all" class="fm-tab{% if inventory_filter == 'all' %} is-active{% endif %}">Все · {{ inventory_total }}</a>
+            <a href="?tab=inventory&inventory_filter=sellable" class="fm-tab{% if inventory_filter == 'sellable' %} is-active{% endif %}">Можно продать · {{ inventory_sellable_total }}</a>
+            <a href="?tab=inventory&inventory_filter=blocked" class="fm-tab{% if inventory_filter == 'blocked' %} is-active{% endif %}">Заблокировано · {{ inventory_blocked_total }}</a>
+        </nav>
+
+        {% if inventory_items %}
+            <div class="fm-inv__grid" data-inv-grid>
+                {% for item in inventory_items %}
+                    {% with parts=item.name_parts %}
+                    <button type="button"
+                            class="fm-skin{% if not item.is_selectable %} is-blocked{% endif %}"
+                            data-inv-item="{{ item.id }}"
+                            data-name="{{ item.market_hash_name|lower }}"
+                            data-price="{{ item.catalog_price_rub_snapshot|default_if_none:''|stringformat:'s' }}"
+                            data-payout="{{ item.payout_price_rub_snapshot|default_if_none:''|stringformat:'s' }}"
+                            data-order="{{ forloop.counter0 }}"
+                            {% if item.rarity_color %}style="--rarity: #{{ item.rarity_color }}"{% endif %}
+                            {% if not item.is_selectable %}aria-disabled="true" title="{{ item.sell_block_reason|default:item.block_label }}"{% else %}aria-pressed="false" title="{{ item.market_hash_name }}"{% endif %}>
+                        <span class="fm-skin__top">
+                            {% if item.exterior_code %}<span class="fm-skin__wear">{{ item.exterior_code }}{% if item.float_value is not None %}<i> · </i>{{ item.float_value|floatformat:"4u" }}{% endif %}</span>{% endif %}
+                            {% if item.amount > 1 %}<span class="fm-skin__qty">×{{ item.amount }}</span>{% endif %}
+                            <span class="fm-skin__check" aria-hidden="true">{% include "components/icon.html" with name="check" %}</span>
+                        </span>
+                        <span class="fm-skin__img">
+                            {% if item.icon_large %}<img src="{{ item.icon_large }}" alt="" loading="lazy">{% else %}{% include "components/icon.html" with name="box" %}{% endif %}
+                        </span>
+                        <span class="fm-skin__kicker">{{ parts.0|default:"&nbsp;" }}</span>
+                        <span class="fm-skin__name">{{ parts.1 }}</span>
+                        <span class="fm-skin__foot">
+                            <b class="fm-skin__price">{% if item.catalog_price_rub_snapshot is not None %}{% money item.catalog_price_rub_snapshot %}{% else %}—{% endif %}</b>
+                            {% if item.block_label %}<span class="fm-skin__flag">{{ item.block_label }}</span>{% endif %}
+                        </span>
+                    </button>
+                    {% endwith %}
+                {% endfor %}
+            </div>
+            <p class="ops-empty" data-inv-empty hidden>Ничего не нашлось.</p>
+            {% if inventory_items|length >= 500 %}<p class="fm-inv__note">Показаны первые 500 предметов.</p>{% endif %}
+        {% elif inventory_total %}
+            <p class="ops-empty">В этом фильтре предметов нет.</p>
+        {% else %}
+            <div class="fm-empty">
+                <span class="fm-empty__icon">{% include "components/icon.html" with name="box" %}</span>
+                <strong>Инвентарь ещё не загружен</strong>
+                <p>Нажми «Обновить», и мы заберём публичный инвентарь бота из Steam.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <aside class="fm-inv__side">
+        <form method="post" action="{% if can_sell_via_tradehub %}{% url 'tradehub:create_order' %}{% endif %}" class="fm-inv__cart" data-inv-form>
+            {% csrf_token %}
+            <input type="hidden" name="account_id" value="{{ account.id }}">
+            <div data-inv-selected-inputs></div>
+            <span class="fm-inv__caption">Выбрано <b data-inv-count>0</b> предм. на сумму</span>
+            <strong class="fm-inv__sum" data-inv-sum>0,00 ₽</strong>
+            <dl class="fm-inv__lines">
+                <div><dt>К выплате</dt><dd data-inv-payout>0,00 ₽</dd></div>
+            </dl>
+            {% if can_sell_via_tradehub %}
+                <button type="submit" class="btn btn-primary fm-inv__go" data-inv-submit disabled>Продать через {{ site_settings.site_name|default:"CaseUP" }}</button>
+                <p class="fm-inv__hint">Бот {{ site_settings.site_name|default:"CaseUP" }} пришлёт трейд-оффер на выбранные предметы. Затемнённые продать нельзя: наведи, чтобы увидеть причину.</p>
+            {% else %}
+                <p class="fm-inv__hint">Продажа через TradeHub сейчас выключена.</p>
+            {% endif %}
+        </form>
+
+        <dl class="fm-inv__stats">
+            <div><dt>Всего предметов</dt><dd>{{ inventory_total }}</dd></div>
+            <div><dt>Можно продать</dt><dd class="metric-positive">{{ inventory_sellable_total }}</dd></div>
+            <div><dt>Заблокировано</dt><dd>{{ inventory_blocked_total }}</dd></div>
+            <div><dt>Нет в каталоге</dt><dd>{{ inventory_unmatched_total }}</dd></div>
+            <div><dt>Стоимость продаваемых</dt><dd>{% money inventory_value_rub %}</dd></div>
+            <div><dt>Синхронизация</dt><dd>{% if latest_sync %}{{ latest_sync.started_at|date:"d.m H:i" }}{% else %}—{% endif %}</dd></div>
+        </dl>
+    </aside>
+</div>
+</div>
