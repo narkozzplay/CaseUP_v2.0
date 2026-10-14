@@ -57,6 +57,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-caseup}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      DJANGO_CACHE_URL: ${DJANGO_CACHE_URL:-redis://redis:6379/1}
       RUN_MIGRATIONS: ${RUN_MIGRATIONS:-1}
       RUN_COLLECTSTATIC: ${RUN_COLLECTSTATIC:-1}
     command: ${WEB_COMMAND:-python manage.py runserver 0.0.0.0:8000}
@@ -101,6 +102,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-caseup}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      DJANGO_CACHE_URL: ${DJANGO_CACHE_URL:-redis://redis:6379/1}
       RUN_MIGRATIONS: "0"
       RUN_COLLECTSTATIC: "0"
     command: celery -A config worker -l info --concurrency=${CELERY_WORKER_CONCURRENCY:-1} --max-tasks-per-child=100
@@ -138,6 +140,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-caseup}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      DJANGO_CACHE_URL: ${DJANGO_CACHE_URL:-redis://redis:6379/1}
       RUN_MIGRATIONS: "0"
       RUN_COLLECTSTATIC: "0"
     command: celery -A config beat -l info --schedule /var/run/celery/celerybeat-schedule

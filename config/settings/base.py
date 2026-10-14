@@ -165,6 +165,36 @@ else:
         }
     }
 
+# Shared cache (presence throttling, Steam search, health checks). Without DJANGO_CACHE_URL Django falls
+# back to per-process LocMemCache, which is not shared between gunicorn workers and Celery.
+DJANGO_CACHE_URL = os.getenv("DJANGO_CACHE_URL", "").strip()
+if DJANGO_CACHE_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": DJANGO_CACHE_URL,
+            "KEY_PREFIX": "caseup",
+        }
+    }
+
+# Without an explicit LOGGING Django prints django.request errors only when DEBUG=True,
+# so 500 tracebacks in production were lost. Everything goes to stderr (docker logs).
+DJANGO_LOG_LEVEL = (os.getenv("DJANGO_LOG_LEVEL", "INFO").strip() or "INFO").upper()
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {"format": "%(asctime)s %(levelname)s %(name)s: %(message)s"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "standard"},
+    },
+    "root": {"handlers": ["console"], "level": DJANGO_LOG_LEVEL},
+    "loggers": {
+        "django": {"handlers": ["console"], "level": DJANGO_LOG_LEVEL, "propagate": False},
+    },
+}
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},

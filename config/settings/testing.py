@@ -17,6 +17,11 @@ CELERY_BROKER_URL = "memory://"
 CELERY_RESULT_BACKEND = "cache+memory://"
 CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS = 300
 
+# Tests never depend on a running Redis and keep their output quiet (assertLogs still works).
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+LOGGING["root"]["level"] = "CRITICAL"
+LOGGING["loggers"]["django"]["level"] = "CRITICAL"
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 TEST_DB_ENGINE = os.getenv("TEST_DB_ENGINE", "sqlite").strip().lower()
