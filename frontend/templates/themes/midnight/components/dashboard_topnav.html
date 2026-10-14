@@ -21,6 +21,7 @@
             {% endfor %}
         </nav>
         <div class="midnight-topnav__actions">
+            {% include "components/notifications_bell.html" %}
             {% include "components/language_switcher.html" %}
             <a href="{% url 'profiles:profile' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">{% trans "Profile" %}</a>
         </div>

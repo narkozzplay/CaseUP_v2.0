@@ -6,3 +6,8 @@ class SocialFriendsConfig(AppConfig):
     name = "modules.v2.social_friends"
     label = "social_friends"
     verbose_name = "Social Friends"
+
+    def ready(self):
+        from .notifications import register_notification_kinds
+
+        register_notification_kinds()

@@ -1,75 +1,25 @@
-<section class="section section--compact social-friends">
-    <div class="dashboard-hero card">
-        <div class="card-body dashboard-hero__body">
-            <div>
-                <span class="eyebrow">Social</span>
-                <h1 class="page-title page-title--sm">
-                    {% if LANGUAGE_CODE == "ru" %}Друзья{% else %}Friends{% endif %}
-                </h1>
-                <p class="text-muted dashboard-hero__text">
-                    {% if LANGUAGE_CODE == "ru" %}Список ваших друзей на платформе.{% else %}Your friends on the platform.{% endif %}
-                </p>
-            </div>
-            <div class="dashboard-hero__meta">
-                <span class="status-pill">Social</span>
-                <span class="status-pill">Stage 5</span>
-                <a href="{% url 'social_friends:friend_requests' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
-                    {% if LANGUAGE_CODE == "ru" %}Заявки{% else %}Requests{% endif %}
-                </a>
-                <a href="{% url 'social_friends:privacy_settings' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
-                    {% if LANGUAGE_CODE == "ru" %}Приватность{% else %}Privacy{% endif %}
-                </a>
-            </div>
+<section class="section section--compact chat-page friends-page">
+    <div class="page-header page-header--compact chat-page__head">
+        <div>
+            <span class="eyebrow">Social</span>
+            <h1>{% if LANGUAGE_CODE == "ru" %}Друзья{% else %}Friends{% endif %}</h1>
+            <p class="text-muted">{% if LANGUAGE_CODE == "ru" %}Люди, с которыми вы на связи.{% else %}People you're connected with.{% endif %}</p>
         </div>
     </div>
 
+    {% include "social_friends/partials/_friends_tabs.html" with friends_tab="friends" %}
+
     {% if friend_rows %}
-        <div class="dashboard-grid">
+        <div class="chat-list">
             {% for row in friend_rows %}
-                <article class="card dashboard-panel">
-                    <div class="card-body">
-                        <div class="social-space-card__head">
-                            <span class="presence-avatar-wrap presence-avatar-wrap--sm">
-                                <img src="{{ row.avatar_url }}" alt="{{ row.display_name }}" class="profile-avatar">
-                                <span class="presence-indicator {% if row.is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}"></span>
-                            </span>
-                            <div>
-                                <strong>{{ row.display_name }}</strong>
-                                <span class="text-muted" style="font-size:.8em; display:block;">
-                                    {% if row.is_online %}{% if LANGUAGE_CODE == "ru" %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}Оффлайн{% else %}Offline{% endif %}{% endif %}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="social-space-card__actions" style="margin-top:.75rem; display:flex; gap:.5rem; flex-wrap:wrap;">
-                            <a href="{% url 'profiles:profile_detail' row.user_id %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
-                                {% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}
-                            </a>
-                            <form method="post" action="{% url 'profiles:profile_start_direct_chat' row.user_id %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="next" value="{% url 'social_friends:friends' %}">
-                                <button type="submit" class="btn btn-primary btn-sm">
-                                    {% if LANGUAGE_CODE == "ru" %}Написать{% else %}Message{% endif %}
-                                </button>
-                            </form>
-                            <form method="post" action="{% url 'social_friends:remove_friend' row.user_id %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="next" value="{% url 'social_friends:friends' %}">
-                                <button type="submit" class="btn btn-secondary btn-sm">
-                                    {% if LANGUAGE_CODE == "ru" %}Удалить{% else %}Remove{% endif %}
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </article>
+                {% include "social_friends/partials/_person_row.html" with row_actions="social_friends/partials/_friend_actions.html" %}
             {% endfor %}
         </div>
     {% else %}
-        <article class="card dashboard-panel">
-            <div class="card-body">
-                <p class="text-muted empty-state">
-                    {% if LANGUAGE_CODE == "ru" %}У вас пока нет друзей. Ищите пользователей в каталоге и отправляйте заявки.{% else %}No friends yet. Find users in the catalog and send friend requests.{% endif %}
-                </p>
-            </div>
-        </article>
+        <div class="empty-panel chat-empty">
+            {% include "components/icon.html" with name="friends" %}
+            <strong>{% if LANGUAGE_CODE == "ru" %}У вас пока нет друзей{% else %}No friends yet{% endif %}</strong>
+            <p class="text-muted">{% if LANGUAGE_CODE == "ru" %}Откройте профиль игрока и нажмите «Добавить в друзья».{% else %}Open a player's profile and press "Add friend".{% endif %}</p>
+        </div>
     {% endif %}
 </section>

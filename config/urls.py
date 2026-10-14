@@ -37,6 +37,7 @@ urlpatterns += i18n_patterns(
     path("constructor/", include("modules.v2.web_constructor.urls")),
     path("social/", include("modules.v2.social.urls")),
     path("social/", include("modules.v2.social_friends.urls")),
+    path("notifications/", include("modules.v2.notifications.urls")),
     path("customization/", include("modules.v2.profile_customization.urls")),
     path("cs2/stats/", include("modules.v2.cs2_stats.urls")),
     path("", include("frontend.urls")),
