@@ -86,7 +86,10 @@ def apply_ledger_delta(
         raise LedgerError("Delta must not be zero")
 
     amount_snapshot = _normalize_optional_decimal(amount_snapshot)
-    normalized_reason = reason if reason in LedgerReason.values else LedgerReason.ADMIN_ADJUST
+    # An unknown reason is a bug in the caller; recording it as an admin adjustment would hide it.
+    if reason not in LedgerReason.values:
+        raise LedgerError(f"Unknown ledger reason: {reason!r}")
+    normalized_reason = reason
 
     profile, _ = UserProfile.objects.select_for_update().get_or_create(
         user=user,

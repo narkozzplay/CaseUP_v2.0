@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from django.http import HttpResponse
 from django.shortcuts import render
 
 DASHBOARD_PARTIAL_HEADER = "X-Dashboard-Partial"

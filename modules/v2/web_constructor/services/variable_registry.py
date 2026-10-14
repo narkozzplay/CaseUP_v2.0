@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from modules.v2.web_constructor.models import EditablePage, TemplateVariable
+from modules.v2.web_constructor.models import TemplateVariable
 
 
 VARIABLE_SPECS = [

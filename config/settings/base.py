@@ -92,6 +92,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS + PROJECT_APPS + PL
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "modules.v2.system.request_cache.RequestCacheMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",

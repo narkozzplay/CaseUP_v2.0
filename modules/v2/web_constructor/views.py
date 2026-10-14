@@ -15,7 +15,7 @@ from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_lab_url, build_page_title, build_site_url, request_is_lab_host
 
 from .forms import PageTemplateCreateForm, PageTemplateEditorForm, TemplateAssetUploadForm, TemplateModerationForm
-from .models import EditablePage, PageTemplate, PageTemplateVersion, SandboxSession, TemplateAsset, TemplateVariable
+from .models import EditablePage, PageTemplate, PageTemplateVersion, TemplateAsset, TemplateVariable
 from .services import (
     TemplateSchemaError,
     TemplateWorkflowError,

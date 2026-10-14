@@ -352,7 +352,6 @@ def get_cs2_stats_context(target_user, *, viewer) -> dict:
     from modules.v2.profiles.models import UserProfile
     from modules.v2.profiles.presentation import get_profile_avatar_url, get_profile_display_name, get_verification_badge
     from modules.v2.profiles.services.presence import is_profile_online
-    from modules.v2.profiles.rbac import get_user_role
 
     profile = getattr(target_user, "profile_v2", None)
     if profile is None:
@@ -365,7 +364,6 @@ def get_cs2_stats_context(target_user, *, viewer) -> dict:
     avatar_url   = get_profile_avatar_url(profile)
     badge        = get_verification_badge(profile)
     is_online    = is_profile_online(profile)
-    viewer_role  = get_user_role(viewer)
     is_owner     = (getattr(viewer, "pk", None) == target_user.pk)
 
     # CS2 Steam stats

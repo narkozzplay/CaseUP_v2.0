@@ -294,8 +294,30 @@ def _normalize_text(value: Any, *, max_length: int = 255) -> str:
     return value
 
 
+# URLs are rendered inside style="background-image: url('...')" as well as href/src. The browser
+# HTML-decodes the attribute before parsing CSS, so a quote or parenthesis would end the url() and
+# inject CSS; a backslash makes "/\host" a protocol-relative link. Percent-encoding keeps the same
+# address for the browser while removing those characters.
+_URL_UNSAFE_CHARS = {
+    "'": "%27",
+    '"': "%22",
+    "(": "%28",
+    ")": "%29",
+    "\\": "%5C",
+    " ": "%20",
+    "\n": "%0A",
+    "\t": "%09",
+    "<": "%3C",
+    ">": "%3E",
+}
+
+
+def _encode_url_unsafe_chars(url: str) -> str:
+    return "".join(_URL_UNSAFE_CHARS.get(char, char) for char in url)
+
+
 def _normalize_url(value: Any) -> str:
-    raw = _normalize_text(value, max_length=255)
+    raw = _encode_url_unsafe_chars(_normalize_text(value, max_length=255))
     if not raw:
         return ""
     if raw.startswith("/") and not raw.startswith("//"):

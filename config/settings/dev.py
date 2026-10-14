@@ -1,3 +1,4 @@
+import ipaddress
 import os
 
 from .base import *
@@ -27,6 +28,14 @@ def _is_allowed_dev_host(host: str) -> bool:
 
     if normalized in {"127.0.0.1", "localhost", "::1"}:
         return True
+
+    # Private LAN addresses (e.g. opening the dev server from a phone) are not reachable from the internet.
+    try:
+        address = ipaddress.ip_address(normalized)
+    except ValueError:
+        pass
+    else:
+        return address.is_private or address.is_loopback
 
     return normalized.endswith((".localhost", ".local", ".test", "ngrok-free.dev", "ngrok-free.app"))
 
