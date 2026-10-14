@@ -72,6 +72,7 @@ class YooKassaProvider(BasePaymentProvider):
             currency=str(amount_data.get("currency") or ""),
             confirmation_url=str((data.get("confirmation") or {}).get("confirmation_url") or ""),
             error_message=str(cancellation.get("reason") or ""),
+            is_test=bool(data.get("test")),
             raw=data,
         )
 

@@ -18,6 +18,7 @@ class ProviderPayment:
     currency: str = ""
     confirmation_url: str = ""
     error_message: str = ""
+    is_test: bool = False
     raw: dict = field(default_factory=dict)
 
 

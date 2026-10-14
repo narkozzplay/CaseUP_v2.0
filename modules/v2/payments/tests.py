@@ -17,14 +17,15 @@ from .services import sync_payment
 User = get_user_model()
 
 
-def _yookassa_response(*, status="pending", payment_id="2d8f-yk", amount="300.00", status_code=200):
+def _yookassa_response(*, status="pending", payment_id="2d8f-yk", amount="300.00", currency="RUB", test=True, status_code=200):
     response = mock.Mock()
     response.status_code = status_code
     response.json.return_value = {
         "id": payment_id,
         "status": status,
         "paid": status == "succeeded",
-        "amount": {"value": amount, "currency": "RUB"},
+        "test": test,
+        "amount": {"value": amount, "currency": currency},
         "confirmation": {"type": "redirect", "confirmation_url": "https://yoomoney.ru/checkout/payments/v2/contract?orderId=2d8f-yk"},
     }
     return response
@@ -188,3 +189,158 @@ class YooKassaFlowTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 503)
+
+    @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
+    def test_currency_mismatch_is_not_credited(self, request_mock):
+        request_mock.return_value = _yookassa_response()
+        self.client.post(reverse("payments:topup"), {"amount": "300"})
+        payment = Payment.objects.get(user=self.user)
+
+        request_mock.return_value = _yookassa_response(status="succeeded", currency="USD")
+        payment = sync_payment(payment)
+
+        self.assertEqual(payment.status, Payment.Status.FAILED)
+        self.assertFalse(LedgerEntry.objects.filter(user=self.user).exists())
+
+    @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
+    def test_test_mode_payment_is_flagged(self, request_mock):
+        request_mock.return_value = _yookassa_response(test=True)
+        self.client.post(reverse("payments:topup"), {"amount": "300"})
+
+        self.assertTrue(Payment.objects.get(user=self.user).is_test)
+
+    @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
+    def test_credit_sends_site_notification(self, request_mock):
+        from modules.v2.notifications.models import Notification
+        from modules.v2.notifications.services import render_notification
+
+        request_mock.return_value = _yookassa_response()
+        self.client.post(reverse("payments:topup"), {"amount": "300"})
+        payment = Payment.objects.get(user=self.user)
+
+        request_mock.return_value = _yookassa_response(status="succeeded")
+        with self.captureOnCommitCallbacks(execute=True):
+            sync_payment(payment)
+        with self.captureOnCommitCallbacks(execute=True):
+            sync_payment(payment)  # already credited: no second notification
+
+        notifications = Notification.objects.filter(recipient=self.user, kind="balance_topup_succeeded")
+        self.assertEqual(notifications.count(), 1)
+        self.assertEqual(render_notification(notifications.get(), "ru").title, "Баланс пополнен на 300.00 ₽")
+
+
+@override_settings(DEBUG=True, PAYMENTS_MAX_OPEN_PER_USER=2)
+class TopupRateLimitTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="spammer", password="pass12345")
+        self.client.login(username="spammer", password="pass12345")
+
+    def test_too_many_open_payments_are_refused(self):
+        for _ in range(2):
+            self.client.post(reverse("payments:topup"), {"amount": "300"})
+        response = self.client.post(reverse("payments:topup"), {"amount": "300"}, follow=True)
+
+        self.assertContains(response, "Слишком много неоплаченных платежей")
+        self.assertEqual(Payment.objects.filter(user=self.user).count(), 2)
+
+    def test_old_open_payments_do_not_count(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        for _ in range(2):
+            self.client.post(reverse("payments:topup"), {"amount": "300"})
+        Payment.objects.update(created_at=timezone.now() - timedelta(minutes=20))
+        self.client.post(reverse("payments:topup"), {"amount": "300"})
+
+        self.assertEqual(Payment.objects.filter(user=self.user).count(), 3)
+
+
+@override_settings(YOOKASSA_SHOP_ID="123456", YOOKASSA_SECRET_KEY="test_secret")
+class ReconcilePendingPaymentsTests(TestCase):
+    def setUp(self):
+        from django.utils import timezone
+
+        self.now = timezone.now()
+        self.user = User.objects.create_user(username="reconcile", password="pass12345")
+
+    def _payment(self, *, minutes_ago, external_id="2d8f-yk", status=Payment.Status.PENDING):
+        from datetime import timedelta
+
+        payment = Payment.objects.create(
+            user=self.user, provider="yookassa", amount=Decimal("300.00"), status=status, external_id=external_id
+        )
+        Payment.objects.filter(pk=payment.pk).update(created_at=self.now - timedelta(minutes=minutes_ago))
+        return payment
+
+    @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
+    def test_lost_webhook_payment_is_credited(self, request_mock):
+        from .services import reconcile_pending_payments
+
+        payment = self._payment(minutes_ago=10)
+        request_mock.return_value = _yookassa_response(status="succeeded")
+
+        stats = reconcile_pending_payments(now=self.now)
+
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.SUCCEEDED)
+        self.assertEqual(stats["credited"], 1)
+        self.user.profile_v2.refresh_from_db()
+        self.assertEqual(self.user.profile_v2.balance_coins, Decimal("300.00"))
+
+    @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
+    def test_fresh_and_ancient_payments_are_left_alone(self, request_mock):
+        from .services import reconcile_pending_payments
+
+        self._payment(minutes_ago=1, external_id="fresh")
+        self._payment(minutes_ago=60 * 24 * 4, external_id="ancient")
+
+        stats = reconcile_pending_payments(now=self.now)
+
+        request_mock.assert_not_called()
+        self.assertEqual(stats["checked"], 0)
+
+    @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
+    def test_canceled_payment_is_closed_and_errors_do_not_stop_the_batch(self, request_mock):
+        from .services import reconcile_pending_payments
+
+        first = self._payment(minutes_ago=30, external_id="broken")
+        second = self._payment(minutes_ago=20, external_id="canceled-one")
+        request_mock.side_effect = [PaymentProviderError("down"), _yookassa_response(status="canceled", payment_id="canceled-one")]
+
+        stats = reconcile_pending_payments(now=self.now)
+
+        self.assertEqual(stats["errors"], 1)
+        self.assertEqual(stats["closed"], 1)
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual(first.status, Payment.Status.PENDING)
+        self.assertEqual(second.status, Payment.Status.CANCELED)
+
+    def test_unstarted_payment_is_closed_after_an_hour(self):
+        from .services import reconcile_pending_payments
+
+        stuck = self._payment(minutes_ago=90, external_id="", status=Payment.Status.CREATED)
+        recent = self._payment(minutes_ago=5, external_id="", status=Payment.Status.CREATED)
+
+        reconcile_pending_payments(now=self.now)
+
+        stuck.refresh_from_db()
+        recent.refresh_from_db()
+        self.assertEqual(stuck.status, Payment.Status.FAILED)
+        self.assertEqual(recent.status, Payment.Status.CREATED)
+
+    def test_celery_task_is_registered_on_beat(self):
+        from config.celery import app
+
+        self.assertEqual(app.conf.beat_schedule["reconcile-pending-payments"]["task"], "payments.reconcile_pending_payments")
+
+
+class PaymentDeployCheckTests(TestCase):
+    def test_test_keys_in_production_warn(self):
+        from .checks import check_yookassa_live_keys
+
+        with override_settings(DEBUG=False, YOOKASSA_SECRET_KEY="test_abc"):
+            self.assertEqual([w.id for w in check_yookassa_live_keys(None)], ["caseup.W002"])
+        with override_settings(DEBUG=False, YOOKASSA_SECRET_KEY="live_abc"):
+            self.assertEqual(check_yookassa_live_keys(None), [])

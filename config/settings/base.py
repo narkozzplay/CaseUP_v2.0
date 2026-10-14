@@ -317,6 +317,8 @@ YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY", "").strip()
 YOOKASSA_TIMEOUT_SECONDS = float(os.getenv("YOOKASSA_TIMEOUT_SECONDS", "15"))
 YOOKASSA_SEND_RECEIPT = os.getenv("YOOKASSA_SEND_RECEIPT", "0").lower() in {"1", "true", "yes"}
 YOOKASSA_VAT_CODE = int(os.getenv("YOOKASSA_VAT_CODE", "1"))
+PAYMENTS_MAX_OPEN_PER_USER = int(os.getenv("PAYMENTS_MAX_OPEN_PER_USER", "5"))
+CELERY_BEAT_PAYMENTS_RECONCILE_SECONDS = int(os.getenv("CELERY_BEAT_PAYMENTS_RECONCILE_SECONDS", "300"))
 
 # Secrets stored in the DB (API keys, bot tokens) are encrypted with these Fernet keys (common.encryption).
 # Comma-separated: the first encrypts, all decrypt. Empty = key derived from SECRET_KEY.

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+from modules.v2.notifications.services import notify
 from modules.v2.profiles.models import LedgerReason
 from modules.v2.profiles.services.balance import adjust_balance
 
@@ -17,6 +19,15 @@ from .providers import BasePaymentProvider, PaymentProviderError, get_provider
 logger = logging.getLogger(__name__)
 
 MONEY_Q = Decimal("0.01")
+
+# Open (unpaid) payments a user may start within OPEN_PAYMENTS_WINDOW; every start is a provider API call.
+OPEN_PAYMENTS_WINDOW = timedelta(minutes=15)
+# Reconciliation: payments younger than this are left to the user's return / the webhook.
+RECONCILE_MIN_AGE = timedelta(minutes=2)
+# ...and older than this are no longer polled (the provider expires unpaid payments much sooner).
+RECONCILE_MAX_AGE = timedelta(days=3)
+# A payment that never got a provider id (creation failed mid-way) is closed after this.
+UNSTARTED_PAYMENT_TTL = timedelta(hours=1)
 
 
 class TopupError(Exception):
@@ -53,12 +64,22 @@ def create_topup_payment(*, user, amount: Decimal, return_url_builder) -> Paymen
     if amount < minimum or amount > maximum:
         raise TopupError(f"Сумма пополнения должна быть от {minimum:.2f} до {maximum:.2f}.")
 
+    max_open = int(getattr(settings, "PAYMENTS_MAX_OPEN_PER_USER", 5))
+    open_count = Payment.objects.filter(
+        user=user,
+        status__in=(Payment.Status.CREATED, Payment.Status.PENDING),
+        created_at__gte=timezone.now() - OPEN_PAYMENTS_WINDOW,
+    ).count()
+    if open_count >= max_open:
+        raise TopupError("Слишком много неоплаченных платежей. Оплатите начатый платёж или подождите 15 минут.")
+
     payment = Payment.objects.create(
         user=user,
         provider=provider.code,
         amount=amount,
         currency=getattr(settings, "PAYMENTS_CURRENCY", "RUB"),
         description=f"Пополнение баланса CaseUP, пользователь {user.username}"[:255],
+        is_test=provider.is_test_mode,
     )
 
     try:
@@ -73,9 +94,10 @@ def create_topup_payment(*, user, amount: Decimal, return_url_builder) -> Paymen
     payment.external_id = result.external_id
     payment.confirmation_url = result.confirmation_url
     payment.status = result.status if result.status in Payment.Status.values else Payment.Status.PENDING
+    payment.is_test = payment.is_test or result.is_test
     if result.raw:
         payment.provider_payload = result.raw
-    payment.save(update_fields=["external_id", "confirmation_url", "status", "provider_payload", "updated_at"])
+    payment.save(update_fields=["external_id", "confirmation_url", "status", "is_test", "provider_payload", "updated_at"])
 
     if payment.status == Payment.Status.SUCCEEDED:
         sync_payment(payment)
@@ -92,6 +114,16 @@ def _credit(payment: Payment) -> None:
         comment=f"Пополнение через {payment.provider} · {payment.external_id}",
     )
     payment.ledger_entry = entry
+    transaction.on_commit(lambda: _notify_credited(payment))
+
+
+def _notify_credited(payment: Payment) -> None:
+    from .notifications import KIND_TOPUP_SUCCEEDED
+
+    try:
+        notify(payment.user, KIND_TOPUP_SUCCEEDED, object_id=payment.pk, payload={"amount": f"{payment.amount:.2f}"})
+    except Exception:  # noqa: BLE001 - the money is already credited; a failed notification must not hide that
+        logger.exception("Top-up %s credited, but the notification failed", payment.public_id)
 
 
 def sync_payment(payment: Payment, *, provider: BasePaymentProvider | None = None) -> Payment:
@@ -116,6 +148,7 @@ def sync_payment(payment: Payment, *, provider: BasePaymentProvider | None = Non
 
         if remote.raw:
             locked.provider_payload = remote.raw
+        locked.is_test = locked.is_test or remote.is_test
         new_status = remote.status if remote.status in Payment.Status.values else locked.status
 
         if new_status == Payment.Status.SUCCEEDED:
@@ -123,6 +156,10 @@ def sync_payment(payment: Payment, *, provider: BasePaymentProvider | None = Non
                 locked.status = Payment.Status.FAILED
                 locked.error_message = f"Сумма у провайдера ({remote.amount}) не совпадает с заказом."
                 logger.error("Top-up %s amount mismatch: %s != %s", locked.public_id, remote.amount, locked.amount)
+            elif remote.currency and remote.currency.upper() != locked.currency.upper():
+                locked.status = Payment.Status.FAILED
+                locked.error_message = f"Валюта у провайдера ({remote.currency}) не совпадает с заказом."
+                logger.error("Top-up %s currency mismatch: %s != %s", locked.public_id, remote.currency, locked.currency)
             else:
                 locked.status = Payment.Status.SUCCEEDED
                 locked.paid_at = locked.paid_at or timezone.now()
@@ -148,3 +185,47 @@ def handle_webhook(*, provider_code: str, payload: dict) -> Payment | None:
         logger.info("Webhook for unknown %s payment %s", provider.code, external_id)
         return None
     return sync_payment(payment, provider=provider)
+
+
+def reconcile_pending_payments(*, now=None, limit: int = 200) -> dict[str, int]:
+    """Re-check unpaid payments with the provider so a lost webhook or a closed tab never strands money.
+
+    Runs from Celery beat. Each payment goes through sync_payment, so crediting stays exactly-once.
+    """
+    now = now or timezone.now()
+    stats = {"checked": 0, "credited": 0, "closed": 0, "errors": 0, "unstarted_closed": 0}
+
+    stats["unstarted_closed"] = Payment.objects.filter(
+        status=Payment.Status.CREATED,
+        external_id="",
+        created_at__lt=now - UNSTARTED_PAYMENT_TTL,
+    ).update(
+        status=Payment.Status.FAILED,
+        error_message="Платёж не был создан у провайдера.",
+        updated_at=now,
+    )
+
+    pending = (
+        Payment.objects.filter(
+            status__in=(Payment.Status.CREATED, Payment.Status.PENDING),
+            created_at__lte=now - RECONCILE_MIN_AGE,
+            created_at__gte=now - RECONCILE_MAX_AGE,
+        )
+        .exclude(external_id="")
+        .order_by("created_at")[:limit]
+    )
+    for payment in pending:
+        stats["checked"] += 1
+        try:
+            synced = sync_payment(payment)
+        except PaymentProviderError as exc:
+            stats["errors"] += 1
+            logger.warning("Reconcile: top-up %s could not be checked: %s", payment.public_id, exc)
+            continue
+        if synced.status == Payment.Status.SUCCEEDED:
+            stats["credited"] += 1
+        elif synced.is_final:
+            stats["closed"] += 1
+    if stats["checked"] or stats["unstarted_closed"]:
+        logger.info("Reconcile pending payments: %s", stats)
+    return stats

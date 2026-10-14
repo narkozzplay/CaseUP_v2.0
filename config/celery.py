@@ -31,6 +31,11 @@ app.conf.beat_schedule = {
         "task": "control_center.lift_expired_bans",
         "schedule": 300.0,
     },
+    # Picks up top-ups whose webhook was lost or whose payer never came back to the site.
+    "reconcile-pending-payments": {
+        "task": "payments.reconcile_pending_payments",
+        "schedule": float(settings.CELERY_BEAT_PAYMENTS_RECONCILE_SECONDS),
+    },
     "auto-sync-cs2-faceit-stats": {
         "task": "celery_tasks.auto_sync_cs2_faceit_stats",
         "schedule": float(settings.CELERY_BEAT_CS2_FACEIT_STATS_SYNC_SECONDS),
