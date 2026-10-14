@@ -56,7 +56,7 @@ from .forms import (
 )
 from .models import LedgerEntry, LedgerReason, UserProfile, UserRole, VerificationLevel, VerificationRequest
 from .presentation import get_profile_avatar_url, get_profile_display_name, get_verification_badge
-from .rbac import get_user_role
+from .rbac import can_manage_user, get_user_role
 
 User = get_user_model()
 
@@ -224,7 +224,7 @@ def _build_profile_context(*, request, target_user):
     profile_avatar_url = get_profile_avatar_url(profile)
     profile_verification_badge = get_verification_badge(profile)
 
-    if viewer_role_access.is_admin_plus and can_view_private_profile:
+    if can_manage_user(request.user, target_user) and can_view_private_profile:
         admin_identity_form = AdminProfileIdentityForm(
             target_user=target_user,
             target_profile=profile,
@@ -356,7 +356,7 @@ def _build_settings_context(*, request, target_user):
     admin_farmer_subscription_form = None
     admin_balance_form = None
     admin_balance_entries = []
-    if viewer_role_access.is_admin_plus and can_view_private:
+    if can_manage_user(request.user, target_user) and can_view_private:
         admin_balance_form = AdminBalanceAdjustForm(current_balance=profile.balance_coins)
         admin_balance_entries = list(
             LedgerEntry.objects.filter(user=target_user)
@@ -677,6 +677,8 @@ def profile_admin_update_view(request, user_id: int):
         UserProfile.objects.select_related("user"),
         user_id=user_id,
     ).user
+    if not can_manage_user(request.user, target_user):
+        return HttpResponseForbidden("Нельзя редактировать собственный профиль или пользователя своего уровня и выше.")
     profile, _ = UserProfile.objects.get_or_create(user=target_user)
 
     active_site_subscription = get_active_subscription(
