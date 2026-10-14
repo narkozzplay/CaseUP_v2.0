@@ -188,7 +188,7 @@ class LedgerReason(models.TextChoices):
 class LedgerEntry(models.Model):
     user = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="ledger_entries",
     )
     delta = models.DecimalField(max_digits=14, decimal_places=2)

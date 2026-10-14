@@ -1399,3 +1399,30 @@ class ProfileVisibilityTests(TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertTemplateUsed(response, "profiles/partials/profile_closed_content.html")
 
+
+
+class LedgerIntegrityTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="ledger_integrity", password="StrongPass123")
+
+    def test_unknown_reason_is_rejected_instead_of_recorded_as_admin_adjust(self):
+        with self.assertRaises(LedgerError):
+            apply_ledger_delta(user=self.user, delta=Decimal("10.00"), reason="topupp")
+
+        self.assertFalse(LedgerEntry.objects.filter(user=self.user).exists())
+        self.user.profile_v2.refresh_from_db()
+        self.assertEqual(self.user.profile_v2.balance_coins, Decimal("0.00"))
+
+    def test_user_with_money_history_cannot_be_deleted(self):
+        from django.db.models import ProtectedError
+
+        adjust_balance(user=self.user, delta=Decimal("50.00"), reason=LedgerReason.TOPUP)
+
+        with self.assertRaises(ProtectedError):
+            self.user.delete()
+        self.assertTrue(LedgerEntry.objects.filter(user=self.user).exists())
+
+    def test_user_without_money_history_can_still_be_deleted(self):
+        self.user.delete()
+
+        self.assertFalse(User.objects.filter(username="ledger_integrity").exists())
