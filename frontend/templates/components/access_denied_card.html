@@ -1,7 +1,13 @@
 {# Styled "access denied" card. Used by the global 403 page and the closed-profile page. #}
+{% load caseup_brand %}
+{% brand_asset "access_denied" as ad_image_url %}
 <section class="section section--compact access-denied"{% if ad_kind %} data-access-denied="{{ ad_kind }}"{% endif %}>
-    <article class="card access-denied__card">
-        <p class="access-denied__code" aria-hidden="true">403</p>
+    <article class="card access-denied__card{% if ad_image_url %} access-denied__card--image{% endif %}">
+        {% if ad_image_url %}
+            <div class="access-denied__bg" style="--access-denied-image: url('{{ ad_image_url }}')" aria-hidden="true"></div>
+        {% else %}
+            <p class="access-denied__code" aria-hidden="true">403</p>
+        {% endif %}
 
         <div class="card-body access-denied__body">
             <div class="access-denied__emblem">
