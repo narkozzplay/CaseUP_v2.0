@@ -17,6 +17,7 @@ from django.template import TemplateDoesNotExist
 
 from modules.v2.tg_notifier.models import TelegramNotifierConfig
 
+from .request_cache import request_memoize
 from .module_registry import MODULE_REGISTRY, NAMESPACE_TO_MODULE_KEY, ModuleDefinition
 from .models import (
     EnvironmentModuleState,
@@ -177,8 +178,16 @@ def _next_project_version_order(base_order: int) -> int:
     return version_order
 
 
+_SITE_CONFIGURATION_RELATED = (
+    "current_project_version",
+    "active_theme__project_version_from",
+    "active_theme__project_version_to",
+)
+
+
+@request_memoize
 def get_site_configuration() -> SiteConfiguration:
-    config = SiteConfiguration.objects.filter(singleton_key=1).first()
+    config = SiteConfiguration.objects.select_related(*_SITE_CONFIGURATION_RELATED).filter(singleton_key=1).first()
     if config is not None:
         return config
     config, _created = SiteConfiguration.objects.get_or_create(
@@ -304,6 +313,7 @@ def _check_telegram(bot_token: str) -> tuple[str, str]:
     return ("degraded", "Telegram API вернул отрицательный ответ на getMe.")
 
 
+@request_memoize
 def get_current_project_version() -> ProjectVersion | None:
     config = get_site_configuration()
     if config.current_project_version_id:
@@ -776,6 +786,7 @@ def disable_runtime_module(*, module_key: str) -> int:
     return int(updated)
 
 
+@request_memoize
 def get_module_state_map(environment: str | None = None) -> dict[str, bool]:
     environment = environment or get_runtime_environment()
     if EnvironmentModuleState.objects.exists():
@@ -1024,12 +1035,17 @@ def get_available_themes(*, project_version: ProjectVersion | None = None, envir
     project_version = project_version or get_current_project_version()
     environment = environment or get_runtime_environment()
     module_state_map = get_module_state_map(environment=environment)
-    themes = [theme for theme in ThemeProfile.objects.order_by("-is_default", "name") if is_theme_compatible(theme, project_version, environment)]
+    themes = [
+        theme
+        for theme in ThemeProfile.objects.select_related("project_version_from", "project_version_to").order_by("-is_default", "name")
+        if is_theme_compatible(theme, project_version, environment)
+    ]
     if not module_state_map.get("midnight_theme", MODULE_REGISTRY["midnight_theme"].default_enabled):
         return [theme for theme in themes if theme.key != "midnight"]
     return themes
 
 
+@request_memoize
 def get_active_theme(*, project_version: ProjectVersion | None = None, environment: str | None = None) -> ThemeProfile | None:
     project_version = project_version or get_current_project_version()
     environment = environment or get_runtime_environment()
@@ -1039,7 +1055,7 @@ def get_active_theme(*, project_version: ProjectVersion | None = None, environme
     if config.active_theme and is_theme_compatible(config.active_theme, project_version, environment):
         if config.active_theme.key in available_theme_keys:
             return config.active_theme
-    theme = ThemeProfile.objects.filter(is_default=True).first()
+    theme = ThemeProfile.objects.select_related("project_version_from", "project_version_to").filter(is_default=True).first()
     if theme and is_theme_compatible(theme, project_version, environment):
         if theme.key in available_theme_keys:
             return theme
@@ -1169,6 +1185,7 @@ def _sync_compatibility_flags(module_state_map: dict[str, bool]) -> None:
         tg_config.save(update_fields=["is_enabled", "updated_at"])
 
 
+@request_memoize
 def is_module_enabled(key: str, environment: str | None = None) -> bool:
     definition = MODULE_REGISTRY.get(key)
     if definition is None:
