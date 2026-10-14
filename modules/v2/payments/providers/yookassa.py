@@ -22,6 +22,16 @@ STATUS_MAP = {
 class YooKassaProvider(BasePaymentProvider):
     code = "yookassa"
     title = "ЮKassa"
+    # Addresses YooKassa sends HTTP notifications from (yookassa.ru/developers/using-api/webhooks).
+    webhook_ip_networks = (
+        "185.71.76.0/27",
+        "185.71.77.0/27",
+        "77.75.153.0/25",
+        "77.75.156.11/32",
+        "77.75.156.35/32",
+        "77.75.154.128/25",
+        "2a02:5180::/32",
+    )
 
     def __init__(self):
         self.shop_id = getattr(settings, "YOOKASSA_SHOP_ID", "")

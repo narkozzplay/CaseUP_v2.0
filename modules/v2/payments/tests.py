@@ -344,3 +344,40 @@ class PaymentDeployCheckTests(TestCase):
             self.assertEqual([w.id for w in check_yookassa_live_keys(None)], ["caseup.W002"])
         with override_settings(DEBUG=False, YOOKASSA_SECRET_KEY="live_abc"):
             self.assertEqual(check_yookassa_live_keys(None), [])
+
+
+@override_settings(YOOKASSA_SHOP_ID="123456", YOOKASSA_SECRET_KEY="test_secret", PAYMENTS_WEBHOOK_IP_CHECK="on", PAYMENTS_WEBHOOK_PROXY_COUNT=1)
+class WebhookSourceIpTests(TestCase):
+    url = "/payments/webhook/yookassa/"
+
+    def _post(self, **meta):
+        body = json.dumps({"event": "payment.succeeded", "object": {"id": "unknown-id"}})
+        return self.client.post(self.url, data=body, content_type="application/json", **meta)
+
+    @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
+    def test_foreign_address_is_rejected_before_any_api_call(self, request_mock):
+        response = self._post(HTTP_X_FORWARDED_FOR="203.0.113.7")
+
+        self.assertEqual(response.status_code, 403)
+        request_mock.assert_not_called()
+
+    def test_yookassa_address_behind_nginx_is_accepted(self):
+        # Nginx appends the real peer; whatever the client put on the left is ignored.
+        self.assertEqual(self._post(HTTP_X_FORWARDED_FOR="203.0.113.7, 185.71.76.5").status_code, 200)
+        self.assertEqual(self._post(HTTP_X_FORWARDED_FOR="2a02:5180::17").status_code, 200)
+
+    def test_spoofed_left_entry_does_not_pass(self):
+        self.assertEqual(self._post(HTTP_X_FORWARDED_FOR="185.71.76.5, 203.0.113.7").status_code, 403)
+
+    @override_settings(PAYMENTS_WEBHOOK_PROXY_COUNT=0)
+    def test_without_proxy_remote_addr_is_used(self):
+        self.assertEqual(self._post(REMOTE_ADDR="77.75.156.11", HTTP_X_FORWARDED_FOR="203.0.113.7").status_code, 200)
+        self.assertEqual(self._post(REMOTE_ADDR="203.0.113.7", HTTP_X_FORWARDED_FOR="185.71.76.5").status_code, 403)
+
+    @override_settings(PAYMENTS_WEBHOOK_IP_CHECK="auto", DEBUG=True)
+    def test_auto_mode_is_off_in_development(self):
+        self.assertEqual(self._post(HTTP_X_FORWARDED_FOR="203.0.113.7").status_code, 200)
+
+    @override_settings(PAYMENTS_WEBHOOK_IP_CHECK="auto", DEBUG=False)
+    def test_auto_mode_is_on_in_production(self):
+        self.assertEqual(self._post(HTTP_X_FORWARDED_FOR="203.0.113.7").status_code, 403)

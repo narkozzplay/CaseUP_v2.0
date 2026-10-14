@@ -26,6 +26,8 @@ class BasePaymentProvider:
     code: str = ""
     title: str = ""
     is_test_mode: bool = False
+    # Networks webhooks may come from; empty = no source-IP check (see payments.ip_allowlist).
+    webhook_ip_networks: tuple[str, ...] = ()
 
     @classmethod
     def is_configured(cls) -> bool:
