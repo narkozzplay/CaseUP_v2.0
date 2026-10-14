@@ -36,7 +36,6 @@ GROUP_LABELS = {
 
 SHELL_DISABLED_URL_NAMES = {
     "frontend:home",
-    "frontend:testing_preview",
     "subscriptions:plans",
     "subscriptions:farmer_plans",
     "admin:index",

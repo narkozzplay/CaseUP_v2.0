@@ -210,48 +210,42 @@
         <article class="card profile-card-accent" id="settings-customization">
             <div class="card-body">
                 <div class="section-head-inline">
-                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Кастомизация профиля{% else %}Profile customization{% endif %}</h2>
+                    <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Оформление профиля{% else %}Profile appearance{% endif %}</h2>
                     <a href="{% url 'profile_customization:catalog' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">
-                        {% if LANGUAGE_CODE == "ru" %}Открыть каталог{% else %}Open catalog{% endif %}
+                        {% if LANGUAGE_CODE == "ru" %}Выбрать фон и аватарку{% else %}Pick background and avatar{% endif %}
                     </a>
                 </div>
                 {% if customization %}
-                    <dl class="details-list details-list--compact">
-                        <div>
-                            <dt>{% if LANGUAGE_CODE == "ru" %}Фон{% else %}Background{% endif %}</dt>
-                            <dd>
-                                {% if customization.selected_background %}
-                                    {{ customization.selected_background.title }}
-                                    <form method="post" action="{% url 'profile_customization:clear_background' %}" style="display:inline">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="next" value="{{ request.path }}">
-                                        <button type="submit" class="btn btn-secondary btn-sm" style="margin-left:.5rem">
-                                            {% if LANGUAGE_CODE == "ru" %}Сбросить{% else %}Clear{% endif %}
-                                        </button>
-                                    </form>
-                                {% else %}
-                                    <span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Не выбран (используется Steam-фон){% else %}Not selected (using Steam background){% endif %}</span>
-                                {% endif %}
-                            </dd>
+                    <div class="pcz-settings">
+                        <div class="pcz-settings__item">
+                            {% if customization.selected_background %}<span class="pcz-current__thumb pcz-current__thumb--bg" style="background-image: url('{{ customization.selected_background.static_url }}');"></span>{% endif %}
+                            <span class="pcz-settings__text">
+                                <small>{% if LANGUAGE_CODE == "ru" %}Фон{% else %}Background{% endif %}</small>
+                                {% if customization.selected_background %}<strong>{{ customization.selected_background.title }}</strong>{% else %}<span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Фон из Steam{% else %}Steam background{% endif %}</span>{% endif %}
+                            </span>
+                            {% if customization.selected_background %}
+                                <form method="post" action="{% url 'profile_customization:clear_background' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.path }}">
+                                    <button type="submit" class="btn btn-ghost btn-sm">{% if LANGUAGE_CODE == "ru" %}Сбросить{% else %}Reset{% endif %}</button>
+                                </form>
+                            {% endif %}
                         </div>
-                        <div>
-                            <dt>{% if LANGUAGE_CODE == "ru" %}Аватарка{% else %}Avatar{% endif %}</dt>
-                            <dd>
-                                {% if customization.selected_avatar %}
-                                    {{ customization.selected_avatar.title }}
-                                    <form method="post" action="{% url 'profile_customization:clear_avatar' %}" style="display:inline">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="next" value="{{ request.path }}">
-                                        <button type="submit" class="btn btn-secondary btn-sm" style="margin-left:.5rem">
-                                            {% if LANGUAGE_CODE == "ru" %}Сбросить{% else %}Clear{% endif %}
-                                        </button>
-                                    </form>
-                                {% else %}
-                                    <span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Не выбрана (Steam/своя){% else %}Not selected (Steam/uploaded){% endif %}</span>
-                                {% endif %}
-                            </dd>
+                        <div class="pcz-settings__item">
+                            {% if customization.selected_avatar %}<span class="pcz-current__thumb" style="background-image: url('{{ customization.selected_avatar.avatar_url }}');"></span>{% endif %}
+                            <span class="pcz-settings__text">
+                                <small>{% if LANGUAGE_CODE == "ru" %}Аватарка{% else %}Avatar{% endif %}</small>
+                                {% if customization.selected_avatar %}<strong>{{ customization.selected_avatar.title }}</strong>{% else %}<span class="text-muted">{% if LANGUAGE_CODE == "ru" %}Из Steam или загруженная{% else %}Steam or uploaded{% endif %}</span>{% endif %}
+                            </span>
+                            {% if customization.selected_avatar %}
+                                <form method="post" action="{% url 'profile_customization:clear_avatar' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.path }}">
+                                    <button type="submit" class="btn btn-ghost btn-sm">{% if LANGUAGE_CODE == "ru" %}Сбросить{% else %}Reset{% endif %}</button>
+                                </form>
+                            {% endif %}
                         </div>
-                    </dl>
+                    </div>
                 {% endif %}
             </div>
         </article>

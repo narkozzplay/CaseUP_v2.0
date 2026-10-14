@@ -28,8 +28,7 @@ body {
     background-attachment: fixed, fixed, fixed;
 }
 
-.site-header,
-.site-header--testing {
+.site-header {
     background: rgba(7, 11, 22, 0.82);
 }
 

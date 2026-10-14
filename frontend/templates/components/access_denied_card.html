@@ -1,0 +1,54 @@
+{# Styled "access denied" card. Used by the global 403 page and the closed-profile page. #}
+{% load caseup_brand %}
+{% brand_asset "access_denied" as ad_image_url %}
+<section class="section section--compact access-denied"{% if ad_kind %} data-access-denied="{{ ad_kind }}"{% endif %}>
+    <article class="card access-denied__card{% if ad_image_url %} access-denied__card--image{% endif %}">
+        {% if ad_image_url %}
+            <div class="access-denied__bg" style="--access-denied-image: url('{{ ad_image_url }}')" aria-hidden="true"></div>
+        {% else %}
+            <p class="access-denied__code" aria-hidden="true">403</p>
+        {% endif %}
+
+        <div class="card-body access-denied__body">
+            <div class="access-denied__emblem">
+                {% if ad_avatar_url %}
+                    <img src="{{ ad_avatar_url }}" alt="" class="access-denied__avatar">
+                {% endif %}
+                <span class="access-denied__lock" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4.5" y="10.5" width="15" height="10" rx="1.5"/>
+                        <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>
+                        <path d="M12 14.5v2.5"/>
+                    </svg>
+                </span>
+            </div>
+
+            <span class="eyebrow">{% if LANGUAGE_CODE == "en" %}Access denied{% else %}Доступ закрыт{% endif %}</span>
+
+            {% if ad_name %}
+                <p class="access-denied__name">{{ ad_name }}</p>
+            {% endif %}
+
+            <h1 class="page-title page-title--sm access-denied__title">{{ ad_title }}</h1>
+            <p class="text-muted access-denied__text">{{ ad_description }}</p>
+            {% if ad_detail %}
+                <p class="access-denied__detail">{{ ad_detail }}</p>
+            {% endif %}
+
+            <div class="access-denied__actions">
+                {% if ad_actions_template %}{% include ad_actions_template %}{% endif %}
+                {% if ad_primary_url %}
+                    <a href="{{ ad_primary_url }}" class="btn {% if ad_actions_template %}btn-secondary{% else %}btn-primary{% endif %}">{{ ad_primary_label }}</a>
+                {% endif %}
+                {% if ad_secondary_url %}
+                    <a href="{{ ad_secondary_url }}" class="btn btn-secondary">{{ ad_secondary_label }}</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <footer class="access-denied__meta">
+            <span>ERR 403</span>
+            <span>{{ ad_footer_label }}</span>
+        </footer>
+    </article>
+</section>

@@ -8,6 +8,7 @@ from modules.v2.profiles.rbac import get_user_role
 from modules.v2.subscriptions.models import SubscriptionPlan
 from modules.v2.subscriptions.services import get_active_subscription
 
+from .effects import SLOT_FRAME, SLOT_HERO, SLOT_NAME, SLOTS, get_effect
 from .models import SteamAvatar, SteamBackground, UserCustomization
 
 
@@ -64,11 +65,13 @@ def _extract_source_item_id(url: str) -> str:
     return match.group(1) if match else ""
 
 
-def add_background(actor, *, title: str, static_url: str, video_url: str) -> SteamBackground:
+def add_background(actor, *, title: str, static_url: str, video_url: str = "") -> SteamBackground:
     _require_admin_plus(actor)
     clean_title = str(title or "").strip()
     if not clean_title:
         raise ValueError("Название обязательно.")
+    if not str(static_url or "").strip():
+        raise ValueError("Нужна ссылка на изображение фона.")
     source_id = _extract_source_item_id(static_url) or _extract_source_item_id(video_url)
     return SteamBackground.objects.create(
         title=clean_title,
@@ -107,6 +110,11 @@ def _clear_bg_from_profiles(background_id: int) -> None:
     UserCustomization.objects.filter(selected_background_id=background_id).update(
         selected_background=None
     )
+
+
+def restore_background(actor, background_id: int) -> None:
+    _require_admin_plus(actor)
+    SteamBackground.objects.filter(pk=background_id).update(is_active=True)
 
 
 def list_backgrounds(*, active_only: bool = True):
@@ -190,6 +198,11 @@ def _clear_avatar_from_profiles(avatar_id: int) -> None:
     )
 
 
+def restore_avatar(actor, avatar_id: int) -> None:
+    _require_admin_plus(actor)
+    SteamAvatar.objects.filter(pk=avatar_id).update(is_active=True)
+
+
 def list_avatars(*, active_only: bool = True):
     qs = SteamAvatar.objects.select_related("added_by")
     if active_only:
@@ -223,3 +236,49 @@ def clear_avatar(user) -> UserCustomization:
 def _update_profile_avatar_cache(user, avatar_url: str) -> None:
     from modules.v2.profiles.models import UserProfile
     UserProfile.objects.filter(user=user).update(selected_avatar_url=avatar_url)
+
+
+# ---------------------------------------------------------------------------
+# CaseUP effects (avatar frame, nickname, profile header)
+# ---------------------------------------------------------------------------
+
+EFFECT_FIELDS = {
+    SLOT_FRAME: "avatar_frame",
+    SLOT_NAME: "name_effect",
+    SLOT_HERO: "hero_effect",
+}
+
+
+def set_effect(user, slot: str, key: str) -> UserCustomization:
+    """Set (or clear with an empty key) one effect slot for the user."""
+    _require_can_customize(user)
+    if slot not in SLOTS:
+        raise ValueError("Неизвестный тип эффекта.")
+    clean_key = str(key or "").strip()
+    if clean_key and get_effect(slot, clean_key) is None:
+        raise ValueError("Эффект не найден.")
+    field = EFFECT_FIELDS[slot]
+    customization = get_or_create_customization(user)
+    setattr(customization, field, clean_key)
+    customization.save(update_fields=[field, "updated_at"])
+    return customization
+
+
+def get_profile_effect_classes(user) -> dict[str, str]:
+    """CSS classes for the effects a profile shows: {"frame": "pfx-frame--neon", ...}.
+
+    Effects are a perk, so they show only while the owner still has access.
+    """
+    empty = {slot: "" for slot in SLOTS}
+    if user is None or not getattr(user, "pk", None):
+        return empty
+    customization = UserCustomization.objects.filter(user=user).only(*EFFECT_FIELDS.values()).first()
+    if customization is None or not any(getattr(customization, f) for f in EFFECT_FIELDS.values()):
+        return empty
+    if not can_customize_profile(user):
+        return empty
+    classes = {}
+    for slot, field in EFFECT_FIELDS.items():
+        effect = get_effect(slot, getattr(customization, field))
+        classes[slot] = effect.css_class if effect else ""
+    return classes

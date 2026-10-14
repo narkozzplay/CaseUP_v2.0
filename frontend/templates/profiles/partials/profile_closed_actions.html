@@ -1,0 +1,30 @@
+{% if friendship_context.can_send_friend_request %}
+    <form method="post" action="{% url 'social_friends:send_friend_request' profile_user.id %}" class="inline-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button type="submit" class="btn btn-primary">
+            {% if LANGUAGE_CODE == "en" %}Add friend{% else %}Добавить в друзья{% endif %}
+        </button>
+    </form>
+{% elif friendship_context.pending_sent %}
+    <span class="access-denied__pending">
+        {% if LANGUAGE_CODE == "en" %}Friend request sent{% else %}Заявка в друзья отправлена{% endif %}
+    </span>
+{% elif friendship_context.pending_received %}
+    <form method="post" action="{% url 'social_friends:accept_friend_request' friendship_context.pending_received.pk %}" class="inline-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button type="submit" class="btn btn-primary">
+            {% if LANGUAGE_CODE == "en" %}Accept friend request{% else %}Принять заявку в друзья{% endif %}
+        </button>
+    </form>
+{% endif %}
+
+{% if friendship_context.can_send_direct %}
+    <form method="post" action="{% url 'profiles:profile_start_direct_chat' profile_user.id %}" class="inline-form">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary">
+            {% if LANGUAGE_CODE == "en" %}Message{% else %}Написать{% endif %}
+        </button>
+    </form>
+{% endif %}

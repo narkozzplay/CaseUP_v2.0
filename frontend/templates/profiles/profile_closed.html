@@ -1,0 +1,7 @@
+{% extends "layouts/base_dashboard.html" %}
+
+{% block title %}{{ site_settings.site_name|default:"CaseUP" }} | {{ profile_closed_title }}{% endblock %}
+
+{% block content %}
+    {% include "profiles/partials/profile_closed_content.html" %}
+{% endblock %}

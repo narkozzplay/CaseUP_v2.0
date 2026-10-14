@@ -1,0 +1,25 @@
+<div class="pcz-card__actions">
+    {% if hidden_item %}
+        <form method="post" action="{% if kind == 'background' %}{% url 'profile_customization:admin_restore_background' item.pk %}{% else %}{% url 'profile_customization:admin_restore_avatar' item.pk %}{% endif %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary btn-sm">{% if LANGUAGE_CODE == "ru" %}Вернуть{% else %}Restore{% endif %}</button>
+        </form>
+    {% else %}
+        {% if kind == "background" and item.pk == selected_bg_id or kind == "avatar" and item.pk == selected_av_id %}
+            <span class="pcz-card__state">✓ {% if LANGUAGE_CODE == "ru" %}Стоит{% else %}In use{% endif %}</span>
+        {% elif can_customize %}
+            <form method="post" action="{% if kind == 'background' %}{% url 'profile_customization:select_background' item.pk %}{% else %}{% url 'profile_customization:select_avatar' item.pk %}{% endif %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}?tab={{ active_tab }}">
+                <button type="submit" class="btn btn-primary btn-sm">{% if LANGUAGE_CODE == "ru" %}Применить{% else %}Apply{% endif %}</button>
+            </form>
+        {% endif %}
+        {% if is_admin %}
+            <form method="post" action="{% if kind == 'background' %}{% url 'profile_customization:admin_delete_background' item.pk %}{% else %}{% url 'profile_customization:admin_delete_avatar' item.pk %}{% endif %}" data-pcz-confirm="{% if LANGUAGE_CODE == "ru" %}Скрыть «{{ item.title }}» из каталога? У тех, кто его выбрал, он сбросится.{% else %}Hide “{{ item.title }}” from the catalog? It will be reset for everyone using it.{% endif %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}?tab={{ active_tab }}">
+                <button type="submit" class="btn btn-ghost btn-sm pcz-card__hide" title="{% if LANGUAGE_CODE == "ru" %}Скрыть из каталога{% else %}Hide from catalog{% endif %}">{% if LANGUAGE_CODE == "ru" %}Скрыть{% else %}Hide{% endif %}</button>
+            </form>
+        {% endif %}
+    {% endif %}
+</div>

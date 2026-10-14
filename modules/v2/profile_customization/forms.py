@@ -12,7 +12,8 @@ class AddBackgroundForm(forms.Form):
         widget=forms.URLInput(attrs={"class": "form-control", "placeholder": "https://shared.fastly.steamstatic.com/...jpg"}),
     )
     video_url = forms.URLField(
-        label="URL видео (.webm)",
+        required=False,
+        label="URL видео (.webm), необязательно",
         widget=forms.URLInput(attrs={"class": "form-control", "placeholder": "https://shared.fastly.steamstatic.com/...webm"}),
     )
 

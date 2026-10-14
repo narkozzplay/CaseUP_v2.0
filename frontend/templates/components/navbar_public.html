@@ -16,7 +16,6 @@
                     {% if feature_flags.store %}<a href="{% url 'store:storefront' %}">{% if LANGUAGE_CODE == "ru" %}Магазин{% else %}Store{% endif %}</a>{% endif %}
                     {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}">{% if LANGUAGE_CODE == "ru" %}Подписки{% else %}Subscriptions{% endif %}</a>{% endif %}
                     {% if request.user.is_staff or role_access.is_admin_plus %}
-                        <a href="{% url 'frontend:testing_preview' %}" class="nav-links__staff">Testing</a>
                         <a href="{% url 'admin:index' %}" class="nav-links__staff">Admin</a>
                     {% endif %}
                 </div>

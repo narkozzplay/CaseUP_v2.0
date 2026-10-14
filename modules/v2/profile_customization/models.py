@@ -10,7 +10,9 @@ class SteamBackground(models.Model):
         help_text="URL статичного изображения (.jpg preview)",
     )
     video_url = models.URLField(
-        help_text="URL анимированного видео (.webm)",
+        blank=True,
+        default="",
+        help_text="URL анимированного видео (.webm). Пусто для статичного фона.",
     )
     source_item_id = models.CharField(
         max_length=32,
@@ -87,6 +89,10 @@ class UserCustomization(models.Model):
         blank=True,
         related_name="selected_by_users",
     )
+    # CaseUP-only CSS effects, keys from profile_customization.effects
+    avatar_frame = models.CharField(max_length=32, blank=True, default="")
+    name_effect = models.CharField(max_length=32, blank=True, default="")
+    hero_effect = models.CharField(max_length=32, blank=True, default="")
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
