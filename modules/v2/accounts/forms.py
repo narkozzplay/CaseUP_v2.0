@@ -23,3 +23,14 @@ class RegisterForm(UserCreationForm):
     class Meta:
         model = User
         fields = ("username", "email")
+
+class SteamLoginConsentForm(forms.Form):
+    """Both boxes are required before the Steam sign-in starts (the agreement and, separately, the
+    personal-data consent required by 152-FZ)."""
+
+    accept_agreement = forms.BooleanField(
+        error_messages={"required": "Примите Пользовательское соглашение и подтвердите, что вам исполнилось 18 лет."},
+    )
+    accept_privacy = forms.BooleanField(
+        error_messages={"required": "Подтвердите согласие на обработку персональных данных."},
+    )

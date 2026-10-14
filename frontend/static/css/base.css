@@ -1061,3 +1061,68 @@ textarea.form-control,
         width: 100%;
     }
 }
+
+/* Steam login consent (accounts/login.html) */
+.auth-consent {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.auth-consent__title {
+    margin: 0;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.auth-consent__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    background: rgba(9, 11, 15, 0.35);
+    color: var(--text-soft);
+    font-size: 0.86rem;
+    line-height: 1.45;
+    cursor: pointer;
+}
+
+.auth-consent__item input {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin: 1px 0 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.auth-consent__item a {
+    color: var(--accent);
+}
+
+.auth-consent__item.is-invalid {
+    border-color: var(--danger);
+}
+
+.auth-consent__error {
+    margin: -4px 0 0;
+    color: var(--danger);
+    font-size: 0.8rem;
+}
+
+.auth-consent__alert {
+    margin-bottom: 4px;
+    padding: 10px 12px;
+    border: 1px solid var(--accent);
+    background: var(--accent-soft);
+    color: var(--text);
+    font-size: 0.86rem;
+}
+
+/* The Steam button looks inactive until both boxes are ticked; the server checks them anyway. */
+.auth-consent:has(input[type="checkbox"]:not(:checked)) .auth-consent__submit {
+    opacity: 0.55;
+    filter: saturate(0.6);
+}
