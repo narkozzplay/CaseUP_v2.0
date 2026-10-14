@@ -14,6 +14,8 @@ from modules.v2.profiles.models import UserProfile
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
 
+from frontend.legal import AGREEMENT_VERSION
+
 from .forms import TopupForm
 from .ip_allowlist import is_allowed_webhook_source
 from .models import Payment
@@ -28,7 +30,12 @@ logger = logging.getLogger(__name__)
 @login_required
 def topup_view(request):
     provider = get_provider()
-    form = TopupForm(request.POST or None)
+    data = None
+    if request.method == "POST":
+        data = request.POST.copy()
+        if data.get("preset"):
+            data["amount"] = data["preset"]
+    form = TopupForm(data)
 
     if request.method == "POST":
         if form.is_valid():
@@ -36,6 +43,7 @@ def topup_view(request):
                 payment = create_topup_payment(
                     user=request.user,
                     amount=form.cleaned_data["amount"],
+                    terms_version=AGREEMENT_VERSION,
                     return_url_builder=lambda p: request.build_absolute_uri(
                         reverse("payments:return", args=[p.public_id])
                     ),

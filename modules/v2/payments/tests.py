@@ -38,7 +38,7 @@ class DevProviderFlowTests(TestCase):
         self.client.login(username="payer", password="pass12345")
 
     def _start(self, amount="300"):
-        response = self.client.post(reverse("payments:topup"), {"amount": amount})
+        response = self.client.post(reverse("payments:topup"), {"amount": amount, "accept_terms": "on"})
         payment = Payment.objects.get(user=self.user)
         return response, payment
 
@@ -46,7 +46,7 @@ class DevProviderFlowTests(TestCase):
         response = self.client.get(reverse("payments:topup"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Пополнение баланса")
-        self.assertContains(response, 'name="amount" value="500"')
+        self.assertContains(response, 'name="preset" value="500"')
 
     def test_successful_dev_payment_credits_balance_once(self):
         response, payment = self._start()
@@ -93,7 +93,7 @@ class DevProviderFlowTests(TestCase):
     @override_settings(DEBUG=False)
     def test_dev_provider_is_disabled_without_debug(self):
         self.assertIsNone(get_provider())
-        response = self.client.post(reverse("payments:topup"), {"amount": "300"})
+        response = self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"})
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Payment.objects.exists())
 
@@ -108,7 +108,7 @@ class YooKassaFlowTests(TestCase):
     def test_topup_redirects_to_yookassa_checkout(self, request_mock):
         request_mock.return_value = _yookassa_response()
 
-        response = self.client.post(reverse("payments:topup"), {"amount": "300"})
+        response = self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"})
 
         self.assertRedirects(response, "https://yoomoney.ru/checkout/payments/v2/contract?orderId=2d8f-yk", fetch_redirect_response=False)
         payment = Payment.objects.get(user=self.user)
@@ -126,7 +126,7 @@ class YooKassaFlowTests(TestCase):
     @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
     def test_webhook_credits_after_verifying_with_api(self, request_mock):
         request_mock.return_value = _yookassa_response()
-        self.client.post(reverse("payments:topup"), {"amount": "300"})
+        self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"})
 
         request_mock.return_value = _yookassa_response(status="succeeded")
         body = {"type": "notification", "event": "payment.succeeded", "object": {"id": "2d8f-yk", "status": "succeeded"}}
@@ -146,7 +146,7 @@ class YooKassaFlowTests(TestCase):
     @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
     def test_forged_webhook_does_not_credit(self, request_mock):
         request_mock.return_value = _yookassa_response()
-        self.client.post(reverse("payments:topup"), {"amount": "300"})
+        self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"})
 
         # Body claims success, but the API still says pending.
         body = {"event": "payment.succeeded", "object": {"id": "2d8f-yk", "status": "succeeded"}}
@@ -157,7 +157,7 @@ class YooKassaFlowTests(TestCase):
     @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
     def test_amount_mismatch_is_not_credited(self, request_mock):
         request_mock.return_value = _yookassa_response()
-        self.client.post(reverse("payments:topup"), {"amount": "300"})
+        self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"})
         payment = Payment.objects.get(user=self.user)
 
         request_mock.return_value = _yookassa_response(status="succeeded", amount="3.00")
@@ -172,7 +172,7 @@ class YooKassaFlowTests(TestCase):
         failed.json.return_value = {"type": "error", "code": "invalid_credentials", "description": "Authentication by given credentials failed"}
         request_mock.return_value = failed
 
-        response = self.client.post(reverse("payments:topup"), {"amount": "300"}, follow=True)
+        response = self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"}, follow=True)
 
         self.assertContains(response, "Authentication by given credentials failed")
         self.assertEqual(Payment.objects.get(user=self.user).status, Payment.Status.FAILED)
@@ -180,7 +180,7 @@ class YooKassaFlowTests(TestCase):
     @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
     def test_webhook_returns_503_when_api_unreachable(self, request_mock):
         request_mock.return_value = _yookassa_response()
-        self.client.post(reverse("payments:topup"), {"amount": "300"})
+        self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"})
 
         request_mock.side_effect = PaymentProviderError("down")
         response = self.client.post(
@@ -193,7 +193,7 @@ class YooKassaFlowTests(TestCase):
     @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
     def test_currency_mismatch_is_not_credited(self, request_mock):
         request_mock.return_value = _yookassa_response()
-        self.client.post(reverse("payments:topup"), {"amount": "300"})
+        self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"})
         payment = Payment.objects.get(user=self.user)
 
         request_mock.return_value = _yookassa_response(status="succeeded", currency="USD")
@@ -205,7 +205,7 @@ class YooKassaFlowTests(TestCase):
     @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
     def test_test_mode_payment_is_flagged(self, request_mock):
         request_mock.return_value = _yookassa_response(test=True)
-        self.client.post(reverse("payments:topup"), {"amount": "300"})
+        self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"})
 
         self.assertTrue(Payment.objects.get(user=self.user).is_test)
 
@@ -215,7 +215,7 @@ class YooKassaFlowTests(TestCase):
         from modules.v2.notifications.services import render_notification
 
         request_mock.return_value = _yookassa_response()
-        self.client.post(reverse("payments:topup"), {"amount": "300"})
+        self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"})
         payment = Payment.objects.get(user=self.user)
 
         request_mock.return_value = _yookassa_response(status="succeeded")
@@ -237,8 +237,8 @@ class TopupRateLimitTests(TestCase):
 
     def test_too_many_open_payments_are_refused(self):
         for _ in range(2):
-            self.client.post(reverse("payments:topup"), {"amount": "300"})
-        response = self.client.post(reverse("payments:topup"), {"amount": "300"}, follow=True)
+            self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"})
+        response = self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"}, follow=True)
 
         self.assertContains(response, "Слишком много неоплаченных платежей")
         self.assertEqual(Payment.objects.filter(user=self.user).count(), 2)
@@ -249,9 +249,9 @@ class TopupRateLimitTests(TestCase):
         from django.utils import timezone
 
         for _ in range(2):
-            self.client.post(reverse("payments:topup"), {"amount": "300"})
+            self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"})
         Payment.objects.update(created_at=timezone.now() - timedelta(minutes=20))
-        self.client.post(reverse("payments:topup"), {"amount": "300"})
+        self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"})
 
         self.assertEqual(Payment.objects.filter(user=self.user).count(), 3)
 
@@ -426,3 +426,43 @@ class CheckYooKassaCommandTests(TestCase):
 
         with self.assertRaisesMessage(CommandError, "Authentication by given credentials failed"):
             self._run()
+
+
+@override_settings(DEBUG=True)
+class TopupAgreementConsentTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="consent", password="pass12345")
+        self.client.login(username="consent", password="pass12345")
+
+    def test_payment_is_not_created_without_consent(self):
+        response = self.client.post(reverse("payments:topup"), {"amount": "300"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "примите условия Пользовательского соглашения")
+        self.assertFalse(Payment.objects.exists())
+
+    def test_accepted_agreement_version_is_stored_on_the_payment(self):
+        from frontend.legal import AGREEMENT_VERSION
+
+        self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"})
+
+        self.assertEqual(Payment.objects.get(user=self.user).terms_version, AGREEMENT_VERSION)
+
+    def test_preset_button_uses_its_amount_and_still_needs_consent(self):
+        self.client.post(reverse("payments:topup"), {"preset": "500", "amount": ""})
+        self.assertFalse(Payment.objects.exists())
+
+        self.client.post(reverse("payments:topup"), {"preset": "500", "amount": "", "accept_terms": "on"})
+        self.assertEqual(Payment.objects.get(user=self.user).amount, Decimal("500.00"))
+
+    def test_empty_amount_is_rejected(self):
+        response = self.client.post(reverse("payments:topup"), {"amount": "", "accept_terms": "on"})
+
+        self.assertContains(response, "Укажите сумму пополнения")
+        self.assertFalse(Payment.objects.exists())
+
+    def test_topup_page_links_the_agreement(self):
+        response = self.client.get(reverse("payments:topup"))
+
+        self.assertContains(response, 'name="accept_terms"')
+        self.assertContains(response, reverse("frontend:agreement"))

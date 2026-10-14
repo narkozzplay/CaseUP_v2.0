@@ -33,6 +33,8 @@ class Payment(models.Model):
     provider_payload = models.JSONField(default=dict, blank=True)
     # Paid in the provider's test mode (test shop / test card): no real money moved.
     is_test = models.BooleanField(default=False)
+    # User agreement version the payer accepted for this top-up (frontend.legal.AGREEMENT_VERSION).
+    terms_version = models.CharField(max_length=32, blank=True, default="")
     ledger_entry = models.OneToOneField(
         "profiles.LedgerEntry",
         on_delete=models.SET_NULL,

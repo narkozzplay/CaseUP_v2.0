@@ -50,7 +50,7 @@ def get_topup_presets() -> list[Decimal]:
     return presets
 
 
-def create_topup_payment(*, user, amount: Decimal, return_url_builder) -> Payment:
+def create_topup_payment(*, user, amount: Decimal, return_url_builder, terms_version: str = "") -> Payment:
     """Create a local Payment and register it with the active provider.
 
     return_url_builder(payment) -> absolute URL the provider sends the user back to.
@@ -80,6 +80,7 @@ def create_topup_payment(*, user, amount: Decimal, return_url_builder) -> Paymen
         currency=getattr(settings, "PAYMENTS_CURRENCY", "RUB"),
         description=f"Пополнение баланса CaseUP, пользователь {user.username}"[:255],
         is_test=provider.is_test_mode,
+        terms_version=terms_version,
     )
 
     try:
