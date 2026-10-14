@@ -7,8 +7,8 @@ from django.contrib.sessions.models import Session
 from django.db import transaction
 from django.utils import timezone
 
-from modules.v2.profiles.models import UserProfile, UserRole
-from modules.v2.profiles.rbac import ROLE_RANK, get_user_role
+from modules.v2.profiles.models import UserProfile
+from modules.v2.profiles.rbac import assignable_roles, can_manage_user
 
 from ..models import AuditAction, UserBan
 from .audit import log_admin_action
@@ -27,27 +27,6 @@ BAN_DURATIONS = {code: delta for code, _label, delta in BAN_DURATION_CHOICES}
 
 class UserManagementError(Exception):
     pass
-
-
-def can_manage_user(actor, target) -> bool:
-    if not getattr(actor, "is_authenticated", False) or actor.pk == target.pk:
-        return False
-    actor_access = get_user_role(actor)
-    if not actor_access.is_admin_plus:
-        return False
-    target_rank = get_user_role(target).rank
-    if actor_access.code == UserRole.SUPER_ADMIN:
-        return not target.is_superuser or actor.is_superuser
-    return actor_access.rank > target_rank
-
-
-def assignable_roles(actor) -> list[tuple[str, str]]:
-    access = get_user_role(actor)
-    if not access.is_admin_plus:
-        return []
-    if access.code == UserRole.SUPER_ADMIN:
-        return list(UserRole.choices)
-    return [(code, label) for code, label in UserRole.choices if ROLE_RANK[code] < access.rank]
 
 
 def end_user_sessions(user) -> int:

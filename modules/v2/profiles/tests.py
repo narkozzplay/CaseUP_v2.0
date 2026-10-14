@@ -614,9 +614,77 @@ class UsersCatalogTests(TestCase):
         )
         available_roles = [value for value, _label in form.fields["role"].choices]
 
-        self.assertIn(UserRole.ADMIN, available_roles)
+        self.assertIn(UserRole.MOD, available_roles)
+        self.assertNotIn(UserRole.ADMIN, available_roles)
         self.assertNotIn(UserRole.CHIEF_ADMIN, available_roles)
         self.assertNotIn(UserRole.SUPER_ADMIN, available_roles)
+
+    def _make_role_user(self, username, role, *, superuser=False):
+        if superuser:
+            user = User.objects.create_superuser(username=username, email=f"{username}@example.com", password="StrongPass123")
+        else:
+            user = User.objects.create_user(username=username, password="StrongPass123")
+        user.profile_v2.role = role
+        user.profile_v2.save(update_fields=["role"])
+        return user
+
+    def test_admin_cannot_demote_super_admin(self):
+        self._make_role_user("profile_demote_admin", UserRole.ADMIN)
+        boss = self._make_role_user("profile_demote_boss", UserRole.SUPER_ADMIN, superuser=True)
+
+        self.client.login(username="profile_demote_admin", password="StrongPass123")
+        response = self.client.post(
+            reverse("profiles:profile_admin_update", args=[boss.id]),
+            {"admin_section": "identity", "username": "profile_demote_boss", "role": UserRole.USER},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        boss.refresh_from_db()
+        self.assertTrue(boss.is_superuser)
+        self.assertEqual(boss.profile_v2.role, UserRole.SUPER_ADMIN)
+
+    def test_admin_cannot_edit_peer_admin_balance(self):
+        self._make_role_user("profile_peer_admin_actor", UserRole.ADMIN)
+        peer = self._make_role_user("profile_peer_admin_target", UserRole.ADMIN)
+
+        self.client.login(username="profile_peer_admin_actor", password="StrongPass123")
+        response = self._post_balance(peer, balance_operation="add", balance_amount="100", balance_comment="peer")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(LedgerEntry.objects.filter(user=peer).exists())
+
+    def test_admin_cannot_adjust_own_balance(self):
+        admin = self._make_balance_admin("profile_self_balance_admin")
+
+        response = self._post_balance(admin, balance_operation="add", balance_amount="1000", balance_comment="self")
+
+        self.assertEqual(response.status_code, 403)
+        admin.profile_v2.refresh_from_db()
+        self.assertEqual(admin.profile_v2.balance_coins, Decimal("0.00"))
+
+    def test_settings_page_hides_admin_cards_for_higher_ranked_target(self):
+        self._make_role_user("profile_cards_admin", UserRole.ADMIN)
+        chief = self._make_role_user("profile_cards_chief", UserRole.CHIEF_ADMIN)
+
+        self.client.login(username="profile_cards_admin", password="StrongPass123")
+        response = self.client.get(reverse("profiles:profile_user_settings", args=[chief.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'name="balance_comment"')
+
+    def test_super_admin_can_manage_chief_admin(self):
+        self._make_role_user("profile_super_actor", UserRole.SUPER_ADMIN, superuser=True)
+        chief = self._make_role_user("profile_super_target", UserRole.CHIEF_ADMIN)
+
+        self.client.login(username="profile_super_actor", password="StrongPass123")
+        response = self.client.post(
+            reverse("profiles:profile_admin_update", args=[chief.id]),
+            {"admin_section": "identity", "username": "profile_super_target", "role": UserRole.ADMIN},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        chief.profile_v2.refresh_from_db()
+        self.assertEqual(chief.profile_v2.role, UserRole.ADMIN)
 
     def test_admin_identity_form_hides_role_choices_without_actor(self):
         target = User.objects.create_user(username="profile_role_choice_no_actor", password="StrongPass123")

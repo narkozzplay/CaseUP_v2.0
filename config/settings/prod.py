@@ -20,7 +20,11 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     *[mw for mw in MIDDLEWARE if mw != "django.middleware.security.SecurityMiddleware"],
 ]
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Django 5.1+ ignores STATICFILES_STORAGE; storages are configured only through STORAGES.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "common.storage.CaseUPStaticFilesStorage"},
+}
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True

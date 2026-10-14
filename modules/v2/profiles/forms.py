@@ -13,7 +13,7 @@ from modules.v2.store.services import get_user_theme_options_by_scope
 from modules.v2.system.theme_plugins import get_theme_scope_label
 
 from .models import UserProfile, UserRole
-from .rbac import ROLE_RANK, get_user_role
+from .rbac import assignable_roles
 
 User = get_user_model()
 
@@ -108,12 +108,8 @@ class AdminProfileIdentityForm(_AdminBaseForm):
 
         actor = self.actor_user
         if getattr(actor, "is_authenticated", False):
-            actor_rank = get_user_role(actor).rank
-            self.fields["role"].choices = [
-                (role_code, role_label)
-                for role_code, role_label in UserRole.choices
-                if ROLE_RANK.get(role_code, ROLE_RANK[UserRole.USER]) <= actor_rank
-            ]
+            # Same rule as the control center: only roles strictly below the actor (super admin: any).
+            self.fields["role"].choices = assignable_roles(actor)
         else:
             # Safe default: without actor context we do not expose role mutations.
             self.fields["role"].choices = []
@@ -149,11 +145,8 @@ class AdminProfileIdentityForm(_AdminBaseForm):
         if not getattr(actor, "is_authenticated", False):
             raise forms.ValidationError("Только admin+ может менять роль.")
 
-        actor_access = get_user_role(actor)
-        actor_rank = actor_access.rank
-        requested_rank = ROLE_RANK.get(role, ROLE_RANK[UserRole.USER])
-        if requested_rank > actor_rank:
-            raise forms.ValidationError("Нельзя назначить роль выше собственного уровня доступа.")
+        if role not in {code for code, _label in assignable_roles(actor)}:
+            raise forms.ValidationError("Нельзя назначить роль своего уровня или выше.")
 
         return role
 

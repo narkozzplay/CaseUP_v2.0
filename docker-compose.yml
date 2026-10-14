@@ -1,5 +1,11 @@
 name: ${COMPOSE_PROJECT_NAME:-caseup_dev}
 
+# Общая часть для dev и prod. Здесь нет опубликованных портов и bind-mount исходников:
+# Compose складывает списки ports/volumes из всех -f файлов, поэтому то, что объявлено
+# здесь, невозможно убрать в prod overlay.
+# - dev: docker-compose.override.yml (подхватывается автоматически без флагов -f);
+# - prod: docker-compose.prod.yml (только 127.0.0.1:18001 за reverse proxy).
+
 services:
   db:
     image: postgres:16
@@ -8,8 +14,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-caseup_dev}
       POSTGRES_USER: ${POSTGRES_USER:-caseup}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-caseup}
-    ports:
-      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,8 +25,6 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -55,11 +57,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-caseup}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      DJANGO_CACHE_URL: ${DJANGO_CACHE_URL:-redis://redis:6379/1}
       RUN_MIGRATIONS: ${RUN_MIGRATIONS:-1}
       RUN_COLLECTSTATIC: ${RUN_COLLECTSTATIC:-1}
     command: ${WEB_COMMAND:-python manage.py runserver 0.0.0.0:8000}
-    ports:
-      - "${DJANGO_PORT:-8000}:8000"
     healthcheck:
       test:
         - CMD-SHELL
@@ -73,7 +74,6 @@ services:
       retries: 5
       start_period: 20s
     volumes:
-      - .:/app
       - media_data:/app/media
       - static_data:/app/staticfiles
       - backup_data:/app/backups
@@ -102,11 +102,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-caseup}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      DJANGO_CACHE_URL: ${DJANGO_CACHE_URL:-redis://redis:6379/1}
       RUN_MIGRATIONS: "0"
       RUN_COLLECTSTATIC: "0"
     command: celery -A config worker -l info --concurrency=${CELERY_WORKER_CONCURRENCY:-1} --max-tasks-per-child=100
     volumes:
-      - .:/app
       - media_data:/app/media
       - static_data:/app/staticfiles
     healthcheck:
@@ -140,11 +140,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-caseup}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      DJANGO_CACHE_URL: ${DJANGO_CACHE_URL:-redis://redis:6379/1}
       RUN_MIGRATIONS: "0"
       RUN_COLLECTSTATIC: "0"
     command: celery -A config beat -l info --schedule /var/run/celery/celerybeat-schedule
     volumes:
-      - .:/app
       - media_data:/app/media
       - static_data:/app/staticfiles
       - celerybeat_data:/var/run/celery
