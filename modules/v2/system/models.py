@@ -566,15 +566,6 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 37,
             },
             {
-                "key": "testing_preview",
-                "label_ru": "Testing Preview",
-                "label_en": "Testing Preview",
-                "url_name": "frontend:testing_preview",
-                "group": cls.Group.OVERVIEW,
-                "visibility_condition": cls.Visibility.ALWAYS,
-                "sort_order": 40,
-            },
-            {
                 "key": "profile",
                 "label_ru": "Мой профиль",
                 "label_en": "My profile",

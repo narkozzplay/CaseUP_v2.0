@@ -9,7 +9,7 @@ from django.db.models import Count, Sum
 from django.shortcuts import render
 from django.utils import timezone
 
-from common.errors import render_not_found_page
+from common.errors import render_access_denied_page, render_not_found_page
 from modules.v2.farm.models import FarmAccount
 from modules.v2.profiles.models import LedgerEntry, UserProfile, UserRole
 from modules.v2.profiles.services.presence import ONLINE_THRESHOLD_MINUTES
@@ -198,10 +198,12 @@ def admin_panel(request):
     return overview(request)
 
 
-def testing_preview(request):
-    return render(request, "frontend/testing_preview.html")
-
 
 
 def not_found_page(request, exception=None):
     return render_not_found_page(request)
+
+
+def permission_denied_page(request, exception=None):
+    detail = str(exception or "").strip() if exception is not None else ""
+    return render_access_denied_page(request, detail=detail)

@@ -96,6 +96,7 @@ MIDDLEWARE = [
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "frontend.middleware.CustomNotFoundPageMiddleware",
+    "frontend.middleware.CustomForbiddenPageMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "modules.v2.system.middleware.MaintenanceModeMiddleware",

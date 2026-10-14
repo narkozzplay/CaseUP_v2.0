@@ -335,7 +335,7 @@ class UsersCatalogTests(TestCase):
         self.assertContains(response, reverse("profiles:profile_start_direct_chat", args=[target.id]))
 
 
-    def test_profile_detail_view_forbidden_for_foreign_regular_user(self):
+    def test_profile_detail_view_public_for_foreign_regular_user_hides_private_data(self):
         viewer = User.objects.create_user(username="viewer1", password="StrongPass123")
         target = User.objects.create_user(username="target10", password="StrongPass123", email="target@example.com")
         target_profile = UserProfile.objects.get(user=target)
@@ -352,7 +352,12 @@ class UsersCatalogTests(TestCase):
         self.client.login(username="viewer1", password="StrongPass123")
         response = self.client.get(reverse("profiles:profile_detail", args=[target.id]))
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "profiles/partials/profile_content.html")
+        self.assertFalse(response.context["can_view_private_profile"])
+        self.assertEqual(response.context["recent_entries"], [])
+        self.assertNotContains(response, "7151390596")
+        self.assertNotContains(response, 'id="recent-operations"')
 
     def test_profile_detail_view_shows_private_data_for_admin(self):
         admin = User.objects.create_user(username="admin_profile", password="StrongPass123")
@@ -1225,3 +1230,104 @@ class ProfileBalanceConstraintTests(TransactionTestCase):
         user.profile_v2.refresh_from_db()
         self.assertEqual(entry.balance_after, Decimal("25.00"))
         self.assertEqual(user.profile_v2.balance_coins, Decimal("25.00"))
+
+
+class ProfileVisibilityTests(TestCase):
+    def setUp(self):
+        self.viewer = User.objects.create_user(username="vis_viewer", password="StrongPass123")
+        self.target = User.objects.create_user(username="vis_target", password="StrongPass123")
+        self.target.profile_v2.steam_personaname = "Hidden Target"
+        self.target.profile_v2.save(update_fields=["steam_personaname"])
+        self.url = reverse("profiles:profile_detail", args=[self.target.id])
+        self.client.login(username="vis_viewer", password="StrongPass123")
+
+    def _set_profile_privacy(self, value):
+        from modules.v2.social_friends.services import update_privacy_settings
+
+        update_privacy_settings(self.target, who_can_see_profile=value)
+
+    def test_friends_only_profile_renders_closed_page_with_friend_action(self):
+        from modules.v2.social_friends.models import DMPrivacy
+
+        self._set_profile_privacy(DMPrivacy.FRIENDS_ONLY)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTemplateUsed(response, "profiles/partials/profile_closed_content.html")
+        self.assertContains(response, "Профиль виден только друзьям", status_code=403)
+        self.assertContains(response, "Hidden Target", status_code=403)
+        self.assertContains(
+            response,
+            reverse("social_friends:send_friend_request", args=[self.target.id]),
+            status_code=403,
+        )
+
+    def test_friends_only_profile_opens_for_friend(self):
+        from modules.v2.social_friends.models import DMPrivacy
+        from modules.v2.social_friends.services import accept_friend_request, send_friend_request
+
+        self._set_profile_privacy(DMPrivacy.FRIENDS_ONLY)
+        friend_request = send_friend_request(self.viewer, self.target)
+        accept_friend_request(self.target, friend_request.pk)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "profiles/partials/profile_content.html")
+
+    def test_hidden_profile_is_closed_even_for_friend(self):
+        from modules.v2.social_friends.models import DMPrivacy
+        from modules.v2.social_friends.services import accept_friend_request, send_friend_request
+
+        self._set_profile_privacy(DMPrivacy.NOBODY)
+        friend_request = send_friend_request(self.viewer, self.target)
+        accept_friend_request(self.target, friend_request.pk)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertContains(response, "Профиль скрыт", status_code=403)
+
+    def test_blocked_viewer_sees_closed_page_without_identity(self):
+        from modules.v2.social_friends.services import block_user
+
+        block_user(self.target, self.viewer)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertContains(response, "Профиль недоступен", status_code=403)
+        self.assertNotContains(response, "Hidden Target", status_code=403)
+
+    def test_moderator_bypasses_profile_privacy(self):
+        from modules.v2.social_friends.models import DMPrivacy
+
+        self._set_profile_privacy(DMPrivacy.NOBODY)
+        self.viewer.profile_v2.role = UserRole.MOD
+        self.viewer.profile_v2.save(update_fields=["role"])
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_owner_always_sees_own_profile(self):
+        from modules.v2.social_friends.models import DMPrivacy
+
+        self._set_profile_privacy(DMPrivacy.NOBODY)
+        self.client.login(username="vis_target", password="StrongPass123")
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_closed_page_renders_as_dashboard_partial(self):
+        from modules.v2.social_friends.models import DMPrivacy
+
+        self._set_profile_privacy(DMPrivacy.NOBODY)
+
+        response = self.client.get(self.url, HTTP_X_DASHBOARD_PARTIAL="1")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTemplateUsed(response, "profiles/partials/profile_closed_content.html")
+

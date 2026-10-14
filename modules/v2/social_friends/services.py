@@ -331,6 +331,43 @@ def can_send_direct(sender, recipient) -> tuple[bool, str]:
 
 
 # ---------------------------------------------------------------------------
+# Profile visibility
+# ---------------------------------------------------------------------------
+
+def can_view_profile(viewer, target_user) -> tuple[bool, str]:
+    """
+    Returns (allowed, reason_code) for opening target_user's profile page.
+
+    Staff overrides are applied by the caller; this only checks the owner's
+    choices. reason_code values:
+      "self"              — same user
+      "inactive"          — target account is deactivated
+      "blocked_by_target" — target blocked the viewer
+      "friends"           — friends, always allowed
+      "everyone"          — target's profile privacy is everyone
+      "privacy_friends_only" — target allows friends only, not friends
+      "privacy_nobody"    — target hides the profile from everyone
+    """
+    if not getattr(viewer, "pk", None) or not getattr(target_user, "pk", None):
+        return False, "invalid_users"
+    if viewer.pk == target_user.pk:
+        return True, "self"
+    if not target_user.is_active:
+        return False, "inactive"
+    if is_blocked(target_user, viewer):
+        return False, "blocked_by_target"
+
+    privacy = get_or_create_privacy_settings(target_user)
+    if privacy.who_can_see_profile == DMPrivacy.EVERYONE:
+        return True, "everyone"
+    if privacy.who_can_see_profile == DMPrivacy.NOBODY:
+        return False, "privacy_nobody"
+    if are_friends(viewer, target_user):
+        return True, "friends"
+    return False, "privacy_friends_only"
+
+
+# ---------------------------------------------------------------------------
 # Profile context (for templates)
 # ---------------------------------------------------------------------------
 

@@ -24,7 +24,12 @@ from modules.v2.profiles.services.steam_profile import sync_profile_steam_meta_i
 from modules.v2.profile_customization.services import can_customize_profile, get_or_create_customization
 from modules.v2.social.services import build_space_url, get_or_create_direct_space
 from modules.v2.social_friends.forms import PrivacySettingsForm as SocialPrivacySettingsForm
-from modules.v2.social_friends.services import get_friendship_context, get_or_create_privacy_settings, update_privacy_settings
+from modules.v2.social_friends.services import (
+    can_view_profile,
+    get_friendship_context,
+    get_or_create_privacy_settings,
+    update_privacy_settings,
+)
 from modules.v2.store.services import save_user_theme_preferences
 from modules.v2.subscriptions.services import assign_user_subscription_plan, get_active_subscription, get_subscription_context
 from modules.v2.subscriptions.models import SubscriptionPlan
@@ -584,15 +589,64 @@ def users_catalog_view(request):
     )
 
 
+PROFILE_CLOSED_REASONS = {
+    "privacy_friends_only": {
+        "ru": ("Профиль виден только друзьям", "Пользователь открыл профиль только для друзей. Отправь заявку в друзья, и после её принятия профиль откроется."),
+        "en": ("Profile is visible to friends only", "This user shares the profile with friends only. Send a friend request, and the profile opens once it is accepted."),
+    },
+    "privacy_nobody": {
+        "ru": ("Профиль скрыт", "Пользователь закрыл свой профиль от всех. Посмотреть его сейчас нельзя."),
+        "en": ("Profile is hidden", "This user has hidden the profile from everyone. It can't be viewed right now."),
+    },
+    "blocked_by_target": {
+        "ru": ("Профиль недоступен", "Пользователь ограничил тебе доступ к своему профилю."),
+        "en": ("Profile unavailable", "This user has restricted your access to the profile."),
+    },
+    "inactive": {
+        "ru": ("Аккаунт неактивен", "Этот аккаунт отключён, его профиль сейчас недоступен."),
+        "en": ("Account is inactive", "This account is disabled, so its profile is unavailable."),
+    },
+}
+
+
+def _render_profile_closed(request, *, target_user, reason: str):
+    profile, _ = UserProfile.objects.get_or_create(user=target_user)
+    lang = "en" if str(getattr(request, "LANGUAGE_CODE", "ru") or "ru").lower().startswith("en") else "ru"
+    title, description = PROFILE_CLOSED_REASONS.get(reason, PROFILE_CLOSED_REASONS["privacy_nobody"])[lang]
+    # A blocked viewer sees no identity at all; other reasons keep name and avatar like a private Steam profile.
+    show_identity = reason not in {"blocked_by_target", "inactive"}
+    display_name = get_profile_display_name(profile, fallback_username=target_user.username)
+    context = {
+        "profile_user": target_user,
+        "profile_display_name": display_name if show_identity else "",
+        "profile_avatar_url": get_profile_avatar_url(profile) if show_identity else "",
+        "profile_closed_reason": reason,
+        "profile_closed_title": title,
+        "profile_closed_description": description,
+        "friendship_context": get_friendship_context(request.user, target_user) if reason == "privacy_friends_only" else {},
+    }
+    response = render_dashboard_page(
+        request,
+        full_template="profiles/profile_closed.html",
+        partial_template="profiles/partials/profile_closed_content.html",
+        context=context,
+        page_title=build_page_title(title),
+        active_menu_key="profile",
+    )
+    response.status_code = 403
+    return response
+
+
 @login_required
 def profile_detail_view(request, user_id: int):
     target_user = get_object_or_404(
         UserProfile.objects.select_related("user"),
         user_id=user_id,
     ).user
-    if request.user.id != target_user.id:
-        if not can_view_foreign_profiles(request.user):
-            return HttpResponseForbidden("Просмотр чужого профиля доступен только staff/mod/admin.")
+    if request.user.id != target_user.id and not can_view_foreign_profiles(request.user):
+        allowed, reason = can_view_profile(request.user, target_user)
+        if not allowed:
+            return _render_profile_closed(request, target_user=target_user, reason=reason)
     context = _build_profile_context(request=request, target_user=target_user)
     return render_dashboard_page(
         request,
