@@ -4,7 +4,7 @@ import json
 from urllib.parse import urlencode
 
 from django.contrib import messages
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
 
@@ -32,8 +32,6 @@ from .models import SteamPurchase
 from .services import (
     SteamTradingSaleError,
     build_purchase_row,
-    build_purchase_rows,
-    build_purchase_summary,
     create_purchase_sale,
     preview_purchase_sale,
     with_purchase_sales_annotations,
@@ -247,7 +245,6 @@ def purchase_send_telegram(request, purchase_id: int):
             description="Ручные пользовательские TG-функции доступны начиная с Level 3.",
         )
 
-    access = get_farm_access(request.user)
     purchase_qs = get_investment_purchase_queryset(
         user=request.user,
     )

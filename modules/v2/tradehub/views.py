@@ -10,7 +10,7 @@ from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
 
 from .forms import TradeBotAccountForm
-from .models import SaleOrder, SaleOrderItem, TradeBotAccount, TradeUserPenalty
+from .models import SaleOrder, SaleOrderItem, TradeBotAccount
 from .services import (
     TradeHubError,
     cancel_sale_order,

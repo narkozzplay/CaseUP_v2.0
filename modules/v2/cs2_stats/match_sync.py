@@ -20,7 +20,7 @@ from typing import Any
 
 from django.utils import timezone
 
-from .models import CS2_MAPS, Cs2MatchPlayerStat, Cs2MatchRecord, Cs2MatchSyncConfig
+from .models import Cs2MatchPlayerStat, Cs2MatchRecord, Cs2MatchSyncConfig
 from .services import _safe_int, _steam_api_key
 
 # ---------------------------------------------------------------------------

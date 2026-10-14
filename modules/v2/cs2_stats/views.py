@@ -3,10 +3,8 @@ from __future__ import annotations
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect
 
-from modules.v2.profiles.models import UserProfile
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
 

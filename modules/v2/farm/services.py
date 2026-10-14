@@ -697,7 +697,6 @@ def calculate_item_analytics(item: FarmDropItem) -> FarmItemAnalytics:
     current_remaining = q_money(current_unit * item.remaining_quantity)
     sold_quantity = item.sold_quantity
 
-    cost_basis_sold = q_money(sum((sale.cost_basis_rub for sale in sales), ZERO_MONEY))
     realized = q_money(sum((sale.profit_rub for sale in sales), ZERO_MONEY))
     remaining_cost_basis = q_money(collected_unit * item.remaining_quantity)
     unrealized = q_money(current_remaining - remaining_cost_basis)

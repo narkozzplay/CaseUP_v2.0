@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import DMPrivacy, FriendRequestPrivacy, UserPrivacySettings
+from .models import UserPrivacySettings
 
 
 class PrivacySettingsForm(forms.ModelForm):
