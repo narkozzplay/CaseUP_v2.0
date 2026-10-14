@@ -9,6 +9,7 @@
             <a href="{% url 'frontend:home' %}">{% trans "Home" %}</a>
             <a href="{% url 'frontend:dashboard_preview' %}">{% trans "Dashboard" %}</a>
             {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}">{% trans "Subscriptions" %}</a>{% endif %}
+            <a href="{% url 'frontend:agreement' %}">{% if LANGUAGE_CODE == "ru" %}Пользовательское соглашение{% else %}User agreement{% endif %}</a>
             <span>theme={{ active_theme.key|default:"default" }}</span>
             <span>runtime={{ runtime_environment|default:"dev" }}</span>
         </div>

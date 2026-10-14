@@ -25,6 +25,8 @@ CONFIG_FIELD_LABELS = {
     "site_currency_rate": "Курс валюты",
     "support_email": "Email поддержки",
     "public_base_url": "Public base URL",
+    "legal_owner_name": "Владелец сайта",
+    "legal_owner_details": "Реквизиты владельца",
     "maintenance_mode_enabled": "Режим обслуживания",
     "maintenance_message": "Текст обслуживания",
     "registration_enabled": "Регистрация",

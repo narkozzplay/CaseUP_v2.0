@@ -272,6 +272,19 @@ class SystemConfigurationTests(TestCase):
         self.assertEqual(integration.faceit_api_key, "faceit-key-keep")
         self.assertEqual(integration.telegram_bot_token, "tg-token-keep")
 
+    def test_admin_can_set_legal_owner_details(self):
+        admin = self._make_admin("admin_legal_owner")
+        self.client.login(username=admin.username, password="StrongPass123")
+
+        self.client.post(
+            reverse("system_config:settings"),
+            self._settings_post_data(legal_owner_name="ИП Иванов Иван", legal_owner_details="ИНН 123456789012"),
+        )
+
+        config = get_site_configuration()
+        self.assertEqual(config.legal_owner_name, "ИП Иванов Иван")
+        self.assertEqual(config.legal_owner_details, "ИНН 123456789012")
+
     def test_clear_checkbox_removes_only_that_key(self):
         admin = self._make_admin("admin_integrations_clear")
         self.client.login(username=admin.username, password="StrongPass123")

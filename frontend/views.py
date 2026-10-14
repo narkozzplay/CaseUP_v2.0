@@ -200,6 +200,21 @@ def admin_panel(request):
 
 
 
+def agreement_page(request):
+    from django.conf import settings
+
+    from .legal import AGREEMENT_VERSION_LABEL
+
+    return render(
+        request,
+        "legal/agreement.html",
+        {
+            "agreement_version_label": AGREEMENT_VERSION_LABEL,
+            "site_base_url": (getattr(settings, "SITE_BASE_URL", "") or "").rstrip("/"),
+        },
+    )
+
+
 def not_found_page(request, exception=None):
     return render_not_found_page(request)
 

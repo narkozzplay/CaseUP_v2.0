@@ -37,3 +37,25 @@ def check_field_encryption_key_is_dedicated(app_configs, **kwargs):
             id="caseup.W001",
         )
     ]
+
+
+@register(Tags.security, deploy=True)
+def check_legal_owner_is_published(app_configs, **kwargs):
+    """The public agreement must name who sells the services before real payments start."""
+    if settings.DEBUG:
+        return []
+    try:
+        from .models import SiteConfiguration
+
+        config = SiteConfiguration.objects.filter(singleton_key=1).only("legal_owner_name").first()
+    except Exception:  # noqa: BLE001 - no database yet (CI, first deploy): nothing to check
+        return []
+    if config is not None and (config.legal_owner_name or "").strip():
+        return []
+    return [
+        Warning(
+            "The user agreement does not name the site owner yet.",
+            hint="Control Center → Настройки → «Владелец сайта» и «Реквизиты владельца».",
+            id="caseup.W003",
+        )
+    ]
