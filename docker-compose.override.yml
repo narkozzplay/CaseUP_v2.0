@@ -1,0 +1,28 @@
+# Dev-only настройки. Docker Compose подхватывает этот файл автоматически,
+# когда команда запускается без флагов -f:
+#   docker compose --env-file .env.dev up --build
+# Prod-команда перечисляет файлы явно (-f docker-compose.yml -f docker-compose.prod.yml),
+# поэтому сюда попадает всё, чего не должно быть в проде: порты наружу и живой код с хоста.
+
+services:
+  db:
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+
+  redis:
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+
+  web:
+    ports:
+      - "${DJANGO_PORT:-8000}:8000"
+    volumes:
+      - .:/app
+
+  celery_worker:
+    volumes:
+      - .:/app
+
+  celery_beat:
+    volumes:
+      - .:/app

@@ -16,6 +16,14 @@ cp .env.dev.example .env.dev
 docker compose --env-file .env.dev up --build
 ```
 
+Без флагов `-f` Compose сам добавляет `docker-compose.override.yml`: в нём dev-порты (`8000`, а также `5432` и `6379` на `127.0.0.1`) и монтирование исходников `.:/app` для автоперезагрузки. В `docker-compose.yml` порты и исходники не добавляйте: Compose складывает списки `ports`/`volumes` из всех файлов, и они попадут в прод.
+
+С ngrok файлы перечисляются явно, поэтому override нужно указать самому:
+
+```bash
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ngrok.yml up --build
+```
+
 Адреса:
 
 - http://127.0.0.1:8000/
@@ -98,7 +106,9 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod
 - `DJANGO_CSRF_TRUSTED_ORIGINS`
 - `POSTGRES_PASSWORD`
 
-Prod overlay публикует приложение на локальный порт `127.0.0.1:18001`. Для внешнего доступа сверху нужен reverse proxy Nginx или Caddy с проксированием на этот локальный порт и корректными заголовками `Host`/`X-Forwarded-Proto`.
+Prod overlay публикует приложение только на локальный порт `127.0.0.1:18001`; PostgreSQL и Redis наружу не публикуются. Для внешнего доступа сверху нужен reverse proxy Nginx или Caddy с проксированием на этот локальный порт и корректными заголовками `Host`/`X-Forwarded-Proto`.
+
+В проде код берётся из образа, а не из папки на сервере, поэтому после `git pull` образ нужно пересобрать (`up --build` или `build`). Проверить итоговую конфигурацию можно так: `docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml config`. В секциях `ports` должен быть только `127.0.0.1:18001`, а среди `volumes` не должно быть монтирования `/app` с хоста.
 
 ## Типовые ошибки
 
