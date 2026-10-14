@@ -344,6 +344,51 @@
         });
     }
 
+    /* ---------- Drop pool (staff): search the catalog and add ---------- */
+
+    var poolTimer = null;
+    var poolSeq = 0;
+
+    function runPoolSearch(input) {
+        var form = input.closest('[data-pool-form]');
+        var results = form.querySelector('[data-pool-results]');
+        var status = form.querySelector('[data-pool-status]');
+        var query = input.value.trim();
+        results.innerHTML = '';
+        if (query.length < 2) {
+            status.textContent = 'Начни вводить название, минимум 2 буквы.';
+            return;
+        }
+        var seq = ++poolSeq;
+        status.textContent = 'Ищу…';
+        fetch(form.dataset.searchUrl + '?q=' + encodeURIComponent(query), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin'
+        })
+            .then(function (response) { return response.json(); })
+            .then(function (payload) {
+                if (seq !== poolSeq) {
+                    return;
+                }
+                var items = payload.results || [];
+                status.textContent = items.length ? 'Нажми на предмет, чтобы добавить его в пул.' : 'Ничего не нашлось.';
+                var inPool = (form.dataset.poolIds || '').split(',');
+                results.innerHTML = items.map(function (item) {
+                    var added = inPool.indexOf(String(item.id)) !== -1;
+                    return '<button type="' + (added ? 'button' : 'submit') + '" name="item" value="' + escapeHtml(item.id) + '" class="fm-pool__result' + (added ? ' is-in-pool' : '') + '"' + (added ? ' disabled' : '') + '>' +
+                        (item.icon ? '<img src="' + escapeHtml(item.icon) + '" alt="">' : '<i></i>') +
+                        '<span><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(item.type) +
+                        (item.price ? ' · ' + escapeHtml(item.price) + ' ₽' : '') + '</small></span>' +
+                        '<b>' + (added ? 'в пуле' : '+ в пул') + '</b></button>';
+                }).join('');
+            })
+            .catch(function () {
+                if (seq === poolSeq) {
+                    status.textContent = 'Поиск недоступен, попробуй ещё раз.';
+                }
+            });
+    }
+
     /* ---------- Delegated events ---------- */
 
     document.addEventListener('input', function (event) {
@@ -357,6 +402,9 @@
             searchTimer = setTimeout(function () { runItemSearch(target); }, 250);
         } else if (target.matches('[data-farm-account-filter]')) {
             filterAccounts(target);
+        } else if (target.matches('[data-pool-search]')) {
+            clearTimeout(poolTimer);
+            poolTimer = setTimeout(function () { runPoolSearch(target); }, 250);
         } else if (target.matches('[data-inv-search]')) {
             filterInventory(target.closest('[data-farm-inventory]'));
         } else if (dropForm(target)) {
@@ -390,7 +438,7 @@
 
     document.addEventListener('keydown', function (event) {
         // Enter in the catalog search must not submit the drop form.
-        if (event.key === 'Enter' && event.target.matches('[data-farm-item-search], [data-farm-account-filter], [data-inv-search]')) {
+        if (event.key === 'Enter' && event.target.matches('[data-farm-item-search], [data-farm-account-filter], [data-inv-search], [data-pool-search], [data-pool-form] input[name="note"]')) {
             event.preventDefault();
         }
     });

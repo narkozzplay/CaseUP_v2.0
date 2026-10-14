@@ -967,22 +967,27 @@ def drop_pool_manage(request):
     if request.method == "POST":
         form = ActiveDropPoolEntryForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Предмет добавлен в активный пул.")
+            entry = form.save()
+            messages.success(request, f"{entry.item.group_name} добавлен в пул.")
             return redirect("farm:drop_pool")
-    else:
-        form = ActiveDropPoolEntryForm()
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(request, error)
+        return redirect("farm:drop_pool")
 
-    entries = ActiveDropPoolEntry.objects.select_related("item")[:100]
+    entries = list(ActiveDropPoolEntry.objects.select_related("item"))
 
-    return render(
+    return render_dashboard_page(
         request,
-        "farm/drop_pool.html",
-        {
+        full_template="farm/drop_pool.html",
+        partial_template="farm/partials/pages/drop_pool_content.html",
+        context={
             "farm_access": access,
-            "form": form,
             "entries": entries,
+            "week": current_week(),
         },
+        page_title=build_page_title("Пул предметов", "Farm"),
+        active_menu_key="farm_drop_pool",
     )
 
 

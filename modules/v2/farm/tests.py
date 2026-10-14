@@ -238,6 +238,24 @@ class FarmTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertTrue(ActiveDropPoolEntry.objects.filter(item=item).exists())
 
+    def test_admin_pool_page_lists_items_and_is_in_menu(self):
+        self._make_admin("admin_pool_page")
+        item = self._make_drop_item("Kilowatt Case", SteamItem.ItemType.CASE)
+        self.client.login(username="admin_pool_page", password="StrongPass123")
+
+        response = self.client.post(reverse("farm:drop_pool"), {"item": item.id, "note": "новый"})
+        self.assertRedirects(response, reverse("farm:drop_pool"), fetch_redirect_response=False)
+        self.assertEqual(ActiveDropPoolEntry.objects.get(item=item).sort_order, 100)
+
+        response = self.client.post(reverse("farm:drop_pool"), {"item": item.id}, follow=True)
+        self.assertContains(response, "Этот предмет уже находится в активном пуле.")
+        self.assertEqual(ActiveDropPoolEntry.objects.filter(item=item).count(), 1)
+
+        response = self.client.get(reverse("farm:drop_pool"))
+        self.assertContains(response, "Пул предметов")
+        self.assertContains(response, "новый")
+        self.assertContains(response, reverse("farm:drop_pool_remove", args=[ActiveDropPoolEntry.objects.get(item=item).id]))
+
     @patch("modules.v2.farm.services.fetch_public_inventory")
     def test_sync_account_inventory_creates_only_tradable_sellable_and_catalog_blocked_items(self, mocked_fetch):
         user = self._make_farmer("farmer_inventory_sync")

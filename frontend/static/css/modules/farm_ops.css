@@ -2031,3 +2031,180 @@
         height: 84px;
     }
 }
+
+/* ==========================================================================
+   Drop pool (staff): search to add, tiles to remove
+   ========================================================================== */
+
+.fm-subtitle__link {
+    margin-left: 8px;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    text-transform: none;
+}
+
+.fm-subtitle__link:hover {
+    text-decoration: underline;
+}
+
+.fm-pool {
+    display: grid;
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.fm-pool__add {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 18px 18px;
+}
+
+.fm-pool__add .fm-inv__search {
+    flex: none;
+}
+
+.fm-pool__status,
+.fm-pool__count {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.fm-pool__results {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 520px;
+    overflow-y: auto;
+}
+
+.fm-pool__result {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.fm-pool__result:hover {
+    border-color: rgba(245, 166, 35, 0.55);
+}
+
+.fm-pool__result img {
+    width: 44px;
+    height: 34px;
+    object-fit: contain;
+}
+
+.fm-pool__result span {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.fm-pool__result strong,
+.fm-pool__result small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fm-pool__result small {
+    color: var(--text-muted);
+    font-size: 0.74rem;
+}
+
+.fm-pool__result b {
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+}
+
+.fm-pool__result.is-in-pool {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.fm-pool__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 6px;
+    padding: 16px 18px 18px;
+}
+
+.fm-pool__card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: 10px 10px 12px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+}
+
+.fm-pool__img {
+    display: grid;
+    place-items: center;
+    height: 92px;
+    margin-bottom: 6px;
+    color: var(--text-muted);
+}
+
+.fm-pool__img img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.fm-pool__name {
+    overflow: hidden;
+    font-size: 0.86rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fm-pool__meta,
+.fm-pool__note {
+    color: var(--text-muted);
+    font-size: 0.74rem;
+}
+
+.fm-pool__note {
+    color: var(--accent);
+}
+
+.fm-pool__remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--border-strong);
+    background: var(--panel);
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.fm-pool__remove:hover {
+    border-color: var(--down);
+    color: var(--down);
+}
+
+@media (max-width: 900px) {
+    .fm-pool {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

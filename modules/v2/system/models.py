@@ -629,6 +629,15 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 30,
             },
             {
+                "key": "farm_drop_pool",
+                "label_ru": "Пул предметов",
+                "label_en": "Drop pool",
+                "url_name": "farm:drop_pool",
+                "group": cls.Group.FARM,
+                "visibility_condition": cls.Visibility.FARM_STAFF,
+                "sort_order": 35,
+            },
+            {
                 "key": "tradehub_dashboard",
                 "label_ru": "TradeHub",
                 "label_en": "TradeHub",
