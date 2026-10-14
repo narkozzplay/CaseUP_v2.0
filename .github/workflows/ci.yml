@@ -75,6 +75,8 @@ jobs:
           DJANGO_SETTINGS_MODULE: config.settings.prod
           DJANGO_SECRET_KEY: ci-only-not-a-secret-0123456789-abcdefghijklmnopqrstuvwxyz
           DJANGO_ALLOWED_HOSTS: example.com
+          # CI-only Fernet key; protects nothing, just satisfies the deploy check.
+          FIELD_ENCRYPTION_KEYS: 9ieEJei-bl9MhKen5IyFGe__2iZY-zj_tYn2-kaqquQ=
         run: python manage.py check --deploy --fail-level WARNING
       - name: Compose files render (prod must not publish dev ports)
         run: |

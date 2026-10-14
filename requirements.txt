@@ -7,3 +7,4 @@ gunicorn>=23.0,<24.0
 whitenoise>=6.8,<7.0
 Pillow>=12.3,<13.0
 requests>=2.32,<3.0
+cryptography>=46.0

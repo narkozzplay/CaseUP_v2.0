@@ -8,4 +8,4 @@ class SystemConfig(AppConfig):
     verbose_name = "System Configuration"
 
     def ready(self):
-        from . import signals  # noqa: F401
+        from . import checks, signals  # noqa: F401
