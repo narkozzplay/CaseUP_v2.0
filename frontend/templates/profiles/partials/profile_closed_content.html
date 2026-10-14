@@ -1,0 +1,7 @@
+{% if LANGUAGE_CODE == "en" %}
+    {% url 'profiles:profile' as my_profile_url %}
+    {% include "components/access_denied_card.html" with ad_kind=profile_closed_reason ad_title=profile_closed_title ad_description=profile_closed_description ad_name=profile_display_name ad_avatar_url=profile_avatar_url ad_actions_template="profiles/partials/profile_closed_actions.html" ad_primary_url=my_profile_url ad_primary_label="My profile" ad_footer_label="Profile privacy" %}
+{% else %}
+    {% url 'profiles:profile' as my_profile_url %}
+    {% include "components/access_denied_card.html" with ad_kind=profile_closed_reason ad_title=profile_closed_title ad_description=profile_closed_description ad_name=profile_display_name ad_avatar_url=profile_avatar_url ad_actions_template="profiles/partials/profile_closed_actions.html" ad_primary_url=my_profile_url ad_primary_label="Мой профиль" ad_footer_label="Приватность профиля" %}
+{% endif %}
