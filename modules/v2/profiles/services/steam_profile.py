@@ -7,7 +7,6 @@ import urllib.parse
 import urllib.request
 from datetime import timedelta
 
-from django.conf import settings
 from django.utils import timezone
 
 from modules.v2.profiles.models import UserProfile
@@ -352,7 +351,9 @@ def fetch_steam_profile_media(profile_url: str, *, timeout: float = 10.0) -> tup
 
 
 def fetch_steam_level(steam_id: str, *, timeout: float = 10.0) -> int:
-    api_key = getattr(settings, "SOCIAL_AUTH_STEAM_API_KEY", "").strip()
+    from modules.v2.system.services import get_integration_secret
+
+    api_key = get_integration_secret("steam_api_key")
     if not api_key:
         return 0
 
