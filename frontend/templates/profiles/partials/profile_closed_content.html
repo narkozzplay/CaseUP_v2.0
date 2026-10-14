@@ -1,71 +1,7 @@
-<section class="section section--compact profile-closed" data-profile-closed="{{ profile_closed_reason }}">
-    <article class="card profile-closed__card">
-        <p class="profile-closed__code" aria-hidden="true">403</p>
-
-        <div class="card-body profile-closed__body">
-            <div class="profile-closed__emblem">
-                {% if profile_avatar_url %}
-                    <img src="{{ profile_avatar_url }}" alt="" class="profile-closed__avatar">
-                {% endif %}
-                <span class="profile-closed__lock" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="4.5" y="10.5" width="15" height="10" rx="1.5"/>
-                        <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>
-                        <path d="M12 14.5v2.5"/>
-                    </svg>
-                </span>
-            </div>
-
-            <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Доступ закрыт{% else %}Access denied{% endif %}</span>
-
-            {% if profile_display_name %}
-                <p class="profile-closed__name">{{ profile_display_name }}</p>
-            {% endif %}
-
-            <h1 class="page-title page-title--sm profile-closed__title">{{ profile_closed_title }}</h1>
-            <p class="text-muted profile-closed__text">{{ profile_closed_description }}</p>
-
-            <div class="profile-closed__actions">
-                {% if friendship_context.can_send_friend_request %}
-                    <form method="post" action="{% url 'social_friends:send_friend_request' profile_user.id %}" class="inline-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{{ request.path }}">
-                        <button type="submit" class="btn btn-primary">
-                            {% if LANGUAGE_CODE == "ru" %}Добавить в друзья{% else %}Add friend{% endif %}
-                        </button>
-                    </form>
-                {% elif friendship_context.pending_sent %}
-                    <span class="profile-closed__pending">
-                        {% if LANGUAGE_CODE == "ru" %}Заявка в друзья отправлена{% else %}Friend request sent{% endif %}
-                    </span>
-                {% elif friendship_context.pending_received %}
-                    <form method="post" action="{% url 'social_friends:accept_friend_request' friendship_context.pending_received.pk %}" class="inline-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{{ request.path }}">
-                        <button type="submit" class="btn btn-primary">
-                            {% if LANGUAGE_CODE == "ru" %}Принять заявку в друзья{% else %}Accept friend request{% endif %}
-                        </button>
-                    </form>
-                {% endif %}
-
-                {% if friendship_context.can_send_direct %}
-                    <form method="post" action="{% url 'profiles:profile_start_direct_chat' profile_user.id %}" class="inline-form">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-secondary">
-                            {% if LANGUAGE_CODE == "ru" %}Написать{% else %}Message{% endif %}
-                        </button>
-                    </form>
-                {% endif %}
-
-                <a href="{% url 'profiles:profile' %}" class="btn btn-secondary">
-                    {% if LANGUAGE_CODE == "ru" %}Мой профиль{% else %}My profile{% endif %}
-                </a>
-            </div>
-        </div>
-
-        <footer class="profile-closed__meta">
-            <span>ERR 403</span>
-            <span>{% if LANGUAGE_CODE == "ru" %}Приватность профиля{% else %}Profile privacy{% endif %}</span>
-        </footer>
-    </article>
-</section>
+{% if LANGUAGE_CODE == "en" %}
+    {% url 'profiles:profile' as my_profile_url %}
+    {% include "components/access_denied_card.html" with ad_kind=profile_closed_reason ad_title=profile_closed_title ad_description=profile_closed_description ad_name=profile_display_name ad_avatar_url=profile_avatar_url ad_actions_template="profiles/partials/profile_closed_actions.html" ad_primary_url=my_profile_url ad_primary_label="My profile" ad_footer_label="Profile privacy" %}
+{% else %}
+    {% url 'profiles:profile' as my_profile_url %}
+    {% include "components/access_denied_card.html" with ad_kind=profile_closed_reason ad_title=profile_closed_title ad_description=profile_closed_description ad_name=profile_display_name ad_avatar_url=profile_avatar_url ad_actions_template="profiles/partials/profile_closed_actions.html" ad_primary_url=my_profile_url ad_primary_label="Мой профиль" ad_footer_label="Приватность профиля" %}
+{% endif %}

@@ -1,20 +1,20 @@
 /*
- * Closed profile page: shown instead of a foreign profile the viewer may not open.
+ * Access denied card: global 403 page and the closed-profile page.
  */
-.profile-closed {
+.access-denied {
     display: flex;
     justify-content: center;
     padding-top: var(--space-6);
 }
 
-.profile-closed__card {
+.access-denied__card {
     width: min(640px, 100%);
     background:
         radial-gradient(120% 80% at 50% 0%, rgba(245, 166, 35, 0.08), transparent 60%),
         linear-gradient(180deg, rgba(26, 32, 43, 0.95), rgba(20, 25, 34, 0.95));
 }
 
-.profile-closed__code {
+.access-denied__code {
     position: absolute;
     top: -0.18em;
     right: 0.2em;
@@ -29,7 +29,7 @@
     user-select: none;
 }
 
-.profile-closed__body {
+.access-denied__body {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -39,7 +39,7 @@
     text-align: center;
 }
 
-.profile-closed__emblem {
+.access-denied__emblem {
     position: relative;
     display: grid;
     place-items: center;
@@ -52,7 +52,7 @@
     clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
 }
 
-.profile-closed__avatar {
+.access-denied__avatar {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -61,7 +61,7 @@
     filter: grayscale(1) blur(2px) brightness(0.45);
 }
 
-.profile-closed__lock {
+.access-denied__lock {
     position: relative;
     display: grid;
     place-items: center;
@@ -74,12 +74,12 @@
     box-shadow: 0 0 0 6px rgba(245, 166, 35, 0.08);
 }
 
-.profile-closed__lock svg {
+.access-denied__lock svg {
     width: 26px;
     height: 26px;
 }
 
-.profile-closed__name {
+.access-denied__name {
     margin: 0;
     color: var(--text-soft);
     font-family: var(--font-mono);
@@ -87,16 +87,16 @@
     overflow-wrap: anywhere;
 }
 
-.profile-closed__title {
+.access-denied__title {
     margin: 0;
 }
 
-.profile-closed__text {
+.access-denied__text {
     max-width: 46ch;
     margin: 0;
 }
 
-.profile-closed__actions {
+.access-denied__actions {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -104,7 +104,7 @@
     margin-top: var(--space-3);
 }
 
-.profile-closed__pending {
+.access-denied__pending {
     display: inline-flex;
     align-items: center;
     min-height: 40px;
@@ -115,7 +115,7 @@
     font-size: 0.85rem;
 }
 
-.profile-closed__meta {
+.access-denied__meta {
     display: flex;
     justify-content: space-between;
     gap: var(--space-2);
@@ -129,16 +129,34 @@
 }
 
 @media (max-width: 560px) {
-    .profile-closed {
+    .access-denied {
         padding-top: var(--space-3);
     }
 
-    .profile-closed__body {
+    .access-denied__body {
         padding: var(--space-5) var(--space-3) var(--space-4);
     }
 
-    .profile-closed__actions .btn,
-    .profile-closed__actions .inline-form {
+    .access-denied__actions .btn,
+    .access-denied__actions .inline-form {
         width: 100%;
     }
+}
+
+.access-denied__detail {
+    max-width: 52ch;
+    margin: 0;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    background: rgba(11, 14, 19, 0.45);
+    color: var(--text-soft);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+.theme-public .access-denied {
+    padding: var(--space-7) var(--space-3);
 }

@@ -437,3 +437,63 @@ class FrontendDashboardTests(TestCase):
 
         self.assertGreaterEqual(steam_catalog_css_pos, 0)
         self.assertGreater(runtime_theme_css_pos, steam_catalog_css_pos)
+
+
+class AccessDeniedPageTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="denied_user", password="StrongPass123")
+        self.client.login(username="denied_user", password="StrongPass123")
+
+    def test_bare_forbidden_text_is_rendered_as_styled_page(self):
+        response = self.client.get(reverse("farm:dashboard"))
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTemplateUsed(response, "errors/access_denied.html")
+        self.assertContains(response, "Доступ к странице закрыт", status_code=403)
+        self.assertContains(response, "Farm доступен только farmer+.", status_code=403)
+        self.assertContains(response, "access-denied__card", status_code=403)
+
+    def test_json_forbidden_response_is_left_untouched(self):
+        from django.http import JsonResponse
+        from django.test import RequestFactory
+
+        from frontend.middleware import CustomForbiddenPageMiddleware
+
+        request = RequestFactory().get("/api/thing/", HTTP_ACCEPT="application/json")
+        request.user = self.user
+        middleware = CustomForbiddenPageMiddleware(lambda _request: JsonResponse({"error": "nope"}, status=403))
+
+        response = middleware(request)
+
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertJSONEqual(response.content, {"error": "nope"})
+
+    def test_html_forbidden_page_is_left_untouched(self):
+        from django.http import HttpResponseForbidden
+        from django.test import RequestFactory
+
+        from frontend.middleware import CustomForbiddenPageMiddleware
+
+        request = RequestFactory().get("/somewhere/")
+        request.user = self.user
+        middleware = CustomForbiddenPageMiddleware(lambda _request: HttpResponseForbidden("<h1>CSRF</h1>"))
+
+        response = middleware(request)
+
+        self.assertEqual(response.content, b"<h1>CSRF</h1>")
+
+    def test_permission_denied_handler_renders_styled_page(self):
+        from django.core.exceptions import PermissionDenied
+        from django.test import RequestFactory
+
+        from frontend.views import permission_denied_page
+
+        request = RequestFactory().get("/somewhere/")
+        request.user = self.user
+        request.LANGUAGE_CODE = "ru"
+
+        response = permission_denied_page(request, PermissionDenied("Только для админов."))
+
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("Только для админов.", response.content.decode())
+        self.assertIn("access-denied__card", response.content.decode())
