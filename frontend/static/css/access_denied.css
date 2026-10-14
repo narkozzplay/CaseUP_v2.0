@@ -29,8 +29,18 @@
     user-select: none;
 }
 
+.access-denied__bg {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(180deg, rgba(11, 14, 19, 0.35) 0%, rgba(11, 14, 19, 0.82) 45%, rgba(20, 25, 34, 0.97) 100%),
+        var(--access-denied-image) center / cover no-repeat;
+    pointer-events: none;
+}
+
 .access-denied__body {
     position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -116,6 +126,8 @@
 }
 
 .access-denied__meta {
+    position: relative;
+    z-index: 1;
     display: flex;
     justify-content: space-between;
     gap: var(--space-2);
@@ -159,4 +171,12 @@
 
 .theme-public .access-denied {
     padding: var(--space-7) var(--space-3);
+}
+
+.access-denied__card--image {
+    width: min(760px, 100%);
+}
+
+.access-denied__card--image .access-denied__body {
+    padding-top: var(--space-8);
 }

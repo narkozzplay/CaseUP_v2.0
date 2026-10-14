@@ -15,4 +15,5 @@ the extension may be .webp, .png, .jpg or .svg.
 | Module cover: farm | module_farm | 1536 × 1024 |
 | Module cover: social | module_social | 1536 × 1024 |
 | 404 page | not_found | 1536 × 1024 |
+| 403 page / closed profile (card background) | access_denied | 1536 × 1024 |
 | Link preview (Open Graph) | og_cover | 1536 × 1024 |
