@@ -1,0 +1,38 @@
+# Public entry point for production (docker-compose.prod.yml → service "caddy").
+# Caddy obtains and renews Let's Encrypt certificates for every site below on its own, so ports 80
+# and 443 must be reachable and the DNS A records must point to this server before the first start.
+# CADDY_DOMAIN comes from .env.prod (e.g. case-up.ru).
+
+www.{$CADDY_DOMAIN} {
+	redir https://{$CADDY_DOMAIN}{uri} permanent
+}
+
+{$CADDY_DOMAIN}, lib.{$CADDY_DOMAIN} {
+	encode zstd gzip
+
+	# Avatars, backgrounds and other uploads: Django does not serve /media/ with DEBUG=False.
+	# User files are served as inert content: no sniffing, no scripts even for an uploaded SVG/HTML.
+	handle_path /media/* {
+		root * /srv/media
+		header {
+			X-Content-Type-Options nosniff
+			Content-Security-Policy "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; sandbox"
+			Cache-Control "public, max-age=604800"
+		}
+		file_server
+	}
+
+	handle {
+		request_body {
+			max_size 25MB
+		}
+		# Caddy passes the original Host and sets X-Forwarded-For/-Proto, which Django trusts
+		# (SECURE_PROXY_SSL_HEADER, PAYMENTS_WEBHOOK_PROXY_COUNT=1).
+		reverse_proxy web:8000
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

@@ -103,7 +103,7 @@ docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.overr
 
 1. Подключите боевой магазин в ЮKassa и замените ключи на боевые (`live_...`). Пока в проде стоят тестовые ключи, `check --deploy` предупреждает (`caseup.W002`): тестовая карта пополнит настоящий баланс.
 2. HTTP-уведомления: `https://<домен>/payments/webhook/yookassa/`, события `payment.succeeded` и `payment.canceled`.
-3. Webhook принимается только с официальных IP ЮKassa (`PAYMENTS_WEBHOOK_IP_CHECK=auto` включает проверку при `DEBUG=False`). Адрес берётся из `X-Forwarded-For`, поэтому Nginx должен его передавать: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`. `PAYMENTS_WEBHOOK_PROXY_COUNT` — число прокси перед Django (по умолчанию 1, Nginx). Если перед сайтом стоит Cloudflare или другой CDN, увеличьте значение или отключите проверку: сумма всё равно перепроверяется через API.
+3. Webhook принимается только с официальных IP ЮKassa (`PAYMENTS_WEBHOOK_IP_CHECK=auto` включает проверку при `DEBUG=False`). Адрес берётся из `X-Forwarded-For`, его выставляет Caddy из prod-сборки (с собственным Nginx нужен `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`). `PAYMENTS_WEBHOOK_PROXY_COUNT` — число прокси перед Django (по умолчанию 1: Caddy). Если перед сайтом стоит Cloudflare или другой CDN, увеличьте значение или отключите проверку: сумма всё равно перепроверяется через API.
 4. Если в магазине включена онлайн-касса (54-ФЗ), поставьте `YOOKASSA_SEND_RECEIPT=1` (нужен email у пользователя) и при необходимости `YOOKASSA_VAT_CODE`.
 5. Ограничение: не больше `PAYMENTS_MAX_OPEN_PER_USER` (5) неоплаченных платежей у пользователя за 15 минут.
 
@@ -145,6 +145,7 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod
 
 Перед запуском замените значения:
 
+- `CADDY_DOMAIN`
 - `SITE_BASE_URL`
 - `CASEUP_LAB_BASE_URL`
 - `DJANGO_SECRET_KEY`
@@ -153,9 +154,9 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod
 - `DJANGO_CSRF_TRUSTED_ORIGINS`
 - `POSTGRES_PASSWORD`
 
-Prod overlay публикует приложение только на локальный порт `127.0.0.1:18001`; PostgreSQL и Redis наружу не публикуются. Для внешнего доступа сверху нужен reverse proxy Nginx или Caddy с проксированием на этот локальный порт и корректными заголовками `Host`/`X-Forwarded-Proto`.
+Наружу смотрит только Caddy (`deploy/Caddyfile`): порты 80/443, сертификаты Let's Encrypt для `CADDY_DOMAIN`, `www.` и `lib.` выпускаются и продлеваются автоматически, `/media/` отдаётся им же. PostgreSQL и Redis наружу не публикуются, `web` дополнительно доступен на `127.0.0.1:18001`. Пошаговый запуск на сервере: [docs/DEPLOY.md](docs/DEPLOY.md).
 
-В проде код берётся из образа, а не из папки на сервере, поэтому после `git pull` образ нужно пересобрать (`up --build` или `build`). Проверить итоговую конфигурацию можно так: `docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml config`. В секциях `ports` должен быть только `127.0.0.1:18001`, а среди `volumes` не должно быть монтирования `/app` с хоста.
+В проде код берётся из образа, а не из папки на сервере, поэтому после `git pull` образ нужно пересобрать (`up --build` или `build`). Проверить итоговую конфигурацию можно так: `docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml config`. В секциях `ports` должны быть только `127.0.0.1:18001` у `web` и `80`/`443` у `caddy`, а среди `volumes` не должно быть монтирования `/app` с хоста.
 
 ## Типовые ошибки
 
