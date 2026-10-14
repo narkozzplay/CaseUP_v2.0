@@ -1,0 +1,19 @@
+<article class="pcz-card pcz-card--av{% if item.pk == selected_av_id and not hidden_item %} is-current{% endif %}{% if hidden_item %} is-hidden{% endif %}"
+         data-pcz-item data-kind="av" data-title="{{ item.title|lower }}"
+         data-avatar="{{ item.avatar_url }}" data-name="{{ item.title }}"
+         {% if not hidden_item %}data-select-url="{% url 'profile_customization:select_avatar' item.pk %}"{% endif %}>
+    <button type="button" class="pcz-card__media" data-pcz-preview aria-label="{% if LANGUAGE_CODE == "ru" %}Примерить{% else %}Try on{% endif %}: {{ item.title }}">
+        <img src="{{ item.avatar_url }}" alt="" loading="lazy">
+        <span class="pcz-card__flags">
+            {% if item.pk == selected_av_id and not hidden_item %}<span class="pcz-flag pcz-flag--current">{% if LANGUAGE_CODE == "ru" %}Установлена{% else %}Current{% endif %}</span>{% endif %}
+            {% if hidden_item %}<span class="pcz-flag">{% if LANGUAGE_CODE == "ru" %}Аватарка{% else %}Avatar{% endif %}</span>{% endif %}
+        </span>
+        <span class="pcz-card__hint">{% if LANGUAGE_CODE == "ru" %}Примерить{% else %}Try on{% endif %}</span>
+    </button>
+    <div class="pcz-card__foot">
+        <div class="pcz-card__text">
+            <strong class="pcz-card__title">{{ item.title }}</strong>
+        </div>
+        {% include "profile_customization/partials/_card_actions.html" with kind="avatar" %}
+    </div>
+</article>
