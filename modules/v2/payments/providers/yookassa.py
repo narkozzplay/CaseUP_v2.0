@@ -122,6 +122,10 @@ class YooKassaProvider(BasePaymentProvider):
             raise PaymentProviderError("У платежа нет идентификатора ЮKassa.")
         return self._to_provider_payment(self._request("GET", f"/payments/{payment.external_id}"))
 
+    def get_account_info(self) -> dict:
+        """Shop info for the configured keys (GET /v3/me): proves the keys work, shows test/live mode."""
+        return self._request("GET", "/me")
+
     def extract_webhook_payment_id(self, payload: dict) -> str:
         obj = payload.get("object") or {}
         return str(obj.get("id") or "")

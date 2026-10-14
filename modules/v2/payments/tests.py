@@ -381,3 +381,48 @@ class WebhookSourceIpTests(TestCase):
     @override_settings(PAYMENTS_WEBHOOK_IP_CHECK="auto", DEBUG=False)
     def test_auto_mode_is_on_in_production(self):
         self.assertEqual(self._post(HTTP_X_FORWARDED_FOR="203.0.113.7").status_code, 403)
+
+
+class CheckYooKassaCommandTests(TestCase):
+    def _run(self):
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        out = StringIO()
+        call_command("check_yookassa", stdout=out)
+        return out.getvalue()
+
+    @override_settings(YOOKASSA_SHOP_ID="", YOOKASSA_SECRET_KEY="")
+    def test_missing_keys_explain_where_to_get_them(self):
+        from django.core.management.base import CommandError
+
+        with self.assertRaisesMessage(CommandError, "Ключи API"):
+            self._run()
+
+    @override_settings(YOOKASSA_SHOP_ID="123456", YOOKASSA_SECRET_KEY="test_secret", SITE_BASE_URL="http://127.0.0.1:8000")
+    @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
+    def test_valid_test_keys_print_mode_and_webhook_url(self, request_mock):
+        response = mock.Mock(status_code=200)
+        response.json.return_value = {"account_id": "123456", "test": True, "status": "enabled", "payment_methods": ["bank_card", "sbp"]}
+        request_mock.return_value = response
+
+        output = self._run()
+
+        self.assertEqual(request_mock.call_args.args, ("GET", "https://api.yookassa.ru/v3/me"))
+        self.assertIn("Ключи ЮKassa работают", output)
+        self.assertIn("ТЕСТОВЫЙ", output)
+        self.assertIn("http://127.0.0.1:8000/payments/webhook/yookassa/", output)
+        self.assertIn("SITE_BASE_URL локальный", output)
+
+    @override_settings(YOOKASSA_SHOP_ID="123456", YOOKASSA_SECRET_KEY="test_wrong")
+    @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
+    def test_rejected_keys_fail_with_reason(self, request_mock):
+        from django.core.management.base import CommandError
+
+        response = mock.Mock(status_code=401)
+        response.json.return_value = {"type": "error", "code": "invalid_credentials", "description": "Authentication by given credentials failed"}
+        request_mock.return_value = response
+
+        with self.assertRaisesMessage(CommandError, "Authentication by given credentials failed"):
+            self._run()
