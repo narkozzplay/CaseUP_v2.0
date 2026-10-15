@@ -77,6 +77,7 @@ services:
       - media_data:/app/media
       - static_data:/app/staticfiles
       - backup_data:/app/backups
+      - geoip_data:/app/var/geoip
 
   celery_worker:
     build:
@@ -109,6 +110,7 @@ services:
     volumes:
       - media_data:/app/media
       - static_data:/app/staticfiles
+      - geoip_data:/app/var/geoip
     healthcheck:
       test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$HOSTNAME >/dev/null 2>&1 || exit 1"]
       interval: 30s
@@ -162,3 +164,4 @@ volumes:
   static_data:
   celerybeat_data:
   backup_data:
+  geoip_data:

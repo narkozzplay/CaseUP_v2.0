@@ -19,6 +19,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from modules.v2.accounts.sessions import active_sessions
 from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserProfile, UserRole, VerificationRequest
 from modules.v2.profiles.presentation import get_profile_avatar_url, get_profile_display_name
 from modules.v2.profiles.rbac import get_user_role
@@ -377,6 +378,7 @@ def user_detail(request, user_id: int):
         "recent_ledger": ledger_qs.order_by("-created_at")[:12],
         "audit_entries": AdminAuditLog.objects.filter(target_user=target).select_related("actor")[:15],
         "verification_requests": VerificationRequest.objects.filter(user=target).order_by("-created_at")[:5],
+        "target_sessions": list(active_sessions(target)[:10]),
     }
     return _render(
         request,

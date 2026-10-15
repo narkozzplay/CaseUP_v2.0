@@ -1,0 +1,25 @@
+{# expects: s (UserSession); optional: ended (history row), readonly (admin view: no buttons). Uses current_session_key from the context. #}
+<li class="security-session{% if s.session_key == current_session_key and not ended %} is-current{% endif %}{% if ended %} is-ended{% endif %}">
+    <span class="security-session__icon security-session__icon--{{ s.device_type|default:'unknown' }}" aria-hidden="true">
+        {% if s.device_type == "mobile" %}{% include "components/icon.html" with name="device_mobile" %}{% elif s.device_type == "tablet" %}{% include "components/icon.html" with name="device_tablet" %}{% else %}{% include "components/icon.html" with name="device_desktop" %}{% endif %}
+    </span>
+    <div class="security-session__main">
+        <strong>{{ s.device_label }}</strong>
+        {% if s.session_key == current_session_key and not ended %}<span class="cc-chip cc-chip--ok">это устройство</span>{% endif %}
+        <span class="security-session__meta">
+            {% if s.location_label %}{{ s.location_label }} · {% endif %}IP {{ s.last_ip|default:s.ip_address|default:"—" }}{% if s.ip_address and s.last_ip and s.ip_address != s.last_ip %} <span title="IP при входе">(вход с {{ s.ip_address }})</span>{% endif %}
+        </span>
+        <span class="security-session__meta">
+            Вход {{ s.created_at|date:"d.m.Y H:i" }}{% if s.login_method == "steam" %} через Steam{% elif s.login_method == "password" %} по паролю{% endif %}
+            {% if ended %} · {{ s.get_ended_reason_display|lower }} {{ s.ended_at|date:"d.m H:i" }}{% else %}{% with ago=s.last_seen_at|timesince %} · {% if ago == "0 минут" or ago == "0 minutes" %}активен только что{% else %}активность {{ ago }} назад{% endif %}{% endwith %}{% endif %}
+        </span>
+    </div>
+    {% if not ended and not readonly and s.session_key != current_session_key %}
+        <form method="post" class="cc-inline-form" data-dashboard-shell-form>
+            {% csrf_token %}
+            <input type="hidden" name="action" value="end">
+            <input type="hidden" name="session_id" value="{{ s.pk }}">
+            <button type="submit" class="btn btn-ghost btn-sm">Завершить</button>
+        </form>
+    {% endif %}
+</li>

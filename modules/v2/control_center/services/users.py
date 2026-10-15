@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.contrib.sessions.models import Session
 from django.db import transaction
 from django.utils import timezone
 
@@ -30,17 +29,10 @@ class UserManagementError(Exception):
 
 
 def end_user_sessions(user) -> int:
-    removed = 0
-    user_pk = str(user.pk)
-    for session in Session.objects.filter(expire_date__gt=timezone.now()).iterator():
-        try:
-            data = session.get_decoded()
-        except Exception:  # noqa: BLE001 - corrupted sessions are skipped
-            continue
-        if str(data.get("_auth_user_id")) == user_pk:
-            session.delete()
-            removed += 1
-    return removed
+    """Sign the user out on every device (ban, admin "end sessions")."""
+    from modules.v2.accounts.sessions import end_all_sessions
+
+    return end_all_sessions(user)
 
 
 def get_active_ban(user) -> UserBan | None:

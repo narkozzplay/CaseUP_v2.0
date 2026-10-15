@@ -22,8 +22,8 @@ COPY . /app
 RUN chmod +x /app/entrypoint.sh
 
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser \
-    && mkdir -p /app/staticfiles /app/media /app/backups /var/run/celery \
-    && chown -R appuser:appgroup /app/staticfiles /app/media /app/backups /var/run/celery
+    && mkdir -p /app/staticfiles /app/media /app/backups /app/var/geoip /var/run/celery \
+    && chown -R appuser:appgroup /app/staticfiles /app/media /app/backups /app/var /var/run/celery
 USER appuser
 
 EXPOSE 8000

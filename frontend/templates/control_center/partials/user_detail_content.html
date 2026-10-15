@@ -90,6 +90,20 @@
 
             <article class="ops-panel">
                 <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Активные сеансы</h2>
+                    <span class="ops-panel__hint">{{ target_sessions|length }}</span>
+                </div>
+                <ul class="security-sessions">
+                    {% for item in target_sessions %}
+                        {% include "accounts/partials/_session_row.html" with s=item readonly=True current_session_key="" %}
+                    {% empty %}
+                        <li class="security-empty">Сейчас пользователь нигде не авторизован.</li>
+                    {% endfor %}
+                </ul>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
                     <h2 class="ops-panel__title">История действий команды</h2>
                     <a href="{% url 'control_center:audit' %}?q={{ target.username|urlencode }}" class="ops-panel__link">В журнале →</a>
                     <a href="{% url 'control_center:activity' %}?user={{ target.pk }}" class="ops-panel__link">Все действия в логах →</a>

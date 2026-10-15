@@ -1,0 +1,50 @@
+<section class="section section--compact ops cc security">
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Профиль</span>
+            <h1 class="cc-pagehead__title">Безопасность</h1>
+            <p class="ops-hero__text">Устройства, на которых выполнен вход в ваш аккаунт. Если видите незнакомое устройство или город — завершите этот сеанс.</p>
+        </div>
+        <div class="security-head-actions">
+            <a href="{% url 'profiles:profile_settings' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">← Настройки профиля</a>
+        </div>
+    </header>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head">
+            <h2 class="ops-panel__title">Активные сеансы</h2>
+            {% if active_sessions|length > 1 %}
+                <form method="post" class="cc-inline-form" data-dashboard-shell-form>
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="end_others">
+                    <button type="submit" class="btn btn-secondary btn-sm">Завершить все, кроме текущего</button>
+                </form>
+            {% else %}
+                <span class="ops-panel__hint">{{ active_sessions|length }}</span>
+            {% endif %}
+        </div>
+        <ul class="security-sessions">
+            {% for item in active_sessions %}
+                {% include "accounts/partials/_session_row.html" with s=item %}
+            {% empty %}
+                <li class="security-empty">Активных сеансов нет.</li>
+            {% endfor %}
+        </ul>
+    </article>
+
+    {% if ended_sessions %}
+        <article class="ops-panel">
+            <div class="ops-panel__head">
+                <h2 class="ops-panel__title">Недавно завершённые</h2>
+                <span class="ops-panel__hint">последние {{ ended_sessions|length }}</span>
+            </div>
+            <ul class="security-sessions security-sessions--ended">
+                {% for item in ended_sessions %}
+                    {% include "accounts/partials/_session_row.html" with s=item ended=True %}
+                {% endfor %}
+            </ul>
+        </article>
+    {% endif %}
+
+    <p class="security-note">Город определяется по IP-адресу приблизительно. IP Geolocation by <a href="{{ geoip_attribution_url }}" target="_blank" rel="noopener">DB-IP</a>.</p>
+</section>

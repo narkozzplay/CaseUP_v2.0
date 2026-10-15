@@ -8,3 +8,4 @@ whitenoise>=6.8,<7.0
 Pillow>=12.3,<13.0
 requests>=2.32,<3.0
 cryptography>=46.0
+maxminddb>=2.6,<3.0
