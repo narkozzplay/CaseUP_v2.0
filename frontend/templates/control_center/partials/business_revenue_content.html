@@ -1,0 +1,58 @@
+{% load site_formatters %}
+<section class="section section--compact ops cc biz" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <a href="{% url 'control_center:business' %}?period={{ period.key }}{% if period.key == 'custom' %}&amp;from={{ period.date_from|date:'Y-m-d' }}&amp;to={{ period.date_to|date:'Y-m-d' }}{% endif %}" class="back-link" data-dashboard-nav="true">← Бизнес</a>
+            <span class="eyebrow">Control Center · Бизнес</span>
+            <h1 class="cc-pagehead__title">Журнал доходов</h1>
+            <p class="ops-hero__text">Каждая операция дохода площадки со ссылкой на исходную операцию. Выкуп предметов из кейсов идёт с минусом.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Период</dt><dd>{{ period.label }}</dd></div>
+            <div><dt>Операций</dt><dd>{{ totals.count }}</dd></div>
+            <div><dt>Сумма</dt><dd>{% money totals.total %}</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+    {% include "control_center/partials/_biz_period.html" %}
+
+    <form method="get" class="cc-toolbar">
+        <input type="hidden" name="period" value="{{ period.key }}">
+        {% if period.key == "custom" %}<input type="hidden" name="from" value="{{ period.date_from|date:'Y-m-d' }}"><input type="hidden" name="to" value="{{ period.date_to|date:'Y-m-d' }}">{% endif %}
+        <label class="cc-field form-field"><span>Вид дохода</span>
+            <select name="category"><option value="">Все виды</option>{% for code, label in category_options %}<option value="{{ code }}"{% if filters.category == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        </label>
+        <label class="cc-field form-field"><span>Источник</span>
+            <select name="source"><option value="">Все источники</option>{% for code, label in source_options %}<option value="{{ code }}"{% if filters.source == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        </label>
+        <div class="cc-toolbar__actions">
+            <button type="submit" class="btn btn-primary btn-sm">Показать</button>
+            <a href="{% url 'control_center:business_revenue_export' %}{% if export_query %}?{{ export_query }}{% endif %}" class="btn btn-ghost btn-sm" download>{% include "components/icon.html" with name="cc_download" %}CSV</a>
+        </div>
+    </form>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Операции</h2><span class="ops-panel__hint">{{ page_obj.paginator.count }}</span></div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead><tr><th>Когда</th><th>Пользователь</th><th>Вид</th><th>Источник</th><th class="cc-num">Сумма</th><th>Операция</th></tr></thead>
+                <tbody>
+                    {% for entry in page_obj %}
+                        <tr>
+                            <td class="cc-mono">{{ entry.occurred_at|date:"d.m.Y H:i" }}</td>
+                            <td>{% include "control_center/partials/_user_cell.html" with u=entry.user %}</td>
+                            <td><span class="cc-chip"><i class="biz-dot biz-dot--{{ entry.category }}"></i> {{ entry.get_category_display }}</span></td>
+                            <td>{{ entry.get_source_display }}{% if entry.note %}<span class="cc-sub">{{ entry.note }}</span>{% endif %}</td>
+                            <td class="cc-num {% if entry.amount >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% money entry.amount signed=True %}</td>
+                            <td class="cc-mono">{{ entry.ref }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6" class="text-muted">Операций по фильтрам нет.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+    {% include "control_center/partials/_pagination.html" %}
+</section>

@@ -577,7 +577,7 @@ def purchase_subscription_with_balance(*, user, plan: SubscriptionPlan):
     expires_at = starts_at + timedelta(days=plan.billing_period_days)
 
     try:
-        adjust_balance(
+        ledger_entry = adjust_balance(
             user=user,
             delta=-charge_amount,
             reason=LedgerReason.SUBSCRIPTION_PURCHASE,
@@ -587,6 +587,11 @@ def purchase_subscription_with_balance(*, user, plan: SubscriptionPlan):
         if str(exc) == "Insufficient balance":
             raise SubscriptionPurchaseError("Недостаточно средств на балансе профиля.") from exc
         raise SubscriptionPurchaseError(str(exc)) from exc
+
+    from modules.v2.business.revenue import record_ledger_entry
+
+    # The switch fee is booked as a commission, the rest as subscription income.
+    record_ledger_entry(ledger_entry, switch_fee=UPGRADE_SWITCH_FEE_RUB if quote.is_upgrade else Decimal("0.00"))
 
     purchase_note = "Purchased from profile balance"
     if quote.is_upgrade and quote.current_plan is not None:

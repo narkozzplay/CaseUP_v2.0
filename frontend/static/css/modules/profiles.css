@@ -170,50 +170,63 @@
     box-shadow: 0 3px 12px rgba(235,75,75,.16);
 }
 
-/* ---- Nav buttons (CS2 / Settings / Admin settings) ---- */
-.profile-nav-actions {
+/* ---- Nav buttons (CS2 / Settings / Admin settings): top-right corner of the banner ---- */
+.profile-hero__corner {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 3;
     display: flex;
     flex-wrap: wrap;
-    gap: .45rem;
-    width: 100%;
+    justify-content: flex-end;
+    gap: 8px;
 }
 
 .profile-nav-btn {
     display: inline-flex;
     align-items: center;
-    gap: .4rem;
-    padding: .45rem .85rem;
-    border-radius: 6px;
-    font-size: .8rem;
-    font-weight: 600;
-    text-decoration: none;
-    border: 1px solid rgba(255,255,255,.1);
-    background: rgba(255,255,255,.05);
+    gap: 8px;
+    min-height: 36px;
+    padding: 0 14px;
+    border: 1px solid var(--border-strong);
+    background: rgba(9, 11, 15, 0.62);
+    backdrop-filter: blur(6px);
     color: var(--text-soft);
-    transition: background .15s, border-color .15s, transform .15s, color .15s;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
     white-space: nowrap;
+    transition: background .15s, border-color .15s, color .15s;
 }
-.profile-nav-btn svg {
-    width: 13px;
-    height: 13px;
+.profile-nav-btn .ui-icon {
+    width: 16px;
+    height: 16px;
     flex: 0 0 auto;
 }
-.profile-nav-btn:hover {
-    background: rgba(255,255,255,.1);
-    border-color: rgba(255,255,255,.18);
-    color: var(--text);
-    transform: translateY(-1px);
+.profile-nav-btn:hover,
+.profile-nav-btn:focus-visible {
+    border-color: rgba(245, 166, 35, 0.55);
+    background: var(--accent-soft);
+    color: var(--accent);
+    outline: none;
 }
 
 .profile-nav-btn--admin {
-    border-color: rgba(251,191,36,.22);
-    background: rgba(251,191,36,.06);
-    color: #fcd34d;
+    border-color: rgba(245, 166, 35, 0.4);
+    color: var(--accent);
 }
-.profile-nav-btn--admin:hover {
-    background: rgba(251,191,36,.14);
-    border-color: rgba(251,191,36,.38);
-    color: #fde68a;
+
+@media (max-width: 720px) {
+    .profile-hero__corner {
+        position: relative;
+        top: auto;
+        right: auto;
+        justify-content: flex-start;
+        padding: 14px 16px 0;
+    }
 }
 
 .avatar-upload {
@@ -1158,3 +1171,27 @@
     font-family: var(--font-mono);
     font-size: 0.7rem;
 }
+
+/* ---- Steam card: connect Steam when the account has none ---- */
+.steam-connect {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+.steam-connect__text {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 0.9rem;
+}
+.steam-connect__check {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+.steam-connect__check input { margin-top: 2px; accent-color: var(--accent); }
+.steam-connect__btn { display: inline-flex; align-items: center; gap: 8px; }
+.steam-connect__btn .ui-icon { width: 16px; height: 16px; }
+.steam-connect__check a { color: var(--accent); }

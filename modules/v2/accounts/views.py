@@ -5,6 +5,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
+from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 from social_django.views import auth as social_auth_begin
 
@@ -14,7 +15,7 @@ from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
 
 from . import two_factor
-from .consent import store_login_consent
+from .consent import store_login_consent, user_has_current_consent
 from .devices import DEVICE_LABELS
 from .forms import SteamLoginConsentForm
 from .geoip import ATTRIBUTION_URL
@@ -192,3 +193,25 @@ def security_view(request):
         page_title=build_page_title("Безопасность"),
         active_menu_key="profile",
     )
+
+
+@login_required
+@require_POST
+def connect_steam_view(request):
+    """Link Steam to an account that was created without it (the «Steam» card on the profile).
+
+    Users who have not accepted the current documents tick the same two boxes as on the login page.
+    """
+    from .steam_sync import get_steam_social_auth
+
+    if get_steam_social_auth(request.user) is not None:
+        messages.info(request, "Steam уже подключён к этому аккаунту.")
+        return redirect("profiles:profile")
+    if not user_has_current_consent(request.user):
+        form = SteamLoginConsentForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, "Чтобы подключить Steam, примите Пользовательское соглашение и согласие на обработку данных.")
+            return redirect("profiles:profile")
+        store_login_consent(request)
+    # Same hand-over as the login page: social-auth starts only on POST and reads "next" from it.
+    return social_auth_begin(request, "steam")

@@ -129,3 +129,22 @@ def record_legal_consent(strategy, backend: Any, user: Any = None, *args, **kwar
     record_consent(user, data)
     strategy.session_pop(SESSION_KEY)
     return None
+
+
+def prevent_foreign_steam_link(strategy, backend: Any, uid: Any = None, user: Any = None, *args, **kwargs):
+    """A signed-in user linking Steam: refuse a Steam account that already belongs to someone else.
+
+    Without this step social-auth raises AuthAlreadyAssociated and the user sees an error page.
+    """
+    from django.contrib import messages
+    from django.urls import reverse
+
+    if user is None or "steam" not in (getattr(backend, "name", "") or "") or not uid:
+        return None
+    social = backend.strategy.storage.user.get_social_auth(backend.name, str(uid))
+    if social is None or social.user_id == user.pk:
+        return None
+    request = getattr(strategy, "request", None)
+    if request is not None:
+        messages.error(request, "Этот Steam-аккаунт уже привязан к другому аккаунту CaseUP. Войдите в него через Steam или обратитесь в поддержку.")
+    return strategy.redirect(reverse("profiles:profile"))

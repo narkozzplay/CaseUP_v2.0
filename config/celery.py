@@ -58,6 +58,16 @@ app.conf.beat_schedule = {
         "task": "antifraud.prune_user_ips",
         "schedule": 24 * 60 * 60.0,
     },
+    # Fills the revenue journal for anything the live hooks missed.
+    "sync-revenue": {
+        "task": "business.sync_revenue",
+        "schedule": 60 * 60.0,
+    },
+    # Yesterday's numbers to ADMIN_EMAILS every morning (09:05 Moscow time).
+    "business-daily-report": {
+        "task": "business.daily_report",
+        "schedule": crontab(hour=9, minute=5),
+    },
     "reconcile-referrals": {
         "task": "referrals.reconcile",
         "schedule": 6 * 60 * 60.0,

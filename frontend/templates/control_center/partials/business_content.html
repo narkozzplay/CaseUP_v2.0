@@ -1,0 +1,284 @@
+{% load l10n site_formatters %}
+<section class="section section--compact ops cc biz" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center · только руководство</span>
+            <h1 class="cc-pagehead__title">Бизнес</h1>
+            <p class="ops-hero__text">Деньги сайта за период: пополнения, доход площадки по видам (комиссии отдельно), расходы на бонусы и чистый доход. Пополнения — ещё не доход: доход появляется, когда пользователь тратит баланс на услуги сайта или платит комиссию.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Период</dt><dd>{{ period.label }}</dd></div>
+            <div><dt>Обновлено</dt><dd>{{ data.built_at|date:"H:i" }}</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+    {% include "control_center/partials/_biz_period.html" %}
+
+    <div class="ops-kpis">
+        <div class="ops-kpi">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="balance_topup" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Пополнения</span>
+                <strong class="ops-kpi__value">{% money money.topups %}</strong>
+                <span class="ops-kpi__meta">{{ money.topups_count }} платежей · {{ money.payers }} плательщ. {% include "control_center/partials/_biz_change.html" with c=changes.topups %}</span>
+            </div>
+        </div>
+        <div class="ops-kpi">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="cc_business" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Доход площадки</span>
+                <strong class="ops-kpi__value">{% money money.revenue %}</strong>
+                <span class="ops-kpi__meta">все виды дохода {% include "control_center/partials/_biz_change.html" with c=changes.revenue %}</span>
+            </div>
+        </div>
+        <a href="{% url 'control_center:business_revenue' %}?{{ period_query }}&amp;category=commission" class="ops-kpi ops-kpi--link biz-kpi--accent">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="promo" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">из них комиссии</span>
+                <strong class="ops-kpi__value">{% money money.commission %}</strong>
+                <span class="ops-kpi__meta">отдельный вид дохода {% include "control_center/partials/_biz_change.html" with c=changes.commission %}</span>
+            </div>
+        </a>
+        <div class="ops-kpi">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="referrals" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Расходы на бонусы</span>
+                <strong class="ops-kpi__value">{% money money.bonus_total %}</strong>
+                <span class="ops-kpi__meta">рефералы, промокоды, админы {% include "control_center/partials/_biz_change.html" with c=changes.bonus_total inverse=True %}</span>
+            </div>
+        </div>
+        <div class="ops-kpi">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="cc_wallet" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Чистый доход</span>
+                <strong class="ops-kpi__value {% if money.net < 0 %}text-down{% endif %}">{% money money.net %}</strong>
+                <span class="ops-kpi__meta">доход − бонусы {% include "control_center/partials/_biz_change.html" with c=changes.net %}</span>
+            </div>
+        </div>
+        <div class="ops-kpi">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="cc_ledger" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">На балансах пользователей</span>
+                <strong class="ops-kpi__value">{% money data.balances_total %}</strong>
+                <span class="ops-kpi__meta">сейчас, деньги пользователей</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="cc-charts">
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Пополнения</h2><span class="ops-panel__hint">{% if data.series.monthly %}по месяцам{% else %}по дням{% endif %}</span></div>
+            <div class="cc-chart cc-chart--alt" role="img" aria-label="Пополнения за период">
+                {% for row in data.series.rows %}
+                    <div class="cc-chart__col" title="{% if data.series.monthly %}{{ row.date|date:'m.Y' }}{% else %}{{ row.date|date:'d.m.Y' }}{% endif %}: {{ row.topups|stringformat:'.2f' }} ₽">
+                        <span class="cc-chart__value"></span>
+                        <span class="cc-chart__bar" style="height: {{ row.topup_percent|unlocalize }}%;"></span>
+                        <span class="cc-chart__label">{% if row.show_label %}{% if data.series.monthly %}{{ row.date|date:"m.y" }}{% else %}{{ row.date|date:"d.m" }}{% endif %}{% endif %}</span>
+                    </div>
+                {% empty %}
+                    <p class="ops-empty">Пока нет данных.</p>
+                {% endfor %}
+            </div>
+        </article>
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Доход по видам</h2>
+                <span class="biz-legend">{% for row in categories %}<span class="biz-legend__item"><i class="biz-dot biz-dot--{{ row.code }}"></i>{{ row.label }}</span>{% endfor %}</span>
+            </div>
+            <div class="cc-chart" role="img" aria-label="Доход по видам за период">
+                {% for row in data.series.rows %}
+                    <div class="cc-chart__col" title="{% if data.series.monthly %}{{ row.date|date:'m.Y' }}{% else %}{{ row.date|date:'d.m.Y' }}{% endif %}: {{ row.revenue|stringformat:'.2f' }} ₽{% for part in row.parts %}{% if part.value %} · {{ part.label }} {{ part.value|stringformat:'.2f' }}{% endif %}{% endfor %}">
+                        <span class="cc-chart__value"></span>
+                        <span class="biz-stack">{% for part in row.parts %}{% if part.percent %}<span class="biz-stack__part biz-dot--{{ part.code }}" style="height: {{ part.percent|unlocalize }}%;"></span>{% endif %}{% endfor %}</span>
+                        <span class="cc-chart__label">{% if row.show_label %}{% if data.series.monthly %}{{ row.date|date:"m.y" }}{% else %}{{ row.date|date:"d.m" }}{% endif %}{% endif %}</span>
+                    </div>
+                {% empty %}
+                    <p class="ops-empty">Пока нет данных.</p>
+                {% endfor %}
+            </div>
+        </article>
+    </div>
+
+    <div class="ref-rewards">
+        <article class="ops-panel biz-commissions">
+            <div class="ops-panel__head">
+                <h2 class="ops-panel__title">Комиссии</h2>
+                <a href="{% url 'control_center:business_revenue' %}?{{ period_query }}&amp;category=commission" class="ops-panel__link">Журнал комиссий →</a>
+            </div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Вид комиссии</th><th class="cc-num">Сумма</th><th class="cc-num">Операций</th><th class="cc-num">Доля</th></tr></thead>
+                    <tbody>
+                        {% for row in data.commissions %}
+                            <tr>
+                                <td><a href="{% url 'control_center:business_revenue' %}?{{ period_query }}&amp;source={{ row.source }}">{{ row.label }}</a>{% if row.source == "market" and not row.count %}<span class="cc-sub">появится вместе с Рынком</span>{% endif %}</td>
+                                <td class="cc-num">{% money row.total %}</td>
+                                <td class="cc-num">{{ row.count }}{% if row.count %}<span class="cc-sub">ср. {% money row.average %}</span>{% endif %}</td>
+                                <td class="cc-num">{{ row.share_commission }}%</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot><tr><th>Итого</th><th class="cc-num">{% money money.commission %}</th><th colspan="2" class="cc-num">{% if money.revenue > 0 %}{% widthratio money.commission money.revenue 100 %}% дохода{% endif %}</th></tr></tfoot>
+                </table>
+            </div>
+        </article>
+
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Доход и расходы</h2><a href="{% url 'control_center:business_revenue' %}?{{ period_query }}" class="ops-panel__link">Журнал доходов →</a></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <tbody>
+                        {% for row in categories %}
+                            <tr>
+                                <td><i class="biz-dot biz-dot--{{ row.code }}"></i> <a href="{% url 'control_center:business_revenue' %}?{{ period_query }}&amp;category={{ row.code }}">{{ row.label }}</a></td>
+                                <td class="cc-num">{% money row.total %}</td>
+                                <td class="cc-num">{% include "control_center/partials/_biz_change.html" with c=row.change %}</td>
+                            </tr>
+                        {% endfor %}
+                        <tr class="biz-total"><td><b>Доход площадки</b></td><td class="cc-num"><b>{% money money.revenue %}</b></td><td></td></tr>
+                        {% for row in money.bonuses %}
+                            <tr><td class="text-muted">− {{ row.label }}</td><td class="cc-num">{% money row.total %}</td><td></td></tr>
+                        {% endfor %}
+                        <tr class="biz-total"><td><b>Чистый доход</b></td><td class="cc-num"><b class="{% if money.net < 0 %}text-down{% else %}text-up{% endif %}">{% money money.net %}</b></td><td></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="ops-empty">Кейсы: оплачено открытий минус выкуп выпавших предметов, поэтому сумма может быть отрицательной.</p>
+        </article>
+    </div>
+
+    <div class="ref-rewards">
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Воронка</h2><span class="ops-panel__hint">зарегистрированные за период</span></div>
+            <div class="biz-funnel">
+                <div class="biz-funnel__step"><span>Регистрации</span><b>{{ data.users.registered }}</b>{% include "control_center/partials/_biz_change.html" with c=changes.registrations %}</div>
+                <div class="biz-funnel__step"><span>Первое пополнение</span><b>{{ data.users.paid_once }}</b><small>{{ data.users.conversion_first }}%</small></div>
+                <div class="biz-funnel__step"><span>Повторное пополнение</span><b>{{ data.users.paid_twice }}</b><small>{{ data.users.conversion_repeat }}%</small></div>
+            </div>
+            <dl class="biz-metrics">
+                <div><dt>Плательщиков за период</dt><dd>{{ data.users.payers }} <small>новых {{ data.users.new_payers }} · вернувшихся {{ data.users.returning_payers }}</small></dd></div>
+                <div><dt>Средний чек пополнения</dt><dd>{% money data.users.avg_check %}</dd></div>
+                <div><dt>ARPU (доход на пользователя)</dt><dd>{% money data.users.arpu %} <small>из {{ data.users.users_total }} польз.</small></dd></div>
+                <div><dt>ARPPU (доход на плательщика)</dt><dd>{% money data.users.arppu %}</dd></div>
+            </dl>
+        </article>
+
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Подписки</h2><span class="ops-panel__hint">MRR {% money data.subscriptions.mrr %}</span></div>
+            <dl class="biz-metrics">
+                <div><dt>Активных сейчас</dt><dd>{{ data.subscriptions.active }}</dd></div>
+                <div><dt>Новых за период</dt><dd>{{ data.subscriptions.new }} <small>включая смены тарифа</small></dd></div>
+                <div><dt>Закончились за период</dt><dd>{{ data.subscriptions.ended }} <small>продлили {{ data.subscriptions.renewed }} · ушли {{ data.subscriptions.churned }}</small></dd></div>
+                <div><dt>Отток</dt><dd class="{% if data.subscriptions.churn_percent >= 50 %}text-down{% endif %}">{{ data.subscriptions.churn_percent }}%</dd></div>
+            </dl>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Тариф</th><th class="cc-num">Активных</th><th class="cc-num">Цена</th><th class="cc-num">MRR</th></tr></thead>
+                    <tbody>
+                        {% for row in data.subscriptions.plans %}
+                            <tr><td>{{ row.name }} <span class="cc-sub">{{ row.family }}</span></td><td class="cc-num">{{ row.count }}</td><td class="cc-num">{% money row.price %}</td><td class="cc-num">{% money row.mrr %}</td></tr>
+                        {% empty %}
+                            <tr><td colspan="4" class="text-muted">Активных подписок нет.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="ops-empty">MRR считается по прайсу тарифов и включает подписки, выданные вручную.</p>
+        </article>
+    </div>
+
+    <div class="ref-rewards">
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Топ по пополнениям</h2></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Пользователь</th><th class="cc-num">Платежей</th><th class="cc-num">Сумма</th></tr></thead>
+                    <tbody>
+                        {% for row in top_topups %}
+                            <tr><td>{% include "control_center/partials/_user_cell.html" with u=row.user %}</td><td class="cc-num">{{ row.count }}</td><td class="cc-num">{% money row.total %}</td></tr>
+                        {% empty %}
+                            <tr><td colspan="3" class="text-muted">Пополнений за период нет.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Топ по принесённому доходу</h2></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Пользователь</th><th class="cc-num">Операций</th><th class="cc-num">Доход</th></tr></thead>
+                    <tbody>
+                        {% for row in top_revenue %}
+                            <tr><td>{% include "control_center/partials/_user_cell.html" with u=row.user %}</td><td class="cc-num">{{ row.count }}</td><td class="cc-num">{% money row.total %}</td></tr>
+                        {% empty %}
+                            <tr><td colspan="3" class="text-muted">Дохода за период нет.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </div>
+
+    <div class="ref-rewards">
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Кейсы</h2><span class="ops-panel__hint">открытия за период</span></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Кейс</th><th class="cc-num">Открытий</th><th class="cc-num">Оплачено</th><th class="cc-num">Маржа</th><th class="cc-num" title="Return to player: стоимость выпавших предметов к оплаченному">RTP</th></tr></thead>
+                    <tbody>
+                        {% for row in data.cases.rows %}
+                            <tr><td>{{ row.case__name }}</td><td class="cc-num">{{ row.openings }}</td><td class="cc-num">{% money row.paid %}</td><td class="cc-num {% if row.margin < 0 %}text-down{% endif %}">{% money row.margin %}<span class="cc-sub">выкуп {% money row.bought_back %}</span></td><td class="cc-num">{% if row.rtp is not None %}{{ row.rtp }}%{% else %}—{% endif %}</td></tr>
+                        {% empty %}
+                            <tr><td colspan="5" class="text-muted">Открытий за период нет.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if data.cases.rows %}<tfoot><tr><th>Всего</th><th class="cc-num">{{ data.cases.totals.openings }}</th><th class="cc-num">{% money data.cases.totals.paid %}</th><th class="cc-num">{% money data.cases.totals.margin %}</th><th class="cc-num">{% if data.cases.totals.rtp is not None %}{{ data.cases.totals.rtp }}%{% endif %}</th></tr></tfoot>{% endif %}
+                </table>
+            </div>
+        </article>
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Магазин</h2><span class="ops-panel__hint">покупки за период</span></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Товар</th><th class="cc-num">Продаж</th><th class="cc-num">Выручка</th></tr></thead>
+                    <tbody>
+                        {% for row in data.store %}
+                            <tr><td>{{ row.title }} <span class="cc-sub">{{ row.kind }}</span></td><td class="cc-num">{{ row.count }}</td><td class="cc-num">{% money row.total %}</td></tr>
+                        {% empty %}
+                            <tr><td colspan="3" class="text-muted">Платных покупок за период нет.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </div>
+
+    <div class="ref-rewards">
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Рефералы</h2><a href="{% url 'control_center:referrals' %}" class="ops-panel__link">Все рефералы →</a></div>
+            <dl class="biz-metrics">
+                <div><dt>Новых приглашений</dt><dd>{{ data.marketing.referral.new }} <small>засчитано {{ data.marketing.referral.qualified }}</small></dd></div>
+                <div><dt>Выплачено бонусов</dt><dd>{% money data.marketing.referral.bonus %}</dd></div>
+                <div><dt>Пополнили приглашённые</dt><dd>{% money data.marketing.referral.topups %}</dd></div>
+                <div><dt>Окупаемость</dt><dd>{% if data.marketing.referral.roi is not None %}{{ data.marketing.referral.roi }} ₽ пополнений на 1 ₽ бонуса{% else %}—{% endif %}</dd></div>
+            </dl>
+        </article>
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Промокоды</h2><a href="{% url 'control_center:promo' %}" class="ops-panel__link">Все промокоды →</a></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Код</th><th class="cc-num">Активаций</th><th class="cc-num">Выдано</th><th class="cc-num">Пополнили после</th></tr></thead>
+                    <tbody>
+                        {% for row in data.marketing.promo_codes %}
+                            <tr><td><a href="{% url 'control_center:promo_edit' row.promo_id %}" class="cc-mono">{{ row.promo__code }}</a>{% if row.promo__title %}<span class="cc-sub">{{ row.promo__title }}</span>{% endif %}</td><td class="cc-num">{{ row.count }}</td><td class="cc-num">{% money row.benefit %}</td><td class="cc-num">{% money row.topups %}</td></tr>
+                        {% empty %}
+                            <tr><td colspan="4" class="text-muted">Активаций за период нет.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="ops-empty">Бонусы промокодов на баланс за период: {% money data.marketing.promo_bonus %}.</p>
+        </article>
+    </div>
+</section>

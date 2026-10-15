@@ -727,15 +727,6 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 20,
             },
             {
-                "key": "system_versioning",
-                "label_ru": "Версии и темы",
-                "label_en": "Versions & Themes",
-                "url_name": "system_config:versioning",
-                "group": cls.Group.ADMIN,
-                "visibility_condition": cls.Visibility.ADMIN_PLUS,
-                "sort_order": 25,
-            },
-            {
                 "key": "celery_tasks",
                 "label_ru": "Автообновление цен",
                 "label_en": "Price auto-update",

@@ -1354,3 +1354,117 @@ def ip_ban_lift(request, ban_id: int):
     lift_ip_ban(actor=request.user, ban=ban, request=request)
     messages.success(request, f"Бан IP {ban.network} снят.")
     return redirect(_safe_next(request, reverse("control_center:multi_accounts")))
+
+
+# --------------------------------------------------------------------------- business
+
+BUSINESS_JOURNAL_PAGE_SIZE = 50
+
+
+def _chief_access(request):
+    access = get_user_role(request.user)
+    return access if access.is_chief_plus else None
+
+
+def _business_period(request):
+    from modules.v2.business.stats import resolve_period
+
+    key = (request.GET.get("period") or "").strip()
+    date_from = _parse_date(request.GET.get("from", "")) if key == "custom" else None
+    date_to = _parse_date(request.GET.get("to", "")) if key == "custom" else None
+    return resolve_period(key, date_from, date_to)
+
+
+def _attach_users(rows: list[dict]) -> list[dict]:
+    users = User.objects.select_related("profile_v2").in_bulk([row["user_id"] for row in rows])
+    return [{**row, "user": users.get(row["user_id"])} for row in rows]
+
+
+@login_required
+def business(request):
+    from modules.v2.business.models import RevenueCategory
+    from modules.v2.business.stats import CATEGORY_ORDER, PERIOD_PRESETS, build_dashboard
+
+    role_access = _chief_access(request)
+    if role_access is None:
+        return HttpResponseForbidden("Бизнес-панель доступна только руководителю и его заместителю.")
+    period = _business_period(request)
+    data = build_dashboard(period)
+    labels = dict(RevenueCategory.choices)
+    money, changes = data["money"], data["changes"]
+    categories = [
+        {"code": code, "label": labels[code], "total": money["categories"][code], "change": changes.get("categories", {}).get(code)}
+        for code in CATEGORY_ORDER
+    ]
+    context = {
+        "role_access": role_access,
+        "period": period,
+        "period_presets": PERIOD_PRESETS,
+        "period_query": _querystring(request),
+        "data": data,
+        "money": money,
+        "changes": changes,
+        "categories": categories,
+        "top_topups": _attach_users(data["top_users"]["topups"]),
+        "top_revenue": _attach_users(data["top_users"]["revenue"]),
+    }
+    return _render(request, partial="control_center/partials/business_content.html", context=context, title="Бизнес · Control Center", tab="business")
+
+
+def _business_journal_filters(request):
+    from modules.v2.business.stats import revenue_journal
+
+    period = _business_period(request)
+    category = (request.GET.get("category") or "").strip()
+    source = (request.GET.get("source") or "").strip()
+    return period, category, source, revenue_journal(period, category=category, source=source)
+
+
+@login_required
+def business_revenue(request):
+    from modules.v2.business.models import RevenueCategory, RevenueSource
+    from modules.v2.business.stats import PERIOD_PRESETS
+
+    role_access = _chief_access(request)
+    if role_access is None:
+        return HttpResponseForbidden("Бизнес-панель доступна только руководителю и его заместителю.")
+    period, category, source, qs = _business_journal_filters(request)
+    totals = qs.aggregate(total=Sum("amount"), count=Count("id"))
+    page_obj = Paginator(qs, BUSINESS_JOURNAL_PAGE_SIZE).get_page(request.GET.get("page") or 1)
+    context = {
+        "role_access": role_access,
+        "period": period,
+        "period_presets": PERIOD_PRESETS,
+        "filters": {"category": category, "source": source},
+        "category_options": RevenueCategory.choices,
+        "source_options": RevenueSource.choices,
+        "totals": {"total": totals["total"] or Decimal("0"), "count": totals["count"] or 0},
+        "page_obj": page_obj,
+        "pagination_query": _querystring(request),
+        "export_query": _querystring(request),
+    }
+    return _render(request, partial="control_center/partials/business_revenue_content.html", context=context, title="Журнал доходов · Control Center", tab="business")
+
+
+@login_required
+def business_revenue_export(request):
+    if _chief_access(request) is None:
+        return HttpResponseForbidden("Бизнес-панель доступна только руководителю и его заместителю.")
+    _period, _category, _source, qs = _business_journal_filters(request)
+    response, writer = _csv_response(f"caseup-revenue-{timezone.localdate():%Y%m%d}.csv")
+    writer.writerow(["id", "occurred_at", "category", "source", "amount", "user_id", "username", "ref", "note"])
+    for entry in qs[:CSV_EXPORT_LIMIT]:
+        writer.writerow(
+            [
+                entry.id,
+                timezone.localtime(entry.occurred_at).strftime("%Y-%m-%d %H:%M:%S"),
+                entry.get_category_display(),
+                entry.get_source_display(),
+                entry.amount,
+                entry.user_id or "",
+                entry.user.username if entry.user else "",
+                entry.ref,
+                entry.note,
+            ]
+        )
+    return response

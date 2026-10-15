@@ -1,0 +1,14 @@
+{# expects: period, period_presets; target url name in biz_url #}
+<form method="get" class="cc-toolbar biz-period">
+    <div class="biz-period__presets" role="group" aria-label="Период">
+        {% for code, label in period_presets %}
+            <a href="?period={{ code }}{% if filters.category %}&amp;category={{ filters.category }}{% endif %}{% if filters.source %}&amp;source={{ filters.source }}{% endif %}" class="btn btn-sm {% if period.key == code %}btn-primary{% else %}btn-secondary{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </div>
+    <input type="hidden" name="period" value="custom">
+    {% if filters.category %}<input type="hidden" name="category" value="{{ filters.category }}">{% endif %}
+    {% if filters.source %}<input type="hidden" name="source" value="{{ filters.source }}">{% endif %}
+    <label class="cc-field"><span>С</span><input type="date" name="from" value="{{ period.date_from|date:'Y-m-d' }}" class="form-control"></label>
+    <label class="cc-field"><span>По</span><input type="date" name="to" value="{{ period.date_to|date:'Y-m-d' }}" class="form-control"></label>
+    <div class="cc-toolbar__actions"><button type="submit" class="btn btn-primary btn-sm">Показать</button></div>
+</form>

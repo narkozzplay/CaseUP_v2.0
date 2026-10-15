@@ -13,6 +13,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 
 from modules.v2.accounts.steam_sync import (
+    get_steam_social_auth,
     sync_profile_from_social_auth,
     sync_profile_from_steam_api,
 )
@@ -180,6 +181,15 @@ def _apply_profile_role(*, target_user, profile: UserProfile, role: str) -> bool
     return changed
 
 
+def _steam_connect_state(user) -> dict | None:
+    """For the owner without Steam: whether the connect form must also ask for the legal consent."""
+    from modules.v2.accounts.consent import user_has_current_consent
+
+    if get_steam_social_auth(user) is not None:
+        return None
+    return {"needs_consent": not user_has_current_consent(user)}
+
+
 def _build_profile_context(*, request, target_user):
     profile, _ = UserProfile.objects.get_or_create(user=target_user)
 
@@ -270,6 +280,7 @@ def _build_profile_context(*, request, target_user):
         "role_access": target_role_access,
         "viewer_role_access": viewer_role_access,
         "is_owner_profile": is_owner,
+        "steam_connect": _steam_connect_state(request.user) if is_owner and not profile.steam_id else None,
         "can_view_private_profile": can_view_private_profile,
         "friendship_context": friendship_ctx,
         "effective_bg_static": effective_bg_static,

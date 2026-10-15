@@ -99,10 +99,6 @@
                             <strong>{% if LANGUAGE_CODE == "ru" %}System settings{% else %}System settings{% endif %}</strong>
                             <span>{% if LANGUAGE_CODE == "ru" %}Системная конфигурация и module flags{% else %}System configuration and module flags{% endif %}</span>
                         </a>
-                        <a href="{% url 'system_config:versioning' %}" class="quick-action-card">
-                            <strong>{% if LANGUAGE_CODE == "ru" %}Versions & Themes{% else %}Versions & Themes{% endif %}</strong>
-                            <span>{% if LANGUAGE_CODE == "ru" %}Управление темами и совместимостью релизов{% else %}Theme and release compatibility control{% endif %}</span>
-                        </a>
                     {% endif %}
                 </div>
             </div>

@@ -1,6 +1,7 @@
 <nav class="cc-tabs" aria-label="Control Center">
     <a href="{% url 'frontend:admin_panel' %}" class="cc-tab{% if cc_tab == 'overview' %} is-active{% endif %}">{% include "components/icon.html" with name="dashboard_preview" %}<span>Обзор</span></a>
     <a href="{% url 'control_center:users' %}" class="cc-tab{% if cc_tab == 'users' %} is-active{% endif %}">{% include "components/icon.html" with name="users_catalog" %}<span>Пользователи</span></a>
+    {% if role_access.is_chief_plus %}<a href="{% url 'control_center:business' %}" class="cc-tab{% if cc_tab == 'business' %} is-active{% endif %}">{% include "components/icon.html" with name="cc_business" %}<span>Бизнес</span></a>{% endif %}
     <a href="{% url 'control_center:ledger' %}" class="cc-tab{% if cc_tab == 'ledger' %} is-active{% endif %}">{% include "components/icon.html" with name="cc_ledger" %}<span>Финансы</span></a>
     <a href="{% url 'control_center:payments' %}" class="cc-tab{% if cc_tab == 'payments' %} is-active{% endif %}">{% include "components/icon.html" with name="balance_topup" %}<span>Платежи</span></a>
     <a href="{% url 'control_center:multi_accounts' %}" class="cc-tab{% if cc_tab == 'multi_accounts' %} is-active{% endif %}">{% include "components/icon.html" with name="shield" %}<span>Мульти-аккаунты</span></a>

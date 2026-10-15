@@ -232,11 +232,6 @@
                         <span class="ops-action__text"><strong>Экспорт настроек</strong><span>JSON без секретов, для бэкапа</span></span>
                         {% include "components/icon.html" with name="arrow" %}
                     </a>
-                    <a href="{% url 'system_config:versioning' %}" class="ops-action">
-                        <span class="ops-action__icon">{% include "components/icon.html" with name="system_versioning" %}</span>
-                        <span class="ops-action__text"><strong>Версии и темы</strong><span>Релизы модулей и оформление</span></span>
-                        {% include "components/icon.html" with name="arrow" %}
-                    </a>
                     <a href="{% url 'control_center:health' %}" class="ops-action">
                         <span class="ops-action__icon">{% include "components/icon.html" with name="cc_health" %}</span>
                         <span class="ops-action__text"><strong>Состояние системы</strong><span>БД, кэш, Celery, диск</span></span>

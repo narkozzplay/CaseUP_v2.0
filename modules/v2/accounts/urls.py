@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import RegisterDisabledView, UserLoginView, UserLogoutView, security_view, two_factor_verify_view
+from .views import RegisterDisabledView, UserLoginView, UserLogoutView, connect_steam_view, security_view, two_factor_verify_view
 
 app_name = "accounts"
 
@@ -10,4 +10,5 @@ urlpatterns = [
     path("register/", RegisterDisabledView.as_view(), name="register"),
     path("security/", security_view, name="security"),
     path("2fa/", two_factor_verify_view, name="two_factor_verify"),
+    path("steam/connect/", connect_steam_view, name="connect_steam"),
 ]

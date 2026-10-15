@@ -2716,3 +2716,46 @@
     .ma-ban { grid-template-columns: minmax(0, 1fr) auto; padding: 10px 12px; }
     .ma-ban__reason { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* business */
+
+.biz-period { align-items: flex-end; }
+.biz-period__presets { display: flex; flex-wrap: wrap; gap: 6px; margin-right: auto; }
+.biz-change { margin-left: 4px; font-family: var(--font-mono); font-size: 0.72rem; white-space: nowrap; }
+.biz-kpi--accent { border-color: rgba(245, 166, 35, 0.55); background: linear-gradient(135deg, rgba(245, 166, 35, 0.12), transparent 70%), var(--panel); }
+.biz-kpi--accent .ops-kpi__value { color: var(--accent); }
+
+.biz-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--text-muted); font-size: 0.72rem; }
+.biz-legend__item { display: inline-flex; align-items: center; gap: 5px; }
+.biz-dot { display: inline-block; width: 9px; height: 9px; vertical-align: middle; background: var(--text-muted); }
+.biz-dot--commission { background: var(--accent); }
+.biz-dot--subscription { background: #4fb3ff; }
+.biz-dot--store { background: #b07cff; }
+.biz-dot--cases { background: #3ddc84; }
+
+.biz-stack { display: flex; flex: 1 1 auto; flex-direction: column-reverse; width: 100%; min-height: 0; }
+.biz-stack__part { display: block; width: 100%; min-height: 1px; transition: filter 0.15s ease; }
+.cc-chart__col:hover .biz-stack__part { filter: brightness(1.25); }
+
+.biz-total td { border-top: 1px solid var(--border); }
+
+.biz-funnel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 16px 18px 4px; }
+.biz-funnel__step { display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.02); }
+.biz-funnel__step span { color: var(--text-muted); font-size: 0.75rem; }
+.biz-funnel__step b { font-family: var(--font-mono); font-size: 1.3rem; }
+.biz-funnel__step small { color: var(--accent); font-family: var(--font-mono); }
+
+.biz-metrics { display: grid; gap: 0; margin: 0; padding: 8px 18px 12px; }
+.biz-metrics > div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.biz-metrics > div:last-child { border-bottom: 0; }
+.biz-metrics dt { color: var(--text-muted); font-size: 0.85rem; }
+.biz-metrics dd { margin: 0; font-family: var(--font-mono); text-align: right; }
+.biz-metrics small { display: block; color: var(--text-muted); font-size: 0.7rem; }
+
+@media (max-width: 720px) {
+    .biz-funnel { grid-template-columns: 1fr; }
+    .biz-period__presets { margin-right: 0; }
+}
+.biz .cc-chart__label { position: relative; z-index: 1; min-height: 12px; overflow: visible; white-space: nowrap; }
+.biz .cc-chart { gap: 2px; }
+.biz .cc-num .cc-sub { display: block; }

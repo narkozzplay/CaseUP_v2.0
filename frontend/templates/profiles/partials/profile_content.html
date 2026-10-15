@@ -20,6 +20,22 @@
         <div class="profile-hero__overlay"></div>
         {% if profile_effects.hero %}<div class="pfx-hero {{ profile_effects.hero }}" aria-hidden="true"></div>{% endif %}
 
+        {# ── Nav buttons: CS2 / Settings, pinned to the banner's top-right corner ── #}
+        <nav class="profile-hero__corner" aria-label="{% if LANGUAGE_CODE == "ru" %}Разделы профиля{% else %}Profile sections{% endif %}">
+            <a href="{% url 'cs2_stats:user' profile_user.id %}" class="profile-nav-btn" data-dashboard-nav="true">
+                {% include "components/icon.html" with name="cs2_stats" %}<span>CS2</span>
+            </a>
+            {% if is_owner_profile %}
+                <a href="{% url 'profiles:profile_settings' %}" class="profile-nav-btn" data-dashboard-nav="true">
+                    {% include "components/icon.html" with name="system_settings" %}<span>{% if LANGUAGE_CODE == "ru" %}Настройки{% else %}Settings{% endif %}</span>
+                </a>
+            {% elif viewer_role_access.is_admin_plus %}
+                <a href="{% url 'profiles:profile_user_settings' profile_user.id %}" class="profile-nav-btn profile-nav-btn--admin" data-dashboard-nav="true">
+                    {% include "components/icon.html" with name="system_settings" %}<span>{% if LANGUAGE_CODE == "ru" %}Настройки (админ){% else %}Admin settings{% endif %}</span>
+                </a>
+            {% endif %}
+        </nav>
+
         <div class="card-body profile-hero__body profile-hero__body--enhanced">
             <div class="profile-hero__main">
                 <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}</span>
@@ -198,39 +214,6 @@
                     </div>
                 {% endif %}
 
-                {# ── Nav buttons: CS2 / Settings ── #}
-                <div class="profile-nav-actions">
-                    <a href="{% url 'cs2_stats:user' profile_user.id %}"
-                       class="profile-nav-btn"
-                       data-dashboard-nav="true">
-                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <rect x="2" y="6" width="16" height="11" rx="3"/>
-                            <path d="M7 10v3M5.5 11.5h3M13 10.5h.01M15 12h.01"/>
-                        </svg>
-                        CS2
-                    </a>
-                    {% if is_owner_profile %}
-                        <a href="{% url 'profiles:profile_settings' %}"
-                           class="profile-nav-btn"
-                           data-dashboard-nav="true">
-                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <circle cx="10" cy="10" r="2.5"/>
-                                <path d="M10 2v1.5M10 16.5V18M2 10h1.5M16.5 10H18M4.2 4.2l1 1M14.8 14.8l1 1M4.2 15.8l1-1M14.8 5.2l1-1"/>
-                            </svg>
-                            {% if LANGUAGE_CODE == "ru" %}Настройки{% else %}Settings{% endif %}
-                        </a>
-                    {% elif viewer_role_access.is_admin_plus %}
-                        <a href="{% url 'profiles:profile_user_settings' profile_user.id %}"
-                           class="profile-nav-btn profile-nav-btn--admin"
-                           data-dashboard-nav="true">
-                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <circle cx="10" cy="10" r="2.5"/>
-                                <path d="M10 2v1.5M10 16.5V18M2 10h1.5M16.5 10H18M4.2 4.2l1 1M14.8 14.8l1 1M4.2 15.8l1-1M14.8 5.2l1-1"/>
-                            </svg>
-                            Admin settings
-                        </a>
-                    {% endif %}
-                </div>
             </div>
         </div>
     </div>
@@ -264,7 +247,7 @@
             <div class="card-body">
                 <div class="section-head-inline">
                     <h2 class="section-title">Steam</h2>
-                    {% if is_owner_profile %}<form method="post" action="{% url 'profiles:sync_steam' %}" class="inline-form">
+                    {% if is_owner_profile and not steam_connect %}<form method="post" action="{% url 'profiles:sync_steam' %}" class="inline-form">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-secondary btn-sm">
                             {% if LANGUAGE_CODE == "ru" %}Обновить Steam{% else %}Sync Steam{% endif %}
@@ -272,6 +255,18 @@
                     </form>{% endif %}
                 </div>
 
+                {% if steam_connect %}
+                <form method="post" action="{% url 'accounts:connect_steam' %}" class="steam-connect">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'profiles:profile' %}">
+                    <p class="steam-connect__text">{% if LANGUAGE_CODE == "ru" %}Steam не подключён. Подключите его, чтобы видеть уровень и инвентарь, торговать и входить на сайт через Steam.{% else %}Steam is not connected. Connect it to see your level and inventory, trade and sign in with Steam.{% endif %}</p>
+                    {% if steam_connect.needs_consent %}
+                        <label class="steam-connect__check"><input type="checkbox" name="accept_agreement" value="on" required><span>{% if LANGUAGE_CODE == "ru" %}Принимаю <a href="{% url 'frontend:agreement' %}" target="_blank" rel="noopener">Пользовательское соглашение</a>, мне есть 18 лет{% else %}I accept the <a href="{% url 'frontend:agreement' %}" target="_blank" rel="noopener">User agreement</a> and I am 18+{% endif %}</span></label>
+                        <label class="steam-connect__check"><input type="checkbox" name="accept_privacy" value="on" required><span>{% if LANGUAGE_CODE == "ru" %}Даю <a href="{% url 'frontend:pd_consent' %}" target="_blank" rel="noopener">согласие на обработку персональных данных</a>{% else %}I give my <a href="{% url 'frontend:pd_consent' %}" target="_blank" rel="noopener">consent to personal data processing</a>{% endif %}</span></label>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary btn-sm steam-connect__btn">{% include "components/icon.html" with name="steam" %}{% if LANGUAGE_CODE == "ru" %}Подключить Steam{% else %}Connect Steam{% endif %}</button>
+                </form>
+                {% else %}
                 <dl class="details-list details-list--compact">
                     <div>
                         <dt>{% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}</dt>
@@ -298,6 +293,7 @@
                         </dd>
                     </div>
                 </dl>
+                {% endif %}
             </div>
         </article>
 
