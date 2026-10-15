@@ -158,7 +158,7 @@ class CommandTests(BackupTestCase):
     def test_test_flag_requires_configuration(self):
         from django.core.management import CommandError, call_command
 
-        with self.assertRaisesMessage(CommandError, "SFTP is not configured"):
+        with self.assertRaisesMessage(CommandError, "Backup host is not configured"):
             call_command("backup_offsite", "--test")
 
     def test_now_runs_the_backup(self):
@@ -208,3 +208,81 @@ class ThrottledMailTests(SimpleTestCase):
     @override_settings(EMAIL_HOST="", ADMINS=[])
     def test_health_reports_missing_mail_settings(self):
         self.assertEqual(health.check_email().status, health.WARN)
+
+
+class FakeFTP:
+    """Stand-in for ftplib.FTP_TLS on top of FakeSFTP storage."""
+
+    def __init__(self, store: FakeSFTP):
+        self.store = store
+
+    def pwd(self):
+        return "/"
+
+    def _perm(self, func, *args):
+        import ftplib
+
+        try:
+            return func(*args)
+        except OSError as exc:
+            raise ftplib.error_perm(f"550 {exc}") from exc
+
+    def size(self, path):
+        if path not in self.store.files:
+            import ftplib
+
+            raise ftplib.error_perm("550 not a file")
+        return len(self.store.files[path])
+
+    def cwd(self, path):
+        if path not in ("/",) and path not in self.store.dirs:
+            import ftplib
+
+            raise ftplib.error_perm("550 no such directory")
+
+    def mkd(self, path):
+        self.store.mkdir(path)
+
+    def storbinary(self, cmd, handle):
+        self.store.files[cmd.split(" ", 1)[1]] = handle.read()
+
+    def rename(self, old, new):
+        self._perm(self.store.rename, old, new)
+
+    def delete(self, path):
+        self._perm(self.store.remove, path)
+
+    def nlst(self, path):
+        return [f"{path}/{name}" for name in self._perm(self.store.listdir, path)]
+
+    def rmd(self, path):
+        self.store.rmdir(path)
+
+    def quit(self):
+        pass
+
+
+@override_settings(BACKUP_PROTOCOL="ftps", BACKUP_SFTP_HOST="backup.example", BACKUP_SFTP_USER="u123_backup", BACKUP_SFTP_PATH="caseup-backups")
+class FtpsTests(BackupTestCase):
+    def test_upload_and_retention_over_ftps(self):
+        old_name = (datetime.now(timezone.utc) - timedelta(days=45)).strftime("%Y%m%d_%H%M%S")
+        store = FakeSFTP({f"caseup-backups/{old_name}/database.sqlc": b"old"})
+        client = backups._FtpsClient(FakeFTP(store))
+        with fake_dumps(self), mock.patch.object(backups, "_connect_ftps", return_value=(client, client, "SHA256:c")):
+            report = backups.run_daily_backup()
+        self.assertTrue(report.ok, report.error)
+        self.assertEqual(store.files[f"caseup-backups/{report.name}/media.tar.gz"], b"media-tar")
+        self.assertEqual(report.remote_removed, [old_name])
+        self.assertEqual(backups.protocol(), "ftps")
+
+    def test_default_port_follows_the_protocol(self):
+        import importlib
+        import os
+
+        from config.settings import base
+
+        with mock.patch.dict(os.environ, {"BACKUP_PROTOCOL": "ftps", "BACKUP_SFTP_PORT": ""}):
+            self.assertEqual(importlib.reload(base).BACKUP_SFTP_PORT, 21)
+        with mock.patch.dict(os.environ, {"BACKUP_PROTOCOL": "", "BACKUP_SFTP_PORT": ""}):
+            self.assertEqual(importlib.reload(base).BACKUP_SFTP_PORT, 22)
+        importlib.reload(base)
