@@ -1126,3 +1126,35 @@ textarea.form-control,
     opacity: 0.55;
     filter: saturate(0.6);
 }
+
+/* Two-factor login step */
+.tfa-verify {
+    margin-inline: auto;
+}
+
+.tfa-form {
+    display: grid;
+    gap: 10px;
+    margin-top: var(--space-4);
+}
+
+.tfa-form--secondary {
+    margin-top: 8px;
+}
+
+.tfa-form__label {
+    color: var(--text-soft);
+    font-size: 0.86rem;
+}
+
+.tfa-form__code {
+    font-size: 1.4rem;
+    letter-spacing: 0.2em;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.tfa-hint {
+    margin: var(--space-4) 0 0;
+    font-size: 0.82rem;
+}

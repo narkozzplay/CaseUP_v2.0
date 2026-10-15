@@ -1,0 +1,109 @@
+{# Profile → Безопасность: authenticator-app 2FA (off → setup with QR → on). #}
+<article class="ops-panel tfa" id="two-factor">
+    <div class="ops-panel__head">
+        <h2 class="ops-panel__title">Двухфакторная защита</h2>
+        {% if two_factor_enabled %}
+            <span class="cc-chip cc-chip--ok">Включена</span>
+        {% elif two_factor %}
+            <span class="cc-chip cc-chip--info">Подключение</span>
+        {% else %}
+            <span class="cc-chip cc-chip--warn">Выключена</span>
+        {% endif %}
+    </div>
+    <div class="tfa__body">
+
+    {% if two_factor_required_notice %}
+        <div class="tfa-alert" role="alert">
+            <strong>Для вашей роли двухфакторная защита обязательна.</strong>
+            Пока она не включена, остальные разделы сайта и Control Center недоступны. Это займёт пару минут.
+        </div>
+    {% endif %}
+
+    {% if new_backup_codes %}
+        <div class="tfa-codes">
+            <p class="tfa-codes__title"><strong>Резервные коды</strong> — сохраните их сейчас, больше они показаны не будут.</p>
+            <p class="tfa-text">Каждый код срабатывает один раз и заменяет код из приложения, если телефон потерян. Запишите их или сохраните в менеджер паролей — не храните в том же телефоне.</p>
+            <ol class="tfa-codes__list">
+                {% for code in new_backup_codes %}<li><code>{{ code }}</code></li>{% endfor %}
+            </ol>
+        </div>
+    {% endif %}
+
+    {% if two_factor_enabled %}
+        <p class="tfa-text">После каждого входа сайт спрашивает код из приложения-аутентификатора. Даже если кто-то получит доступ к вашему Steam, без телефона он в аккаунт не войдёт.</p>
+        <dl class="tfa-facts">
+            <div><dt>Включена</dt><dd>{{ two_factor.confirmed_at|date:"d.m.Y H:i" }}</dd></div>
+            <div><dt>Последний код</dt><dd>{{ two_factor.last_used_at|date:"d.m.Y H:i"|default:"—" }}</dd></div>
+            <div><dt>Резервных кодов</dt><dd>{{ two_factor.backup_codes_left }} из 10</dd></div>
+        </dl>
+        {% if two_factor.backup_codes_left <= 3 %}<p class="tfa-text tfa-text--warn">Резервных кодов осталось мало — создайте новые.</p>{% endif %}
+
+        <div class="tfa-actions">
+            <form method="post" class="tfa-inline" data-dashboard-shell-form>
+                {% csrf_token %}
+                <input type="hidden" name="action" value="2fa_backup">
+                <label class="tfa-inline__label" for="tfa-backup-code">Новые резервные коды</label>
+                <div class="tfa-inline__row">
+                    <input id="tfa-backup-code" class="form-control tfa-inline__code" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Код из приложения" required>
+                    <button type="submit" class="btn btn-secondary btn-sm">Создать</button>
+                </div>
+            </form>
+            {% if not two_factor_required %}
+                <form method="post" class="tfa-inline" data-dashboard-shell-form>
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="2fa_disable">
+                    <label class="tfa-inline__label" for="tfa-disable-code">Отключить защиту</label>
+                    <div class="tfa-inline__row">
+                        <input id="tfa-disable-code" class="form-control tfa-inline__code" type="text" name="code" autocomplete="one-time-code" maxlength="12" placeholder="Код или резервный код" required>
+                        <button type="submit" class="btn btn-ghost btn-sm">Отключить</button>
+                    </div>
+                </form>
+            {% else %}
+                <p class="tfa-text tfa-inline">Для вашей роли защиту отключить нельзя. Потеряли телефон и коды — попросите старшего администратора сбросить 2FA.</p>
+            {% endif %}
+        </div>
+
+    {% elif two_factor %}
+        <ol class="tfa-steps">
+            <li>
+                <strong>Установите приложение-аутентификатор</strong>
+                <span class="tfa-text">Google Authenticator, Яндекс Ключ, Microsoft Authenticator, Aegis или любое другое с поддержкой TOTP.</span>
+            </li>
+            <li>
+                <strong>Отсканируйте QR-код</strong>
+                <div class="tfa-qr">
+                    <img src="{{ two_factor_qr }}" width="200" height="200" alt="QR-код для приложения-аутентификатора">
+                    <div class="tfa-qr__manual">
+                        <span class="tfa-text">Не сканируется? Добавьте аккаунт вручную, тип «по времени»:</span>
+                        <code class="tfa-secret">{{ two_factor_secret }}</code>
+                    </div>
+                </div>
+            </li>
+            <li>
+                <strong>Введите код из приложения</strong>
+                <form method="post" class="tfa-inline" data-dashboard-shell-form>
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="2fa_confirm">
+                    <div class="tfa-inline__row">
+                        <input class="form-control tfa-inline__code" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" required aria-label="Код из приложения">
+                        <button type="submit" class="btn btn-primary btn-sm">Включить</button>
+                    </div>
+                </form>
+            </li>
+        </ol>
+        <form method="post" class="cc-inline-form" data-dashboard-shell-form>
+            {% csrf_token %}
+            <input type="hidden" name="action" value="2fa_cancel">
+            <button type="submit" class="btn btn-ghost btn-sm">Отменить подключение</button>
+        </form>
+
+    {% else %}
+        <p class="tfa-text">Вход через Steam защищён паролем Steam. Двухфакторная защита добавляет второй шаг: после входа сайт попросит 6-значный код из приложения на телефоне. Даже если кто-то получит доступ к вашему Steam, без телефона он в аккаунт не войдёт.</p>
+        <form method="post" class="cc-inline-form" data-dashboard-shell-form>
+            {% csrf_token %}
+            <input type="hidden" name="action" value="2fa_start">
+            <button type="submit" class="btn btn-primary btn-sm">{% include "components/icon.html" with name="shield" %} Включить двухфакторную защиту</button>
+        </form>
+    {% endif %}
+    </div>
+</article>

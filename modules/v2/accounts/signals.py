@@ -5,6 +5,7 @@ import logging
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 
 from .sessions import end_on_logout, register_login
+from .two_factor import mark_pending_if_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,8 @@ def _on_login(sender, request, user, **kwargs):
         register_login(request, user)
     except Exception:  # noqa: BLE001 - a login must never fail because of the device list
         logger.exception("Could not record the session for user %s", getattr(user, "pk", None))
+    # Not wrapped: if the 2FA state cannot be read, the login must fail rather than skip the code step.
+    mark_pending_if_enabled(request, user)
 
 
 def _on_logout(sender, request, user, **kwargs):

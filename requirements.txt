@@ -9,3 +9,5 @@ Pillow>=12.3,<13.0
 requests>=2.32,<3.0
 cryptography>=46.0
 maxminddb>=2.6,<3.0
+pyotp>=2.9,<3.0
+segno>=1.6,<2.0

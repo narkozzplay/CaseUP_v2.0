@@ -1,0 +1,33 @@
+{% extends "layouts/base_public.html" %}
+
+{% block title %}Код подтверждения | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="container auth-grid auth-grid--single tfa-verify">
+        <div class="auth-card card">
+            <div class="card-body auth-card__body">
+                <span class="eyebrow">Двухфакторная защита</span>
+                <h1 class="auth-title">Введите код</h1>
+                <p class="text-muted auth-description">Откройте приложение-аутентификатор (Google Authenticator, Яндекс Ключ и т. п.) и введите 6-значный код для {{ site_settings.site_name|default:"CaseUP" }}. Если телефона нет под рукой — введите один из резервных кодов.</p>
+
+                {% if error %}<div class="auth-consent__alert" role="alert">{{ error }}</div>{% endif %}
+
+                <form method="post" action="{% url 'accounts:two_factor_verify' %}" class="tfa-form" novalidate>
+                    {% csrf_token %}
+                    {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+                    <label class="tfa-form__label" for="tfa-code">Код из приложения или резервный код</label>
+                    <input id="tfa-code" class="form-control tfa-form__code" type="text" name="code" inputmode="text" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" maxlength="12" placeholder="123456" required autofocus{% if locked %} disabled{% endif %}>
+                    <button type="submit" class="btn btn-primary btn-block"{% if locked %} disabled{% endif %}>Подтвердить</button>
+                </form>
+
+                <form method="post" action="{% url 'accounts:logout' %}" class="tfa-form tfa-form--secondary">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-ghost btn-block">Выйти</button>
+                </form>
+                <p class="text-muted tfa-hint">Потеряли телефон и резервные коды? Напишите в поддержку — после проверки владельца двухфакторную защиту сбросят.</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

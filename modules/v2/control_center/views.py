@@ -19,6 +19,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from modules.v2.accounts.models import TwoFactorAuth
 from modules.v2.accounts.sessions import active_sessions
 from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserProfile, UserRole, VerificationRequest
 from modules.v2.profiles.presentation import get_profile_avatar_url, get_profile_display_name
@@ -41,6 +42,7 @@ from .services.users import (
     change_user_role,
     get_active_ban,
     lift_expired_bans,
+    reset_two_factor,
     terminate_sessions,
     unban_user,
 )
@@ -379,6 +381,7 @@ def user_detail(request, user_id: int):
         "audit_entries": AdminAuditLog.objects.filter(target_user=target).select_related("actor")[:15],
         "verification_requests": VerificationRequest.objects.filter(user=target).order_by("-created_at")[:5],
         "target_sessions": list(active_sessions(target)[:10]),
+        "target_two_factor": TwoFactorAuth.objects.filter(user=target, confirmed_at__isnull=False).first(),
     }
     return _render(
         request,
@@ -416,6 +419,9 @@ def user_action(request, user_id: int):
         elif action == "logout":
             removed = terminate_sessions(actor=request.user, target=target, request=request)
             messages.success(request, f"Завершено сессий: {removed}.")
+        elif action == "reset_2fa":
+            reset_two_factor(actor=request.user, target=target, request=request)
+            messages.success(request, f"Двухфакторная защита {target.username} сброшена. При следующем входе пользователь сможет подключить её заново.")
         elif action == "note":
             add_admin_note(actor=request.user, target=target, note=request.POST.get("note", ""), request=request)
             messages.success(request, "Заметка сохранена в журнал.")

@@ -102,6 +102,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "modules.v2.control_center.middleware.ActivityContextMiddleware",
     "modules.v2.accounts.middleware.UserSessionMiddleware",
+    "modules.v2.accounts.middleware.TwoFactorMiddleware",
     "modules.v2.system.middleware.MaintenanceModeMiddleware",
     "modules.v2.system.middleware.ModuleAccessMiddleware",
     "modules.v2.profiles.middleware.UserLastSeenMiddleware",
@@ -332,6 +333,8 @@ CELERY_BEAT_PAYMENTS_RECONCILE_SECONDS = int(os.getenv("CELERY_BEAT_PAYMENTS_REC
 USER_SESSION_RETENTION_DAYS = int(os.getenv("USER_SESSION_RETENTION_DAYS", "90"))
 # City by IP for sign-ins: DB-IP City Lite (.mmdb), downloaded by the accounts.update_geoip task.
 GEOIP_DATABASE_PATH = os.getenv("GEOIP_DATABASE_PATH", str(BASE_DIR / "var" / "geoip" / "dbip-city-lite.mmdb"))
+# Admin+ accounts cannot use the site until they turn on two-factor authentication.
+TWO_FACTOR_REQUIRED_FOR_ADMINS = os.getenv("TWO_FACTOR_REQUIRED_FOR_ADMINS", "1").strip().lower() not in {"0", "false", "no", "off"}
 
 # Control Center → Логи: how long journal entries are kept (pruned daily by Celery beat).
 ACTIVITY_LOG_RETENTION_DAYS = int(os.getenv("ACTIVITY_LOG_RETENTION_DAYS", "365"))

@@ -4,6 +4,8 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from common.encryption import EncryptedTextField
+
 
 class LegalConsent(models.Model):
     """Evidence that a user accepted the legal documents: which editions, when, from where.
@@ -87,3 +89,36 @@ class UserSession(models.Model):
     @property
     def location_label(self) -> str:
         return ", ".join(part for part in (self.city, self.country) if part)
+
+
+class TwoFactorAuth(models.Model):
+    """Authenticator-app (TOTP) second factor of one user.
+
+    A row with ``confirmed_at`` empty is a setup in progress (QR shown, first code not entered yet).
+    Backup codes are stored only as SHA-256 hashes: they are random and long enough that a slow hash
+    adds nothing, and every guess is rate-limited anyway.
+    """
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="two_factor")
+    secret = EncryptedTextField(plain_max_length=64)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    last_used_step = models.BigIntegerField(default=0)
+    backup_code_hashes = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Two-factor authentication"
+        verbose_name_plural = "Two-factor authentication"
+
+    def __str__(self) -> str:
+        state = "on" if self.confirmed_at else "setup"
+        return f"TwoFactorAuth(user={self.user_id}, {state})"
+
+    @property
+    def is_enabled(self) -> bool:
+        return self.confirmed_at is not None
+
+    @property
+    def backup_codes_left(self) -> int:
+        return len(self.backup_code_hashes or [])
