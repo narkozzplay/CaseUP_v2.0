@@ -37,6 +37,7 @@ from modules.v2.system.services import build_page_title
 
 from .forms import AddSteamItemForm, SteamItemNameRuForm, StockMovementCreateForm, UserPriceAlertRuleForm
 from .models import CS2ReferenceItem, SteamItem, UserPriceAlertEvent, UserPriceAlertRule
+from .services.bulk_import import read_status as read_bulk_import_status, write_status as write_bulk_import_status
 from .services import MarketSearchError, refresh_item_prices, search_market_items, upsert_from_market_input
 from .services.helpers import canonical_listing_url, rarity_ru_label_from_key
 from .services.reference import catalog_ids_for_reference, fill_catalog_from_reference
@@ -757,10 +758,30 @@ def catalog_reference(request):
             "has_reference_filters": bool(q or weapon or collection or rarity or category),
             "reference_total": base_qs.count(),
             "catalog_can_edit": _catalog_staff_access(request.user),
+            "bulk_import": read_bulk_import_status() if _catalog_staff_access(request.user) else None,
         },
         page_title=build_page_title("Справочник CS2"),
         active_menu_key="steam_catalog",
     )
+
+
+@login_required
+def catalog_reference_import_all(request):
+    """One button: refresh the reference (stickers included) and add every item to the catalog in the background."""
+    from .tasks import import_reference_to_catalog_task
+
+    if not _catalog_staff_access(request.user):
+        return HttpResponseForbidden("Steam Catalog доступен только staff/admin.")
+    if request.method != "POST":
+        return redirect("steam_catalog:reference")
+    status = read_bulk_import_status() or {}
+    if status.get("state") == "running":
+        messages.info(request, "Выгрузка уже идёт — обновите страницу через пару минут.")
+        return redirect("steam_catalog:reference")
+    write_bulk_import_status({"state": "queued"})
+    import_reference_to_catalog_task.delay()
+    messages.success(request, "Выгрузка справочника запущена. Предметы появятся в каталоге через несколько минут, цены подтянутся очередью автообновления.")
+    return redirect("steam_catalog:reference")
 
 
 @login_required

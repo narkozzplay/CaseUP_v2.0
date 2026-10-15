@@ -98,7 +98,8 @@ def _should_skip_movement_event(*, rule: PriceDropAlertRule, item: SteamItem, di
     return False
 
 
-def detect_price_movement_alerts_for_category(item_type: str, *, trigger_source: str = "celery") -> int:
+def detect_price_movement_alerts_for_category(item_type: str, *, trigger_source: str = "celery", item_ids=None) -> int:
+    """``item_ids`` limits the check to items whose price just changed (the price queue passes them)."""
     now = timezone.now()
     created_count = 0
 
@@ -106,12 +107,10 @@ def detect_price_movement_alerts_for_category(item_type: str, *, trigger_source:
     if not rules:
         return 0
 
-    items = list(
-        SteamItem.objects
-        .filter(item_type=item_type, is_active=True, price_rub__isnull=False)
-        .only("id", "market_hash_name", "item_type", "price_rub", "name", "name_ru")
-        .order_by("id")
-    )
+    items_qs = SteamItem.objects.filter(item_type=item_type, is_active=True, price_rub__isnull=False)
+    if item_ids is not None:
+        items_qs = items_qs.filter(pk__in=list(item_ids))
+    items = list(items_qs.only("id", "market_hash_name", "item_type", "price_rub", "name", "name_ru").order_by("id"))
 
     for rule in rules:
         if rule.direction == PriceDropAlertRule.Direction.BOTH:
@@ -195,8 +194,8 @@ def detect_price_movement_alerts_for_category(item_type: str, *, trigger_source:
     return created_count
 
 
-def detect_price_drop_alerts_for_category(item_type: str, *, trigger_source: str = "celery") -> int:
-    return detect_price_movement_alerts_for_category(item_type, trigger_source=trigger_source)
+def detect_price_drop_alerts_for_category(item_type: str, *, trigger_source: str = "celery", item_ids=None) -> int:
+    return detect_price_movement_alerts_for_category(item_type, trigger_source=trigger_source, item_ids=item_ids)
 
 
 def _build_item_absolute_url(item: SteamItem) -> str:

@@ -392,6 +392,16 @@ MULTI_ACCOUNT_WINDOW_DAYS = int(os.getenv("MULTI_ACCOUNT_WINDOW_DAYS", "30"))
 MULTI_ACCOUNT_SHARED_IP_LIMIT = int(os.getenv("MULTI_ACCOUNT_SHARED_IP_LIMIT", "8"))
 USER_IP_RETENTION_DAYS = int(os.getenv("USER_IP_RETENTION_DAYS", "180"))
 
+# Steam price queue (Автообновление цен): the pace per IP, how often «hot» and other items are refreshed,
+# and optional relays on other hosting (deploy/hosting/steam_price.php) that add more IP addresses.
+STEAM_PRICE_REQUEST_INTERVAL = float(os.getenv("STEAM_PRICE_REQUEST_INTERVAL", "3"))
+STEAM_PRICE_HOT_MINUTES = int(os.getenv("STEAM_PRICE_HOT_MINUTES", "120"))
+STEAM_PRICE_COLD_HOURS = int(os.getenv("STEAM_PRICE_COLD_HOURS", "24"))
+STEAM_PRICE_BATCH_MAX = int(os.getenv("STEAM_PRICE_BATCH_MAX", "60"))
+STEAM_PRICE_BACKOFF_MINUTES = int(os.getenv("STEAM_PRICE_BACKOFF_MINUTES", "15"))
+STEAM_PRICE_RELAY_URLS = get_env_list("STEAM_PRICE_RELAY_URLS", "")
+STEAM_PRICE_RELAY_TOKEN = os.getenv("STEAM_PRICE_RELAY_TOKEN", "").strip()
+
 # Business panel: morning e-mail with yesterday's numbers to ADMIN_EMAILS (0 switches it off).
 BUSINESS_DAILY_REPORT = os.getenv("BUSINESS_DAILY_REPORT", "1").strip().lower() not in {"0", "false", "no", "off"}
 

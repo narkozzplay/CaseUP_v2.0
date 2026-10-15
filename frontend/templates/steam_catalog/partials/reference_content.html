@@ -6,6 +6,18 @@
             <h1>Справочник CS2</h1>
             <p class="text-muted">Все скины, кейсы и стикеры игры с редкостью, коллекцией и диапазоном float.{% if catalog_can_edit %} Нажми «Добавить», и предмет появится в каталоге со всеми вариантами износа.{% endif %}</p>
         </div>
+        {% if catalog_can_edit %}
+            <form method="post" action="{% url 'steam_catalog:reference_import_all' %}" class="reference-bulk" onsubmit="return confirm('Обновить справочник и добавить в каталог все скины, кейсы и стикеры? Это займёт несколько минут.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary"{% if bulk_import.state == "running" or bulk_import.state == "queued" %} disabled{% endif %}>Выгрузить весь справочник в каталог</button>
+                <span class="reference-bulk__status text-muted">
+                    {% if bulk_import.state == "queued" or bulk_import.state == "running" %}Идёт выгрузка… обновите страницу через пару минут.
+                    {% elif bulk_import.state == "done" %}Последняя выгрузка: добавлено {{ bulk_import.created }}, уже было {{ bulk_import.already_there }}.
+                    {% elif bulk_import.state == "failed" %}Выгрузка не удалась: {{ bulk_import.error }}
+                    {% else %}Предметы добавятся без запросов к Steam, цены подтянет автообновление.{% endif %}
+                </span>
+            </form>
+        {% endif %}
     </div>
 
     <div class="chip-tabs reference-kinds">
@@ -106,7 +118,7 @@
                     <p class="text-muted">Попробуй другое название или сбрось фильтры.</p>
                 {% else %}
                     <strong>Справочник пока пуст</strong>
-                    <p class="text-muted">Загрузи данные командой <code>python manage.py import_cs2_reference</code>.</p>
+                    <p class="text-muted">{% if catalog_can_edit %}Нажми «Выгрузить весь справочник в каталог» — справочник загрузится сам.{% else %}Справочник ещё не загружен.{% endif %}</p>
                 {% endif %}
             </div>
         {% endfor %}

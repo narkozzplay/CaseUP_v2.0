@@ -2,19 +2,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Iterable
 
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from modules.v2.steam_catalog.models import SteamItem
 from modules.v2.steam_catalog.services import (
     detect_price_drop_alerts_for_category,
     evaluate_user_price_alerts_for_item_type,
-    refresh_item_prices,
 )
+from modules.v2.steam_catalog.services.price_queue import batch_limit, refresh_batch
 
 from .models import PriceAutoUpdateRule, PriceAutoUpdateRunLog
 
@@ -72,26 +70,6 @@ def get_due_rules(*, now=None):
         .filter(Q(next_run_at__isnull=True) | Q(next_run_at__lte=now))
         .order_by("next_run_at", "category")
     )
-
-
-def _iter_rule_targets(rule: PriceAutoUpdateRule) -> Iterable[SteamItem]:
-    base_qs = (
-        SteamItem.objects
-        .filter(item_type=rule.category, is_active=True)
-        .order_by("family_name", "is_stattrak", "wear_order", "market_hash_name")
-    )
-
-    if rule.category != SteamItem.ItemType.SKIN:
-        yield from base_qs
-        return
-
-    seen_families: set[str] = set()
-    for item in base_qs:
-        family_key = item.family_name or item.market_hash_name
-        if family_key in seen_families:
-            continue
-        seen_families.add(family_key)
-        yield item
 
 
 def _create_run_log(
@@ -212,27 +190,19 @@ def run_price_auto_update_rule(rule_id: int, *, triggered_by: str = "beat") -> R
                 status=PriceAutoUpdateRule.Status.RUNNING,
             )
 
-        errors: list[str] = []
-
-        for target in _iter_rule_targets(rule):
-            try:
-                result = refresh_item_prices(
-                    target,
-                    include_family=(rule.category == SteamItem.ItemType.SKIN),
-                    source=f"celery:{rule.category}",
-                )
-            except Exception as exc:
-                errors.append(f"{target.market_hash_name}: {exc}")
-                continue
-
-            touched_items_count += result.touched_count
-            updated_items_count += result.updated_count
-            history_written_count += result.history_written
+        # A small batch of the stalest items (hot ones first) instead of the whole category:
+        # the catalog is far bigger than what Steam answers in one run.
+        batch = refresh_batch(category=rule.category, limit=batch_limit(rule.interval_minutes), source=f"celery:{rule.category}")
+        errors: list[str] = list(batch.errors)
+        touched_items_count = batch.checked
+        updated_items_count = batch.updated
+        history_written_count = batch.history_written
 
         try:
             detect_price_drop_alerts_for_category(
                 rule.category,
                 trigger_source=triggered_by,
+                item_ids=batch.changed_ids,
             )
             evaluate_user_price_alerts_for_item_type(
                 rule.category,
