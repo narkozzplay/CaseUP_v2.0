@@ -1,0 +1,69 @@
+<section class="section section--compact ops cc mkt">
+    <a href="{% url 'market:index' %}" class="back-link" data-dashboard-nav="true">← Рынок</a>
+
+    <div class="mkt-lot">
+        <article class="ops-panel mkt-lot__media"{% if listing.rarity_color %} style="--mkt-rarity: #{{ listing.rarity_color }};"{% endif %}>
+            {% if listing.icon %}<img src="{{ listing.icon }}" alt="{{ listing.market_hash_name }}">{% endif %}
+        </article>
+
+        <article class="ops-panel mkt-lot__info">
+            <div class="ref-body">
+                <span class="eyebrow">{{ listing.code }}</span>
+                <h1 class="mkt-lot__title">{{ listing.market_hash_name }}</h1>
+                <dl class="biz-metrics">
+                    {% if listing.exterior %}<div><dt>Износ</dt><dd>{{ listing.exterior }}</dd></div>{% endif %}
+                    {% if listing.float_value is not None %}<div><dt>Float</dt><dd>{{ listing.float_value|floatformat:"6u" }}</dd></div>{% endif %}
+                    <div><dt>Статус</dt><dd>{{ listing.get_status_display }}</dd></div>
+                    <div><dt>Цена в Steam</dt><dd>{% if listing.steam_price %}{{ listing.steam_price|floatformat:"2u" }} ₽{% else %}—{% endif %}</dd></div>
+                    <div><dt>Выставлен</dt><dd>{{ listing.created_at|date:"d.m.Y H:i" }}</dd></div>
+                </dl>
+                <div class="mkt-lot__buy">
+                    <strong class="mkt-lot__price">{{ listing.price|floatformat:"2u" }} ₽</strong>
+                    {% if is_owner %}
+                        {% if listing.status == "active" %}
+                            <form method="post" action="{% url 'market:lot_price' listing.pk %}" class="mkt-inline">
+                                {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+                                <input type="number" name="price" value="{{ listing.price|stringformat:'.2f' }}" min="0.01" step="0.01" class="form-control mkt-price-input" aria-label="Новая цена">
+                                <button type="submit" class="btn btn-secondary btn-sm">Изменить цену</button>
+                            </form>
+                            <form method="post" action="{% url 'market:lot_cancel' listing.pk %}" onsubmit="return confirm('Снять лот с витрины?');">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Снять с продажи</button></form>
+                        {% endif %}
+                    {% elif listing.status == "active" %}
+                        <button type="button" class="btn btn-primary" disabled title="Покупка откроется вместе со сделками">Купить</button>
+                        <span class="text-muted mkt-lot__hint">Покупка с гарантом откроется на следующем этапе запуска рынка.</span>
+                    {% endif %}
+                </div>
+            </div>
+        </article>
+
+        <article class="ops-panel mkt-lot__seller">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Продавец</h2></div>
+            <div class="ref-body">
+                {% include "control_center/partials/_user_cell.html" with u=listing.seller %}
+                <dl class="biz-metrics">
+                    <div><dt>На сайте с</dt><dd>{{ seller_stats.since|date:"d.m.Y" }}</dd></div>
+                    <div><dt>Лотов на витрине</dt><dd>{{ seller_stats.active }}</dd></div>
+                    <div><dt>Продано</dt><dd>{{ seller_stats.sold }}</dd></div>
+                </dl>
+            </div>
+        </article>
+    </div>
+
+    {% if history %}
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">История лота</h2><span class="ops-panel__hint">видна продавцу и администрации</span></div>
+            <ul class="ref-list">
+                {% for event in history %}
+                    <li class="promo-row"><span class="promo-row__code">{{ event.created_at|date:"d.m H:i" }}</span><span class="promo-row__benefit">{{ event.get_kind_display }}<span class="promo-row__until">{{ event.message }}</span></span></li>
+                {% endfor %}
+            </ul>
+        </article>
+    {% endif %}
+
+    {% if more_from_seller %}
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Ещё у продавца</h2></div>
+            <div class="mkt-grid mkt-grid--compact">{% for lot in more_from_seller %}{% include "market/partials/_card.html" %}{% endfor %}</div>
+        </article>
+    {% endif %}
+</section>

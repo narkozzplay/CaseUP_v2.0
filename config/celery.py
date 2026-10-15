@@ -63,6 +63,11 @@ app.conf.beat_schedule = {
         "task": "daily_bonus.remind_streaks",
         "schedule": crontab(hour=18, minute=5),
     },
+    # Takes market lots off the showcase when the item left the seller's Steam inventory.
+    "market-verify-listings": {
+        "task": "market.verify_listings",
+        "schedule": 30 * 60.0,
+    },
     # Fills the revenue journal for anything the live hooks missed.
     "sync-revenue": {
         "task": "business.sync_revenue",

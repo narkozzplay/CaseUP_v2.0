@@ -30,6 +30,13 @@ MODULE_REGISTRY: dict[str, ModuleDefinition] = {
         addon_targets=("subscriptions",),
         default_enabled=True,
     ),
+    "market": ModuleDefinition(
+        key="market",
+        label="Рынок",
+        description="P2P-торговля предметами Steam между игроками с гарантом сделки.",
+        namespaces=("market",),
+        default_enabled=False,
+    ),
     "farm": ModuleDefinition(
         key="farm",
         label="Farm",

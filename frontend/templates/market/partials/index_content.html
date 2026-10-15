@@ -1,0 +1,33 @@
+<section class="section section--compact ops cc mkt">
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Рынок CaseUP</span>
+            <h1 class="cc-pagehead__title">Рынок</h1>
+            <p class="ops-hero__text">Предметы CS2 от игроков с гарантом сделки: деньги покупателя замораживаются, пока предмет не передан в Steam. Без комиссии с покупки.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Лотов</dt><dd>{{ total_active }}</dd></div>
+            <div><dt>&nbsp;</dt><dd><a href="{% url 'market:sell' %}" class="btn btn-primary btn-sm" data-dashboard-nav="true">Продать предмет</a></dd></div>
+        </dl>
+    </header>
+
+    <form method="get" class="cc-toolbar mkt-filters">
+        <label class="cc-field cc-field--grow"><span>Поиск</span><input type="search" name="q" value="{{ filters.q }}" class="form-control" placeholder="AK-47, Karambit, Recoil Case…"></label>
+        <label class="cc-field form-field"><span>Тип</span><select name="type">{% for code, label in type_options %}<option value="{{ code }}"{% if filters.type == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+        <label class="cc-field form-field"><span>Износ</span><select name="exterior"><option value="">Любой</option>{% for wear in exterior_options %}<option value="{{ wear }}"{% if filters.exterior == wear %} selected{% endif %}>{{ wear }}</option>{% endfor %}</select></label>
+        <label class="cc-field"><span>Цена от</span><input type="number" name="min" value="{{ filters.min }}" min="0" step="0.01" class="form-control mkt-price-input"></label>
+        <label class="cc-field"><span>до</span><input type="number" name="max" value="{{ filters.max }}" min="0" step="0.01" class="form-control mkt-price-input"></label>
+        <label class="cc-field form-field"><span>Сортировка</span><select name="sort">{% for code, label in sort_options %}<option value="{{ code }}"{% if filters.sort == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+        <label class="cc-field-check"><input type="checkbox" name="stattrak" value="1"{% if filters.stattrak %} checked{% endif %}><span>StatTrak™</span></label>
+        <div class="cc-toolbar__actions"><button type="submit" class="btn btn-primary btn-sm">Показать</button></div>
+    </form>
+
+    {% if page_obj.object_list %}
+        <div class="mkt-grid">
+            {% for lot in page_obj %}{% include "market/partials/_card.html" %}{% endfor %}
+        </div>
+        {% include "control_center/partials/_pagination.html" %}
+    {% else %}
+        <article class="ops-panel"><div class="ref-body"><p class="ref-text">{% if filters.q or filters.type or filters.exterior or filters.min or filters.max or filters.stattrak %}По фильтрам ничего не нашлось.{% else %}На рынке пока нет лотов. Станьте первым продавцом!{% endif %}</p></div></article>
+    {% endif %}
+</section>

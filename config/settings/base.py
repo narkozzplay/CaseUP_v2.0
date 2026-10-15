@@ -88,6 +88,7 @@ PROJECT_APPS = [
     "modules.v2.antifraud.apps.AntifraudConfig",
     "modules.v2.business.apps.BusinessConfig",
     "modules.v2.daily_bonus.apps.DailyBonusConfig",
+    "modules.v2.market.apps.MarketConfig",
     "modules.v2.store.apps.StoreConfig",
     "modules.v2.web_constructor.apps.WebConstructorConfig",
 ]
@@ -401,6 +402,11 @@ STEAM_PRICE_BATCH_MAX = int(os.getenv("STEAM_PRICE_BATCH_MAX", "60"))
 STEAM_PRICE_BACKOFF_MINUTES = int(os.getenv("STEAM_PRICE_BACKOFF_MINUTES", "15"))
 STEAM_PRICE_RELAY_URLS = get_env_list("STEAM_PRICE_RELAY_URLS", "")
 STEAM_PRICE_RELAY_TOKEN = os.getenv("STEAM_PRICE_RELAY_TOKEN", "").strip()
+
+# Market (Рынок): who may sell and how often lots are checked against the seller's Steam inventory.
+MARKET_SELLER_MIN_ACCOUNT_DAYS = int(os.getenv("MARKET_SELLER_MIN_ACCOUNT_DAYS", "30"))
+MARKET_SELLER_MIN_TOPUP = int(os.getenv("MARKET_SELLER_MIN_TOPUP", "500"))
+MARKET_INVENTORY_CHECK_PAUSE = float(os.getenv("MARKET_INVENTORY_CHECK_PAUSE", "3"))
 
 # Business panel: morning e-mail with yesterday's numbers to ADMIN_EMAILS (0 switches it off).
 BUSINESS_DAILY_REPORT = os.getenv("BUSINESS_DAILY_REPORT", "1").strip().lower() not in {"0", "false", "no", "off"}

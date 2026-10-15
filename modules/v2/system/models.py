@@ -610,6 +610,15 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 53,
             },
             {
+                "key": "market",
+                "label_ru": "Рынок",
+                "label_en": "Market",
+                "url_name": "market:index",
+                "group": cls.Group.OVERVIEW,
+                "visibility_condition": cls.Visibility.AUTHENTICATED,
+                "sort_order": 47,
+            },
+            {
                 "key": "daily_bonus",
                 "label_ru": "Бонус дня",
                 "label_en": "Daily bonus",

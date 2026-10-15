@@ -1,0 +1,7 @@
+{# expects: lot (Listing) #}
+<a href="{% url 'market:lot' lot.pk %}" class="mkt-card" data-dashboard-nav="true"{% if lot.rarity_color %} style="--mkt-rarity: #{{ lot.rarity_color }};"{% endif %}>
+    <span class="mkt-card__img">{% if lot.icon %}<img src="{{ lot.icon }}" alt="" loading="lazy">{% endif %}</span>
+    <span class="mkt-card__name">{{ lot.market_hash_name }}</span>
+    <span class="mkt-card__meta">{% if lot.float_value is not None %}float {{ lot.float_value|floatformat:"4u" }}{% else %}{{ lot.get_status_display }}{% endif %}</span>
+    <span class="mkt-card__price">{{ lot.price|floatformat:"2u" }} ₽{% if lot.steam_price %}<small>Steam {{ lot.steam_price|floatformat:"2u" }} ₽</small>{% endif %}</span>
+</a>

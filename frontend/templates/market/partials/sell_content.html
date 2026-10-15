@@ -1,0 +1,90 @@
+<section class="section section--compact ops cc mkt">
+    <header class="cc-pagehead">
+        <div>
+            <a href="{% url 'market:index' %}" class="back-link" data-dashboard-nav="true">← Рынок</a>
+            <span class="eyebrow">Рынок CaseUP</span>
+            <h1 class="cc-pagehead__title">Продать предмет</h1>
+            <p class="ops-hero__text">Выберите предмет из инвентаря Steam и назначьте цену. Лот появится на витрине сразу. Пока лот выставлен, сайт регулярно проверяет, что предмет всё ещё у вас.</p>
+        </div>
+    </header>
+
+    <div class="ref-rewards">
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Условия продавца</h2>{% if ready %}<span class="cc-chip cc-chip--ok">всё выполнено</span>{% endif %}</div>
+            <ul class="ref-list">
+                {% for item in requirements %}
+                    <li class="mkt-req{% if item.ok %} is-ok{% endif %}">
+                        <span class="mkt-req__mark">{% if item.ok %}{% include "components/icon.html" with name="check" %}{% else %}{% include "components/icon.html" with name="close" %}{% endif %}</span>
+                        <span class="mkt-req__text">{{ item.label }}{% if not item.ok and item.hint %}<span class="cc-sub">{{ item.hint }}</span>{% endif %}</span>
+                        {% if not item.ok and item.url %}<a href="{{ item.url }}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">Перейти</a>{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </article>
+
+        <form method="post" action="{% url 'market:trade_link' %}" class="ops-panel">
+            {% csrf_token %}
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Трейд-ссылка Steam</h2></div>
+            <div class="ref-body">
+                <label class="cc-field"><span>Ссылка для обмена</span><input type="url" name="trade_url" value="{{ seller.trade_url|default:'' }}" class="form-control" placeholder="https://steamcommunity.com/tradeoffer/new/?partner=...&token=..." required></label>
+                <p class="ref-text">Где взять: Steam → Инвентарь → Предложения обмена → «Кто может отправлять мне предложения обмена?» → ссылка внизу страницы. Инвентарь в Steam должен быть открытым.</p>
+                <div><button type="submit" class="btn btn-primary btn-sm">Сохранить</button></div>
+            </div>
+        </form>
+    </div>
+
+    {% if ready %}
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Инвентарь Steam</h2><a href="?refresh=1" class="ops-panel__link" data-dashboard-nav="true">Обновить инвентарь →</a></div>
+            {% if inventory_error %}
+                <div class="ref-body"><p class="ref-text text-down">{{ inventory_error }}</p></div>
+            {% elif inventory %}
+                <div class="mkt-grid">
+                    {% for item in inventory %}
+                        <form method="post" action="{% url 'market:list_item' %}" class="mkt-card mkt-card--sell{% if item.is_listed %} is-listed{% endif %}"{% if item.rarity_color %} style="--mkt-rarity: #{{ item.rarity_color }};"{% endif %}>
+                            {% csrf_token %}
+                            <input type="hidden" name="asset_id" value="{{ item.asset_id }}">
+                            <span class="mkt-card__img">{% if item.icon %}<img src="{{ item.icon }}" alt="" loading="lazy">{% endif %}</span>
+                            <span class="mkt-card__name">{{ item.market_hash_name }}</span>
+                            <span class="mkt-card__meta">{% if item.steam_price %}Steam {{ item.steam_price|floatformat:"2u" }} ₽{% else %}цены Steam нет{% endif %}</span>
+                            {% if item.is_listed %}
+                                <span class="cc-chip cc-chip--info">уже на рынке</span>
+                            {% else %}
+                                <span class="mkt-inline"><input type="number" name="price" min="0.01" step="0.01" class="form-control mkt-price-input" placeholder="Цена, ₽"{% if item.steam_price %} value="{{ item.steam_price|stringformat:'.2f' }}"{% endif %} required aria-label="Цена"><button type="submit" class="btn btn-primary btn-sm">Выставить</button></span>
+                            {% endif %}
+                        </form>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="ref-body"><p class="ref-text">В инвентаре нет предметов, которые можно передать. Предметы с трейд-баном появятся после его окончания.</p></div>
+            {% endif %}
+        </article>
+    {% endif %}
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Мои лоты</h2><span class="ops-panel__hint">{{ my_listings|length }}</span></div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead><tr><th>Лот</th><th>Предмет</th><th class="cc-num">Цена</th><th>Статус</th><th>Действия</th></tr></thead>
+                <tbody>
+                    {% for lot in my_listings %}
+                        <tr>
+                            <td class="cc-mono"><a href="{% url 'market:lot' lot.pk %}" data-dashboard-nav="true">{{ lot.code }}</a></td>
+                            <td>{{ lot.market_hash_name }}<span class="cc-sub">{{ lot.created_at|date:"d.m.Y H:i" }}</span></td>
+                            <td class="cc-num">{{ lot.price|floatformat:"2u" }} ₽</td>
+                            <td><span class="cc-chip{% if lot.status == 'active' %} cc-chip--ok{% elif lot.status == 'missing' or lot.status == 'blocked' %} cc-chip--fail{% endif %}">{{ lot.get_status_display }}</span></td>
+                            <td>
+                                {% if lot.status == "active" %}
+                                    <form method="post" action="{% url 'market:lot_price' lot.pk %}" class="mkt-inline">{% csrf_token %}<input type="number" name="price" value="{{ lot.price|stringformat:'.2f' }}" min="0.01" step="0.01" class="form-control mkt-price-input" aria-label="Цена"><button type="submit" class="btn btn-secondary btn-sm">Цена</button></form>
+                                    <form method="post" action="{% url 'market:lot_cancel' lot.pk %}" class="mkt-inline" onsubmit="return confirm('Снять лот с витрины?');">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Снять</button></form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="5" class="text-muted">Вы ещё ничего не выставляли.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+</section>
