@@ -87,6 +87,7 @@ PROJECT_APPS = [
     "modules.v2.promo.apps.PromoConfig",
     "modules.v2.antifraud.apps.AntifraudConfig",
     "modules.v2.business.apps.BusinessConfig",
+    "modules.v2.daily_bonus.apps.DailyBonusConfig",
     "modules.v2.store.apps.StoreConfig",
     "modules.v2.web_constructor.apps.WebConstructorConfig",
 ]

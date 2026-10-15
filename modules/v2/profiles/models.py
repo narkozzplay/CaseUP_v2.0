@@ -185,6 +185,7 @@ class LedgerReason(models.TextChoices):
     BUNDLE_PURCHASE = "bundle_purchase", "Bundle purchase"
     REFERRAL_BONUS = "referral_bonus", "Referral bonus"
     PROMO_BONUS = "promo_bonus", "Promo bonus"
+    DAILY_BONUS = "daily_bonus", "Daily bonus"
 
 
 class LedgerEntry(models.Model):

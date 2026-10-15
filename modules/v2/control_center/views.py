@@ -1468,3 +1468,42 @@ def business_revenue_export(request):
             ]
         )
     return response
+
+
+# --------------------------------------------------------------------------- daily bonus
+
+
+@login_required
+def daily_bonus(request):
+    from modules.v2.case_simulator.models import SimCase
+    from modules.v2.daily_bonus.models import CYCLE_DAYS, DailyBonusReward, DailyBonusSettings
+    from modules.v2.daily_bonus.services import DailyBonusError, admin_summary, save_config
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    if request.method == "POST":
+        try:
+            changes = save_config(form=request.POST)
+        except DailyBonusError as exc:
+            messages.error(request, str(exc))
+        else:
+            if changes:
+                log_admin_action(actor=request.user, action=AuditAction.DAILY_BONUS_UPDATE, summary="; ".join(changes)[:255], payload={"changes": changes}, request=request)
+                messages.success(request, "Настройки бонуса дня сохранены.")
+            else:
+                messages.info(request, "Изменений нет.")
+        return redirect("control_center:daily_bonus")
+
+    rewards = {reward.day: reward for reward in DailyBonusReward.objects.select_related("case")}
+    summary = admin_summary()
+    rows = [{"day": day, "reward": rewards.get(day), "claims": summary["by_day"].get(day, 0)} for day in range(1, CYCLE_DAYS + 1)]
+    context = {
+        "role_access": role_access,
+        "config": DailyBonusSettings.load(),
+        "rows": rows,
+        "kind_options": DailyBonusReward.Kind.choices,
+        "cases": SimCase.objects.filter(is_active=True).exclude(kind=SimCase.Kind.TERMINAL).order_by("case_price", "name"),
+        "summary": summary,
+    }
+    return _render(request, partial="control_center/partials/daily_bonus_content.html", context=context, title="Бонус дня · Control Center", tab="daily_bonus")

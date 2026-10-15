@@ -42,6 +42,7 @@ COMMISSION_SOURCES = (RevenueSource.SWITCH_FEE, RevenueSource.TRADEHUB, RevenueS
 BONUS_REASONS = {
     LedgerReason.REFERRAL_BONUS: "Реферальные бонусы",
     LedgerReason.PROMO_BONUS: "Бонусы промокодов",
+    LedgerReason.DAILY_BONUS: "Ежедневные бонусы",
     LedgerReason.ADMIN_ADJUST: "Начисления админами (нетто)",
 }
 

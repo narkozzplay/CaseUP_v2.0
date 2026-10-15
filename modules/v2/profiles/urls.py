@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import RedirectView
 
 from .views import (
     profile_admin_update_view,
@@ -13,7 +14,6 @@ from .views import (
     sync_steam_view,
     telegram_connect_view,
     telegram_disconnect_view,
-    users_catalog_view,
     verification_requests_view,
 )
 
@@ -23,7 +23,8 @@ urlpatterns = [
     path("profile/", profile_view, name="profile"),
     path("cabinet/", profile_view, name="cabinet"),
     path("profile/settings/", profile_settings_view, name="profile_settings"),
-    path("users/", users_catalog_view, name="users_catalog"),
+    # The old users catalog lives in Control Center now; keep bookmarks working.
+    path("users/", RedirectView.as_view(pattern_name="control_center:users", permanent=False)),
     path("verification-requests/", verification_requests_view, name="verification_requests"),
     path("profile/user/<int:user_id>/", profile_detail_view, name="profile_detail"),
     path("profile/user/<int:user_id>/settings/", profile_user_settings_view, name="profile_user_settings"),

@@ -58,6 +58,11 @@ app.conf.beat_schedule = {
         "task": "antifraud.prune_user_ips",
         "schedule": 24 * 60 * 60.0,
     },
+    # Evening nudge (18:05 Moscow time) to users whose daily-bonus streak breaks at midnight.
+    "daily-bonus-reminders": {
+        "task": "daily_bonus.remind_streaks",
+        "schedule": crontab(hour=18, minute=5),
+    },
     # Fills the revenue journal for anything the live hooks missed.
     "sync-revenue": {
         "task": "business.sync_revenue",

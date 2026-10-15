@@ -52,6 +52,7 @@ EVENT_LABELS = {
     "balance.store_purchase": "Списание: магазин",
     "balance.bundle_purchase": "Списание: набор",
     "balance.referral_bonus": "Бонус за рефералов",
+    "balance.daily_bonus": "Ежедневный бонус",
     "referral.bound": "Регистрация по приглашению",
     "referral.qualified": "Реферал пополнил баланс",
     "referral.flagged": "Реферал на проверке",
