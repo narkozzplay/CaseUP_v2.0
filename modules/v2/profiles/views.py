@@ -5,9 +5,7 @@ import uuid
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q
 from django.http import HttpResponseForbidden, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -60,22 +58,6 @@ from .rbac import can_manage_user, get_user_role
 
 User = get_user_model()
 
-USERS_CATALOG_VIEW_MODES = ("grid", "list")
-USERS_CATALOG_SORT_OPTIONS = (
-    ("newest", "Newest"),
-    ("balance_desc", "Balance"),
-    ("steam_level_desc", "Steam level"),
-    ("role", "Role"),
-)
-USERS_CATALOG_SORT_MAP = {
-    "newest": ("-user__date_joined", "-created_at", "-id"),
-    "balance_desc": ("-balance_coins", "-updated_at", "-id"),
-    "steam_level_desc": ("-steam_level", "-updated_at", "-id"),
-    "role": ("role", "steam_personaname", "user__username", "id"),
-}
-USERS_CATALOG_PAGE_SIZE = 24
-
-
 def can_view_foreign_profiles(user) -> bool:
     if not getattr(user, "is_authenticated", False):
         return False
@@ -93,50 +75,6 @@ def _can_view_private_profile(*, request_user, target_user) -> bool:
 
 def _profile_redirect_name(request_user, target_user) -> str:
     return "profiles:profile" if request_user.id == target_user.id else "profiles:profile_detail"
-
-
-def _users_catalog_querystring(request, **overrides: str) -> str:
-    query_params = request.GET.copy()
-    query_params.pop("page", None)
-    for key, value in overrides.items():
-        if value:
-            query_params[key] = value
-        else:
-            query_params.pop(key, None)
-    return query_params.urlencode()
-
-
-def _build_user_catalog_card(profile: UserProfile) -> dict[str, object]:
-    user = profile.user
-    faceit_label = ""
-    if profile.faceit_skill_level or profile.faceit_elo:
-        faceit_label = f"{profile.faceit_skill_level or 0} / {profile.faceit_elo or 0}"
-
-    activity_kind = "joined"
-    activity_at = getattr(user, "date_joined", None)
-    if profile.last_seen_at:
-        activity_kind = "last_seen"
-        activity_at = profile.last_seen_at
-    elif getattr(user, "last_login", None):
-        activity_kind = "last_login"
-        activity_at = user.last_login
-
-    return {
-        "profile": profile,
-        "user": user,
-        "user_id": user.id,
-        "display_name": get_profile_display_name(profile, fallback_username=user.username),
-        "avatar_url": get_profile_avatar_url(profile),
-        "profile_url": reverse("profiles:profile_detail", args=[user.id]),
-        "role_label": profile.get_role_display(),
-        "balance": profile.balance_coins,
-        "steam_level": profile.steam_level,
-        "faceit_label": faceit_label,
-        "is_online": is_profile_online(profile),
-        "activity_kind": activity_kind,
-        "activity_at": activity_at,
-        "verification_badge": get_verification_badge(profile),
-    }
 
 
 ROLE_TO_FLAGS = {
@@ -315,6 +253,7 @@ LEDGER_REASON_LABELS_RU = {
     LedgerReason.STORE_PURCHASE: "Покупка в магазине",
     LedgerReason.BUNDLE_PURCHASE: "Покупка набора",
     LedgerReason.REFERRAL_BONUS: "Бонус за рефералов",
+    LedgerReason.DAILY_BONUS: "Ежедневный бонус",
     LedgerReason.PROMO_BONUS: "Бонус по промокоду",
 }
 
@@ -500,110 +439,6 @@ def profile_view(request):
         context=context,
         page_title=build_page_title(context["profile_display_name"]),
         active_menu_key="profile",
-    )
-
-
-FACEIT_FILTER_OPTIONS = (
-    ("", "Все"),
-    ("3", "3+"),
-    ("5", "5+"),
-    ("7", "7+"),
-    ("9", "9+"),
-    ("10", "10"),
-)
-
-
-@login_required
-def users_catalog_view(request):
-    if not can_view_foreign_profiles(request.user):
-        return HttpResponseForbidden("Каталог пользователей доступен только staff/mod/admin.")
-
-    q = (request.GET.get("q") or "").strip()
-    selected_role = (request.GET.get("role") or "").strip()
-    selected_sort = (request.GET.get("sort") or "").strip()
-    selected_faceit = (request.GET.get("faceit") or "").strip()
-    view_mode = (request.GET.get("view") or "").strip()
-
-    valid_roles = {role_code for role_code, _label in UserRole.choices}
-    if selected_role not in valid_roles:
-        selected_role = ""
-
-    if selected_sort not in USERS_CATALOG_SORT_MAP:
-        selected_sort = "newest"
-
-    if view_mode not in USERS_CATALOG_VIEW_MODES:
-        view_mode = "grid"
-
-    valid_faceit = {v for v, _ in FACEIT_FILTER_OPTIONS if v}
-    if selected_faceit not in valid_faceit:
-        selected_faceit = ""
-
-    profiles_qs = UserProfile.objects.select_related("user")
-
-    if q:
-        query = (
-            Q(steam_personaname__icontains=q)
-            | Q(user__username__icontains=q)
-            | Q(steam_id__icontains=q)
-        )
-        if q.isdigit():
-            query |= Q(user_id=int(q))
-        profiles_qs = profiles_qs.filter(query)
-
-    if selected_role:
-        profiles_qs = profiles_qs.filter(role=selected_role)
-
-    if selected_faceit:
-        profiles_qs = profiles_qs.filter(faceit_skill_level__gte=int(selected_faceit))
-
-    profiles_qs = profiles_qs.order_by(*USERS_CATALOG_SORT_MAP[selected_sort])
-
-    paginator = Paginator(profiles_qs, USERS_CATALOG_PAGE_SIZE)
-    page_obj = paginator.get_page(request.GET.get("page") or 1)
-    users = [_build_user_catalog_card(profile) for profile in page_obj.object_list]
-
-    query_params = request.GET.copy()
-    query_params.pop("page", None)
-    query_params["view"] = view_mode
-    query_params["sort"] = selected_sort
-    if q:
-        query_params["q"] = q
-    else:
-        query_params.pop("q", None)
-    if selected_role:
-        query_params["role"] = selected_role
-    else:
-        query_params.pop("role", None)
-    if selected_faceit:
-        query_params["faceit"] = selected_faceit
-    else:
-        query_params.pop("faceit", None)
-
-    viewer_role = get_user_role(request.user)
-    context = {
-        "page_obj": page_obj,
-        "users": users,
-        "q": q,
-        "selected_role": selected_role,
-        "selected_sort": selected_sort,
-        "selected_faceit": selected_faceit,
-        "faceit_filter_options": FACEIT_FILTER_OPTIONS,
-        "view_mode": view_mode,
-        "role_options": UserRole.choices,
-        "sort_options": USERS_CATALOG_SORT_OPTIONS,
-        "view_modes": USERS_CATALOG_VIEW_MODES,
-        "pagination_query": query_params.urlencode(),
-        "grid_query": _users_catalog_querystring(request, q=q, role=selected_role, sort=selected_sort, faceit=selected_faceit, view="grid"),
-        "list_query": _users_catalog_querystring(request, q=q, role=selected_role, sort=selected_sort, faceit=selected_faceit, view="list"),
-        "show_balance": viewer_role.is_admin_plus,
-    }
-    return render_dashboard_page(
-        request,
-        full_template="profiles/users_catalog.html",
-        partial_template="profiles/partials/users_catalog_content.html",
-        context=context,
-        page_title=build_page_title("Users Catalog"),
-        active_menu_key="users_catalog",
     )
 
 
@@ -986,7 +821,7 @@ def profile_start_direct_chat_view(request, user_id: int):
         space = get_or_create_direct_space(request.user, target_user)
     except PermissionError as exc:
         messages.error(request, str(exc))
-        return redirect(request.META.get("HTTP_REFERER") or "profiles:users_catalog")
+        return redirect(request.META.get("HTTP_REFERER") or "profiles:profile_detail", user_id)
     return redirect(build_space_url(space))
 
 

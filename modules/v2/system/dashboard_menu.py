@@ -60,7 +60,7 @@ ACTIVE_VIEW_ALIASES = {
         "profile_customization:admin_add_background",
         "profile_customization:admin_add_avatar",
     },
-    "users_catalog": {"profiles:users_catalog"},
+    "users_catalog": {"control_center:users", "control_center:user_detail"},
     "game_servers": {"game_servers:list", "game_servers:detail"},
     "balance_topup": {"payments:topup", "payments:dev_checkout"},
     "case_simulator": {"case_simulator:list", "case_simulator:detail", "case_simulator:terminal", "case_simulator:inventory"},

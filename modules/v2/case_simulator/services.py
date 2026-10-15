@@ -198,12 +198,16 @@ def open_case(*, user, case: SimCase, count: int = 1) -> list[SimOpening]:
         raise SimulatorError("Кейс сейчас недоступен.")
     count = max(1, min(int(count or 1), MAX_OPEN_COUNT))
 
-    # A pending free-case promo code pays for one of the openings.
+    # A pending free-case promo code (or a free case won with the daily bonus) pays for one of the openings.
     free = None
     if case.open_price > ZERO:
         from modules.v2.promo.services import consume_free_case
 
         free = consume_free_case(user=user, case=case)
+        if free is None:
+            from modules.v2.daily_bonus.services import consume_free_case as consume_daily_free_case
+
+            free = consume_daily_free_case(user=user, case=case)
     total = case.open_price * (count - (1 if free else 0))
     if total > ZERO:
         _charge(user=user, amount=total, opening_hint=f"sim_case:{case.pk}")

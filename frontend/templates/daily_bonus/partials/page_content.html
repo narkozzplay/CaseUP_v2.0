@@ -1,0 +1,87 @@
+<section class="section section--compact ops cc dbonus">
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Награды</span>
+            <h1 class="cc-pagehead__title">Бонус дня</h1>
+            <p class="ops-hero__text">Заходите каждый день и забирайте награду. Чем длиннее серия, тем больше бонус, а на 7-й день — бесплатный кейс. Пропуск дня начинает серию заново.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Серия</dt><dd class="{% if bonus.streak %}metric-positive{% endif %}">{{ bonus.streak }} дн.</dd></div>
+            <div><dt>Рекорд</dt><dd>{{ bonus.best_streak }} дн.</dd></div>
+            <div><dt>Получено</dt><dd>{{ bonus.claims_total }}</dd></div>
+        </dl>
+    </header>
+
+    <article class="ops-panel dbonus-panel">
+        <div class="dbonus-days">
+            {% for cell in bonus.cells %}
+                <div class="dbonus-day dbonus-day--{{ cell.status }}{% if cell.is_case %} dbonus-day--case{% endif %}">
+                    <span class="dbonus-day__num">День {{ cell.day }}</span>
+                    <span class="dbonus-day__icon">{% if cell.is_case %}{% include "components/icon.html" with name="case_simulator" %}{% else %}{% include "components/icon.html" with name="cc_wallet" %}{% endif %}</span>
+                    <strong class="dbonus-day__reward">{% if cell.reward %}{{ cell.reward.label }}{% else %}—{% endif %}</strong>
+                    <span class="dbonus-day__state">{% if cell.status == "claimed" %}{% include "components/icon.html" with name="check" %} получено{% elif cell.status == "today" %}сегодня{% else %}впереди{% endif %}</span>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="dbonus-cta">
+            {% if bonus.claimed_today %}
+                <p class="dbonus-cta__text">{% include "components/icon.html" with name="check" %} Сегодняшний бонус получен. Следующий — завтра после 00:00 (МСК), день {{ bonus.next_day }}.</p>
+            {% elif not eligibility.ok %}
+                <p class="dbonus-cta__text dbonus-cta__text--locked">{% include "components/icon.html" with name="shield" %} {{ eligibility.reason }}</p>
+                {% if eligibility.action_url %}<a href="{{ eligibility.action_url }}" class="btn btn-primary" data-dashboard-nav="true">{{ eligibility.action_label }}</a>{% endif %}
+            {% else %}
+                {% if bonus.streak_lost %}<p class="dbonus-cta__text dbonus-cta__text--warn">Серия прервалась — начинаем снова с дня 1.</p>{% endif %}
+                <form method="post" action="{% url 'daily_bonus:claim' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary dbonus-cta__btn">{% include "components/icon.html" with name="daily_bonus" %}Забрать бонус дня {{ bonus.next_day }}</button>
+                </form>
+            {% endif %}
+        </div>
+    </article>
+
+    {% if free_cases %}
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Бесплатные кейсы</h2><span class="ops-panel__hint">{{ free_cases|length }}</span></div>
+            <ul class="ref-list">
+                {% for item in free_cases %}
+                    <li class="promo-row">
+                        <span class="promo-row__code">{{ item.case.name }}</span>
+                        <span class="promo-row__benefit">Одно бесплатное открытие<span class="promo-row__until">до {{ item.expires_at|date:"d.m.Y H:i" }}</span></span>
+                        <span class="promo-row__hint"><a href="{% url 'case_simulator:detail' item.case.slug %}" data-dashboard-nav="true">Открыть кейс →</a></span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </article>
+    {% endif %}
+
+    <div class="ref-rewards">
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Последние награды</h2></div>
+            {% if history %}
+                <ul class="ref-list">
+                    {% for item in history %}
+                        <li class="promo-row">
+                            <span class="promo-row__code">{{ item.date|date:"d.m" }}</span>
+                            <span class="promo-row__benefit">День {{ item.day }} · {{ item.label }}<span class="promo-row__until">серия {{ item.streak }} дн.</span></span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="security-empty">Вы ещё не забирали бонус дня.</p>
+            {% endif %}
+        </article>
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Правила</h2></div>
+            <div class="ref-body">
+                <ul class="dbonus-rules">
+                    <li>Один бонус в календарный день, новый день начинается в 00:00 по Москве.</li>
+                    <li>Пропустили день — серия начинается с дня 1. После 7-го дня цикл повторяется.</li>
+                    <li>Бонус доступен аккаунтам с привязанным Steam, которые хотя бы раз пополняли баланс.</li>
+                    <li>Бесплатный кейс открывается на странице кейса и действует ограниченное время.</li>
+                    <li>Бонусные единицы тратятся на сайте и не выводятся. За фарм бонусов с нескольких аккаунтов — бан.</li>
+                </ul>
+            </div>
+        </article>
+    </div>
+</section>

@@ -48,6 +48,7 @@ urlpatterns += i18n_patterns(
     path("notifications/", include("modules.v2.notifications.urls")),
     path("referrals/", include("modules.v2.referrals.urls")),
     path("promo/", include("modules.v2.promo.urls")),
+    path("bonus/", include("modules.v2.daily_bonus.urls")),
     path("customization/", include("modules.v2.profile_customization.urls")),
     path("cs2/stats/", include("modules.v2.cs2_stats.urls")),
     path("", include("frontend.urls")),

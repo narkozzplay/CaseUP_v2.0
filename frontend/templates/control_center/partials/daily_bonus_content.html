@@ -1,0 +1,85 @@
+{% load site_formatters %}
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Бонус дня</h1>
+            <p class="ops-hero__text">Награды за ежедневный вход: 7-дневный цикл, пропуск дня начинает серию заново. Пользователи видят их в разделе «Бонус дня».</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Статус</dt><dd class="{% if config.is_enabled %}metric-positive{% else %}metric-negative{% endif %}">{% if config.is_enabled %}включён{% else %}выключен{% endif %}</dd></div>
+            <div><dt>Сегодня</dt><dd>{{ summary.claims_today }}</dd></div>
+            <div><dt>Активных серий</dt><dd>{{ summary.active_streaks }}</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <div class="ops-kpis">
+        <div class="ops-kpi"><span class="ops-kpi__icon">{% include "components/icon.html" with name="daily_bonus" %}</span><div class="ops-kpi__body"><span class="ops-kpi__label">Получили за 7 дней</span><strong class="ops-kpi__value">{{ summary.claims_week }}</strong><span class="ops-kpi__meta">{{ summary.users_week }} пользователей</span></div></div>
+        <div class="ops-kpi"><span class="ops-kpi__icon">{% include "components/icon.html" with name="cc_wallet" %}</span><div class="ops-kpi__body"><span class="ops-kpi__label">Выдано на баланс за 30 дней</span><strong class="ops-kpi__value">{% money summary.paid_month %}</strong><span class="ops-kpi__meta">учитывается в «Бизнес» как расход на бонусы</span></div></div>
+        <div class="ops-kpi"><span class="ops-kpi__icon">{% include "components/icon.html" with name="case_simulator" %}</span><div class="ops-kpi__body"><span class="ops-kpi__label">Бесплатных кейсов за 30 дней</span><strong class="ops-kpi__value">{{ summary.cases_month.issued }}</strong><span class="ops-kpi__meta">открыто {{ summary.cases_month.used }}</span></div></div>
+    </div>
+
+    <form method="post" class="ops-panel">
+        {% csrf_token %}
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Награды и правила</h2><span class="ops-panel__hint">изменения пишутся в журнал</span></div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead><tr><th>День</th><th>Награда</th><th class="cc-num">Сумма, ₽</th><th>Кейс</th><th class="cc-num">Получили за 30 дн.</th></tr></thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            <td><b>День {{ row.day }}</b></td>
+                            <td><select class="form-control" name="kind_{{ row.day }}">{% for code, label in kind_options %}<option value="{{ code }}"{% if row.reward.kind == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
+                            <td class="cc-num"><input class="form-control dbonus-amount" type="number" name="amount_{{ row.day }}" min="0" max="1000" step="0.01" value="{{ row.reward.amount|default:0|stringformat:'.2f' }}"></td>
+                            <td><select class="form-control" name="case_{{ row.day }}"><option value="">—</option>{% for case in cases %}<option value="{{ case.pk }}"{% if row.reward.case_id == case.pk %} selected{% endif %}>{{ case.name }} · {{ case.open_price|floatformat:0 }} ₽</option>{% endfor %}</select></td>
+                            <td class="cc-num">{{ row.claims }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="ref-body">
+            <p class="ref-text">Для «Бесплатного кейса» сумма — запасная: она начисляется, если выбранный кейс выключат.</p>
+            <label class="cc-field-check"><input type="checkbox" name="is_enabled" value="1"{% if config.is_enabled %} checked{% endif %}><span>Бонус дня включён</span></label>
+            <label class="cc-field-check"><input type="checkbox" name="require_steam" value="1"{% if config.require_steam %} checked{% endif %}><span>Только аккаунтам с привязанным Steam</span></label>
+            <label class="cc-field-check"><input type="checkbox" name="require_topup" value="1"{% if config.require_topup %} checked{% endif %}><span>Только после первого реального пополнения</span></label>
+            <label class="cc-field"><span>Сколько дней действует бесплатный кейс</span><input class="form-control dbonus-amount" type="number" name="free_case_valid_days" min="1" max="60" value="{{ config.free_case_valid_days }}"></label>
+            <div><button type="submit" class="btn btn-primary btn-sm">Сохранить</button></div>
+        </div>
+    </form>
+
+    <div class="ref-rewards">
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Лучшие серии сейчас</h2></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Пользователь</th><th class="cc-num">Серия</th><th class="cc-num">Рекорд</th></tr></thead>
+                    <tbody>
+                        {% for state in summary.top_streaks %}
+                            <tr><td>{% include "control_center/partials/_user_cell.html" with u=state.user %}</td><td class="cc-num">{{ state.streak }} дн.</td><td class="cc-num">{{ state.best_streak }} дн.</td></tr>
+                        {% empty %}
+                            <tr><td colspan="3" class="text-muted">Активных серий нет.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Последние получения</h2></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Когда</th><th>Пользователь</th><th>День</th><th>Награда</th></tr></thead>
+                    <tbody>
+                        {% for item in summary.recent %}
+                            <tr><td class="cc-mono">{{ item.created_at|date:"d.m H:i" }}</td><td>{% include "control_center/partials/_user_cell.html" with u=item.user %}{% if item.ip_address %}<span class="cc-sub cc-mono">{{ item.ip_address }}</span>{% endif %}</td><td>{{ item.day }}</td><td>{{ item.label }}</td></tr>
+                        {% empty %}
+                            <tr><td colspan="4" class="text-muted">Бонус ещё никто не забирал.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </div>
+</section>

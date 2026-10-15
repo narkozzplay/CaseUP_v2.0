@@ -2759,3 +2759,50 @@
 .biz .cc-chart__label { position: relative; z-index: 1; min-height: 12px; overflow: visible; white-space: nowrap; }
 .biz .cc-chart { gap: 2px; }
 .biz .cc-num .cc-sub { display: block; }
+
+/* daily bonus */
+
+.dbonus-panel { padding: 18px; }
+.dbonus-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
+.dbonus-day {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 16px 8px 14px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+    text-align: center;
+}
+.dbonus-day__num { color: var(--text-muted); font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.dbonus-day__icon .ui-icon { width: 30px; height: 30px; color: var(--text-soft); }
+.dbonus-day__reward { font-family: var(--font-display); font-size: 1.05rem; line-height: 1.2; overflow-wrap: anywhere; }
+.dbonus-day__state { display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: 0.72rem; }
+.dbonus-day__state .ui-icon { width: 13px; height: 13px; }
+.dbonus-day--claimed { border-color: rgba(61, 220, 132, 0.35); background: rgba(61, 220, 132, 0.06); }
+.dbonus-day--claimed .dbonus-day__state, .dbonus-day--claimed .dbonus-day__icon .ui-icon { color: var(--success); }
+.dbonus-day--today { border-color: rgba(245, 166, 35, 0.75); background: linear-gradient(180deg, rgba(245, 166, 35, 0.16), rgba(245, 166, 35, 0.03)); box-shadow: 0 0 0 1px rgba(245, 166, 35, 0.25), 0 10px 26px rgba(245, 166, 35, 0.12); }
+.dbonus-day--today .dbonus-day__state, .dbonus-day--today .dbonus-day__icon .ui-icon { color: var(--accent); }
+.dbonus-day--case { background-image: linear-gradient(135deg, rgba(176, 124, 255, 0.14), transparent 70%); }
+.dbonus-day--case .dbonus-day__reward { font-size: 0.9rem; }
+.dbonus-day--upcoming { opacity: 0.75; }
+
+.dbonus-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin-top: 18px; text-align: center; }
+.dbonus-cta__text { display: inline-flex; align-items: center; gap: 8px; margin: 0; color: var(--text-soft); }
+.dbonus-cta__text .ui-icon { width: 18px; height: 18px; color: var(--success); }
+.dbonus-cta__text--locked .ui-icon { color: var(--accent); }
+.dbonus-cta__text--warn { width: 100%; justify-content: center; color: var(--accent); }
+.dbonus-cta__btn { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 28px; font-size: 1rem; }
+.dbonus-cta__btn .ui-icon { width: 20px; height: 20px; }
+.dbonus-rules { margin: 0; padding-left: 18px; color: var(--text-soft); font-size: 0.88rem; line-height: 1.6; }
+
+@media (max-width: 900px) {
+    .dbonus-days { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+    .dbonus-days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dbonus-day--case { grid-column: span 2; }
+}
+.dbonus-amount { max-width: 120px; }

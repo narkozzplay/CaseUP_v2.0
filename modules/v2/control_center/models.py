@@ -14,6 +14,7 @@ class AuditAction(models.TextChoices):
     REFERRAL_REVIEW = "referral_review", "Referral reviewed"
     PROMO_CREATE = "promo_create", "Promo code created"
     PROMO_UPDATE = "promo_update", "Promo code updated"
+    DAILY_BONUS_UPDATE = "daily_bonus_update", "Daily bonus settings updated"
     MULTI_ACCOUNT_DECISION = "multi_account_decision", "Multi-account decision"
     IP_BAN = "ip_ban", "IP banned"
     IP_UNBAN = "ip_unban", "IP unbanned"
@@ -37,6 +38,7 @@ AUDIT_ACTION_LABELS_RU = {
     AuditAction.REFERRAL_REVIEW: "Проверка реферала",
     AuditAction.PROMO_CREATE: "Создан промокод",
     AuditAction.PROMO_UPDATE: "Изменён промокод",
+    AuditAction.DAILY_BONUS_UPDATE: "Изменён бонус дня",
     AuditAction.MULTI_ACCOUNT_DECISION: "Решение по мульти-аккаунтам",
     AuditAction.IP_BAN: "Бан IP",
     AuditAction.IP_UNBAN: "Снятие бана IP",

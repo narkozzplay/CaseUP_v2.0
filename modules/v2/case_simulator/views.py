@@ -14,6 +14,7 @@ from django.views.decorators.http import require_POST
 
 from frontend.templatetags.site_formatters import money
 from modules.v2.profiles.models import UserProfile
+from modules.v2.daily_bonus.services import free_case_for
 from modules.v2.promo.services import free_case_activation
 from modules.v2.system.services import get_site_configuration
 from modules.v2.system.dashboard_shell import render_dashboard_page
@@ -121,6 +122,7 @@ def case_detail(request, slug: str):
             "stats": _user_stats(request.user),
             "my_drops": my_drops,
             "free_case_promo": free_case_activation(request.user, case),
+            "free_case_daily": free_case_for(request.user, case),
         },
         page_title=build_page_title(case.name, "Кейсы"),
         active_menu_key=MENU_KEY,
