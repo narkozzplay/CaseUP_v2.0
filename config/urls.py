@@ -5,6 +5,9 @@ from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import include, path
 
+from django.contrib.sitemaps.views import sitemap
+
+from frontend.seo import SITEMAPS, robots_txt
 from modules.v2.referrals.views import referral_link
 
 
@@ -19,6 +22,8 @@ urlpatterns = [
     path("telegram/", include("modules.v2.tg_notifier.public_urls")),
     path("payments/", include("modules.v2.payments.public_urls")),
     path("r/<str:code>/", referral_link, name="referral_link"),
+    path("robots.txt", robots_txt, name="robots_txt"),
+    path("sitemap.xml", sitemap, {"sitemaps": SITEMAPS}, name="sitemap"),
 ]
 
 urlpatterns += i18n_patterns(

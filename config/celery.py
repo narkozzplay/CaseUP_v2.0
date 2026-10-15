@@ -1,6 +1,7 @@
 import os
 
 from celery import Celery
+from celery.schedules import crontab
 from django.conf import settings
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
@@ -43,6 +44,11 @@ app.conf.beat_schedule = {
     "lift-expired-user-bans": {
         "task": "control_center.lift_expired_bans",
         "schedule": 300.0,
+    },
+    # Database + media copy every night (04:15 Moscow time), uploaded to the SFTP backup host when configured.
+    "daily-backup": {
+        "task": "system.daily_backup",
+        "schedule": crontab(hour=4, minute=15),
     },
     "reconcile-referrals": {
         "task": "referrals.reconcile",

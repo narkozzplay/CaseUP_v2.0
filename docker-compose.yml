@@ -111,6 +111,7 @@ services:
       - media_data:/app/media
       - static_data:/app/staticfiles
       - geoip_data:/app/var/geoip
+      - backup_data:/app/backups
     healthcheck:
       test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$HOSTNAME >/dev/null 2>&1 || exit 1"]
       interval: 30s

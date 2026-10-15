@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from email.utils import parseaddr
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -169,7 +170,8 @@ class SiteConfiguration(models.Model):
             "site_currency_code": cls.CURRENCY_RUB,
             "site_currency_symbol": "₽",
             "site_currency_rate": Decimal("1.000000"),
-            "support_email": getattr(settings, "DEFAULT_FROM_EMAIL", "") or "",
+            # DEFAULT_FROM_EMAIL may be "Name <address>"; the support e-mail is just the address.
+            "support_email": parseaddr(getattr(settings, "DEFAULT_FROM_EMAIL", "") or "")[1],
             "public_base_url": getattr(settings, "SITE_BASE_URL", "") or "",
             "maintenance_mode_enabled": False,
             "maintenance_message": "На сайте проводятся технические работы. Попробуйте зайти позже.",
