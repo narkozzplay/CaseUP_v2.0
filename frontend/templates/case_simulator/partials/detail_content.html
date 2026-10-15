@@ -22,6 +22,7 @@
                 <div class="sim-price__total"><dt>Открытие</dt><dd>{% money case.open_price %}</dd></div>
             </dl>
             <p class="sim-hero__balance">Баланс: <b data-sim-balance>{% money stats.balance %}</b></p>
+            {% if free_case_promo %}<p class="sim-hero__promo" data-sim-free-promo>{% include "components/icon.html" with name="referrals" %} Следующее открытие — бесплатно (промокод {{ free_case_promo.promo.code }})</p>{% endif %}
         </div>
     </div>
 

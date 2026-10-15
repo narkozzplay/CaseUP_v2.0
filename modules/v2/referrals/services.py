@@ -159,22 +159,29 @@ def _flag_if_shared_ip(referral: Referral) -> bool:
 
 def bind_new_user(*, user, code: str, ip_address: str | None = None) -> Referral | None:
     """Attach a freshly registered account to the owner of ``code``. Never raises."""
+    ref_code = find_code(code)
+    if ref_code is None:
+        return None
+    return bind_to_referrer(user=user, referrer=ref_code.user, code=ref_code.code, ip_address=ip_address)
+
+
+def bind_to_referrer(*, user, referrer, code: str = "", ip_address: str | None = None, source: str = "ссылке") -> Referral | None:
+    """Make ``user`` the referral of ``referrer`` unless they already have one. Never raises."""
     try:
-        ref_code = find_code(code)
-        if ref_code is None or ref_code.user_id == user.pk or not ref_code.user.is_active:
+        if referrer is None or referrer.pk == user.pk or not referrer.is_active:
             return None
         if Referral.objects.filter(referee=user).exists():
             return None
-        referral = Referral(referrer=ref_code.user, referee=user, code=ref_code.code, ip_address=ip_address or None)
+        referral = Referral(referrer=referrer, referee=user, code=code, ip_address=ip_address or None)
         _flag_if_shared_ip(referral)
         with transaction.atomic():
             referral.save()
-        _log(user, "referral.bound", f"Пришёл по приглашению {ref_code.user.username}", obj=referral)
+        _log(user, "referral.bound", f"Пришёл по {source} {referrer.username}", obj=referral)
         if referral.review == Referral.Review.FLAGGED:
-            _log(ref_code.user, "referral.flagged", f"Реферал {user.username} на проверке: {referral.flag_reason}", obj=referral)
+            _log(referrer, "referral.flagged", f"Реферал {user.username} на проверке: {referral.flag_reason}", obj=referral)
         return referral
     except Exception:  # noqa: BLE001 - a sign-up must never fail because of the referral program
-        logger.exception("Could not bind referral code %r for user %s", code, getattr(user, "pk", None))
+        logger.exception("Could not bind user %s to referrer %s", getattr(user, "pk", None), getattr(referrer, "pk", None))
         return None
 
 
@@ -193,7 +200,7 @@ def real_topup_total(user) -> Decimal:
 def check_qualification(user) -> Referral | None:
     """Called after every top-up: mark the referral qualified once the threshold is reached."""
     with transaction.atomic():
-        referral = Referral.objects.select_for_update().select_related("referrer", "referee").filter(referee=user, qualified_at__isnull=True).first()
+        referral = Referral.objects.select_for_update(of=("self",)).select_related("referrer", "referee").filter(referee=user, qualified_at__isnull=True).first()
         if referral is None or real_topup_total(user) < qualify_amount():
             return None
         referral.qualified_at = timezone.now()

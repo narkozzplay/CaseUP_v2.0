@@ -14,6 +14,7 @@ from django.views.decorators.http import require_POST
 
 from frontend.templatetags.site_formatters import money
 from modules.v2.profiles.models import UserProfile
+from modules.v2.promo.services import free_case_activation
 from modules.v2.system.services import get_site_configuration
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
@@ -119,6 +120,7 @@ def case_detail(request, slug: str):
             "open_counts": range(1, services.MAX_OPEN_COUNT + 1),
             "stats": _user_stats(request.user),
             "my_drops": my_drops,
+            "free_case_promo": free_case_activation(request.user, case),
         },
         page_title=build_page_title(case.name, "Кейсы"),
         active_menu_key=MENU_KEY,
@@ -142,11 +144,14 @@ def case_open(request, slug: str):
     count = max(1, min(count, services.MAX_OPEN_COUNT))
     demo = request.POST.get("demo") == "1"
 
+    spent = ZERO
     try:
         if demo:
             results = [services.demo_payload(services.roll_case(case)) for _ in range(count)]
         else:
-            results = [services.roll_payload(opening) for opening in services.open_case(user=request.user, case=case, count=count)]
+            openings = services.open_case(user=request.user, case=case, count=count)
+            spent = sum((opening.price_paid for opening in openings), ZERO)
+            results = [services.roll_payload(opening) for opening in openings]
     except services.SimulatorError as exc:
         return _error(str(exc), status=402 if "средств" in str(exc) else 400)
 
@@ -163,7 +168,8 @@ def case_open(request, slug: str):
         "win_index": services.STRIP_WIN_INDEX,
         "balance": str(_balance(request.user)),
         "total_value": str(sum((Decimal(r["value"]) for r in results), ZERO)),
-        "spent": "0" if demo else str(case.open_price * count),
+        "spent": str(spent),
+        "free_used": not demo and spent < case.open_price * count,
     })
 
 

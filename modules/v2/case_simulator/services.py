@@ -198,12 +198,18 @@ def open_case(*, user, case: SimCase, count: int = 1) -> list[SimOpening]:
         raise SimulatorError("Кейс сейчас недоступен.")
     count = max(1, min(int(count or 1), MAX_OPEN_COUNT))
 
-    total = case.open_price * count
+    # A pending free-case promo code pays for one of the openings.
+    free = None
+    if case.open_price > ZERO:
+        from modules.v2.promo.services import consume_free_case
+
+        free = consume_free_case(user=user, case=case)
+    total = case.open_price * (count - (1 if free else 0))
     if total > ZERO:
         _charge(user=user, amount=total, opening_hint=f"sim_case:{case.pk}")
 
     openings = []
-    for _ in range(count):
+    for index in range(count):
         roll = roll_case(case)
         openings.append(SimOpening.objects.create(
             user=user,
@@ -213,7 +219,7 @@ def open_case(*, user, case: SimCase, count: int = 1) -> list[SimOpening]:
             float_value=roll.float_value,
             exterior=roll.exterior,
             is_stattrak=roll.is_stattrak,
-            price_paid=_money(case.open_price),
+            price_paid=ZERO if free and index == 0 else _money(case.open_price),
             item_value=roll.value,
         ))
     return openings

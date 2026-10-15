@@ -234,3 +234,35 @@
     document.addEventListener('DOMContentLoaded', function () { refresh(document); });
     document.addEventListener('dashboard:content-replaced', function () { refresh(document); });
 })();
+
+// Control Center → Промокоды: show only the fields that belong to the chosen kind.
+(function () {
+    'use strict';
+
+    function sync(form) {
+        var select = form.querySelector('select[name="kind"]');
+        if (!select) {
+            return;
+        }
+        form.querySelectorAll('[data-promo-kinds]').forEach(function (field) {
+            var kinds = field.getAttribute('data-promo-kinds').split(' ');
+            field.hidden = kinds.indexOf(select.value) === -1;
+        });
+    }
+
+    function init(scope) {
+        (scope || document).querySelectorAll('[data-promo-form]').forEach(sync);
+    }
+
+    document.addEventListener('change', function (event) {
+        if (event.target.matches('[data-promo-form] select[name="kind"]')) {
+            sync(event.target.closest('[data-promo-form]'));
+        }
+    });
+    document.addEventListener('dashboard:content-replaced', function () { init(document); });
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { init(document); });
+    } else {
+        init(document);
+    }
+})();

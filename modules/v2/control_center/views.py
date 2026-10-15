@@ -1088,3 +1088,104 @@ def referral_review(request, referral_id: int):
     except ReferralReviewError as exc:
         messages.error(request, str(exc))
     return redirect(_safe_next(request, reverse("control_center:referrals")))
+
+
+# --------------------------------------------------------------------------- promo codes
+
+PROMO_PAGE_SIZE = 40
+
+
+@login_required
+def promo_codes(request):
+    from modules.v2.promo.models import PromoActivation, PromoCode
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    state = (request.GET.get("state") or "").strip()
+    q = (request.GET.get("q") or "").strip()
+    qs = PromoCode.objects.select_related("owner", "owner__profile_v2", "case")
+    now = timezone.now()
+    if state == "active":
+        qs = qs.filter(is_active=True).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+    elif state == "off":
+        qs = qs.filter(Q(is_active=False) | Q(expires_at__lte=now))
+    else:
+        state = ""
+    if q:
+        qs = qs.filter(Q(code__icontains=q) | Q(title__icontains=q) | Q(owner__username__icontains=q))
+    page_obj = Paginator(qs.order_by("-created_at", "-id"), PROMO_PAGE_SIZE).get_page(request.GET.get("page") or 1)
+    totals = {
+        "codes": PromoCode.objects.count(),
+        "active": PromoCode.objects.filter(is_active=True).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now)).count(),
+        "activations": PromoActivation.objects.count(),
+        "paid": PromoActivation.objects.filter(ledger_entry__isnull=False).aggregate(total=Sum("benefit_amount"))["total"] or Decimal("0"),
+    }
+    context = {
+        "role_access": role_access,
+        "page_obj": page_obj,
+        "filters": {"state": state, "q": q},
+        "totals": totals,
+        "pagination_query": _querystring(request),
+        "current_path": request.get_full_path(),
+    }
+    return _render(request, partial="control_center/partials/promo_list_content.html", context=context, title="Промокоды · Control Center", tab="promo")
+
+
+@login_required
+def promo_code_edit(request, promo_id: int | None = None):
+    from modules.v2.promo.forms import PromoCodeForm
+    from modules.v2.promo.models import PromoCode
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    promo = get_object_or_404(PromoCode, pk=promo_id) if promo_id else None
+    form = PromoCodeForm(request.POST or None, instance=promo)
+    if request.method == "POST" and form.is_valid():
+        is_new = promo is None
+        saved = form.save(commit=False)
+        if is_new:
+            saved.created_by = request.user
+        saved.save()
+        log_admin_action(
+            actor=request.user,
+            action=AuditAction.PROMO_CREATE if is_new else AuditAction.PROMO_UPDATE,
+            target_user=saved.owner,
+            summary=f"{saved.code}: {saved.benefit_label}" + ("" if saved.is_active else " (выключен)"),
+            payload={"promo_id": saved.pk, "changed": sorted(form.changed_data)},
+            request=request,
+        )
+        messages.success(request, f"Промокод {saved.code} {'создан' if is_new else 'сохранён'}.")
+        return redirect("control_center:promo_edit", promo_id=saved.pk)
+
+    activations = []
+    if promo is not None:
+        activations = list(promo.activations.select_related("user", "user__profile_v2").order_by("-created_at", "-id")[:200])
+    context = {
+        "role_access": role_access,
+        "form": form,
+        "promo": promo,
+        "activations": activations,
+        "share_url": request.build_absolute_uri(reverse("promo:dashboard") + f"?code={promo.code}") if promo else "",
+        "current_path": request.get_full_path(),
+    }
+    title = f"{promo.code} · Промокоды" if promo else "Новый промокод"
+    return _render(request, partial="control_center/partials/promo_edit_content.html", context=context, title=title, tab="promo")
+
+
+@login_required
+@require_POST
+def promo_activation_cancel(request, activation_id: int):
+    from modules.v2.promo.models import PromoActivation
+    from modules.v2.promo.services import PromoError, cancel_activation
+
+    if _admin_access(request) is None:
+        return _forbidden()
+    activation = get_object_or_404(PromoActivation.objects.select_related("promo", "user"), pk=activation_id)
+    try:
+        cancel_activation(actor=request.user, activation=activation, request=request)
+        messages.success(request, f"Активация {activation.promo.code} у {activation.user.username} отменена.")
+    except PromoError as exc:
+        messages.error(request, str(exc))
+    return redirect(_safe_next(request, reverse("control_center:promo_edit", args=[activation.promo_id])))

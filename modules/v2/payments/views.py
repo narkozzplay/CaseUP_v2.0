@@ -27,6 +27,13 @@ from .services import TopupError, create_topup_payment, get_topup_limits, get_to
 logger = logging.getLogger(__name__)
 
 
+def _pending_topup_promo(user):
+    from modules.v2.promo.models import PromoCode
+    from modules.v2.promo.services import pending_activation
+
+    return pending_activation(user, PromoCode.Kind.TOPUP_BONUS)
+
+
 @login_required
 def topup_view(request):
     provider = get_provider()
@@ -65,6 +72,7 @@ def topup_view(request):
         "topup_max": maximum,
         "topup_balance": profile.balance_coins,
         "topup_payments": Payment.objects.filter(user=request.user).order_by("-created_at", "-id")[:10],
+        "topup_promo": _pending_topup_promo(request.user),
     }
     return render_dashboard_page(
         request,

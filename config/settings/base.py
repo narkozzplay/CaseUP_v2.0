@@ -83,6 +83,7 @@ PROJECT_APPS = [
     "modules.v2.case_simulator.apps.CaseSimulatorConfig",
     "modules.v2.payments.apps.PaymentsConfig",
     "modules.v2.referrals.apps.ReferralsConfig",
+    "modules.v2.promo.apps.PromoConfig",
     "modules.v2.store.apps.StoreConfig",
     "modules.v2.web_constructor.apps.WebConstructorConfig",
 ]
@@ -347,6 +348,11 @@ REFERRAL_TURNOVER_MAX_PERCENT = int(os.getenv("REFERRAL_TURNOVER_MAX_PERCENT", "
 REFERRAL_COOKIE_DAYS = int(os.getenv("REFERRAL_COOKIE_DAYS", "30"))
 # Test-mode YooKassa payments do not qualify referrals unless this is on (useful on a test stand).
 REFERRAL_COUNT_TEST_PAYMENTS = os.getenv("REFERRAL_COUNT_TEST_PAYMENTS", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+# Promo codes: "only new accounts" means registered within this many days; test-mode payments do not
+# trigger top-up bonuses unless enabled.
+PROMO_NEW_ACCOUNT_DAYS = int(os.getenv("PROMO_NEW_ACCOUNT_DAYS", "7"))
+PROMO_COUNT_TEST_PAYMENTS = os.getenv("PROMO_COUNT_TEST_PAYMENTS", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 # Control Center → Логи: how long journal entries are kept (pruned daily by Celery beat).
 ACTIVITY_LOG_RETENTION_DAYS = int(os.getenv("ACTIVITY_LOG_RETENTION_DAYS", "365"))

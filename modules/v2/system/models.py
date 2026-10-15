@@ -599,6 +599,15 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 52,
             },
             {
+                "key": "promo",
+                "label_ru": "Промокоды",
+                "label_en": "Promo codes",
+                "url_name": "promo:dashboard",
+                "group": cls.Group.OVERVIEW,
+                "visibility_condition": cls.Visibility.AUTHENTICATED,
+                "sort_order": 53,
+            },
+            {
                 "key": "users_catalog",
                 "label_ru": "Пользователи",
                 "label_en": "Users Catalog",

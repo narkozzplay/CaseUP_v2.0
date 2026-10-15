@@ -29,6 +29,10 @@
         </dl>
     </header>
 
+    {% if topup_promo %}
+        <div class="topup-promo">{% include "components/icon.html" with name="promo" %}<span>Активен промокод <strong>{{ topup_promo.promo.code }}</strong>: {{ topup_promo.promo.benefit_label }}. Бонус придёт на баланс сразу после оплаты.</span></div>
+    {% endif %}
+
     {% if not topup_provider %}
         <div class="topup-off">
             <strong>{% if LANGUAGE_CODE == "ru" %}Пополнение временно недоступно{% else %}Top-up is temporarily unavailable{% endif %}</strong>
