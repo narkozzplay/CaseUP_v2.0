@@ -18,10 +18,10 @@ class LegalDocument:
     version_label: str
 
 
-AGREEMENT = LegalDocument("agreement", "Пользовательское соглашение", "frontend:agreement", "2026-10-14", "14.10.2026")
+AGREEMENT = LegalDocument("agreement", "Пользовательское соглашение", "frontend:agreement", "2026-10-15", "15.10.2026")
 PRIVACY = LegalDocument("privacy", "Политика конфиденциальности", "frontend:privacy", "2026-10-14", "14.10.2026")
 PD_CONSENT = LegalDocument("consent", "Согласие на обработку персональных данных", "frontend:pd_consent", "2026-10-14", "14.10.2026")
-COOKIES = LegalDocument("cookies", "Политика cookie", "frontend:cookies", "2026-10-14", "14.10.2026")
+COOKIES = LegalDocument("cookies", "Политика cookie", "frontend:cookies", "2026-10-15", "15.10.2026")
 
 LEGAL_DOCUMENTS = (AGREEMENT, PRIVACY, PD_CONSENT, COOKIES)
 

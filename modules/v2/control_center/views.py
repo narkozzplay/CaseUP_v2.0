@@ -1000,3 +1000,91 @@ def activity_log_export(request):
             ]
         )
     return response
+
+
+# --------------------------------------------------------------------------- referrals
+
+REFERRALS_PAGE_SIZE = 40
+REFERRAL_STATUS_FILTERS = (
+    ("flagged", "На проверке"),
+    ("counted", "Засчитаны"),
+    ("waiting", "Ждут пополнения"),
+    ("blocked", "Отклонены"),
+    ("", "Все"),
+)
+
+
+@login_required
+def referrals(request):
+    from modules.v2.referrals.models import Referral, ReferralBonus
+    from modules.v2.referrals.services import discount_percent_for, turnover_percent_for
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    status = (request.GET.get("status") or "").strip()
+    q = (request.GET.get("q") or "").strip()
+    qs = Referral.objects.select_related("referrer", "referrer__profile_v2", "referee", "referee__profile_v2", "reviewed_by")
+    if status == "flagged":
+        qs = qs.filter(review=Referral.Review.FLAGGED)
+    elif status == "counted":
+        qs = qs.filter(review=Referral.Review.OK, qualified_at__isnull=False)
+    elif status == "waiting":
+        qs = qs.filter(qualified_at__isnull=True).exclude(review=Referral.Review.BLOCKED)
+    elif status == "blocked":
+        qs = qs.filter(review=Referral.Review.BLOCKED)
+    else:
+        status = ""
+    if q:
+        filters = Q(referrer__username__icontains=q) | Q(referee__username__icontains=q) | Q(referrer__profile_v2__steam_personaname__icontains=q) | Q(referee__profile_v2__steam_personaname__icontains=q) | Q(code__iexact=q)
+        if q.isdigit():
+            filters |= Q(referrer_id=int(q)) | Q(referee_id=int(q))
+        qs = qs.filter(filters)
+    page_obj = Paginator(qs.order_by("-created_at", "-id"), REFERRALS_PAGE_SIZE).get_page(request.GET.get("page") or 1)
+
+    all_referrals = Referral.objects.all()
+    totals = all_referrals.aggregate(
+        total=Count("id"),
+        counted=Count("id", filter=Q(review=Referral.Review.OK, qualified_at__isnull=False)),
+        flagged=Count("id", filter=Q(review=Referral.Review.FLAGGED)),
+    )
+    totals["bonuses"] = ReferralBonus.objects.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    top = list(
+        User.objects.filter(referrals_made__review=Referral.Review.OK, referrals_made__qualified_at__isnull=False)
+        .annotate(counted=Count("referrals_made"))
+        .select_related("profile_v2")
+        .order_by("-counted", "id")[:10]
+    )
+    for user in top:
+        user.ref_discount = discount_percent_for(user.counted)
+        user.ref_turnover = turnover_percent_for(user.counted)
+
+    context = {
+        "role_access": role_access,
+        "page_obj": page_obj,
+        "filters": {"status": status, "q": q},
+        "status_options": REFERRAL_STATUS_FILTERS,
+        "totals": totals,
+        "top_referrers": top,
+        "pagination_query": _querystring(request),
+        "current_path": request.get_full_path(),
+    }
+    return _render(request, partial="control_center/partials/referrals_content.html", context=context, title="Рефералы · Control Center", tab="referrals")
+
+
+@login_required
+@require_POST
+def referral_review(request, referral_id: int):
+    from modules.v2.referrals.models import Referral
+    from modules.v2.referrals.services import ReferralReviewError, review_referral
+
+    if _admin_access(request) is None:
+        return _forbidden()
+    referral = get_object_or_404(Referral.objects.select_related("referrer", "referee"), pk=referral_id)
+    decision = (request.POST.get("decision") or "").strip()
+    try:
+        review_referral(actor=request.user, referral=referral, decision=decision, note=request.POST.get("note", ""), request=request)
+        messages.success(request, f"Реферал {referral.referee.username} {'засчитан' if decision == Referral.Review.OK else 'отклонён'}.")
+    except ReferralReviewError as exc:
+        messages.error(request, str(exc))
+    return redirect(_safe_next(request, reverse("control_center:referrals")))

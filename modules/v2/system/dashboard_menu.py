@@ -90,6 +90,7 @@ ACTIVE_VIEW_ALIASES = {
         "control_center:ledger",
         "control_center:moderation",
         "control_center:health",
+        "control_center:referrals",
     },
     "system_settings": {"system_config:settings"},
     "celery_tasks": {"celery_tasks:control_center", "celery_tasks:toggle_rule", "celery_tasks:run_rule_now"},

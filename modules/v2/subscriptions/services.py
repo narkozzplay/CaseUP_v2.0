@@ -57,6 +57,9 @@ class SubscriptionPurchaseQuote:
     is_upgrade: bool
     blocked_by_higher_level: bool
     message: str
+    # Referral discount (percent) already included in charge_amount; full_amount is the price without it.
+    discount_percent: int = 0
+    full_amount: Decimal | None = None
 
 FEATURE_ACCESS_OK = "ok"
 FEATURE_ACCESS_NOT_AUTHENTICATED = "not_authenticated"
@@ -435,26 +438,45 @@ def assign_user_subscription_plan(
     )
 
 
+def _referral_discount_percent(user) -> int:
+    from modules.v2.referrals.services import subscription_discount_percent
+
+    return subscription_discount_percent(user)
+
+
+def _discount_note(percent: int, full_amount: Decimal, charge_amount: Decimal) -> str:
+    if not percent:
+        return ""
+    return f" Реферальная скидка {percent}%: {charge_amount:.2f} ₽ вместо {full_amount:.2f} ₽."
+
+
 def get_subscription_purchase_quote(*, user, plan: SubscriptionPlan) -> SubscriptionPurchaseQuote:
+    from modules.v2.referrals.services import apply_discount
+
     current_subscription = None
     current_plan = None
+    discount = 0
 
     if getattr(user, "is_authenticated", False):
         current_subscription = get_active_subscription(user, family=plan.family)
         current_plan = current_subscription.plan if current_subscription is not None else None
+        discount = _referral_discount_percent(user)
 
     plan_price = plan.price_rub or Decimal("0.00")
 
     if current_plan is None:
+        charge_amount = apply_discount(plan_price, discount)
         return SubscriptionPurchaseQuote(
             plan=plan,
             current_subscription=None,
             current_plan=None,
-            charge_amount=plan_price,
+            charge_amount=charge_amount,
             is_same_plan=False,
             is_upgrade=False,
             blocked_by_higher_level=False,
-            message=f"Новый тариф: {plan_price:.2f} ₽ за {plan.billing_period_days} дн.",
+            message=f"Новый тариф: {plan_price:.2f} ₽ за {plan.billing_period_days} дн." + _discount_note(discount, plan_price, charge_amount),
+            discount_percent=discount if charge_amount != plan_price else 0,
+            full_amount=plan_price,
         )
 
     if current_plan.id == plan.id:
@@ -483,7 +505,9 @@ def get_subscription_purchase_quote(*, user, plan: SubscriptionPlan) -> Subscrip
 
     raw_delta = plan_price - (current_plan.price_rub or Decimal("0.00"))
     upgrade_delta = raw_delta if raw_delta > Decimal("0.00") else Decimal("0.00")
-    charge_amount = upgrade_delta + UPGRADE_SWITCH_FEE_RUB
+    # The referral discount applies to the price difference, not to the fixed switch fee.
+    full_amount = upgrade_delta + UPGRADE_SWITCH_FEE_RUB
+    charge_amount = apply_discount(upgrade_delta, discount) + UPGRADE_SWITCH_FEE_RUB
 
     return SubscriptionPurchaseQuote(
         plan=plan,
@@ -497,7 +521,10 @@ def get_subscription_purchase_quote(*, user, plan: SubscriptionPlan) -> Subscrip
             f"Апгрейд: {plan_price:.2f} ₽ - {(current_plan.price_rub or Decimal('0.00')):.2f} ₽ "
             f"+ {UPGRADE_SWITCH_FEE_RUB:.2f} ₽ = {charge_amount:.2f} ₽. "
             f"Срок начнётся заново на {plan.billing_period_days} дн."
+            + _discount_note(discount, full_amount, charge_amount)
         ),
+        discount_percent=discount if charge_amount != full_amount else 0,
+        full_amount=full_amount,
     )
 
 @transaction.atomic
@@ -547,6 +574,8 @@ def purchase_subscription_with_balance(*, user, plan: SubscriptionPlan):
             f"Upgraded from {quote.current_plan.code} to {plan.code} "
             f"for {charge_amount:.2f} RUB (includes switch fee)"
         )
+    if quote.discount_percent:
+        purchase_note += f"; referral discount {quote.discount_percent}% (full price {quote.full_amount:.2f} RUB)"
 
     return assign_user_subscription_plan(
         user=user,

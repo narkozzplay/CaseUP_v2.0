@@ -2458,3 +2458,101 @@
 }
 
 .tfa-codes__list code { letter-spacing: 0.06em; }
+
+/* Profile → Рефералы */
+.ref-body {
+    display: grid;
+    gap: 12px;
+    padding: 16px 18px 18px;
+}
+
+.ref-link {
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+}
+
+.ref-link__input {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: 0.86rem;
+}
+
+.ref-link .btn { flex: 0 0 auto; }
+.ref-link .btn.is-copied { filter: saturate(0.6); }
+
+.ref-text {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+.ref-earned { margin: 0; font-size: 0.9rem; }
+
+.ref-rewards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+    gap: 16px;
+}
+
+.ref-reward.is-locked .ref-meter span { background: var(--text-muted); }
+
+.ref-meter {
+    height: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.ref-meter span {
+    display: block;
+    height: 100%;
+    min-width: 2px;
+    background: var(--accent);
+}
+
+.ref-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ref-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 110px 150px 90px;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--border);
+}
+
+.ref-row:last-child { border-bottom: 0; }
+.ref-row__meta { color: var(--text-muted); font-size: 0.8rem; }
+.ref-row__bonus { text-align: right; color: var(--success); font-variant-numeric: tabular-nums; font-size: 0.86rem; }
+
+.ref-rules {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 16px 18px 18px 36px;
+    color: var(--text-soft);
+    font-size: 0.86rem;
+    line-height: 1.5;
+    list-style: disc;
+}
+
+@media (max-width: 560px) {
+    .ref-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 4px 12px;
+        padding: 10px 12px;
+    }
+
+    .ref-row > .cc-user { grid-column: 1; grid-row: 1; }
+    .ref-row__status { grid-column: 2; grid-row: 1; justify-self: end; }
+    .ref-row__meta { grid-column: 1; grid-row: 2; }
+    .ref-row__bonus { grid-column: 2; grid-row: 2; }
+    .ref-link { flex-wrap: wrap; }
+    .ref-link .btn { flex: 1 1 100%; }
+}

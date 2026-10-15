@@ -105,7 +105,7 @@
                                     </form>
                                 {% endif %}
                                 {% if plan.purchase_ui.show_amount %}
-                                    <p class="pricing-action-hint">К списанию: {% money plan.purchase_ui.quote_amount %}</p>
+                                    <p class="pricing-action-hint">К списанию: {% money plan.purchase_ui.quote_amount %}{% if plan.purchase_quote.discount_percent %} <s class="pricing-full-price">{% money plan.purchase_quote.full_amount %}</s> <span class="pricing-discount-badge" title="Реферальная скидка">−{{ plan.purchase_quote.discount_percent }}%</span>{% endif %}</p>
                                 {% endif %}
                                 <p class="pricing-action-hint">{{ plan.purchase_ui.hint }}</p>
                             </div>

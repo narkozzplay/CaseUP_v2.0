@@ -590,6 +590,15 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 50,
             },
             {
+                "key": "referrals",
+                "label_ru": "Рефералы",
+                "label_en": "Referrals",
+                "url_name": "referrals:dashboard",
+                "group": cls.Group.OVERVIEW,
+                "visibility_condition": cls.Visibility.AUTHENTICATED,
+                "sort_order": 52,
+            },
+            {
                 "key": "users_catalog",
                 "label_ru": "Пользователи",
                 "label_en": "Users Catalog",
