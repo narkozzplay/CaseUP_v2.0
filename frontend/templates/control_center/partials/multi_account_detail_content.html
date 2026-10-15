@@ -1,0 +1,106 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <a href="{% url 'control_center:multi_accounts' %}" class="back-link" data-dashboard-nav="true">← Все группы</a>
+            <span class="eyebrow">Control Center · Мульти-аккаунты</span>
+            <h1 class="cc-pagehead__title">Группа #{{ case.pk }}</h1>
+            <p class="ops-hero__text">{{ memberships|length }} аккаунта заходили с общих IP-адресов. Найдена {{ case.created_at|date:"d.m.Y H:i" }}{% if case.decided_at %}, последнее решение {{ case.decided_at|date:"d.m.Y H:i" }} ({{ case.decided_by.username|default:"—" }}){% endif %}.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Статус</dt><dd>{% if case.status == "open" %}на проверке{% elif case.status == "clean" %}чисто{% else %}абуз{% endif %}</dd></div>
+            <div><dt>Общих IP</dt><dd>{{ shared|length }}</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Аккаунты</h2><span class="ops-panel__hint">отмеченные «новый» появились после прошлого решения</span></div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead><tr><th>Аккаунт</th><th>Регистрация</th><th>Активность</th><th class="cc-num">Пополнено</th><th class="cc-num">Баланс</th><th>Общие IP</th></tr></thead>
+                <tbody>
+                    {% for m in memberships %}
+                        <tr>
+                            <td>
+                                {% include "control_center/partials/_user_cell.html" with u=m.user %}
+                                {% if m.is_new %}<span class="cc-chip cc-chip--info">новый</span>{% endif %}
+                                {% if m.is_banned %}<span class="cc-chip cc-chip--fail">забанен</span>{% endif %}
+                            </td>
+                            <td class="cc-mono">{{ m.user.date_joined|date:"d.m.Y" }}</td>
+                            <td class="cc-mono">{{ m.user.profile_v2.last_seen_at|date:"d.m.Y H:i"|default:"—" }}</td>
+                            <td class="cc-num">{{ m.topup_total|stringformat:".2f" }} ₽</td>
+                            <td class="cc-num">{{ m.user.profile_v2.balance_coins|stringformat:".2f" }} ₽</td>
+                            <td>{% for row in m.ips %}<span class="cc-sub cc-mono">{{ row.ip }} · {{ row.last_seen|date:"d.m H:i" }}</span>{% empty %}—{% endfor %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <div class="ref-rewards">
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Общие IP</h2></div>
+            <ul class="ref-list">
+                {% for row in shared %}
+                    <li class="ma-ban">
+                        <span class="cc-mono"><strong>{{ row.ip }}</strong></span>
+                        <span class="ma-ban__reason">{{ row.location|default:"Город неизвестен" }}<span class="cc-sub">всего аккаунтов на этом IP: {{ row.accounts }}</span></span>
+                        {% if row.banned %}<span class="cc-chip cc-chip--fail">в бане</span>{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+            {% if internal_referrals %}
+                <div class="ref-body">
+                    <p class="ref-text"><strong>Рефералы внутри группы:</strong>
+                        {% for r in internal_referrals %}{{ r.referrer.username }} → {{ r.referee.username }} ({{ r.get_review_display|lower }}){% if not forloop.last %}; {% endif %}{% endfor %}.
+                        При решении «Абуз» они отклоняются автоматически.</p>
+                </div>
+            {% endif %}
+        </article>
+
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">История решений</h2></div>
+            <div class="ref-body">
+                {% if case.note %}<pre class="ma-note">{{ case.note }}</pre>{% else %}<p class="ref-text">Решений по группе ещё не было.</p>{% endif %}
+            </div>
+        </article>
+    </div>
+
+    <div class="ref-rewards">
+        <form method="post" action="{% url 'control_center:multi_account_decide' case.pk %}" class="ops-panel">
+            {% csrf_token %}
+            <input type="hidden" name="decision" value="clean">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Чисто</h2><span class="cc-chip cc-chip--ok">без последствий</span></div>
+            <div class="ref-body">
+                <p class="ref-text">Аккаунты разных людей или ваши собственные, правила не нарушаются. Группа больше не будет беспокоить, пока в ней не появится новый аккаунт.</p>
+                <label class="cc-field"><span>Комментарий</span><input class="form-control" name="note" maxlength="500" placeholder="Например: братья, один компьютер"></label>
+                <div><button type="submit" class="btn btn-secondary btn-sm">Отметить как чистую</button></div>
+            </div>
+        </form>
+
+        <form method="post" action="{% url 'control_center:multi_account_decide' case.pk %}" class="ops-panel ma-abuse" onsubmit="return confirm('Забанить выбранные аккаунты?');">
+            {% csrf_token %}
+            <input type="hidden" name="decision" value="abuse">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Абуз</h2><span class="cc-chip cc-chip--fail">бан</span></div>
+            <div class="ref-body">
+                <div class="ma-checks">
+                    {% for m in memberships %}
+                        <label class="cc-field-check">
+                            <input type="checkbox" name="ban_user" value="{{ m.user_id }}"{% if m.can_manage and not m.is_banned %} checked{% endif %}{% if not m.can_manage %} disabled{% endif %}>
+                            <span>{{ m.user.profile_v2.steam_personaname|default:m.user.username }}{% if not m.can_manage %} — нет прав{% elif m.is_banned %} — уже в бане{% endif %}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+                <div class="ma-banform">
+                    <label class="cc-field"><span>Срок бана аккаунтов</span><select class="form-control" name="duration">{% for code, label, _d in duration_choices %}<option value="{{ code }}"{% if code == "30d" %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+                    <label class="cc-field"><span>Срок бана IP</span><select class="form-control" name="ip_duration">{% for code, label, _d in duration_choices %}<option value="{{ code }}"{% if code == "7d" %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+                </div>
+                <label class="cc-field-check"><input type="checkbox" name="ban_ips" value="1"><span>Заблокировать и общие IP ({{ shared|length }})</span></label>
+                <label class="cc-field"><span>Причина / комментарий</span><input class="form-control" name="note" maxlength="500" placeholder="Например: фарм бонусов промокода"></label>
+                <div><button type="submit" class="btn btn-danger btn-sm">Забанить</button></div>
+            </div>
+        </form>
+    </div>
+</section>

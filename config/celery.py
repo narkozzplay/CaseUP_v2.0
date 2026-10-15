@@ -50,6 +50,14 @@ app.conf.beat_schedule = {
         "task": "system.daily_backup",
         "schedule": crontab(hour=4, minute=15),
     },
+    "detect-multi-accounts": {
+        "task": "antifraud.detect_multi_accounts",
+        "schedule": 60 * 60.0,
+    },
+    "prune-user-ips": {
+        "task": "antifraud.prune_user_ips",
+        "schedule": 24 * 60 * 60.0,
+    },
     "reconcile-referrals": {
         "task": "referrals.reconcile",
         "schedule": 6 * 60 * 60.0,

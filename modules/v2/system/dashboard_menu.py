@@ -94,6 +94,8 @@ ACTIVE_VIEW_ALIASES = {
         "control_center:promo",
         "control_center:promo_create",
         "control_center:promo_edit",
+        "control_center:multi_accounts",
+        "control_center:multi_account_detail",
     },
     "system_settings": {"system_config:settings"},
     "celery_tasks": {"celery_tasks:control_center", "celery_tasks:toggle_rule", "celery_tasks:run_rule_now"},

@@ -1,0 +1,97 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Мульти-аккаунты</h1>
+            <p class="ops-hero__text">Аккаунты, которые за последние 30 дней заходили с одного IP. Проверьте группу: «Чисто» — всё в порядке (семья, свои аккаунты), «Абуз» — бан аккаунтов и, по желанию, их IP.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>На проверке</dt><dd{% if counts.open %} class="metric-negative"{% endif %}>{{ counts.open|default:0 }}</dd></div>
+            <div><dt>Чисто</dt><dd>{{ counts.clean|default:0 }}</dd></div>
+            <div><dt>Абуз</dt><dd>{{ counts.abuse|default:0 }}</dd></div>
+            <div><dt>Бан IP</dt><dd>{{ ip_bans|length }}</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <nav class="ma-tabs" aria-label="Статус групп">
+        {% for code, label, n in status_tabs %}
+            <a href="?status={{ code }}" class="ma-tab{% if status == code %} is-active{% endif %}" data-dashboard-nav="true">{{ label }} <b>{{ n }}</b></a>
+        {% endfor %}
+    </nav>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Группы</h2><span class="ops-panel__hint">{{ page_obj.paginator.count }}</span></div>
+        {% if cases %}
+            <ul class="ma-cases">
+                {% for case in cases %}
+                    <li class="ma-case">
+                        <a href="{% url 'control_center:multi_account_detail' case.pk %}" class="ma-case__link">
+                            <span class="ma-case__id">#{{ case.pk }}</span>
+                            <span class="ma-case__main">
+                                <span class="ma-case__members">
+                                    {% for m in case.preview_members %}<span class="ma-member{% if m.is_new %} is-new{% endif %}">{{ m.user.profile_v2.steam_personaname|default:m.user.username }}</span>{% endfor %}
+                                    {% if case.members_count > case.preview_members|length %}<span class="ma-more">+{{ case.members_count|add:"-6" }}</span>{% endif %}
+                                </span>
+                                <span class="cc-sub cc-mono">IP: {{ case.shared_ips|join:", "|truncatechars:80 }}</span>
+                            </span>
+                            <span class="ma-case__side">
+                                {% if case.status == "open" %}<span class="cc-chip cc-chip--warn">на проверке</span>{% elif case.status == "clean" %}<span class="cc-chip cc-chip--ok">чисто</span>{% else %}<span class="cc-chip cc-chip--fail">абуз</span>{% endif %}
+                                {% if case.has_new and case.status == "open" and case.decided_at %}<span class="cc-chip cc-chip--info">новый аккаунт</span>{% endif %}
+                                <span class="cc-sub">{{ case.members_count }} акк. · {{ case.updated_at|date:"d.m H:i" }}</span>
+                            </span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="security-empty">{% if status == "open" %}Групп на проверке нет — всё чисто.{% else %}Здесь пока пусто.{% endif %} Проверка идёт каждый час.</p>
+        {% endif %}
+    </article>
+    {% include "control_center/partials/_pagination.html" %}
+
+    <div class="ref-rewards">
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Баны по IP</h2><span class="ops-panel__hint">действуют: {{ ip_bans|length }}</span></div>
+            <form method="post" action="{% url 'control_center:ip_ban_create' %}" class="cc-form">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ current_path }}">
+                <div class="ma-banform">
+                    <label class="cc-field"><span>IP или диапазон</span><input class="form-control cc-mono" name="network" placeholder="95.24.1.10 или 95.24.1.0/24" required></label>
+                    <label class="cc-field"><span>Срок</span><select class="form-control" name="duration">{% for code, label, _d in duration_choices %}<option value="{{ code }}"{% if code == "7d" %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+                    <label class="cc-field ma-banform__reason"><span>Причина</span><input class="form-control" name="reason" maxlength="255" required></label>
+                </div>
+                <button type="submit" class="btn btn-danger btn-sm">Заблокировать IP</button>
+                <p class="ref-text">Admin и выше не блокируются никогда. Банить диапазоны мобильных операторов не стоит — пострадают обычные пользователи.</p>
+            </form>
+            {% if ip_bans %}
+                <ul class="ref-list">
+                    {% for ban in ip_bans %}
+                        <li class="ma-ban">
+                            <span class="cc-mono"><strong>{{ ban.network }}</strong></span>
+                            <span class="ma-ban__reason">{{ ban.reason }}<span class="cc-sub">{{ ban.created_by.username|default:"система" }}, {{ ban.created_at|date:"d.m.Y" }} · {% if ban.expires_at %}до {{ ban.expires_at|date:"d.m.Y H:i" }}{% else %}навсегда{% endif %}{% if ban.case %} · <a href="{% url 'control_center:multi_account_detail' ban.case.pk %}">группа #{{ ban.case.pk }}</a>{% endif %}</span></span>
+                            <form method="post" action="{% url 'control_center:ip_ban_lift' ban.pk %}" class="cc-inline-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ current_path }}">
+                                <button type="submit" class="btn btn-ghost btn-sm">Снять</button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </article>
+
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Общие сети</h2><span class="ops-panel__hint">не связывают аккаунты</span></div>
+            <div class="ref-body">
+                <p class="ref-text">IP, с которых заходит много разных людей (мобильные операторы, общежития, офисы). Такие адреса не считаются признаком мульти-аккаунта.</p>
+                {% if shared_networks %}
+                    <ul class="ma-shared">{% for ip, n in shared_networks %}<li><span class="cc-mono">{{ ip }}</span><span class="cc-sub">{{ n }} акк.</span></li>{% endfor %}</ul>
+                {% else %}
+                    <p class="ref-text">Пока нет.</p>
+                {% endif %}
+            </div>
+        </article>
+    </div>
+</section>

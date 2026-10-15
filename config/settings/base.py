@@ -85,6 +85,7 @@ PROJECT_APPS = [
     "modules.v2.payments.apps.PaymentsConfig",
     "modules.v2.referrals.apps.ReferralsConfig",
     "modules.v2.promo.apps.PromoConfig",
+    "modules.v2.antifraud.apps.AntifraudConfig",
     "modules.v2.store.apps.StoreConfig",
     "modules.v2.web_constructor.apps.WebConstructorConfig",
 ]
@@ -103,6 +104,7 @@ MIDDLEWARE = [
     "frontend.middleware.CustomForbiddenPageMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "modules.v2.antifraud.middleware.IpBanMiddleware",
     "modules.v2.control_center.middleware.ActivityContextMiddleware",
     "modules.v2.accounts.middleware.UserSessionMiddleware",
     "modules.v2.accounts.middleware.TwoFactorMiddleware",
@@ -378,6 +380,12 @@ REFERRAL_TURNOVER_MAX_PERCENT = int(os.getenv("REFERRAL_TURNOVER_MAX_PERCENT", "
 REFERRAL_COOKIE_DAYS = int(os.getenv("REFERRAL_COOKIE_DAYS", "30"))
 # Test-mode YooKassa payments do not qualify referrals unless this is on (useful on a test stand).
 REFERRAL_COUNT_TEST_PAYMENTS = os.getenv("REFERRAL_COUNT_TEST_PAYMENTS", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+# Multi-account detection: accounts that used one IP within the window form a group for review;
+# an IP shared by more accounts than the limit is treated as a public network (operator NAT) and ignored.
+MULTI_ACCOUNT_WINDOW_DAYS = int(os.getenv("MULTI_ACCOUNT_WINDOW_DAYS", "30"))
+MULTI_ACCOUNT_SHARED_IP_LIMIT = int(os.getenv("MULTI_ACCOUNT_SHARED_IP_LIMIT", "8"))
+USER_IP_RETENTION_DAYS = int(os.getenv("USER_IP_RETENTION_DAYS", "180"))
 
 # Promo codes: "only new accounts" means registered within this many days; test-mode payments do not
 # trigger top-up bonuses unless enabled.

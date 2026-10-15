@@ -11,6 +11,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db.models import Count, Q, Sum
 from django.http import HttpResponse, HttpResponseForbidden
@@ -20,6 +21,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from modules.v2.accounts.models import TwoFactorAuth
+from modules.v2.antifraud.services import user_ip_history
 from modules.v2.accounts.sessions import active_sessions
 from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserProfile, UserRole, VerificationRequest
 from modules.v2.profiles.presentation import get_profile_avatar_url, get_profile_display_name
@@ -382,6 +384,8 @@ def user_detail(request, user_id: int):
         "verification_requests": VerificationRequest.objects.filter(user=target).order_by("-created_at")[:5],
         "target_sessions": list(active_sessions(target)[:10]),
         "target_two_factor": TwoFactorAuth.objects.filter(user=target, confirmed_at__isnull=False).first(),
+        "target_ips": user_ip_history(target),
+        "target_cases": list(target.multi_account_cases.order_by("-updated_at")[:5]),
     }
     return _render(
         request,
@@ -1189,3 +1193,164 @@ def promo_activation_cancel(request, activation_id: int):
     except PromoError as exc:
         messages.error(request, str(exc))
     return redirect(_safe_next(request, reverse("control_center:promo_edit", args=[activation.promo_id])))
+
+
+# --------------------------------------------------------------------------- multi-accounts & IP bans
+
+MULTI_ACCOUNT_PAGE_SIZE = 30
+
+
+@login_required
+def multi_accounts(request):
+    from django.core.cache import cache as django_cache
+
+    from modules.v2.antifraud.models import IpBan, MultiAccountCase
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    status = (request.GET.get("status") or "open").strip()
+    qs = MultiAccountCase.objects.annotate(members_count=Count("memberships"))
+    if status in MultiAccountCase.Status.values:
+        qs = qs.filter(status=status)
+    else:
+        status = "all"
+    page_obj = Paginator(qs.order_by("-updated_at", "-id"), MULTI_ACCOUNT_PAGE_SIZE).get_page(request.GET.get("page") or 1)
+    cases = list(page_obj)
+    preview = {}
+    if cases:
+        from modules.v2.antifraud.models import MultiAccountMember
+
+        for membership in MultiAccountMember.objects.filter(case__in=cases).select_related("user", "user__profile_v2").order_by("added_at", "id"):
+            preview.setdefault(membership.case_id, []).append(membership)
+    for case in cases:
+        case.preview_members = preview.get(case.pk, [])[:6]
+        case.has_new = any(member.is_new for member in preview.get(case.pk, []))
+    counts = dict(MultiAccountCase.objects.values("status").annotate(n=Count("id")).values_list("status", "n"))
+    context = {
+        "role_access": role_access,
+        "page_obj": page_obj,
+        "cases": cases,
+        "status": status,
+        "status_tabs": [("open", "На проверке", counts.get("open", 0)), ("clean", "Чисто", counts.get("clean", 0)), ("abuse", "Абуз", counts.get("abuse", 0)), ("all", "Все", sum(counts.values()))],
+        "counts": counts,
+        "ip_bans": list(IpBan.objects.active().select_related("created_by", "case")[:50]),
+        "shared_networks": django_cache.get("antifraud:shared-networks") or [],
+        "duration_choices": BAN_DURATION_CHOICES,
+        "pagination_query": _querystring(request),
+        "current_path": request.get_full_path(),
+    }
+    return _render(request, partial="control_center/partials/multi_accounts_content.html", context=context, title="Мульти-аккаунты · Control Center", tab="multi_accounts")
+
+
+@login_required
+def multi_account_detail(request, case_id: int):
+    from modules.v2.accounts.geoip import lookup
+    from modules.v2.antifraud.models import IpBan, MultiAccountCase, UserIp
+    from modules.v2.payments.models import Payment
+    from modules.v2.profiles.rbac import can_manage_user
+    from modules.v2.referrals.models import Referral
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    case = get_object_or_404(MultiAccountCase.objects.select_related("decided_by"), pk=case_id)
+    memberships = list(case.memberships.select_related("user", "user__profile_v2").order_by("added_at", "id"))
+    user_ids = [membership.user_id for membership in memberships]
+    topups = dict(
+        Payment.objects.filter(user_id__in=user_ids, status=Payment.Status.SUCCEEDED, is_test=False)
+        .values("user_id").annotate(total=Sum("amount")).values_list("user_id", "total")
+    )
+    banned = set(UserBan.objects.active().filter(user_id__in=user_ids).values_list("user_id", flat=True))
+    ips_by_user = {}
+    for row in UserIp.objects.filter(user_id__in=user_ids, ip__in=case.shared_ips or []).order_by("-last_seen"):
+        ips_by_user.setdefault(row.user_id, []).append(row)
+    for membership in memberships:
+        membership.topup_total = topups.get(membership.user_id) or Decimal("0")
+        membership.is_banned = membership.user_id in banned
+        membership.can_manage = can_manage_user(request.user, membership.user)
+        membership.ips = ips_by_user.get(membership.user_id, [])
+    shared = []
+    for ip in case.shared_ips or []:
+        city, country = lookup(ip)
+        shared.append({
+            "ip": ip,
+            "location": ", ".join(part for part in (city, country) if part),
+            "accounts": UserIp.objects.filter(ip=ip).count(),
+            "banned": IpBan.objects.active().filter(network__in=[ip, f"{ip}/32", f"{ip}/128"]).exists(),
+        })
+    referrals = list(Referral.objects.filter(referrer_id__in=user_ids, referee_id__in=user_ids).select_related("referrer", "referee"))
+    context = {
+        "role_access": role_access,
+        "case": case,
+        "memberships": memberships,
+        "shared": shared,
+        "internal_referrals": referrals,
+        "duration_choices": BAN_DURATION_CHOICES,
+        "current_path": request.get_full_path(),
+    }
+    return _render(request, partial="control_center/partials/multi_account_detail_content.html", context=context, title=f"Группа #{case.pk} · Мульти-аккаунты", tab="multi_accounts")
+
+
+@login_required
+@require_POST
+def multi_account_decide(request, case_id: int):
+    from modules.v2.antifraud.models import MultiAccountCase
+    from modules.v2.antifraud.services import DecisionError, mark_abuse, mark_clean
+
+    if _admin_access(request) is None:
+        return _forbidden()
+    case = get_object_or_404(MultiAccountCase, pk=case_id)
+    decision = request.POST.get("decision", "")
+    note = (request.POST.get("note") or "").strip()[:500]
+    try:
+        if decision == "clean":
+            mark_clean(actor=request.user, case=case, note=note, request=request)
+            messages.success(request, f"Группа #{case.pk} отмечена как чистая. Если в ней появится новый аккаунт — придёт уведомление.")
+        elif decision == "abuse":
+            result = mark_abuse(
+                actor=request.user, case=case, user_ids=request.POST.getlist("ban_user"), duration=request.POST.get("duration", "7d"),
+                ban_ips=request.POST.get("ban_ips") == "1", ip_duration=request.POST.get("ip_duration", "7d"), note=note, request=request,
+            )
+            text = f"Группа #{case.pk}: забанено аккаунтов — {len(result['banned'])}, IP — {len(result['ip_bans'])}."
+            if result["skipped"]:
+                text += " Пропущены (нет прав): " + ", ".join(result["skipped"])
+            messages.success(request, text)
+        else:
+            messages.error(request, "Неизвестное решение.")
+    except (DecisionError, UserManagementError) as exc:
+        messages.error(request, str(exc))
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+    return redirect("control_center:multi_account_detail", case_id=case.pk)
+
+
+@login_required
+@require_POST
+def ip_ban_create(request):
+    from modules.v2.antifraud.services import DecisionError, create_ip_ban
+
+    if _admin_access(request) is None:
+        return _forbidden()
+    try:
+        ban = create_ip_ban(actor=request.user, network=request.POST.get("network", ""), reason=request.POST.get("reason", ""), duration=request.POST.get("duration", "7d"), request=request)
+        messages.success(request, f"IP {ban.network} заблокирован.")
+    except DecisionError as exc:
+        messages.error(request, str(exc))
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+    return redirect(_safe_next(request, reverse("control_center:multi_accounts")))
+
+
+@login_required
+@require_POST
+def ip_ban_lift(request, ban_id: int):
+    from modules.v2.antifraud.models import IpBan
+    from modules.v2.antifraud.services import lift_ip_ban
+
+    if _admin_access(request) is None:
+        return _forbidden()
+    ban = get_object_or_404(IpBan, pk=ban_id, lifted_at__isnull=True)
+    lift_ip_ban(actor=request.user, ban=ban, request=request)
+    messages.success(request, f"Бан IP {ban.network} снят.")
+    return redirect(_safe_next(request, reverse("control_center:multi_accounts")))
