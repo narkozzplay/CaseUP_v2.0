@@ -681,8 +681,8 @@ class DashboardMenuItem(models.Model):
             },
             {
                 "key": "steam_investments",
-                "label_ru": "Steam Investments",
-                "label_en": "Steam Investments",
+                "label_ru": "Портфель",
+                "label_en": "Portfolio",
                 "url_name": "steam_trading:investments",
                 "group": cls.Group.STEAM,
                 "visibility_condition": cls.Visibility.STEAM_INVESTOR_ACCESS,
@@ -717,8 +717,8 @@ class DashboardMenuItem(models.Model):
             },
             {
                 "key": "celery_tasks",
-                "label_ru": "Celery Tasks",
-                "label_en": "Celery Tasks",
+                "label_ru": "Автообновление цен",
+                "label_en": "Price auto-update",
                 "url_name": "celery_tasks:control_center",
                 "group": cls.Group.ADMIN,
                 "visibility_condition": cls.Visibility.ADMIN_PLUS,
@@ -735,8 +735,8 @@ class DashboardMenuItem(models.Model):
             },
             {
                 "key": "subscription_pricing",
-                "label_ru": "Subscription Pricing",
-                "label_en": "Subscription Pricing",
+                "label_ru": "Цены подписок",
+                "label_en": "Subscription pricing",
                 "url_name": "subscriptions:pricing_dashboard",
                 "group": cls.Group.ADMIN,
                 "visibility_condition": cls.Visibility.ADMIN_PLUS,

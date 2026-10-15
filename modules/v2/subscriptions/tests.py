@@ -258,9 +258,28 @@ class SubscriptionViewsTests(TestCase):
         response = self.client.get(reverse("subscriptions:pricing_dashboard"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Subscription control center")
-        self.assertContains(response, "Site-планы")
-        self.assertContains(response, "Farmer-планы")
+        self.assertContains(response, "Цены подписок")
+        self.assertContains(response, "Тарифы сайта")
+        self.assertContains(response, "Тарифы фермы")
+        self.assertContains(response, "Как посчитано")
+
+        for tab, marker in (("formula", "Сохранить формулу"), ("site", "Функции тарифов сайта"), ("farmer", "Функции тарифов фермы")):
+            response = self.client.get(reverse("subscriptions:pricing_dashboard"), {"tab": tab})
+            self.assertEqual(response.status_code, 200, tab)
+            self.assertContains(response, marker)
+
+    def test_pricing_dashboard_saves_formula_and_returns_to_its_tab(self):
+        User.objects.create_user(username="pricing_admin", password="StrongPass123", is_staff=True, is_superuser=True)
+        self.client.login(username="pricing_admin", password="StrongPass123")
+        from .forms import SubscriptionPricingConfigForm
+        from .services import get_subscription_pricing_config
+
+        data = {name: str(value) for name, value in SubscriptionPricingConfigForm(instance=get_subscription_pricing_config()).initial.items()}
+        data.update({"form_scope": "config", "site_base_price_rub": "155.00"})
+        response = self.client.post(reverse("subscriptions:pricing_dashboard"), data)
+
+        self.assertRedirects(response, f"{reverse('subscriptions:pricing_dashboard')}?tab=formula", fetch_redirect_response=False)
+        self.assertEqual(get_subscription_pricing_config().site_base_price_rub, Decimal("155.00"))
 
     def test_pricing_dashboard_requires_admin_plus(self):
         user = User.objects.create_user(username="viewer", password="StrongPass123")

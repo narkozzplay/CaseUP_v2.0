@@ -24,24 +24,24 @@ class SubscriptionPricingConfigForm(forms.ModelForm):
             for field_name in fields
         }
         labels = {
-            "site_base_price_rub": "Site base price, ₽",
-            "site_level_step_rub": "Site level step, ₽",
-            "farmer_base_price_rub": "Farmer base price, ₽",
-            "farmer_level_step_rub": "Farmer level step, ₽",
-            "reduced_commission_reference_turnover_rub": "Reference turnover, ₽",
-            "reduced_commission_capture_ratio_percent": "Capture ratio, %",
-            "global_price_floor_rub": "Global floor, ₽",
-            "reasonable_delta_percent": "Reasonable delta, %",
+            "site_base_price_rub": "Базовая цена, ₽",
+            "site_level_step_rub": "Надбавка за уровень, ₽",
+            "farmer_base_price_rub": "Базовая цена, ₽",
+            "farmer_level_step_rub": "Надбавка за уровень, ₽",
+            "reduced_commission_reference_turnover_rub": "Типичный оборот фермера, ₽",
+            "reduced_commission_capture_ratio_percent": "Доля выгоды в цене, %",
+            "global_price_floor_rub": "Минимальная цена, ₽",
+            "reasonable_delta_percent": "Допустимое отклонение, %",
         }
         help_texts = {
-            "site_base_price_rub": "Стартовая часть формулы для всей site-линейки.",
-            "site_level_step_rub": "Сколько автоматически добавляется за каждый следующий site-уровень.",
-            "farmer_base_price_rub": "Стартовая часть формулы для farmer-линейки.",
-            "farmer_level_step_rub": "Надбавка за следующий farmer-план внутри линейки.",
-            "reduced_commission_reference_turnover_rub": "Опорный оборот для расчета ценности reduced commission.",
-            "reduced_commission_capture_ratio_percent": "Какая доля экономии на комиссии переводится в рекомендованную цену.",
-            "global_price_floor_rub": "Нижняя граница рекомендованной цены для всех тарифов.",
-            "reasonable_delta_percent": "Порог, в пределах которого цена считается нормальной.",
+            "site_base_price_rub": "С неё начинается рекомендованная цена первого тарифа сайта.",
+            "site_level_step_rub": "Сколько добавляется к рекомендованной цене за каждый следующий тариф сайта.",
+            "farmer_base_price_rub": "С неё начинается рекомендованная цена первого тарифа фермы.",
+            "farmer_level_step_rub": "Сколько добавляется за каждый следующий тариф фермы.",
+            "reduced_commission_reference_turnover_rub": "Месячный оборот, по которому оценивается выгода от пониженной комиссии.",
+            "reduced_commission_capture_ratio_percent": "Какую часть сэкономленной комиссии закладывать в цену тарифа.",
+            "global_price_floor_rub": "Рекомендованная цена любого тарифа не опускается ниже этой суммы.",
+            "reasonable_delta_percent": "Если цена отличается от рекомендованной не больше чем на столько, она «в норме».",
         }
 
 

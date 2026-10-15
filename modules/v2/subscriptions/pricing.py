@@ -125,13 +125,13 @@ def evaluate_plan_pricing(plan: SubscriptionPlan) -> PlanPricingEvaluation:
     threshold = _q_percent(pricing_config.reasonable_delta_percent)
     if delta_percent < -threshold:
         status = STATUS_UNDERPRICED
-        label = "price is underpriced"
+        label = "цена занижена"
     elif delta_percent > threshold:
         status = STATUS_OVERPRICED
-        label = "price is overpriced"
+        label = "цена завышена"
     else:
         status = STATUS_REASONABLE
-        label = "price is reasonable"
+        label = "цена в норме"
 
     explanation = " ".join(f"{factor.label}: {factor.explanation}" for factor in factors)
 

@@ -164,11 +164,11 @@ class SteamTradingTests(TestCase):
         response = self.client.get(reverse("steam_trading:investments"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Recoil Case")
-        self.assertContains(response, "cost basis доступен с Level 4")
-        self.assertContains(response, "Инвестиционный портфель")
-        self.assertContains(response, "Активные закупки")
-        self.assertContains(response, "Steam Investments")
-        self.assertContains(response, "Hold")
+        self.assertContains(response, "Стоимость позиций и прибыль считаются на тарифе")
+        self.assertContains(response, "Мой портфель")
+        self.assertContains(response, "Можно продать")
+        self.assertContains(response, "Инвестиции")
+        self.assertContains(response, "В трейд-бане")
 
     def test_admin_cannot_see_other_users_purchases_in_personal_portfolio(self):
         owner = self._make_farmer("farmer_owner")
@@ -524,9 +524,9 @@ class SteamTradingTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "steam_trading/investments.html")
-        self.assertContains(response, "Инвестиционный портфель")
-        self.assertContains(response, "Активные закупки")
-        self.assertContains(response, "Расширенная аналитика портфеля закрыта тарифом")
+        self.assertContains(response, "Мой портфель")
+        self.assertContains(response, "Можно продать")
+        self.assertContains(response, "Аналитика портфеля")
         self.assertFalse(response.context["investment_can_view_advanced_analytics"])
         self.assertIn("analytics", response.context)
 
@@ -540,8 +540,8 @@ class SteamTradingTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["investment_can_view_advanced_analytics"])
-        self.assertContains(response, "Общая сумма закупок")
-        self.assertContains(response, "Лучшие позиции")
+        self.assertContains(response, "Заработано на продажах")
+        self.assertContains(response, "Растут сильнее всего")
 
 
     def test_investments_page_handles_missing_catalog_price_and_closed_position(self):
@@ -574,7 +574,7 @@ class SteamTradingTests(TestCase):
         response = self.client.get(reverse("steam_trading:investments"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Цена каталога не задана")
+        self.assertContains(response, "Нет цены в каталоге")
         self.assertContains(response, active_purchase.item.group_name)
         self.assertEqual(len(response.context["analytics"].active_rows), 1)
         self.assertEqual(response.context["analytics"].active_rows[0].purchase.id, active_purchase.id)
@@ -587,7 +587,7 @@ class SteamTradingTests(TestCase):
         response = self.client.get(reverse("steam_trading:investments"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Активных закупок пока нет")
+        self.assertContains(response, "С чего начать")
 
     def test_investments_search_without_results_returns_404_page(self):
         user = self._make_farmer("farmer_invest_search_404")
@@ -706,7 +706,8 @@ class SteamTradingTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, reverse("steam_trading:sell", args=[purchase.id]))
         self.assertContains(response, reverse("steam_catalog:detail", args=[item.id]))
-        self.assertContains(response, "TG · Upgrade")
+        # Without the Telegram feature there is no TG button at all (no dead "upgrade" buttons in every row).
+        self.assertNotContains(response, reverse("steam_trading:send_tg", args=[purchase.id]))
 
     @patch("modules.v2.steam_trading.views.send_investment_purchase_notification")
     def test_send_tg_requires_level_3_subscription(self, send_mock):

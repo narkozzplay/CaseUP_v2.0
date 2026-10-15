@@ -88,19 +88,19 @@ STATUS_PARTIAL = "partial"
 STATUS_CLOSED = "closed"
 
 STATUS_LABELS = {
-    STATUS_HOLD: "В hold",
-    STATUS_READY: "Доступно к продаже",
-    STATUS_PARTIAL: "Продано частично",
+    STATUS_HOLD: "В трейд-бане",
+    STATUS_READY: "Можно продать",
+    STATUS_PARTIAL: "Частично продано",
     STATUS_CLOSED: "Закрыто",
 }
 
 FILTER_STATUS_ALL = "all"
 
 STATUS_FILTER_OPTIONS = (
-    (FILTER_STATUS_ALL, "Все статусы"),
-    (STATUS_HOLD, "Только hold"),
-    (STATUS_READY, "Только ready"),
-    (STATUS_PARTIAL, "Только partial"),
+    (FILTER_STATUS_ALL, "Все"),
+    (STATUS_READY, "Можно продать"),
+    (STATUS_HOLD, "В трейд-бане"),
+    (STATUS_PARTIAL, "Частично проданы"),
 )
 
 SORT_PURCHASED_DESC = "purchased_desc"
@@ -113,12 +113,12 @@ SORT_REMAINING_DESC = "remaining_desc"
 
 SORT_OPTIONS = (
     (SORT_PURCHASED_DESC, "Сначала новые"),
-    (SORT_UNLOCK_ASC, "Ближайшая разблокировка"),
-    (SORT_PNL_DESC, "PnL ₽: больше сверху"),
-    (SORT_PNL_ASC, "PnL ₽: меньше сверху"),
-    (SORT_PNL_PERCENT_DESC, "PnL %: больше сверху"),
-    (SORT_VALUE_DESC, "Крупнейшие позиции"),
-    (SORT_REMAINING_DESC, "Больше остаток"),
+    (SORT_UNLOCK_ASC, "Скоро разблокируются"),
+    (SORT_PNL_DESC, "Больше прибыль, ₽"),
+    (SORT_PNL_ASC, "Больше убыток, ₽"),
+    (SORT_PNL_PERCENT_DESC, "Выше доходность, %"),
+    (SORT_VALUE_DESC, "Дороже сейчас"),
+    (SORT_REMAINING_DESC, "Больше штук на руках"),
 )
 
 

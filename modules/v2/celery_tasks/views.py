@@ -21,18 +21,33 @@ def _control_center_access(user) -> bool:
 
 
 def _build_control_center_context(*, role_access, form, edit_rule=None):
-    rules = PriceAutoUpdateRule.objects.order_by("category")
+    rules = list(PriceAutoUpdateRule.objects.order_by("category"))
     recent_logs = (
         PriceAutoUpdateRunLog.objects
         .select_related("rule")
         .order_by("-started_at", "-id")[:20]
     )
+    last_success = (
+        PriceAutoUpdateRunLog.objects.filter(status=PriceAutoUpdateRule.Status.SUCCESS)
+        .order_by("-finished_at")
+        .values_list("finished_at", flat=True)
+        .first()
+    )
+    free_categories = [code for code, _label in form.fields["category"].choices if code]
     return {
+        "cc_tab": "celery",
         "role_access": role_access,
         "form": form,
         "rules": rules,
         "recent_logs": recent_logs,
         "current_rule": edit_rule,
+        "can_add_rule": bool(edit_rule) or bool(free_categories),
+        "summary": {
+            "total": len(rules),
+            "enabled": sum(1 for rule in rules if rule.is_enabled),
+            "failing": sum(1 for rule in rules if rule.last_status == PriceAutoUpdateRule.Status.ERROR),
+            "last_success_at": last_success,
+        },
     }
 
 
@@ -42,7 +57,7 @@ def _render_control_center(request, *, role_access, form, edit_rule=None, curren
         full_template="celery_tasks/control_center.html",
         partial_template="celery_tasks/partials/control_center_content.html",
         context=_build_control_center_context(role_access=role_access, form=form, edit_rule=edit_rule),
-        page_title=build_page_title("Celery Tasks"),
+        page_title=build_page_title("Автообновление цен"),
         active_menu_key="celery_tasks",
         current_url=current_url,
     )
@@ -98,7 +113,7 @@ def control_center(request):
             elif not rule.is_enabled:
                 clear_rule_schedule(rule)
 
-            messages.success(request, f"Правило сохранено: {rule.category}")
+            messages.success(request, f"Правило сохранено: {rule.category_label}")
             if request.headers.get("X-Dashboard-Partial") == "1":
                 return _render_control_center(
                     request,
@@ -128,10 +143,10 @@ def toggle_rule(request, rule_id: int):
 
     if rule.is_enabled:
         rebuild_rule_schedule(rule)
-        messages.success(request, f"Правило включено: {rule.category}")
+        messages.success(request, f"Автообновление включено: {rule.category_label}")
     else:
         clear_rule_schedule(rule)
-        messages.success(request, f"Правило выключено: {rule.category}")
+        messages.success(request, f"Автообновление выключено: {rule.category_label}")
 
     if request.headers.get("X-Dashboard-Partial") == "1":
         return _render_control_center(
@@ -154,7 +169,7 @@ def run_rule_now(request, rule_id: int):
 
     rule = get_object_or_404(PriceAutoUpdateRule, pk=rule_id)
     run_price_auto_update_rule_task.delay(rule.id, triggered_by="manual")
-    messages.success(request, f"Правило отправлено в очередь: {rule.category}")
+    messages.success(request, f"Обновление цен запущено: {rule.category_label}. Результат появится в истории через пару минут.")
 
     if request.headers.get("X-Dashboard-Partial") == "1":
         return _render_control_center(

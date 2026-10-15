@@ -1,0 +1,8 @@
+{# expects: field (bound form field); optional: label (overrides field.label), hint (overrides help_text), recommended (price), wide #}
+<label class="cc-field pricing-field{% if wide %} pricing-field--wide{% endif %}{% if field.errors %} has-error{% endif %}" for="{{ field.id_for_label }}">
+    <span>{{ label|default:field.label }}</span>
+    {{ field }}
+    {% if recommended %}<small class="form-help pricing-field__rec">Рекомендуемая по формуле: {% money recommended %}</small>{% endif %}
+    {% if hint %}<small class="form-help">{{ hint }}</small>{% elif field.help_text %}<small class="form-help">{{ field.help_text }}</small>{% endif %}
+    {{ field.errors }}
+</label>
