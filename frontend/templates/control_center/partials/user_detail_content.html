@@ -105,6 +105,27 @@
 
             <article class="ops-panel">
                 <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">IP-адреса</h2>
+                    {% for c in target_cases %}<a href="{% url 'control_center:multi_account_detail' c.pk %}" class="cc-chip {% if c.status == 'abuse' %}cc-chip--fail{% elif c.status == 'open' %}cc-chip--warn{% else %}cc-chip--ok{% endif %}">мульти-аккаунт #{{ c.pk }}</a>{% endfor %}
+                    <span class="ops-panel__hint">{{ target_ips|length }}</span>
+                </div>
+                {% if target_ips %}
+                    <ul class="ref-list">
+                        {% for row in target_ips %}
+                            <li class="ma-ban">
+                                <span class="cc-mono"><strong>{{ row.ip }}</strong></span>
+                                <span class="ma-ban__reason">{{ row.location|default:"—" }}<span class="cc-sub">{{ row.first_seen|date:"d.m.Y" }} — {{ row.last_seen|date:"d.m.Y H:i" }}</span></span>
+                                {% if row.others %}<span class="cc-chip cc-chip--warn" title="Другие аккаунты с этого IP">ещё {{ row.others }} акк.</span>{% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="security-empty">IP-адресов пока нет.</p>
+                {% endif %}
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
                     <h2 class="ops-panel__title">История действий команды</h2>
                     <a href="{% url 'control_center:audit' %}?q={{ target.username|urlencode }}" class="ops-panel__link">В журнале →</a>
                     <a href="{% url 'control_center:activity' %}?user={{ target.pk }}" class="ops-panel__link">Все действия в логах →</a>

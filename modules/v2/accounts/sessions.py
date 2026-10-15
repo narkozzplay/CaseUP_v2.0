@@ -78,8 +78,15 @@ def register_login(request, user) -> UserSession | None:
         defaults={**fields, "user": user, "login_method": _login_method(user), "created_at": now, "last_seen_at": now, "ended_at": None, "ended_reason": ""},
     )
     _remember_touch(session_key)
+    _record_ip(user.pk, fields["ip_address"])
     _notify_if_new_device(record)
     return record
+
+
+def _record_ip(user_id, ip) -> None:
+    from modules.v2.antifraud.services import record_ip
+
+    record_ip(user_id, ip)
 
 
 def _notify_if_new_device(record: UserSession) -> None:
@@ -124,7 +131,9 @@ def touch(request) -> None:
     now = timezone.now()
     if record is None:
         # A session that started before session tracking existed (or after a key rotation).
-        UserSession.objects.create(session_key=session_key, user=request.user, created_at=now, last_seen_at=now, **_session_fields(request))
+        fields = _session_fields(request)
+        UserSession.objects.create(session_key=session_key, user=request.user, created_at=now, last_seen_at=now, **fields)
+        _record_ip(request.user.pk, fields["ip_address"])
         return
     if record.ended_at is not None or record.user_id != request.user.pk:
         return
@@ -134,6 +143,7 @@ def touch(request) -> None:
         city, country = lookup(ip)
         updates.update(last_ip=ip, city=city or record.city, country=country or record.country)
     UserSession.objects.filter(pk=record.pk).update(**updates)
+    _record_ip(record.user_id, ip)
 
 
 def end_on_logout(request) -> None:
