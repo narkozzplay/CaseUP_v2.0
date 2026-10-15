@@ -1,0 +1,36 @@
+
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ("control_center", "0004_activity_log"),
+    ]
+
+    operations = [
+        migrations.AlterField(
+            model_name="adminauditlog",
+            name="action",
+            field=models.CharField(
+                choices=[
+                    ("user_ban", "User banned"),
+                    ("user_unban", "User unbanned"),
+                    ("user_role", "Role changed"),
+                    ("user_logout", "Sessions ended"),
+                    ("user_2fa_reset", "2FA reset"),
+                    ("user_note", "Admin note"),
+                    ("site_maintenance", "Maintenance mode"),
+                    ("site_registration", "Registration"),
+                    ("module_toggle", "Module toggled"),
+                    ("catalog_approve", "Catalog item approved"),
+                    ("catalog_disable", "Catalog item disabled"),
+                    ("settings_update", "Settings updated"),
+                    ("cache_clear", "Cache cleared"),
+                    ("payment_recheck", "Payment rechecked"),
+                ],
+                db_index=True,
+                max_length=32,
+            ),
+        ),
+    ]

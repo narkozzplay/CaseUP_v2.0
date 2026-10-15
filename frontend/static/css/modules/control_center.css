@@ -2314,3 +2314,147 @@
     .security-session__icon { width: 36px; height: 36px; }
     .security-session .cc-inline-form { grid-column: 2; }
 }
+
+/* Profile → Безопасность: two-factor authentication */
+.tfa__body {
+    display: grid;
+    gap: 14px;
+    padding: 16px 18px 18px;
+}
+
+.tfa__body > .cc-inline-form { justify-self: start; }
+
+.tfa-text {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+.tfa-text--warn { color: var(--warning, #f5b74f); }
+
+.tfa-alert {
+    padding: 12px 14px;
+    border: 1px solid var(--accent);
+    background: var(--accent-soft);
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+.tfa-alert strong { display: block; margin-bottom: 2px; }
+
+.tfa-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+    gap: 10px;
+    margin: 0;
+}
+
+.tfa-facts div {
+    display: grid;
+    gap: 2px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    background: var(--surface-2, rgba(255, 255, 255, 0.02));
+}
+
+.tfa-facts dt { color: var(--text-muted); font-size: 0.74rem; }
+.tfa-facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.tfa-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+    gap: 14px;
+    align-items: end;
+}
+
+.tfa-inline {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.tfa-inline__label { color: var(--text-muted); font-size: 0.78rem; }
+
+.tfa-inline__row {
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+}
+
+.tfa-inline__code {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 220px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+}
+
+.tfa-steps {
+    display: grid;
+    gap: 16px;
+    margin: 0;
+    padding-left: 1.3em;
+    list-style: decimal;
+}
+
+.tfa-steps > li { padding-left: 4px; }
+.tfa-steps > li > strong,
+.tfa-steps > li > .tfa-text { display: block; }
+.tfa-steps > li > * + * { margin-top: 8px; }
+.tfa-steps > li::marker { color: var(--accent); font-weight: 700; }
+
+.tfa-qr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+}
+
+.tfa-qr img {
+    display: block;
+    width: 200px;
+    height: 200px;
+    background: #fff;
+    image-rendering: pixelated;
+}
+
+.tfa-qr__manual {
+    display: grid;
+    gap: 6px;
+    flex: 1 1 220px;
+    min-width: 0;
+}
+
+.tfa-secret {
+    display: block;
+    padding: 8px 10px;
+    border: 1px dashed var(--border);
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+
+.tfa-codes {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid var(--success, #3ecf8e);
+    background: color-mix(in srgb, var(--success, #3ecf8e) 8%, transparent);
+}
+
+.tfa-codes__title { margin: 0; }
+
+.tfa-codes__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 6px 16px;
+    margin: 0;
+    padding-left: 1.6em;
+    list-style: decimal;
+    font-size: 1rem;
+    user-select: all;
+}
+
+.tfa-codes__list code { letter-spacing: 0.06em; }

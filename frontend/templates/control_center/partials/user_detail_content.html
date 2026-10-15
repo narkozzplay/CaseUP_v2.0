@@ -91,6 +91,7 @@
             <article class="ops-panel">
                 <div class="ops-panel__head">
                     <h2 class="ops-panel__title">Активные сеансы</h2>
+                    {% if target_two_factor %}<span class="cc-chip cc-chip--ok" title="Включена {{ target_two_factor.confirmed_at|date:'d.m.Y H:i' }}, резервных кодов: {{ target_two_factor.backup_codes_left }}">2FA включена</span>{% else %}<span class="cc-chip cc-chip--warn">без 2FA</span>{% endif %}
                     <span class="ops-panel__hint">{{ target_sessions|length }}</span>
                 </div>
                 <ul class="security-sessions">
@@ -167,6 +168,15 @@
                             <input type="hidden" name="next" value="{{ next_url }}">
                             <button type="submit" class="btn btn-ghost btn-sm btn-block">Завершить все сессии</button>
                         </form>
+
+                        {% if target_two_factor %}
+                            <form method="post" action="{% url 'control_center:user_action' target.pk %}" class="cc-form" onsubmit="return confirm('Сбросить двухфакторную защиту? Делайте это, только если убедились, что обращается владелец аккаунта.');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="reset_2fa">
+                                <input type="hidden" name="next" value="{{ next_url }}">
+                                <button type="submit" class="btn btn-ghost btn-sm btn-block">Сбросить 2FA</button>
+                            </form>
+                        {% endif %}
                     </div>
                 {% else %}
                     <p class="ops-empty">{% if is_self %}Это ваш аккаунт: бан и смена роли самому себе недоступны.{% else %}У этого пользователя роль не ниже вашей, управлять им нельзя.{% endif %}</p>

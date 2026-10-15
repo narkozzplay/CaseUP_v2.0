@@ -146,6 +146,19 @@ def terminate_sessions(*, actor, target, request=None) -> int:
     return removed
 
 
+def reset_two_factor(*, actor, target, request=None) -> bool:
+    """For a user who lost both the phone and the backup codes (after verifying they own the account)."""
+    from modules.v2.accounts.two_factor import disable
+
+    if not can_manage_user(actor, target):
+        raise UserManagementError("Недостаточно прав для этого пользователя.")
+    removed = disable(target, request=request, summary=f"2FA сброшена администратором {actor.username}")
+    if not removed:
+        raise UserManagementError("У пользователя не включена двухфакторная защита.")
+    log_admin_action(actor=actor, action=AuditAction.USER_2FA_RESET, target_user=target, summary=target.username, request=request)
+    return True
+
+
 def add_admin_note(*, actor, target, note: str, request=None):
     note = (note or "").strip()
     if not note:

@@ -3,12 +3,14 @@
         <div>
             <span class="eyebrow">Профиль</span>
             <h1 class="cc-pagehead__title">Безопасность</h1>
-            <p class="ops-hero__text">Устройства, на которых выполнен вход в ваш аккаунт. Если видите незнакомое устройство или город — завершите этот сеанс.</p>
+            <p class="ops-hero__text">Двухфакторная защита и устройства, на которых выполнен вход в ваш аккаунт. Если видите незнакомое устройство или город — завершите этот сеанс.</p>
         </div>
         <div class="security-head-actions">
             <a href="{% url 'profiles:profile_settings' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">← Настройки профиля</a>
         </div>
     </header>
+
+    {% include "accounts/partials/_two_factor_panel.html" %}
 
     <article class="ops-panel">
         <div class="ops-panel__head">
