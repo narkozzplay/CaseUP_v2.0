@@ -1,0 +1,93 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <a href="{% url 'control_center:promo' %}" class="back-link" data-dashboard-nav="true">← Все промокоды</a>
+            <span class="eyebrow">Control Center · Промокоды</span>
+            <h1 class="cc-pagehead__title">{% if promo %}{{ promo.code }}{% else %}Новый промокод{% endif %}</h1>
+            {% if promo %}<p class="ops-hero__text">{{ promo.benefit_label }}{% if promo.title %} · {{ promo.title }}{% endif %}</p>{% endif %}
+        </div>
+        {% if promo %}
+            <dl class="ops-hero__meta">
+                <div><dt>Активаций</dt><dd>{{ promo.activations_count }}{% if promo.max_activations %} / {{ promo.max_activations }}{% endif %}</dd></div>
+                <div><dt>Статус</dt><dd>{% if not promo.is_active %}выключен{% elif promo.is_expired %}истёк{% elif promo.is_exhausted %}лимит исчерпан{% else %}действует{% endif %}</dd></div>
+            </dl>
+        {% endif %}
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <form method="post" class="ops-panel" data-promo-form novalidate>
+        {% csrf_token %}
+        <div class="ops-panel__head"><h2 class="ops-panel__title">{% if promo %}Настройки{% else %}Создание{% endif %}</h2>{% if promo.activations_count %}<span class="ops-panel__hint">код и вид менять нельзя — промокод уже активировали</span>{% endif %}</div>
+        {% if form.non_field_errors %}<div class="tfa-alert" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+        <div class="cc-form-grid">
+            {% include "control_center/partials/_promo_field.html" with f=form.code hint="Латиница, цифры, «-» и «_». Регистр не важен." %}
+            {% include "control_center/partials/_promo_field.html" with f=form.kind %}
+            {% include "control_center/partials/_promo_field.html" with f=form.amount kinds="balance_bonus" hint="Сколько бонусных ₽ зачислить сразу при активации." %}
+            {% include "control_center/partials/_promo_field.html" with f=form.percent kinds="topup_bonus subscription_discount" hint="Бонус к пополнению — 1–100%, скидка на подписку — 1–90%. Со скидкой рефералов не суммируется: берётся бо́льшая." %}
+            {% include "control_center/partials/_promo_field.html" with f=form.min_topup kinds="topup_bonus" hint="Пополнение меньше этой суммы бонус не даёт. Пусто — любое." %}
+            {% include "control_center/partials/_promo_field.html" with f=form.max_bonus kinds="topup_bonus" hint="Потолок бонуса. Пусто — без потолка." %}
+            {% include "control_center/partials/_promo_field.html" with f=form.subscription_family kinds="subscription_discount" %}
+            {% include "control_center/partials/_promo_field.html" with f=form.case kinds="free_case" hint="Одно бесплатное открытие этого кейса." %}
+            {% include "control_center/partials/_promo_field.html" with f=form.owner_username %}
+            {% include "control_center/partials/_promo_field.html" with f=form.title %}
+            {% include "control_center/partials/_promo_field.html" with f=form.max_activations %}
+            {% include "control_center/partials/_promo_field.html" with f=form.starts_at hint="Пусто — сразу." %}
+            {% include "control_center/partials/_promo_field.html" with f=form.expires_at hint="Пусто — бессрочно. Неиспользованные бонусы сгорают вместе с промокодом." %}
+            <div class="cc-field promo-checks">
+                <span>Ограничения</span>
+                <label class="cc-field-check">{{ form.only_new_accounts }}<span>Только новые аккаунты (до 7 дней)</span></label>
+                <label class="cc-field-check">{{ form.only_without_topups }}<span>Только тем, кто ещё не пополнял</span></label>
+                <label class="cc-field-check">{{ form.is_active }}<span>Включён</span></label>
+            </div>
+        </div>
+        <div class="cc-form-actions">
+            <button type="submit" class="btn btn-primary btn-sm">{% if promo %}Сохранить{% else %}Создать промокод{% endif %}</button>
+        </div>
+    </form>
+
+    {% if promo %}
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Ссылка для активации</h2></div>
+            <div class="ref-body">
+                <div class="ref-link">
+                    <input id="promo-share-input" class="form-control ref-link__input" type="text" value="{{ share_url }}" readonly aria-label="Ссылка с промокодом">
+                    <button type="button" class="btn btn-secondary btn-sm" data-copy-target="#promo-share-input">{% include "components/icon.html" with name="copy" %}<span data-copy-label>Скопировать</span></button>
+                </div>
+                <p class="ref-text">Открывает страницу «Промокоды» с уже вписанным кодом — удобно для постов и описаний к видео.</p>
+            </div>
+        </article>
+
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Активации</h2><span class="ops-panel__hint">последние {{ activations|length }}</span></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Пользователь</th><th>Когда</th><th>Статус</th><th class="cc-num">Выгода</th></tr></thead>
+                    <tbody>
+                        {% for item in activations %}
+                            <tr>
+                                <td>{% include "control_center/partials/_user_cell.html" with u=item.user %}{% if item.ip_address %}<span class="cc-sub cc-mono">{{ item.ip_address }}</span>{% endif %}</td>
+                                <td class="cc-mono">{{ item.created_at|date:"d.m.Y H:i" }}{% if item.used_at %}<span class="cc-sub">использован {{ item.used_at|date:"d.m H:i" }}</span>{% endif %}</td>
+                                <td>
+                                    {% if item.status == "used" %}<span class="cc-chip cc-chip--ok">использован</span>
+                                    {% elif item.status == "canceled" %}<span class="cc-chip cc-chip--fail">отменён</span>
+                                    {% else %}<span class="cc-chip cc-chip--info">ждёт</span>
+                                        <form method="post" action="{% url 'control_center:promo_activation_cancel' item.pk %}" class="cc-inline-form" onsubmit="return confirm('Отменить неиспользованную активацию?');">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="next" value="{{ current_path }}">
+                                            <button type="submit" class="btn btn-ghost btn-sm">Отменить</button>
+                                        </form>
+                                    {% endif %}
+                                    {% if item.note %}<span class="cc-sub">{{ item.note }}</span>{% endif %}
+                                </td>
+                                <td class="cc-num">{% if item.benefit_amount %}{{ item.benefit_amount|stringformat:".2f" }} ₽{% else %}—{% endif %}</td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="4" class="text-muted">Промокод ещё никто не активировал.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    {% endif %}
+</section>

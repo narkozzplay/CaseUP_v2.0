@@ -44,6 +44,10 @@ app.conf.beat_schedule = {
         "task": "control_center.lift_expired_bans",
         "schedule": 300.0,
     },
+    "reconcile-referrals": {
+        "task": "referrals.reconcile",
+        "schedule": 6 * 60 * 60.0,
+    },
     # Picks up top-ups whose webhook was lost or whose payer never came back to the site.
     "reconcile-pending-payments": {
         "task": "payments.reconcile_pending_payments",

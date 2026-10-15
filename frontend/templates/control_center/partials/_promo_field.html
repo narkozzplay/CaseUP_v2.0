@@ -1,0 +1,7 @@
+{# expects: f (bound field); optional: kinds (space-separated promo kinds the field belongs to), hint #}
+<label class="cc-field{% if f.errors %} is-invalid{% endif %}"{% if kinds %} data-promo-kinds="{{ kinds }}"{% endif %}>
+    <span>{{ f.label }}</span>
+    {{ f }}
+    {% if hint %}<small class="cc-field__hint">{{ hint }}</small>{% elif f.help_text %}<small class="cc-field__hint">{{ f.help_text }}</small>{% endif %}
+    {% for error in f.errors %}<small class="cc-field__error">{{ error }}</small>{% endfor %}
+</label>

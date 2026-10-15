@@ -5,6 +5,8 @@ from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import include, path
 
+from modules.v2.referrals.views import referral_link
+
 
 def healthcheck(_request):
     return HttpResponse("OK")
@@ -16,6 +18,7 @@ urlpatterns = [
     path("oauth/", include("social_django.urls", namespace="social_auth")),
     path("telegram/", include("modules.v2.tg_notifier.public_urls")),
     path("payments/", include("modules.v2.payments.public_urls")),
+    path("r/<str:code>/", referral_link, name="referral_link"),
 ]
 
 urlpatterns += i18n_patterns(
@@ -38,6 +41,8 @@ urlpatterns += i18n_patterns(
     path("social/", include("modules.v2.social.urls")),
     path("social/", include("modules.v2.social_friends.urls")),
     path("notifications/", include("modules.v2.notifications.urls")),
+    path("referrals/", include("modules.v2.referrals.urls")),
+    path("promo/", include("modules.v2.promo.urls")),
     path("customization/", include("modules.v2.profile_customization.urls")),
     path("cs2/stats/", include("modules.v2.cs2_stats.urls")),
     path("", include("frontend.urls")),

@@ -82,6 +82,8 @@ PROJECT_APPS = [
     "modules.v2.game_servers.apps.GameServersConfig",
     "modules.v2.case_simulator.apps.CaseSimulatorConfig",
     "modules.v2.payments.apps.PaymentsConfig",
+    "modules.v2.referrals.apps.ReferralsConfig",
+    "modules.v2.promo.apps.PromoConfig",
     "modules.v2.store.apps.StoreConfig",
     "modules.v2.web_constructor.apps.WebConstructorConfig",
 ]
@@ -267,6 +269,7 @@ SOCIAL_AUTH_PIPELINE = (
     "social_core.pipeline.social_auth.load_extra_data",
     "social_core.pipeline.user.user_details",
     "modules.v2.accounts.social_pipeline.record_legal_consent",
+    "modules.v2.referrals.pipeline.bind_referral",
 )
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
@@ -335,6 +338,21 @@ USER_SESSION_RETENTION_DAYS = int(os.getenv("USER_SESSION_RETENTION_DAYS", "90")
 GEOIP_DATABASE_PATH = os.getenv("GEOIP_DATABASE_PATH", str(BASE_DIR / "var" / "geoip" / "dbip-city-lite.mmdb"))
 # Admin+ accounts cannot use the site until they turn on two-factor authentication.
 TWO_FACTOR_REQUIRED_FOR_ADMINS = os.getenv("TWO_FACTOR_REQUIRED_FOR_ADMINS", "1").strip().lower() not in {"0", "false", "no", "off"}
+
+# Referral program: an invited account counts after this much real top-up; rewards are
+# 1 % subscription discount per counted referral (up to the cap), then 1 % of their item sales
+# per referral above the cap (up to the turnover cap).
+REFERRAL_QUALIFY_TOPUP_RUB = os.getenv("REFERRAL_QUALIFY_TOPUP_RUB", "100")
+REFERRAL_DISCOUNT_MAX_PERCENT = int(os.getenv("REFERRAL_DISCOUNT_MAX_PERCENT", "50"))
+REFERRAL_TURNOVER_MAX_PERCENT = int(os.getenv("REFERRAL_TURNOVER_MAX_PERCENT", "10"))
+REFERRAL_COOKIE_DAYS = int(os.getenv("REFERRAL_COOKIE_DAYS", "30"))
+# Test-mode YooKassa payments do not qualify referrals unless this is on (useful on a test stand).
+REFERRAL_COUNT_TEST_PAYMENTS = os.getenv("REFERRAL_COUNT_TEST_PAYMENTS", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+# Promo codes: "only new accounts" means registered within this many days; test-mode payments do not
+# trigger top-up bonuses unless enabled.
+PROMO_NEW_ACCOUNT_DAYS = int(os.getenv("PROMO_NEW_ACCOUNT_DAYS", "7"))
+PROMO_COUNT_TEST_PAYMENTS = os.getenv("PROMO_COUNT_TEST_PAYMENTS", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 # Control Center → Логи: how long journal entries are kept (pruned daily by Celery beat).
 ACTIVITY_LOG_RETENTION_DAYS = int(os.getenv("ACTIVITY_LOG_RETENTION_DAYS", "365"))

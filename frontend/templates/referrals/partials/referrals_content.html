@@ -1,0 +1,102 @@
+<section class="section section--compact ops cc ref">
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Профиль</span>
+            <h1 class="cc-pagehead__title">Рефералы</h1>
+            <p class="ops-hero__text">Приглашайте друзей по своей ссылке. За каждого, кто пополнит баланс на {{ qualify_amount|floatformat:0 }} ₽, — скидка 1% на подписки, до {{ discount_cap }}%. После {{ discount_cap }} рефералов — ещё и процент с продаж их предметов.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Приглашено</dt><dd>{{ invited }}</dd></div>
+            <div><dt>Засчитано</dt><dd class="metric-positive">{{ counted }}</dd></div>
+            <div><dt>Переходов</dt><dd>{{ referral_code.clicks }}</dd></div>
+        </dl>
+    </header>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head">
+            <h2 class="ops-panel__title">Ваша ссылка</h2>
+            <span class="ops-panel__hint">код {{ referral_code.code }}</span>
+        </div>
+        <div class="ref-body">
+            <div class="ref-link">
+                <input id="ref-link-input" class="form-control ref-link__input" type="text" value="{{ referral_url }}" readonly aria-label="Реферальная ссылка">
+                <button type="button" class="btn btn-primary btn-sm" data-copy-target="#ref-link-input" data-copy-done="Скопировано">{% include "components/icon.html" with name="copy" %}<span data-copy-label>Скопировать</span></button>
+            </div>
+            <p class="ref-text">Друг должен открыть ссылку и впервые войти на сайт через Steam в течение 30 дней. Аккаунты, созданные раньше, привязать нельзя.</p>
+        </div>
+    </article>
+
+    <div class="ref-rewards">
+        <article class="ops-panel ref-reward">
+            <div class="ops-panel__head">
+                <h2 class="ops-panel__title">Скидка на подписки</h2>
+                <span class="cc-chip {% if discount %}cc-chip--ok{% else %}cc-chip--info{% endif %}">{{ discount }}%</span>
+            </div>
+            <div class="ref-body">
+                <div class="ref-meter" role="progressbar" aria-valuemin="0" aria-valuemax="{{ discount_cap }}" aria-valuenow="{{ discount }}"><span style="width: {{ discount_progress }}%"></span></div>
+                <p class="ref-text">{{ discount }} из {{ discount_cap }}%. Действует на все тарифы сайта и фермы — новую покупку и апгрейд (кроме фиксированных 100 ₽ за смену тарифа).</p>
+            </div>
+        </article>
+        <article class="ops-panel ref-reward{% if not turnover %} is-locked{% endif %}">
+            <div class="ops-panel__head">
+                <h2 class="ops-panel__title">Бонус с продаж</h2>
+                <span class="cc-chip {% if turnover %}cc-chip--ok{% else %}cc-chip--info{% endif %}">{{ turnover }}%</span>
+            </div>
+            <div class="ref-body">
+                <div class="ref-meter" role="progressbar" aria-valuemin="0" aria-valuemax="{{ turnover_cap }}" aria-valuenow="{{ turnover }}"><span style="width: {{ turnover_progress }}%"></span></div>
+                {% if turnover %}
+                    <p class="ref-text">Вы получаете {{ turnover }}% от каждой продажи предметов вашими рефералами — сразу на баланс. Максимум {{ turnover_cap }}%.</p>
+                {% else %}
+                    <p class="ref-text">Откроется после {{ discount_cap }} рефералов: +1% от продаж предметов ваших рефералов за каждого следующего, до {{ turnover_cap }}%. Осталось: {{ to_turnover }}.</p>
+                {% endif %}
+                <p class="ref-earned">Заработано: <strong>{{ earned|floatformat:2 }} ₽</strong></p>
+            </div>
+        </article>
+    </div>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head">
+            <h2 class="ops-panel__title">Приглашённые</h2>
+            <span class="ops-panel__hint">{{ invited }}{% if waiting %} · ждут пополнения: {{ waiting }}{% endif %}</span>
+        </div>
+        {% if referrals %}
+            <ul class="ref-list">
+                {% for item in referrals %}
+                    {% with u=item.referee %}
+                        <li class="ref-row">
+                            <a href="{% url 'profiles:profile_detail' u.pk %}" class="cc-user" data-dashboard-nav="true">
+                                <span class="cc-user__avatar">{% if u.profile_v2.uploaded_avatar %}<img src="{{ u.profile_v2.uploaded_avatar.url }}" alt="">{% elif u.profile_v2.steam_avatar %}<img src="{{ u.profile_v2.steam_avatar }}" alt="">{% else %}<span>{{ u.username|slice:":1"|upper }}</span>{% endif %}</span>
+                                <span class="cc-user__name">{{ u.profile_v2.steam_personaname|default:u.username }}</span>
+                            </a>
+                            <span class="ref-row__meta">с {{ item.created_at|date:"d.m.Y" }}</span>
+                            <span class="ref-row__status">
+                                {% if item.review == "blocked" %}
+                                    <span class="cc-chip cc-chip--fail">не засчитан</span>
+                                {% elif item.review == "flagged" %}
+                                    <span class="cc-chip cc-chip--warn" title="Аккаунты входили с одного IP — реферала проверит администратор">на проверке</span>
+                                {% elif item.is_qualified %}
+                                    <span class="cc-chip cc-chip--ok">засчитан</span>
+                                {% else %}
+                                    <span class="cc-chip cc-chip--info">ждём пополнения</span>
+                                {% endif %}
+                            </span>
+                            <span class="ref-row__bonus">{% if item.bonus_total %}+{{ item.bonus_total|floatformat:2 }} ₽{% endif %}</span>
+                        </li>
+                    {% endwith %}
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="security-empty">Пока никого. Отправьте ссылку друзьям — как только кто-то зарегистрируется, он появится здесь.</p>
+        {% endif %}
+    </article>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Правила</h2></div>
+        <ul class="ref-rules">
+            <li>Реферал засчитывается, когда суммарно пополнит баланс на {{ qualify_amount|floatformat:0 }} ₽ (реальными платежами).</li>
+            <li>Скидка — 1% за каждого засчитанного реферала, максимум {{ discount_cap }}%. Применяется автоматически при покупке подписки.</li>
+            <li>После {{ discount_cap }} рефералов — +1% за каждого следующего (максимум {{ turnover_cap }}%) от стоимости предметов, которые ваши рефералы продают в симуляторе кейсов.</li>
+            <li>Свои же аккаунты (мульти-аккаунты) не засчитываются: рефералы, входившие с вашего IP, проверяет администратор.</li>
+        </ul>
+    </article>
+</section>

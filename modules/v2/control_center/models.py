@@ -11,6 +11,9 @@ class AuditAction(models.TextChoices):
     USER_ROLE = "user_role", "Role changed"
     USER_LOGOUT = "user_logout", "Sessions ended"
     USER_2FA_RESET = "user_2fa_reset", "2FA reset"
+    REFERRAL_REVIEW = "referral_review", "Referral reviewed"
+    PROMO_CREATE = "promo_create", "Promo code created"
+    PROMO_UPDATE = "promo_update", "Promo code updated"
     USER_NOTE = "user_note", "Admin note"
     SITE_MAINTENANCE = "site_maintenance", "Maintenance mode"
     SITE_REGISTRATION = "site_registration", "Registration"
@@ -28,6 +31,9 @@ AUDIT_ACTION_LABELS_RU = {
     AuditAction.USER_ROLE: "Смена роли",
     AuditAction.USER_LOGOUT: "Завершение сессий",
     AuditAction.USER_2FA_RESET: "Сброс 2FA",
+    AuditAction.REFERRAL_REVIEW: "Проверка реферала",
+    AuditAction.PROMO_CREATE: "Создан промокод",
+    AuditAction.PROMO_UPDATE: "Изменён промокод",
     AuditAction.USER_NOTE: "Заметка админа",
     AuditAction.SITE_MAINTENANCE: "Режим обслуживания",
     AuditAction.SITE_REGISTRATION: "Регистрация",

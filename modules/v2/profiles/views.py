@@ -303,6 +303,8 @@ LEDGER_REASON_LABELS_RU = {
     LedgerReason.THEME_PURCHASE: "Покупка темы",
     LedgerReason.STORE_PURCHASE: "Покупка в магазине",
     LedgerReason.BUNDLE_PURCHASE: "Покупка набора",
+    LedgerReason.REFERRAL_BONUS: "Бонус за рефералов",
+    LedgerReason.PROMO_BONUS: "Бонус по промокоду",
 }
 
 

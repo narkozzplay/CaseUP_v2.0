@@ -532,3 +532,15 @@ a.wallet-chip:hover {
 .topup-terms--error {
     border-color: var(--danger);
 }
+
+.topup-promo {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 12px 16px;
+    border: 1px solid var(--success);
+    background: color-mix(in srgb, var(--success) 7%, transparent);
+    font-size: 0.9rem;
+}
+
+.topup-promo .ui-icon { flex: 0 0 auto; color: var(--success); }

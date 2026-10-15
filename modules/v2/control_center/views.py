@@ -1000,3 +1000,192 @@ def activity_log_export(request):
             ]
         )
     return response
+
+
+# --------------------------------------------------------------------------- referrals
+
+REFERRALS_PAGE_SIZE = 40
+REFERRAL_STATUS_FILTERS = (
+    ("flagged", "На проверке"),
+    ("counted", "Засчитаны"),
+    ("waiting", "Ждут пополнения"),
+    ("blocked", "Отклонены"),
+    ("", "Все"),
+)
+
+
+@login_required
+def referrals(request):
+    from modules.v2.referrals.models import Referral, ReferralBonus
+    from modules.v2.referrals.services import discount_percent_for, turnover_percent_for
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    status = (request.GET.get("status") or "").strip()
+    q = (request.GET.get("q") or "").strip()
+    qs = Referral.objects.select_related("referrer", "referrer__profile_v2", "referee", "referee__profile_v2", "reviewed_by")
+    if status == "flagged":
+        qs = qs.filter(review=Referral.Review.FLAGGED)
+    elif status == "counted":
+        qs = qs.filter(review=Referral.Review.OK, qualified_at__isnull=False)
+    elif status == "waiting":
+        qs = qs.filter(qualified_at__isnull=True).exclude(review=Referral.Review.BLOCKED)
+    elif status == "blocked":
+        qs = qs.filter(review=Referral.Review.BLOCKED)
+    else:
+        status = ""
+    if q:
+        filters = Q(referrer__username__icontains=q) | Q(referee__username__icontains=q) | Q(referrer__profile_v2__steam_personaname__icontains=q) | Q(referee__profile_v2__steam_personaname__icontains=q) | Q(code__iexact=q)
+        if q.isdigit():
+            filters |= Q(referrer_id=int(q)) | Q(referee_id=int(q))
+        qs = qs.filter(filters)
+    page_obj = Paginator(qs.order_by("-created_at", "-id"), REFERRALS_PAGE_SIZE).get_page(request.GET.get("page") or 1)
+
+    all_referrals = Referral.objects.all()
+    totals = all_referrals.aggregate(
+        total=Count("id"),
+        counted=Count("id", filter=Q(review=Referral.Review.OK, qualified_at__isnull=False)),
+        flagged=Count("id", filter=Q(review=Referral.Review.FLAGGED)),
+    )
+    totals["bonuses"] = ReferralBonus.objects.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    top = list(
+        User.objects.filter(referrals_made__review=Referral.Review.OK, referrals_made__qualified_at__isnull=False)
+        .annotate(counted=Count("referrals_made"))
+        .select_related("profile_v2")
+        .order_by("-counted", "id")[:10]
+    )
+    for user in top:
+        user.ref_discount = discount_percent_for(user.counted)
+        user.ref_turnover = turnover_percent_for(user.counted)
+
+    context = {
+        "role_access": role_access,
+        "page_obj": page_obj,
+        "filters": {"status": status, "q": q},
+        "status_options": REFERRAL_STATUS_FILTERS,
+        "totals": totals,
+        "top_referrers": top,
+        "pagination_query": _querystring(request),
+        "current_path": request.get_full_path(),
+    }
+    return _render(request, partial="control_center/partials/referrals_content.html", context=context, title="Рефералы · Control Center", tab="referrals")
+
+
+@login_required
+@require_POST
+def referral_review(request, referral_id: int):
+    from modules.v2.referrals.models import Referral
+    from modules.v2.referrals.services import ReferralReviewError, review_referral
+
+    if _admin_access(request) is None:
+        return _forbidden()
+    referral = get_object_or_404(Referral.objects.select_related("referrer", "referee"), pk=referral_id)
+    decision = (request.POST.get("decision") or "").strip()
+    try:
+        review_referral(actor=request.user, referral=referral, decision=decision, note=request.POST.get("note", ""), request=request)
+        messages.success(request, f"Реферал {referral.referee.username} {'засчитан' if decision == Referral.Review.OK else 'отклонён'}.")
+    except ReferralReviewError as exc:
+        messages.error(request, str(exc))
+    return redirect(_safe_next(request, reverse("control_center:referrals")))
+
+
+# --------------------------------------------------------------------------- promo codes
+
+PROMO_PAGE_SIZE = 40
+
+
+@login_required
+def promo_codes(request):
+    from modules.v2.promo.models import PromoActivation, PromoCode
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    state = (request.GET.get("state") or "").strip()
+    q = (request.GET.get("q") or "").strip()
+    qs = PromoCode.objects.select_related("owner", "owner__profile_v2", "case")
+    now = timezone.now()
+    if state == "active":
+        qs = qs.filter(is_active=True).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+    elif state == "off":
+        qs = qs.filter(Q(is_active=False) | Q(expires_at__lte=now))
+    else:
+        state = ""
+    if q:
+        qs = qs.filter(Q(code__icontains=q) | Q(title__icontains=q) | Q(owner__username__icontains=q))
+    page_obj = Paginator(qs.order_by("-created_at", "-id"), PROMO_PAGE_SIZE).get_page(request.GET.get("page") or 1)
+    totals = {
+        "codes": PromoCode.objects.count(),
+        "active": PromoCode.objects.filter(is_active=True).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now)).count(),
+        "activations": PromoActivation.objects.count(),
+        "paid": PromoActivation.objects.filter(ledger_entry__isnull=False).aggregate(total=Sum("benefit_amount"))["total"] or Decimal("0"),
+    }
+    context = {
+        "role_access": role_access,
+        "page_obj": page_obj,
+        "filters": {"state": state, "q": q},
+        "totals": totals,
+        "pagination_query": _querystring(request),
+        "current_path": request.get_full_path(),
+    }
+    return _render(request, partial="control_center/partials/promo_list_content.html", context=context, title="Промокоды · Control Center", tab="promo")
+
+
+@login_required
+def promo_code_edit(request, promo_id: int | None = None):
+    from modules.v2.promo.forms import PromoCodeForm
+    from modules.v2.promo.models import PromoCode
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    promo = get_object_or_404(PromoCode, pk=promo_id) if promo_id else None
+    form = PromoCodeForm(request.POST or None, instance=promo)
+    if request.method == "POST" and form.is_valid():
+        is_new = promo is None
+        saved = form.save(commit=False)
+        if is_new:
+            saved.created_by = request.user
+        saved.save()
+        log_admin_action(
+            actor=request.user,
+            action=AuditAction.PROMO_CREATE if is_new else AuditAction.PROMO_UPDATE,
+            target_user=saved.owner,
+            summary=f"{saved.code}: {saved.benefit_label}" + ("" if saved.is_active else " (выключен)"),
+            payload={"promo_id": saved.pk, "changed": sorted(form.changed_data)},
+            request=request,
+        )
+        messages.success(request, f"Промокод {saved.code} {'создан' if is_new else 'сохранён'}.")
+        return redirect("control_center:promo_edit", promo_id=saved.pk)
+
+    activations = []
+    if promo is not None:
+        activations = list(promo.activations.select_related("user", "user__profile_v2").order_by("-created_at", "-id")[:200])
+    context = {
+        "role_access": role_access,
+        "form": form,
+        "promo": promo,
+        "activations": activations,
+        "share_url": request.build_absolute_uri(reverse("promo:dashboard") + f"?code={promo.code}") if promo else "",
+        "current_path": request.get_full_path(),
+    }
+    title = f"{promo.code} · Промокоды" if promo else "Новый промокод"
+    return _render(request, partial="control_center/partials/promo_edit_content.html", context=context, title=title, tab="promo")
+
+
+@login_required
+@require_POST
+def promo_activation_cancel(request, activation_id: int):
+    from modules.v2.promo.models import PromoActivation
+    from modules.v2.promo.services import PromoError, cancel_activation
+
+    if _admin_access(request) is None:
+        return _forbidden()
+    activation = get_object_or_404(PromoActivation.objects.select_related("promo", "user"), pk=activation_id)
+    try:
+        cancel_activation(actor=request.user, activation=activation, request=request)
+        messages.success(request, f"Активация {activation.promo.code} у {activation.user.username} отменена.")
+    except PromoError as exc:
+        messages.error(request, str(exc))
+    return redirect(_safe_next(request, reverse("control_center:promo_edit", args=[activation.promo_id])))

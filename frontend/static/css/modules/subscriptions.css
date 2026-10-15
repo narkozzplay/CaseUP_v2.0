@@ -679,3 +679,19 @@ select.form-control option {
     font-size: 0.76rem;
     color: var(--text-muted);
 }
+
+/* Referral discount next to the amount to pay */
+.pricing-full-price {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.pricing-discount-badge {
+    display: inline-block;
+    padding: 0 6px;
+    border: 1px solid var(--success);
+    color: var(--success);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    line-height: 1.6;
+}

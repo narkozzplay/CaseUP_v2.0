@@ -271,6 +271,9 @@
         }
         if (!demo) {
             setBalance(root, payload.balance);
+            if (payload.free_used) {
+                root.querySelectorAll('[data-sim-free-promo]').forEach((node) => node.remove());
+            }
         }
 
         const fast = root.querySelector('[data-sim-fast]');

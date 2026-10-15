@@ -1654,3 +1654,16 @@
 
     .term__bar .term__title { display: none; }
 }
+
+.sim-hero__promo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 0;
+    padding: 6px 10px;
+    border: 1px solid var(--success);
+    color: var(--success);
+    font-size: 0.86rem;
+}
+
+.sim-hero__promo .ui-icon { width: 16px; height: 16px; }

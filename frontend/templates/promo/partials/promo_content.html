@@ -1,0 +1,63 @@
+<section class="section section--compact ops cc ref">
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Профиль</span>
+            <h1 class="cc-pagehead__title">Промокоды</h1>
+            <p class="ops-hero__text">Бонусы на баланс, прибавка к пополнению, скидка на подписку или бесплатный кейс — введите промокод из акции, розыгрыша или от блогера.</p>
+        </div>
+    </header>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Активировать промокод</h2></div>
+        <div class="ref-body">
+            <form method="post" class="ref-link promo-form" data-dashboard-shell-form>
+                {% csrf_token %}
+                <input class="form-control ref-link__input promo-form__code" type="text" name="code" value="{{ prefill_code }}" maxlength="32" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Например, CASEUP50" aria-label="Промокод" required>
+                <button type="submit" class="btn btn-primary btn-sm">{% include "components/icon.html" with name="promo" %}Активировать</button>
+            </form>
+            <p class="ref-text">Каждый промокод можно активировать один раз. Бонусные единицы тратятся на сайте и не выводятся.</p>
+        </div>
+    </article>
+
+    {% if pending %}
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Ждут использования</h2><span class="ops-panel__hint">{{ pending|length }}</span></div>
+            <ul class="ref-list">
+                {% for item in pending %}
+                    <li class="promo-row">
+                        <span class="promo-row__code">{{ item.promo.code }}</span>
+                        <span class="promo-row__benefit">{{ item.promo.benefit_label }}</span>
+                        <span class="promo-row__hint">
+                            {% if item.promo.kind == "topup_bonus" %}<a href="{% url 'payments:topup' %}" data-dashboard-nav="true">Пополнить баланс →</a>
+                            {% elif item.promo.kind == "subscription_discount" %}<a href="{% url 'subscriptions:plans' %}">Выбрать тариф →</a>
+                            {% elif item.promo.kind == "free_case" and item.promo.case %}<a href="{% url 'case_simulator:detail' item.promo.case.slug %}" data-dashboard-nav="true">Открыть кейс →</a>{% endif %}
+                            {% if item.promo.expires_at %}<span class="promo-row__until">до {{ item.promo.expires_at|date:"d.m.Y H:i" }}</span>{% endif %}
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </article>
+    {% endif %}
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">История</h2><span class="ops-panel__hint">{{ activations|length }}</span></div>
+        {% if activations %}
+            <ul class="ref-list">
+                {% for item in activations %}
+                    <li class="promo-row">
+                        <span class="promo-row__code">{{ item.promo.code }}</span>
+                        <span class="promo-row__benefit">{{ item.promo.benefit_label }}<span class="promo-row__until">активирован {{ item.created_at|date:"d.m.Y H:i" }}{% if item.note %} · {{ item.note }}{% endif %}</span></span>
+                        <span class="promo-row__hint">
+                            {% if item.status == "used" %}<span class="cc-chip cc-chip--ok">использован{% if item.benefit_amount %} · {{ item.benefit_amount|floatformat:2 }} ₽{% endif %}</span>
+                            {% elif item.status == "canceled" %}<span class="cc-chip cc-chip--fail">отменён</span>
+                            {% elif item.is_usable %}<span class="cc-chip cc-chip--info">ждёт</span>
+                            {% else %}<span class="cc-chip cc-chip--fail">истёк</span>{% endif %}
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="security-empty">Вы ещё не активировали ни одного промокода.</p>
+        {% endif %}
+    </article>
+</section>
