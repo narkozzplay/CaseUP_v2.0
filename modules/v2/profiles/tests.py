@@ -420,7 +420,8 @@ class UsersCatalogTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, plan.name)
-        self.assertContains(response, "Subscription")
+        # The profile's own subscription block (title is "Тариф" in Russian, "Subscription" in English).
+        self.assertContains(response, '<h2 class="section-title">Тариф</h2>', html=True)
 
     def test_admin_can_update_profile_balance_username_and_subscription(self):
         admin = User.objects.create_user(username="admin_manage_profile", password="StrongPass123")

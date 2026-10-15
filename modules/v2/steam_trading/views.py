@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from urllib.parse import urlencode
 
 from django.contrib import messages
@@ -206,6 +207,21 @@ def investments_dashboard(request):
             reset_url=reset_url,
         )
 
+    status_counts = Counter(row.status_code for row in dashboard.analytics.active_rows)
+    kpi = dashboard.analytics.kpi
+    unrealized_percent = (
+        (kpi.unrealized_pnl_sum / kpi.active_cost_basis_sum * 100) if kpi.active_cost_basis_sum else None
+    )
+    status_tabs = [
+        {
+            "code": code,
+            "label": label,
+            "count": len(dashboard.analytics.active_rows) if code == "all" else status_counts.get(code, 0),
+            "is_active": dashboard.filter_state.status == code,
+        }
+        for code, label in STATUS_FILTER_OPTIONS
+    ]
+
     return render_dashboard_page(
         request,
         full_template="steam_trading/investments.html",
@@ -225,8 +241,14 @@ def investments_dashboard(request):
             "investment_analytics_access_state": advanced_analytics_access,
             "investment_can_send_tg": tg_feature_access.is_available,
             "investment_tg_access_state": tg_feature_access,
+            "investment_status_tabs": status_tabs,
+            "investment_unrealized_percent": unrealized_percent,
+            "investment_has_purchases": bool(purchases),
+            # Only real gainers/losers: with few positions the raw top lists overlap.
+            "investment_gainers": [row for row in dashboard.analytics.top_gainers if row.unrealized_pnl_rub > 0][:5],
+            "investment_losers": [row for row in dashboard.analytics.top_losers if row.unrealized_pnl_rub < 0][:5],
         },
-        page_title=build_page_title("Steam Investments"),
+        page_title=build_page_title("Инвестиции"),
         active_menu_key="steam_investments",
     )
 

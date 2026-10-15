@@ -1,239 +1,221 @@
-<section class="section section--compact">
-    <div class="dashboard-hero card dashboard-hero--admin">
-        <div class="card-body dashboard-hero__body">
-            <div>
-                <span class="eyebrow">Admin+</span>
-                <h1 class="page-title page-title--sm">Celery Tasks</h1>
-                <p class="text-muted dashboard-hero__text">
-                    Управление авто-апдейтом цен Steam Catalog по категориям через Celery.
-                </p>
-            </div>
-
-            <div class="dashboard-hero__meta">
-                <span class="status-pill">Rules: {{ rules|length }}</span>
-                <span class="status-pill">Logs: {{ recent_logs|length }}</span>
-                <span class="status-pill">
-                    {% if current_rule %}Edit: {{ current_rule.category }}{% else %}Create mode{% endif %}
-                </span>
-            </div>
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Автообновление цен</h1>
+            <p class="ops-hero__text">Сайт сам подтягивает цены предметов из Steam по расписанию — отдельно для каждой категории каталога. Здесь видно, когда цены обновлялись и когда обновятся снова; при необходимости можно запустить обновление вручную.</p>
         </div>
-    </div>
+        <dl class="ops-hero__meta cc-activity-meta">
+            <div><dt>Правил</dt><dd>{{ summary.total }}</dd></div>
+            <div><dt>Включено</dt><dd>{{ summary.enabled }}</dd></div>
+            <div><dt>С ошибкой</dt><dd{% if summary.failing %} class="metric-negative"{% endif %}>{{ summary.failing }}</dd></div>
+            <div><dt>Последний успех</dt><dd>{% if summary.last_success_at %}{{ summary.last_success_at|date:"d.m H:i" }}{% else %}—{% endif %}</dd></div>
+        </dl>
+    </header>
 
-    <div class="profile-grid profile-grid--3">
-        <article class="card">
-            <div class="card-body">
-                <h2 class="section-title">
-                    {% if current_rule %}Edit rule{% else %}Create rule{% endif %}
-                </h2>
+    {% include "control_center/partials/_tabs.html" %}
 
-                <form method="post" class="form-stack" data-dashboard-shell-form>
-                    {% csrf_token %}
-                    {% if current_rule %}
-                        <input type="hidden" name="rule_id" value="{{ current_rule.id }}">
-                    {% endif %}
-
-                    <div class="form-field">
-                        <label for="{{ form.category.id_for_label }}">Категория</label>
-                        {{ form.category }}
-                        {{ form.category.errors }}
-                    </div>
-
-                    <div class="form-field">
-                        <label for="{{ form.schedule_mode.id_for_label }}">Режим расписания</label>
-                        {{ form.schedule_mode }}
-                        {{ form.schedule_mode.errors }}
-                    </div>
-
-                    <div class="form-field js-schedule-field js-schedule-field--interval">
-                        <label for="{{ form.interval_minutes.id_for_label }}">Интервал</label>
-                        {{ form.interval_minutes }}
-                        <p class="text-muted">Используется в режиме «От точки старта».</p>
-                        {{ form.interval_minutes.errors }}
-                    </div>
-
-                    <div class="form-field js-schedule-field js-schedule-field--interval">
-                        <label for="{{ form.start_at.id_for_label }}">Точка старта</label>
-                        {{ form.start_at }}
-                        <p class="text-muted">Можно оставить пустым — тогда правило стартует сразу после включения.</p>
-                        {{ form.start_at.errors }}
-                    </div>
-
-                    <div class="form-field js-schedule-field js-schedule-field--hourly">
-                        <label for="{{ form.hourly_minute.id_for_label }}">Минута запуска</label>
-                        {{ form.hourly_minute }}
-                        <p class="text-muted">Пример: 15 = запуск каждый час в xx:15.</p>
-                        {{ form.hourly_minute.errors }}
-                    </div>
-
-                    <div class="form-field">
-                        <label>
-                            {{ form.is_enabled }}
-                            Включено
-                        </label>
-                        {{ form.is_enabled.errors }}
-                    </div>
-
-                    <div class="auth-card__actions">
-                        <button type="submit" class="btn btn-primary btn-block">
-                            {% if current_rule %}Save changes{% else %}Create rule{% endif %}
-                        </button>
-
-                        {% if current_rule %}
-                            <a href="{% url 'celery_tasks:control_center' %}" class="btn btn-secondary btn-block">
-                                Cancel edit
-                            </a>
-                        {% endif %}
-                    </div>
-                </form>
-            </div>
-        </article>
-
-        <article class="card" style="grid-column: span 2;">
-            <div class="card-body">
-                <div class="section-head-inline">
-                    <h2 class="section-title">Rules</h2>
-                    <span class="text-muted">{{ rules|length }}</span>
+    <div class="ops-grid">
+        <div class="ops-grid__main">
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Правила обновления</h2>
+                    <span class="ops-panel__hint">одно правило на категорию</span>
                 </div>
+                {% if rules %}
+                    <div class="autoprice-rules">
+                        {% for rule in rules %}
+                            <article class="autoprice-rule{% if not rule.is_enabled %} is-disabled{% endif %}{% if current_rule and current_rule.pk == rule.pk %} is-editing{% endif %}">
+                                <header class="autoprice-rule__head">
+                                    <h3 class="autoprice-rule__title">{{ rule.category_label }}</h3>
+                                    {% if rule.is_enabled %}
+                                        <span class="cc-chip cc-chip--ok">включено</span>
+                                    {% else %}
+                                        <span class="cc-chip">выключено</span>
+                                    {% endif %}
+                                    <span class="cc-chip cc-chip--{{ rule.status_tone }}" title="Результат последнего запуска">{{ rule.status_label }}</span>
+                                </header>
 
-                <div class="table-wrap">
-                    <table class="table table--dark">
-                        <thead>
-                            <tr>
-                                <th>Category</th>
-                                <th>Mode</th>
-                                <th>Schedule</th>
-                                <th>Status</th>
-                                <th>Last trigger</th>
-                                <th>Last run</th>
-                                <th>Next run</th>
-                                <th>Touched</th>
-                                <th>Updated</th>
-                                <th>History</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for rule in rules %}
-                                <tr>
-                                    <td>{{ rule.category }}</td>
-                                    <td>{{ rule.get_schedule_mode_display }}</td>
-                                    <td>{{ rule.schedule_display }}</td>
-                                    <td>{{ rule.last_status }}</td>
-                                    <td>{{ rule.last_trigger|default:"—" }}</td>
-                                    <td>
-                                        {% if rule.last_run_at %}
-                                            {{ rule.last_run_at|date:"d.m.Y H:i:s" }}
-                                        {% else %}
-                                            —
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if rule.next_run_at %}
-                                            {{ rule.next_run_at|date:"d.m.Y H:i:s" }}
-                                        {% else %}
-                                            —
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ rule.touched_items_count }}</td>
-                                    <td>{{ rule.updated_items_count }}</td>
-                                    <td>{{ rule.history_written_count }}</td>
-                                    <td>
-                                        <div class="auth-card__actions">
-                                            <a href="{% url 'celery_tasks:control_center' %}?edit={{ rule.id }}" class="btn btn-secondary btn-block">
-                                                Edit
-                                            </a>
+                                <dl class="autoprice-rule__facts">
+                                    <div>
+                                        <dt>Расписание</dt>
+                                        <dd>{{ rule.schedule_display }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Последний запуск</dt>
+                                        <dd>
+                                            {% if rule.last_run_at %}
+                                                {{ rule.last_run_at|date:"d.m H:i" }}
+                                                <span class="cc-sub">{{ rule.last_run_at|timesince }} назад{% if rule.trigger_label %} · {{ rule.trigger_label }}{% endif %}</span>
+                                            {% else %}
+                                                ещё не было
+                                            {% endif %}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt>Следующий запуск</dt>
+                                        <dd>
+                                            {% if rule.is_enabled and rule.next_run_at %}
+                                                {{ rule.next_run_at|date:"d.m H:i" }}
+                                                <span class="cc-sub">через {{ rule.next_run_at|timeuntil }}</span>
+                                            {% elif rule.is_enabled %}
+                                                скоро
+                                            {% else %}
+                                                <span class="text-muted">не запланирован — правило выключено</span>
+                                            {% endif %}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt>Обновлено цен</dt>
+                                        <dd>
+                                            {% if rule.last_run_at %}
+                                                {{ rule.updated_items_count }} из {{ rule.touched_items_count }}
+                                                <span class="cc-sub">при последнем запуске</span>
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </dd>
+                                    </div>
+                                </dl>
 
-                                            <form method="post" action="{% url 'celery_tasks:run_rule_now' rule.id %}" class="inline-form inline-form--block" data-dashboard-shell-form>
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-primary btn-block">Run now</button>
-                                            </form>
-
-                                            <form method="post" action="{% url 'celery_tasks:toggle_rule' rule.id %}" class="inline-form inline-form--block" data-dashboard-shell-form>
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-secondary btn-block">
-                                                    {% if rule.is_enabled %}Disable{% else %}Enable{% endif %}
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
                                 {% if rule.last_error %}
-                                    <tr>
-                                        <td colspan="11" class="text-muted">
-                                            <strong>Last error:</strong><br>
-                                            <pre style="white-space: pre-wrap; margin: 0;">{{ rule.last_error }}</pre>
-                                        </td>
-                                    </tr>
+                                    <details class="autoprice-rule__error">
+                                        <summary>Последняя ошибка</summary>
+                                        <pre>{{ rule.last_error }}</pre>
+                                    </details>
                                 {% endif %}
-                            {% empty %}
+
+                                <div class="autoprice-rule__actions">
+                                    <form method="post" action="{% url 'celery_tasks:run_rule_now' rule.id %}" class="cc-inline-form" data-dashboard-shell-form>
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-sm">{% include "components/icon.html" with name="refresh" %}Обновить сейчас</button>
+                                    </form>
+                                    <a href="{% url 'celery_tasks:control_center' %}?edit={{ rule.id }}" class="btn btn-secondary btn-sm">{% include "components/icon.html" with name="edit" %}Изменить</a>
+                                    <form method="post" action="{% url 'celery_tasks:toggle_rule' rule.id %}" class="cc-inline-form" data-dashboard-shell-form>
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-ghost btn-sm">{% if rule.is_enabled %}Выключить{% else %}Включить{% endif %}</button>
+                                    </form>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="autoprice-empty">
+                        <strong>Правил пока нет</strong>
+                        <p>Добавьте первое правило справа: выберите категорию каталога (например, «Кейсы») и как часто обновлять цены.</p>
+                    </div>
+                {% endif %}
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">История запусков</h2>
+                    <span class="ops-panel__hint">последние {{ recent_logs|length }}</span>
+                </div>
+                <div class="table-wrap">
+                    <table class="table cc-table autoprice-log">
+                        <thead><tr><th>Когда</th><th>Категория</th><th>Результат</th></tr></thead>
+                        <tbody>
+                            {% for log in recent_logs %}
                                 <tr>
-                                    <td colspan="11" class="text-muted">No rules yet.</td>
+                                    <td class="cc-mono">
+                                        {{ log.started_at|date:"d.m H:i" }}
+                                        <span class="cc-sub">{{ log.trigger_label|default:"—" }}{% if log.duration_seconds is not None %} · {{ log.duration_seconds }} с{% endif %}</span>
+                                    </td>
+                                    <td>{{ log.category_label }}</td>
+                                    <td>
+                                        <span class="cc-chip cc-chip--{{ log.status_tone }}">{{ log.status_label }}</span>
+                                        <span class="cc-sub">обновлено {{ log.updated_items_count }} из {{ log.touched_items_count }}{% if log.errors_count %} · ошибок: {{ log.errors_count }}{% endif %}</span>
+                                        {% if log.error_summary %}
+                                            <details class="autoprice-log__details">
+                                                <summary>Подробнее</summary>
+                                                <pre>{{ log.error_summary }}</pre>
+                                            </details>
+                                        {% endif %}
+                                    </td>
                                 </tr>
+                            {% empty %}
+                                <tr><td colspan="3" class="text-muted">Запусков ещё не было.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </article>
-    </div>
-
-    <article class="card">
-        <div class="card-body">
-            <div class="section-head-inline">
-                <h2 class="section-title">Run logs</h2>
-                <span class="text-muted">Last {{ recent_logs|length }}</span>
-            </div>
-
-            <div class="table-wrap">
-                <table class="table table--dark">
-                    <thead>
-                        <tr>
-                            <th>Started</th>
-                            <th>Finished</th>
-                            <th>Rule</th>
-                            <th>Trigger</th>
-                            <th>Status</th>
-                            <th>Touched</th>
-                            <th>Updated</th>
-                            <th>History</th>
-                            <th>Errors</th>
-                            <th>Summary</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for log in recent_logs %}
-                            <tr>
-                                <td>{{ log.started_at|date:"d.m.Y H:i:s" }}</td>
-                                <td>
-                                    {% if log.finished_at %}
-                                        {{ log.finished_at|date:"d.m.Y H:i:s" }}
-                                    {% else %}
-                                        —
-                                    {% endif %}
-                                </td>
-                                <td>{{ log.category }}</td>
-                                <td>{{ log.triggered_by|default:"—" }}</td>
-                                <td>{{ log.status }}</td>
-                                <td>{{ log.touched_items_count }}</td>
-                                <td>{{ log.updated_items_count }}</td>
-                                <td>{{ log.history_written_count }}</td>
-                                <td>{{ log.errors_count }}</td>
-                                <td>
-                                    {% if log.error_summary %}
-                                        <pre style="white-space: pre-wrap; margin: 0;">{{ log.error_summary }}</pre>
-                                    {% else %}
-                                        <span class="text-muted">—</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% empty %}
-                            <tr>
-                                <td colspan="10" class="text-muted">No logs yet.</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+            </article>
         </div>
-    </article>
+
+        <aside class="ops-grid__side">
+            {% if can_add_rule %}
+                <article class="ops-panel" id="autoprice-form">
+                    <div class="ops-panel__head">
+                        <h2 class="ops-panel__title">{% if current_rule %}Изменить: {{ current_rule.category_label }}{% else %}Новое правило{% endif %}</h2>
+                    </div>
+                    <form method="post" class="autoprice-form" data-dashboard-shell-form data-autoprice-form>
+                        {% csrf_token %}
+                        {% if current_rule %}<input type="hidden" name="rule_id" value="{{ current_rule.id }}">{% endif %}
+
+                        <label class="cc-field">
+                            <span>Категория каталога</span>
+                            {{ form.category }}
+                            {{ form.category.errors }}
+                        </label>
+
+                        <label class="cc-field">
+                            <span>Как часто обновлять</span>
+                            {{ form.schedule_mode }}
+                            {{ form.schedule_mode.errors }}
+                        </label>
+
+                        <label class="cc-field js-schedule-field js-schedule-field--hourly">
+                            <span>Минута часа</span>
+                            {{ form.hourly_minute }}
+                            <small class="form-help">0–59. Например, 15 — обновление в 10:15, 11:15, 12:15…</small>
+                            {{ form.hourly_minute.errors }}
+                        </label>
+
+                        <label class="cc-field js-schedule-field js-schedule-field--interval">
+                            <span>Интервал</span>
+                            {{ form.interval_minutes }}
+                            {{ form.interval_minutes.errors }}
+                        </label>
+
+                        <label class="cc-field js-schedule-field js-schedule-field--interval">
+                            <span>Первый запуск <em class="text-muted">(необязательно)</em></span>
+                            {{ form.start_at }}
+                            <small class="form-help">Пусто — первый запуск сразу после сохранения.</small>
+                            {{ form.start_at.errors }}
+                        </label>
+
+                        <label class="cc-field-check">
+                            {{ form.is_enabled }}
+                            <span>Правило включено</span>
+                        </label>
+                        {{ form.is_enabled.errors }}
+
+                        <p class="autoprice-form__preview" data-autoprice-preview aria-live="polite"></p>
+
+                        {{ form.non_field_errors }}
+                        <div class="autoprice-form__actions">
+                            <button type="submit" class="btn btn-primary">{% if current_rule %}Сохранить{% else %}Добавить правило{% endif %}</button>
+                            {% if current_rule %}<a href="{% url 'celery_tasks:control_center' %}" class="btn btn-ghost">Отмена</a>{% endif %}
+                        </div>
+                    </form>
+                </article>
+            {% else %}
+                <article class="ops-panel">
+                    <div class="ops-panel__head"><h2 class="ops-panel__title">Новое правило</h2></div>
+                    <p class="autoprice-note">Для всех категорий каталога правила уже есть. Чтобы поменять расписание, нажмите «Изменить» у нужного правила.</p>
+                </article>
+            {% endif %}
+
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Как это работает</h2></div>
+                <ul class="autoprice-help">
+                    <li><strong>Обновить сейчас</strong> — внеочередной запуск, расписание не сбивается.</li>
+                    <li><strong>Выключить</strong> — цены категории перестают обновляться, пока правило не включат снова.</li>
+                    <li><strong>С ошибками</strong> — часть цен не обновилась (например, Steam ограничил частоту запросов). Остальные цены сохранены.</li>
+                    <li>Запуски выполняет фоновый сервис <span class="cc-mono">celery_worker</span>, расписание ведёт <span class="cc-mono">celery_beat</span>. Если «Следующий запуск» давно в прошлом — проверьте, что оба запущены.</li>
+                </ul>
+            </article>
+        </aside>
+    </div>
 </section>

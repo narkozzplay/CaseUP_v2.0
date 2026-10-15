@@ -8,8 +8,55 @@ from django.utils import timezone
 
 from modules.v2.steam_catalog.models import SteamItem
 
+# Human-facing names for the admin page (the stored codes stay in English).
+CATEGORY_LABELS_RU = {
+    SteamItem.ItemType.SKIN: "Скины",
+    SteamItem.ItemType.CASE: "Кейсы",
+    SteamItem.ItemType.STICKER: "Стикеры",
+    SteamItem.ItemType.GRAFFITI: "Граффити",
+    SteamItem.ItemType.CHARM: "Брелоки",
+    SteamItem.ItemType.OTHER: "Прочее",
+}
+STATUS_LABELS_RU = {
+    "idle": "Ещё не запускалось",
+    "running": "Выполняется",
+    "success": "Успешно",
+    "partial": "С ошибками",
+    "error": "Ошибка",
+}
+STATUS_TONES = {"idle": "info", "running": "info", "success": "ok", "partial": "warn", "error": "fail"}
+TRIGGER_LABELS_RU = {"beat": "по расписанию", "manual": "вручную"}
 
-class PriceAutoUpdateRule(models.Model):
+
+class RunPresentationMixin:
+    """Russian labels shared by rules and run logs."""
+
+    @property
+    def category_label(self) -> str:
+        return CATEGORY_LABELS_RU.get(self.category, self.category)
+
+    def _status_code(self) -> str:
+        return getattr(self, "last_status", None) or getattr(self, "status", "")
+
+    @property
+    def status_label(self) -> str:
+        code = self._status_code()
+        return STATUS_LABELS_RU.get(code, code)
+
+    @property
+    def status_tone(self) -> str:
+        return STATUS_TONES.get(self._status_code(), "info")
+
+    def _trigger_code(self) -> str:
+        return getattr(self, "last_trigger", None) or getattr(self, "triggered_by", "") or ""
+
+    @property
+    def trigger_label(self) -> str:
+        code = self._trigger_code()
+        return TRIGGER_LABELS_RU.get(code, code)
+
+
+class PriceAutoUpdateRule(RunPresentationMixin, models.Model):
     class Status(models.TextChoices):
         IDLE = "idle", "Idle"
         RUNNING = "running", "Running"
@@ -142,7 +189,7 @@ class PriceAutoUpdateRule(models.Model):
         self.next_run_at = base + timedelta(minutes=self.interval_minutes)
 
 
-class PriceAutoUpdateRunLog(models.Model):
+class PriceAutoUpdateRunLog(RunPresentationMixin, models.Model):
     rule = models.ForeignKey(
         PriceAutoUpdateRule,
         on_delete=models.CASCADE,
@@ -186,3 +233,9 @@ class PriceAutoUpdateRunLog(models.Model):
 
     def __str__(self) -> str:
         return f"{self.category} / {self.triggered_by} / {self.status}"
+
+    @property
+    def duration_seconds(self) -> int | None:
+        if not self.finished_at:
+            return None
+        return max(int((self.finished_at - self.started_at).total_seconds()), 0)

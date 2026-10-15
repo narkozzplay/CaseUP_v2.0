@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from django import forms
 
-from .models import PriceAutoUpdateRule
+from .models import CATEGORY_LABELS_RU, PriceAutoUpdateRule
+
+SCHEDULE_MODE_LABELS = (
+    (PriceAutoUpdateRule.ScheduleMode.HOURLY, "Раз в час, в выбранную минуту"),
+    (PriceAutoUpdateRule.ScheduleMode.INTERVAL, "Каждые N минут"),
+)
+INTERVAL_LABELS = tuple((minutes, f"каждые {minutes} мин") for minutes, _label in PriceAutoUpdateRule.INTERVAL_CHOICES)
 
 
 class PriceAutoUpdateRuleForm(forms.ModelForm):
@@ -48,6 +54,15 @@ class PriceAutoUpdateRuleForm(forms.ModelForm):
                 continue
             field.widget.attrs.setdefault("class", "form-control")
 
+        # Russian labels and only the categories that do not have a rule yet (one rule per category).
+        taken = set(PriceAutoUpdateRule.objects.exclude(pk=self.instance.pk).values_list("category", flat=True))
+        self.fields["category"].choices = [("", "Выберите категорию")] + [
+            (code, CATEGORY_LABELS_RU.get(code, label))
+            for code, label in self.fields["category"].choices
+            if code and code not in taken
+        ]
+        self.fields["schedule_mode"].choices = SCHEDULE_MODE_LABELS
+        self.fields["interval_minutes"].choices = INTERVAL_LABELS
         self.fields["is_enabled"].widget.attrs.pop("class", None)
         self.fields["start_at"].input_formats = ["%Y-%m-%dT%H:%M"]
         self.fields["schedule_mode"].required = False

@@ -234,8 +234,8 @@ class CeleryTasksTests(TestCase):
 
         response = self.client.get(reverse("celery_tasks:control_center"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Celery Tasks")
-        self.assertContains(response, "Run logs")
+        self.assertContains(response, "Автообновление цен")
+        self.assertContains(response, "История запусков")
 
     def test_control_center_can_create_rule(self):
         user = self._make_admin_user()
@@ -282,9 +282,9 @@ class CeleryTasksTests(TestCase):
         response = self.client.get(reverse("celery_tasks:control_center"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "beat")
-        self.assertContains(response, "success")
-        self.assertContains(response, "7")
+        self.assertContains(response, "по расписанию")
+        self.assertContains(response, "Успешно")
+        self.assertContains(response, "из 7")
 
     @patch("modules.v2.celery_tasks.views.run_price_auto_update_rule_task.delay")
     def test_run_now_view_sends_task_to_queue(self, delay_mock):
@@ -344,3 +344,17 @@ class CeleryTasksTests(TestCase):
         self.assertEqual(result["sent_count"], 3)
         self.assertEqual(result["limit"], 15)
         dispatch_mock.assert_called_once_with(limit=15)
+
+class AutoPriceFormTests(TestCase):
+    def test_category_choices_skip_categories_that_already_have_a_rule(self):
+        from .forms import PriceAutoUpdateRuleForm
+
+        rule = PriceAutoUpdateRule.objects.create(category=SteamItem.ItemType.CASE, interval_minutes=60)
+        codes = [code for code, _label in PriceAutoUpdateRuleForm().fields["category"].choices]
+        self.assertNotIn(SteamItem.ItemType.CASE, codes)
+        self.assertIn(SteamItem.ItemType.SKIN, codes)
+        # Editing a rule keeps its own category selectable.
+        own = [code for code, _label in PriceAutoUpdateRuleForm(instance=rule).fields["category"].choices]
+        self.assertIn(SteamItem.ItemType.CASE, own)
+        labels = dict(PriceAutoUpdateRuleForm().fields["category"].choices)
+        self.assertEqual(labels[SteamItem.ItemType.SKIN], "Скины")

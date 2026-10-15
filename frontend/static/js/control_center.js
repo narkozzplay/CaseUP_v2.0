@@ -176,3 +176,61 @@
         initSettings(document);
     }
 })();
+
+/* ---------- Price auto-update: live schedule preview ---------- */
+(function () {
+    'use strict';
+
+    function describe(form) {
+        var mode = form.querySelector('[name="schedule_mode"]');
+        var enabled = form.querySelector('[name="is_enabled"]');
+        var category = form.querySelector('[name="category"]');
+        if (!mode) {
+            return '';
+        }
+        var what = category && category.value
+            ? 'Цены «' + category.options[category.selectedIndex].text + '»'
+            : 'Цены';
+        if (enabled && !enabled.checked) {
+            return what + ' не будут обновляться автоматически, пока правило выключено.';
+        }
+        if (mode.value === 'hourly') {
+            var minuteField = form.querySelector('[name="hourly_minute"]');
+            var minute = parseInt(minuteField && minuteField.value, 10);
+            if (isNaN(minute) || minute < 0 || minute > 59) {
+                return 'Укажите минуту от 0 до 59.';
+            }
+            var mm = (minute < 10 ? '0' : '') + minute;
+            return what + ' будут обновляться каждый час в :' + mm + ' (например, 10:' + mm + ', 11:' + mm + ').';
+        }
+        var interval = form.querySelector('[name="interval_minutes"]');
+        var start = form.querySelector('[name="start_at"]');
+        var text = what + ' будут обновляться каждые ' + (interval ? interval.value : '?') + ' мин';
+        if (start && start.value) {
+            text += ', первый запуск ' + start.value.replace('T', ' в ');
+        } else {
+            text += ', первый запуск сразу после сохранения';
+        }
+        return text + '.';
+    }
+
+    function refresh(root) {
+        (root || document).querySelectorAll('[data-autoprice-form]').forEach(function (form) {
+            var preview = form.querySelector('[data-autoprice-preview]');
+            if (preview) {
+                preview.textContent = describe(form);
+            }
+        });
+    }
+
+    ['input', 'change'].forEach(function (type) {
+        document.addEventListener(type, function (event) {
+            var form = event.target.closest && event.target.closest('[data-autoprice-form]');
+            if (form) {
+                refresh(form.parentNode);
+            }
+        });
+    });
+    document.addEventListener('DOMContentLoaded', function () { refresh(document); });
+    document.addEventListener('dashboard:content-replaced', function () { refresh(document); });
+})();

@@ -232,15 +232,50 @@ def _bind_family_formset(formset_class, *, request=None, queryset, prefix: str, 
     return formset_class(**kwargs)
 
 
-def _build_pricing_dashboard_context(*, role_access, config_form, site_plan_formset, farmer_plan_formset, site_rule_formset, farmer_rule_formset):
+PRICING_TABS = (
+    ("overview", "Обзор"),
+    ("formula", "Формула цены"),
+    ("site", "Тарифы сайта"),
+    ("farmer", "Тарифы фермы"),
+)
+# Which tab holds the form for each POST scope: after saving (or on an error) the admin stays there.
+PRICING_SCOPE_TABS = {
+    "config": "formula",
+    "site_plans": "site",
+    "site_rules": "site",
+    "farmer_plans": "farmer",
+    "farmer_rules": "farmer",
+}
+
+
+def _plan_cards(plan_formset, pricing_rows):
+    """Pair every plan form with its pricing evaluation (the extra blank form has none)."""
+    by_plan = {row.plan.pk: row for row in pricing_rows}
+    return [(form, by_plan.get(form.instance.pk)) for form in plan_formset]
+
+
+def _build_pricing_dashboard_context(*, role_access, config_form, site_plan_formset, farmer_plan_formset, site_rule_formset, farmer_rule_formset, tab="overview"):
+    site_rows = evaluate_family_pricing(family=SITE_FAMILY)
+    farmer_rows = evaluate_family_pricing(family=FARMER_FAMILY)
+    all_rows = [*site_rows, *farmer_rows]
     return {
         "config_form": config_form,
         "site_plan_formset": site_plan_formset,
         "farmer_plan_formset": farmer_plan_formset,
         "site_rule_formset": site_rule_formset,
         "farmer_rule_formset": farmer_rule_formset,
-        "site_pricing_rows": evaluate_family_pricing(family=SITE_FAMILY),
-        "farmer_pricing_rows": evaluate_family_pricing(family=FARMER_FAMILY),
+        "site_pricing_rows": site_rows,
+        "farmer_pricing_rows": farmer_rows,
+        "site_plan_cards": _plan_cards(site_plan_formset, site_rows),
+        "farmer_plan_cards": _plan_cards(farmer_plan_formset, farmer_rows),
+        "pricing_tab": tab,
+        "pricing_tabs": PRICING_TABS,
+        "pricing_summary": {
+            "site": len(site_rows),
+            "farmer": len(farmer_rows),
+            "reasonable": sum(1 for row in all_rows if row.price_status == "reasonable"),
+            "attention": sum(1 for row in all_rows if row.price_status != "reasonable"),
+        },
         "role_access": role_access,
     }
 
@@ -263,15 +298,21 @@ def pricing_dashboard_page(request):
     site_rule_formset = _bind_family_formset(SiteFeaturePricingRuleFormSet, queryset=site_rules_qs, prefix="site-rules", family=SITE_FAMILY)
     farmer_rule_formset = _bind_family_formset(FarmerFeaturePricingRuleFormSet, queryset=farmer_rules_qs, prefix="farmer-rules", family=FARMER_FAMILY)
 
+    tab = request.GET.get("tab") or "overview"
+    if tab not in dict(PRICING_TABS):
+        tab = "overview"
+    tab_url = f"{reverse('subscriptions:pricing_dashboard')}?tab={{}}"
+
     if request.method == "POST":
         form_scope = request.POST.get("form_scope")
+        tab = PRICING_SCOPE_TABS.get(form_scope, tab)
 
         if form_scope == "config":
             config_form = SubscriptionPricingConfigForm(request.POST, instance=config)
             if config_form.is_valid():
                 config_form.save()
-                messages.success(request, "Глобальная pricing-конфигурация сохранена.")
-                return redirect("subscriptions:pricing_dashboard")
+                messages.success(request, "Формула цены сохранена.")
+                return redirect(tab_url.format("formula"))
 
         elif form_scope == "site_plans":
             site_plan_formset = _bind_family_formset(SitePlanPricingFormSet, request=request, queryset=site_plans_qs, prefix="site-plans", family=SITE_FAMILY)
@@ -281,8 +322,8 @@ def pricing_dashboard_page(request):
                     instance.family = SITE_FAMILY
                     instance.save()
                 sync_feature_rules_to_plans(family=SITE_FAMILY)
-                messages.success(request, "Site-планы сохранены.")
-                return redirect("subscriptions:pricing_dashboard")
+                messages.success(request, "Тарифы сайта сохранены.")
+                return redirect(tab_url.format("site"))
 
         elif form_scope == "farmer_plans":
             farmer_plan_formset = _bind_family_formset(FarmerPlanPricingFormSet, request=request, queryset=farmer_plans_qs, prefix="farmer-plans", family=FARMER_FAMILY)
@@ -292,8 +333,8 @@ def pricing_dashboard_page(request):
                     instance.family = FARMER_FAMILY
                     instance.save()
                 sync_feature_rules_to_plans(family=FARMER_FAMILY)
-                messages.success(request, "Farmer-планы сохранены.")
-                return redirect("subscriptions:pricing_dashboard")
+                messages.success(request, "Тарифы фермы сохранены.")
+                return redirect(tab_url.format("farmer"))
 
         elif form_scope == "site_rules":
             site_rule_formset = _bind_family_formset(SiteFeaturePricingRuleFormSet, request=request, queryset=site_rules_qs, prefix="site-rules", family=SITE_FAMILY)
@@ -303,8 +344,8 @@ def pricing_dashboard_page(request):
                     instance.family = SITE_FAMILY
                     instance.save()
                 sync_feature_rules_to_plans(family=SITE_FAMILY)
-                messages.success(request, "Site feature-матрица сохранена.")
-                return redirect("subscriptions:pricing_dashboard")
+                messages.success(request, "Функции тарифов сайта сохранены.")
+                return redirect(tab_url.format("site"))
 
         elif form_scope == "farmer_rules":
             farmer_rule_formset = _bind_family_formset(FarmerFeaturePricingRuleFormSet, request=request, queryset=farmer_rules_qs, prefix="farmer-rules", family=FARMER_FAMILY)
@@ -314,8 +355,8 @@ def pricing_dashboard_page(request):
                     instance.family = FARMER_FAMILY
                     instance.save()
                 sync_feature_rules_to_plans(family=FARMER_FAMILY)
-                messages.success(request, "Farmer feature-матрица сохранена.")
-                return redirect("subscriptions:pricing_dashboard")
+                messages.success(request, "Функции тарифов фермы сохранены.")
+                return redirect(tab_url.format("farmer"))
 
     context = _build_pricing_dashboard_context(
         role_access=role_access,
@@ -324,12 +365,13 @@ def pricing_dashboard_page(request):
         farmer_plan_formset=farmer_plan_formset,
         site_rule_formset=site_rule_formset,
         farmer_rule_formset=farmer_rule_formset,
+        tab=tab,
     )
     return render_dashboard_page(
         request,
         full_template="subscriptions/pricing_dashboard.html",
         partial_template="subscriptions/partials/pricing_dashboard_content.html",
         context=context,
-        page_title=build_page_title("Pricing Dashboard"),
-        active_menu_key="pricing_dashboard",
+        page_title=build_page_title("Цены подписок"),
+        active_menu_key="subscription_pricing",
     )

@@ -1,0 +1,110 @@
+{# expects: plan_cards [(form, evaluation|None)], plan_formset, rule_formset, plans_scope, rules_scope, family_name, new_plan_label #}
+<form method="post" data-dashboard-shell-form>
+    {% csrf_token %}
+    <input type="hidden" name="form_scope" value="{{ plans_scope }}">
+    {{ plan_formset.management_form }}
+    {{ plan_formset.non_form_errors }}
+    <article class="ops-panel">
+        <div class="ops-panel__head">
+            <h2 class="ops-panel__title">Тарифы {{ family_name }}</h2>
+            <span class="ops-panel__hint">нажмите на тариф, чтобы изменить</span>
+        </div>
+        <div class="pricing-plans">
+            {% for form, row in plan_cards %}
+                {% with is_new=form.instance.pk|yesno:",1" %}
+                <details class="pricing-plan{% if is_new %} pricing-plan--new{% endif %}{% if form.errors %} has-error{% endif %}"{% if form.errors %} open{% endif %}>
+                    <summary class="pricing-plan__summary">
+                        {% if is_new %}
+                            <span class="pricing-plan__name">+ {{ new_plan_label }}</span>
+                            <span class="cc-sub">заполните, чтобы добавить</span>
+                        {% else %}
+                            <span class="pricing-plan__name">{{ form.instance.name }}{% if form.instance.ui_badge %} <span class="cc-chip cc-chip--info">{{ form.instance.ui_badge }}</span>{% endif %}</span>
+                            <span class="cc-sub">Level {{ form.instance.level }} · {{ form.instance.billing_period_days }} дн.</span>
+                            <span class="pricing-plan__price">{% money form.instance.price_rub %}</span>
+                            {% if row %}<span class="cc-chip {% if row.price_status == 'reasonable' %}cc-chip--ok{% elif row.price_status == 'underpriced' %}cc-chip--warn{% else %}cc-chip--fail{% endif %}" title="Рекомендуемая цена {% money row.recommended_price_rub %}">{{ row.price_status_label }}</span>{% endif %}
+                            {% if not form.instance.is_active %}<span class="cc-chip">скрыт</span>{% endif %}
+                        {% endif %}
+                    </summary>
+                    <div class="pricing-plan__body">
+                        {{ form.id }}
+                        {{ form.non_field_errors }}
+                        <fieldset class="pricing-group">
+                            <legend>Витрина</legend>
+                            <div class="pricing-fields">
+                                {% include "subscriptions/partials/_pricing_field.html" with field=form.name label="Название" %}
+                                {% include "subscriptions/partials/_pricing_field.html" with field=form.ui_badge label="Бейдж" hint="Короткая метка на карточке, например «Хит»." %}
+                                {% include "subscriptions/partials/_pricing_field.html" with field=form.description label="Описание" wide=True %}
+                                {% include "subscriptions/partials/_pricing_field.html" with field=form.ui_features_text label="Пункты в карточке тарифа" hint="Одна строка — один пункт списка." wide=True %}
+                            </div>
+                        </fieldset>
+                        <fieldset class="pricing-group">
+                            <legend>Цена</legend>
+                            <div class="pricing-fields">
+                                {% include "subscriptions/partials/_pricing_field.html" with field=form.price_rub label="Цена, ₽" hint="Сколько платит пользователь." recommended=row.recommended_price_rub %}
+                                {% include "subscriptions/partials/_pricing_field.html" with field=form.billing_period_days label="Период, дней" %}
+                                {% include "subscriptions/partials/_pricing_field.html" with field=form.price_floor_rub label="Мин. рекомендуемая, ₽" hint="Рекомендуемая цена этого тарифа не опустится ниже." %}
+                                {% include "subscriptions/partials/_pricing_field.html" with field=form.manual_price_adjustment_rub label="Поправка к формуле, ₽" hint="Добавляется к рекомендуемой цене (можно с минусом)." %}
+                            </div>
+                        </fieldset>
+                        <fieldset class="pricing-group">
+                            <legend>Служебное</legend>
+                            <div class="pricing-fields">
+                                {% include "subscriptions/partials/_pricing_field.html" with field=form.code label="Код" hint="Латиницей, не меняйте у работающего тарифа." %}
+                                {% include "subscriptions/partials/_pricing_field.html" with field=form.level label="Уровень" hint="Чем выше, тем старше тариф." %}
+                                {% include "subscriptions/partials/_pricing_field.html" with field=form.audience label="Аудитория" %}
+                                {% include "subscriptions/partials/_pricing_field.html" with field=form.sort_order label="Порядок на витрине" %}
+                            </div>
+                            <label class="cc-field-check pricing-toggle">{{ form.is_active }}<span>Тариф доступен для покупки</span></label>
+                            {{ form.is_active.errors }}
+                        </fieldset>
+                    </div>
+                </details>
+                {% endwith %}
+            {% endfor %}
+        </div>
+        <div class="pricing-savebar">
+            <button type="submit" class="btn btn-primary">Сохранить тарифы</button>
+            <span class="cc-sub">Сохраняются все открытые и закрытые карточки этой линейки.</span>
+        </div>
+    </article>
+</form>
+
+<form method="post" data-dashboard-shell-form>
+    {% csrf_token %}
+    <input type="hidden" name="form_scope" value="{{ rules_scope }}">
+    {{ rule_formset.management_form }}
+    {{ rule_formset.non_form_errors }}
+    <article class="ops-panel">
+        <div class="ops-panel__head">
+            <h2 class="ops-panel__title">Функции тарифов {{ family_name }}</h2>
+            <span class="ops-panel__hint">функция открывается на выбранном тарифе и всех тарифах выше</span>
+        </div>
+        <div class="table-wrap">
+            <table class="table cc-table pricing-rules">
+                <thead>
+                    <tr>
+                        <th>Функция</th>
+                        <th>Открывается с тарифа</th>
+                        <th title="Сколько функция добавляет к рекомендуемой цене">Ценность, ₽</th>
+                        <th>Порядок</th>
+                        <th>Вкл.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for form in rule_formset %}
+                        <tr{% if not form.instance.pk %} class="pricing-rules__new"{% endif %}>
+                            <td>{{ form.id }}{{ form.feature }}{{ form.feature.errors }}{% if not form.instance.pk %}<span class="cc-sub">новая строка — выберите функцию, чтобы добавить</span>{% endif %}</td>
+                            <td>{{ form.required_plan }}{{ form.required_plan.errors }}</td>
+                            <td>{{ form.value_rub }}{{ form.value_rub.errors }}</td>
+                            <td>{{ form.sort_order }}{{ form.sort_order.errors }}</td>
+                            <td>{{ form.is_enabled }}{{ form.is_enabled.errors }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="pricing-savebar">
+            <button type="submit" class="btn btn-primary">Сохранить функции</button>
+        </div>
+    </article>
+</form>
