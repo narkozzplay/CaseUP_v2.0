@@ -196,6 +196,29 @@ def check_disk(*, include_media: bool = False) -> HealthCheck:
     return HealthCheck("disk", "Диск", status, f"{format_bytes(usage.free)} свободно", hint)
 
 
+def check_backups() -> HealthCheck:
+    from modules.v2.system.backups import status_summary
+
+    try:
+        summary = status_summary()
+    except Exception as exc:  # noqa: BLE001
+        return HealthCheck("backups", "Резервные копии", WARN, "Не проверено", exc.__class__.__name__)
+    state = {"ok": OK, "warn": WARN, "fail": FAIL}.get(summary["state"], WARN)
+    finished = summary.get("finished")
+    value = timezone.localtime(finished).strftime("%d.%m %H:%M") if finished else "—"
+    return HealthCheck("backups", "Резервные копии", state, value, summary["text"][:160])
+
+
+def check_email() -> HealthCheck:
+    host = getattr(settings, "EMAIL_HOST", "")
+    admins = getattr(settings, "ADMINS", [])
+    if not host:
+        return HealthCheck("email", "Почта", WARN, "Не настроена", "Письма об ошибках и сбоях бэкапа не отправляются: заполните EMAIL_* в .env.prod")
+    if not admins:
+        return HealthCheck("email", "Почта", WARN, host, "Не задан ADMIN_EMAILS — некому слать письма об ошибках")
+    return HealthCheck("email", "Почта", OK, host, "Ошибки сайта и сбои бэкапа: " + ", ".join(email for _name, email in admins)[:120])
+
+
 def read_build_version() -> str:
     path = Path(settings.BASE_DIR) / "VERSION.txt"
     try:
@@ -226,7 +249,7 @@ def full_checks() -> list[HealthCheck]:
     checks = [check_database(), check_migrations(), check_cache(), check_celery_broker()]
     if checks[-1].status != FAIL:
         checks.append(check_celery_workers())
-    checks.extend([check_price_updates(), check_disk(include_media=True)])
+    checks.extend([check_price_updates(), check_disk(include_media=True), check_backups(), check_email()])
     return checks
 
 

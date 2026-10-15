@@ -51,6 +51,7 @@ DJANGO_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sitemaps",
 ]
 
 THIRD_PARTY_APPS = [
@@ -192,12 +193,18 @@ LOGGING = {
     "formatters": {
         "standard": {"format": "%(asctime)s %(levelname)s %(name)s: %(message)s"},
     },
+    "filters": {
+        "require_debug_false": {"()": "django.utils.log.RequireDebugFalse"},
+    },
     "handlers": {
         "console": {"class": "logging.StreamHandler", "formatter": "standard"},
+        # 500 errors by mail to ADMINS; the same error is mailed at most once per 30 minutes.
+        "mail_admins": {"level": "ERROR", "filters": ["require_debug_false"], "class": "common.logging.ThrottledAdminEmailHandler"},
     },
     "root": {"handlers": ["console"], "level": DJANGO_LOG_LEVEL},
     "loggers": {
         "django": {"handlers": ["console"], "level": DJANGO_LOG_LEVEL, "propagate": False},
+        "django.request": {"handlers": ["console", "mail_admins"], "level": "ERROR", "propagate": False},
     },
 }
 
@@ -232,6 +239,29 @@ STATICFILES_DIRS = [
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 BACKUP_ROOT = BASE_DIR / os.getenv("BACKUP_DIR", "backups")
+# Daily backups (system.daily_backup): kept here this many days, and on the SFTP host (reg.ru hosting) longer.
+BACKUP_LOCAL_KEEP_DAYS = int(os.getenv("BACKUP_LOCAL_KEEP_DAYS", "7"))
+BACKUP_REMOTE_KEEP_DAYS = int(os.getenv("BACKUP_REMOTE_KEEP_DAYS", "30"))
+BACKUP_SFTP_HOST = os.getenv("BACKUP_SFTP_HOST", "").strip()
+BACKUP_SFTP_PORT = int(os.getenv("BACKUP_SFTP_PORT", "22"))
+BACKUP_SFTP_USER = os.getenv("BACKUP_SFTP_USER", "").strip()
+BACKUP_SFTP_PASSWORD = os.getenv("BACKUP_SFTP_PASSWORD", "")
+BACKUP_SFTP_PATH = os.getenv("BACKUP_SFTP_PATH", "caseup-backups").strip()
+BACKUP_SFTP_HOST_KEY = os.getenv("BACKUP_SFTP_HOST_KEY", "").strip()
+
+# Outgoing mail (admin@case-up.ru on the reg.ru hosting): server errors and backup failures go to ADMIN_EMAILS.
+EMAIL_HOST = os.getenv("EMAIL_HOST", "").strip()
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "465"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "").strip()
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "1" if EMAIL_PORT == 465 else "0").strip().lower() in {"1", "true", "yes", "on"}
+EMAIL_USE_TLS = not EMAIL_USE_SSL and os.getenv("EMAIL_USE_TLS", "1" if EMAIL_PORT == 587 else "0").strip().lower() in {"1", "true", "yes", "on"}
+EMAIL_TIMEOUT = 20
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend" if EMAIL_HOST else "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "").strip() or (f"CaseUP <{EMAIL_HOST_USER}>" if EMAIL_HOST_USER else "CaseUP <noreply@localhost>")
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+EMAIL_SUBJECT_PREFIX = "[CaseUP] "
+ADMINS = [("CaseUP admin", email.strip()) for email in os.getenv("ADMIN_EMAILS", "").split(",") if email.strip()]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

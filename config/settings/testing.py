@@ -24,6 +24,7 @@ TWO_FACTOR_REQUIRED_FOR_ADMINS = False
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 LOGGING["root"]["level"] = "CRITICAL"
 LOGGING["loggers"]["django"]["level"] = "CRITICAL"
+LOGGING["loggers"]["django.request"]["level"] = "CRITICAL"
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
