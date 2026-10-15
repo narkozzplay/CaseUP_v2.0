@@ -48,6 +48,8 @@ class SteamItem(models.Model):
     is_active = models.BooleanField(default=True, db_index=True)
     needs_review = models.BooleanField(default=False, db_index=True)
     created_from_scan = models.BooleanField(default=False)
+    # Last time the price queue asked Steam about this item (with or without a price in the answer).
+    price_checked_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

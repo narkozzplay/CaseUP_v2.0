@@ -1543,3 +1543,10 @@
         display: none;
     }
 }
+
+.reference-page .page-header { flex-wrap: wrap; gap: 16px; }
+.reference-bulk { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: 360px; text-align: right; }
+.reference-bulk__status { font-size: 0.8rem; }
+@media (max-width: 720px) {
+    .reference-bulk { align-items: flex-start; text-align: left; }
+}

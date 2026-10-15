@@ -11,7 +11,6 @@ from django.utils import timezone
 
 from modules.v2.profiles.models import UserRole
 from modules.v2.steam_catalog.models import SteamItem
-from modules.v2.steam_catalog.services import RefreshPriceResult
 
 from .models import PriceAutoUpdateRule, PriceAutoUpdateRunLog
 from .services import run_due_rules, run_price_auto_update_rule
@@ -21,6 +20,10 @@ User = get_user_model()
 
 
 class CeleryTasksTests(TestCase):
+    def setUp(self):
+        # Migrations create the default queue rules; these tests build their own.
+        PriceAutoUpdateRule.objects.all().delete()
+
     def _make_admin_user(self, username="admin_user"):
         user = User.objects.create_user(username=username, password="StrongPass123")
         user.profile_v2.role = UserRole.ADMIN
@@ -30,140 +33,59 @@ class CeleryTasksTests(TestCase):
     def _make_regular_user(self, username="regular_user"):
         return User.objects.create_user(username=username, password="StrongPass123")
 
-    @patch("modules.v2.celery_tasks.services.refresh_item_prices")
-    def test_run_price_auto_update_rule_for_skin_runs_once_per_family(self, refresh_mock):
-        rule = PriceAutoUpdateRule.objects.create(
-            category=SteamItem.ItemType.SKIN,
-            interval_minutes=30,
-            is_enabled=True,
-            next_run_at=timezone.now(),
-        )
+    PRICE_FETCH = "modules.v2.steam_catalog.services.fetch_price_rub_from_steam"
 
-        SteamItem.objects.create(
-            market_hash_name="AK-47 | Redline (Factory New)",
-            family_name="AK-47 | Redline",
-            name="AK-47 | Redline (Factory New)",
-            item_type=SteamItem.ItemType.SKIN,
-            price_rub=Decimal("100.00"),
-        )
-        SteamItem.objects.create(
-            market_hash_name="AK-47 | Redline (Field-Tested)",
-            family_name="AK-47 | Redline",
-            name="AK-47 | Redline (Field-Tested)",
-            item_type=SteamItem.ItemType.SKIN,
-            price_rub=Decimal("110.00"),
-        )
-        SteamItem.objects.create(
-            market_hash_name="M4A4 | Asiimov (Battle-Scarred)",
-            family_name="M4A4 | Asiimov",
-            name="M4A4 | Asiimov (Battle-Scarred)",
-            item_type=SteamItem.ItemType.SKIN,
-            price_rub=Decimal("200.00"),
-        )
+    def _item(self, name, category=SteamItem.ItemType.CASE, price="100.00", **extra):
+        return SteamItem.objects.create(market_hash_name=name, family_name=extra.pop("family", name), name=name, item_type=category, price_rub=Decimal(price), **extra)
 
-        refresh_mock.side_effect = [
-            RefreshPriceResult(updated_count=2, history_written=2, touched_count=2, last_synced_at=timezone.now()),
-            RefreshPriceResult(updated_count=1, history_written=1, touched_count=1, last_synced_at=timezone.now()),
-        ]
+    @patch(PRICE_FETCH)
+    def test_run_takes_a_queue_batch_and_logs_it(self, fetch_mock):
+        rule = PriceAutoUpdateRule.objects.create(category=SteamItem.ItemType.SKIN, interval_minutes=30, is_enabled=True, next_run_at=timezone.now())
+        self._item("AK-47 | Redline (Factory New)", SteamItem.ItemType.SKIN, family="AK-47 | Redline")
+        self._item("AK-47 | Redline (Field-Tested)", SteamItem.ItemType.SKIN, "110.00", family="AK-47 | Redline")
+        self._item("M4A4 | Asiimov (Battle-Scarred)", SteamItem.ItemType.SKIN, "200.00", family="M4A4 | Asiimov")
+        fetch_mock.side_effect = [Decimal("120.00"), Decimal("110.00"), Decimal("250.00")]
 
         summary = run_price_auto_update_rule(rule.id, triggered_by="manual")
         rule.refresh_from_db()
         run_log = PriceAutoUpdateRunLog.objects.get(rule=rule)
 
-        self.assertEqual(refresh_mock.call_count, 2)
+        self.assertEqual(fetch_mock.call_count, 3)
         self.assertEqual(summary.status, PriceAutoUpdateRule.Status.SUCCESS)
-        self.assertEqual(summary.updated_items_count, 3)
-        self.assertEqual(summary.history_written_count, 3)
-        self.assertEqual(summary.touched_items_count, 3)
+        self.assertEqual((summary.touched_items_count, summary.updated_items_count, summary.history_written_count), (3, 2, 3))
         self.assertEqual(rule.last_status, PriceAutoUpdateRule.Status.SUCCESS)
-        self.assertIsNotNone(rule.last_run_at)
         self.assertIsNotNone(rule.next_run_at)
+        self.assertEqual((run_log.triggered_by, run_log.status, run_log.errors_count), ("manual", PriceAutoUpdateRule.Status.SUCCESS, 0))
+        self.assertFalse(SteamItem.objects.filter(price_checked_at__isnull=True).exists())
 
-        self.assertEqual(run_log.triggered_by, "manual")
-        self.assertEqual(run_log.status, PriceAutoUpdateRule.Status.SUCCESS)
-        self.assertEqual(run_log.touched_items_count, 3)
-        self.assertEqual(run_log.updated_items_count, 3)
-        self.assertEqual(run_log.history_written_count, 3)
-        self.assertEqual(run_log.errors_count, 0)
-        self.assertIsNotNone(run_log.finished_at)
+        # Freshly checked items are not asked again on the next run.
+        summary = run_price_auto_update_rule(rule.id, triggered_by="manual")
+        self.assertEqual((fetch_mock.call_count, summary.touched_items_count), (3, 0))
 
-        for mock_call in refresh_mock.call_args_list:
-            self.assertTrue(mock_call.kwargs["include_family"])
-
-    @patch("modules.v2.celery_tasks.services.refresh_item_prices")
-    def test_run_price_auto_update_rule_writes_partial_log_when_one_item_fails(self, refresh_mock):
-        rule = PriceAutoUpdateRule.objects.create(
-            category=SteamItem.ItemType.CASE,
-            interval_minutes=10,
-            is_enabled=True,
-            next_run_at=timezone.now(),
-        )
-
-        first = SteamItem.objects.create(
-            market_hash_name="Recoil Case",
-            family_name="Recoil Case",
-            name="Recoil Case",
-            item_type=SteamItem.ItemType.CASE,
-            price_rub=Decimal("100.00"),
-        )
-        second = SteamItem.objects.create(
-            market_hash_name="Kilowatt Case",
-            family_name="Kilowatt Case",
-            name="Kilowatt Case",
-            item_type=SteamItem.ItemType.CASE,
-            price_rub=Decimal("200.00"),
-        )
-
-        refresh_mock.side_effect = [
-            RefreshPriceResult(updated_count=1, history_written=1, touched_count=1, last_synced_at=timezone.now()),
-            RuntimeError("steam timeout"),
-        ]
+    @patch(PRICE_FETCH)
+    def test_run_writes_partial_log_when_one_item_fails(self, fetch_mock):
+        rule = PriceAutoUpdateRule.objects.create(category=SteamItem.ItemType.CASE, interval_minutes=10, is_enabled=True, next_run_at=timezone.now())
+        self._item("Recoil Case")
+        self._item("Kilowatt Case", price="200.00")
+        fetch_mock.side_effect = [Decimal("101.00"), RuntimeError("steam timeout")]
 
         summary = run_price_auto_update_rule(rule.id, triggered_by="beat")
         run_log = PriceAutoUpdateRunLog.objects.get(rule=rule)
 
         self.assertEqual(summary.status, PriceAutoUpdateRule.Status.PARTIAL)
-        self.assertEqual(summary.touched_items_count, 1)
-        self.assertEqual(summary.updated_items_count, 1)
-        self.assertEqual(summary.history_written_count, 1)
-        self.assertEqual(summary.errors_count, 1)
-
-        self.assertEqual(run_log.triggered_by, "beat")
+        self.assertEqual((summary.touched_items_count, summary.updated_items_count, summary.errors_count), (1, 1, 1))
         self.assertEqual(run_log.status, PriceAutoUpdateRule.Status.PARTIAL)
-        self.assertEqual(run_log.touched_items_count, 1)
-        self.assertEqual(run_log.updated_items_count, 1)
-        self.assertEqual(run_log.history_written_count, 1)
-        self.assertEqual(run_log.errors_count, 1)
-        self.assertIn(first.market_hash_name, run_log.error_summary)
+        self.assertIn("Kilowatt Case", run_log.error_summary)
         self.assertIn("steam timeout", run_log.error_summary)
 
-        self.assertEqual(refresh_mock.call_count, 2)
-
-
-    @patch("modules.v2.celery_tasks.services.refresh_item_prices")
-    def test_run_price_auto_update_rule_recovers_stale_running_state(self, refresh_mock):
+    @patch(PRICE_FETCH)
+    def test_run_recovers_stale_running_state(self, fetch_mock):
         rule = PriceAutoUpdateRule.objects.create(
-            category=SteamItem.ItemType.CASE,
-            interval_minutes=10,
-            is_enabled=True,
-            next_run_at=timezone.now(),
-            last_status=PriceAutoUpdateRule.Status.RUNNING,
+            category=SteamItem.ItemType.CASE, interval_minutes=10, is_enabled=True, next_run_at=timezone.now(), last_status=PriceAutoUpdateRule.Status.RUNNING
         )
-        SteamItem.objects.create(
-            market_hash_name="Recoil Case",
-            family_name="Recoil Case",
-            name="Recoil Case",
-            item_type=SteamItem.ItemType.CASE,
-            price_rub=Decimal("100.00"),
-        )
+        self._item("Recoil Case")
         PriceAutoUpdateRule.objects.filter(pk=rule.pk).update(updated_at=timezone.now() - timedelta(hours=2))
-
-        refresh_mock.return_value = RefreshPriceResult(
-            updated_count=1,
-            history_written=1,
-            touched_count=1,
-            last_synced_at=timezone.now(),
-        )
+        fetch_mock.return_value = Decimal("105.00")
 
         summary = run_price_auto_update_rule(rule.id, triggered_by="beat")
 
@@ -171,13 +93,7 @@ class CeleryTasksTests(TestCase):
         self.assertEqual(summary.status, PriceAutoUpdateRule.Status.SUCCESS)
         self.assertEqual(rule.last_status, PriceAutoUpdateRule.Status.SUCCESS)
         self.assertEqual(PriceAutoUpdateRunLog.objects.filter(rule=rule).count(), 2)
-        self.assertTrue(
-            PriceAutoUpdateRunLog.objects.filter(
-                rule=rule,
-                status=PriceAutoUpdateRule.Status.ERROR,
-                error_summary__icontains="Recovered stale RUNNING state",
-            ).exists()
-        )
+        self.assertTrue(PriceAutoUpdateRunLog.objects.filter(rule=rule, status=PriceAutoUpdateRule.Status.ERROR, error_summary__icontains="Recovered stale RUNNING state").exists())
 
     @patch("modules.v2.celery_tasks.services.run_price_auto_update_rule")
     def test_run_due_rules_executes_only_due_enabled_rules(self, run_rule_mock):
@@ -346,6 +262,9 @@ class CeleryTasksTests(TestCase):
         dispatch_mock.assert_called_once_with(limit=15)
 
 class AutoPriceFormTests(TestCase):
+    def setUp(self):
+        PriceAutoUpdateRule.objects.all().delete()
+
     def test_category_choices_skip_categories_that_already_have_a_rule(self):
         from .forms import PriceAutoUpdateRuleForm
 

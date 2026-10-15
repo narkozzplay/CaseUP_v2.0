@@ -58,3 +58,6 @@ YOOKASSA_SHOP_ID = ""
 YOOKASSA_SECRET_KEY = ""
 # The test runner forces DEBUG=False, which would switch the "auto" source-IP check on for test clients.
 PAYMENTS_WEBHOOK_IP_CHECK = "off"
+
+# Price queue tests never sleep between Steam requests.
+STEAM_PRICE_REQUEST_INTERVAL = 0

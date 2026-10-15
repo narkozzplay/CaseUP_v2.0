@@ -21,6 +21,8 @@ def _control_center_access(user) -> bool:
 
 
 def _build_control_center_context(*, role_access, form, edit_rule=None):
+    from modules.v2.steam_catalog.services.price_queue import coverage
+
     rules = list(PriceAutoUpdateRule.objects.order_by("category"))
     recent_logs = (
         PriceAutoUpdateRunLog.objects
@@ -41,6 +43,7 @@ def _build_control_center_context(*, role_access, form, edit_rule=None):
         "rules": rules,
         "recent_logs": recent_logs,
         "current_rule": edit_rule,
+        "queue": coverage(),
         "can_add_rule": bool(edit_rule) or bool(free_categories),
         "summary": {
             "total": len(rules),

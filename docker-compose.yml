@@ -106,7 +106,7 @@ services:
       DJANGO_CACHE_URL: ${DJANGO_CACHE_URL:-redis://redis:6379/1}
       RUN_MIGRATIONS: "0"
       RUN_COLLECTSTATIC: "0"
-    command: celery -A config worker -l info --concurrency=${CELERY_WORKER_CONCURRENCY:-1} --max-tasks-per-child=100
+    command: celery -A config worker -l info --concurrency=${CELERY_WORKER_CONCURRENCY:-2} --max-tasks-per-child=100
     volumes:
       - media_data:/app/media
       - static_data:/app/staticfiles

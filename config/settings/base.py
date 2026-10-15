@@ -88,6 +88,7 @@ PROJECT_APPS = [
     "modules.v2.antifraud.apps.AntifraudConfig",
     "modules.v2.business.apps.BusinessConfig",
     "modules.v2.daily_bonus.apps.DailyBonusConfig",
+    "modules.v2.market.apps.MarketConfig",
     "modules.v2.store.apps.StoreConfig",
     "modules.v2.web_constructor.apps.WebConstructorConfig",
 ]
@@ -391,6 +392,21 @@ REFERRAL_COUNT_TEST_PAYMENTS = os.getenv("REFERRAL_COUNT_TEST_PAYMENTS", "0").st
 MULTI_ACCOUNT_WINDOW_DAYS = int(os.getenv("MULTI_ACCOUNT_WINDOW_DAYS", "30"))
 MULTI_ACCOUNT_SHARED_IP_LIMIT = int(os.getenv("MULTI_ACCOUNT_SHARED_IP_LIMIT", "8"))
 USER_IP_RETENTION_DAYS = int(os.getenv("USER_IP_RETENTION_DAYS", "180"))
+
+# Steam price queue (Автообновление цен): the pace per IP, how often «hot» and other items are refreshed,
+# and optional relays on other hosting (deploy/hosting/steam_price.php) that add more IP addresses.
+STEAM_PRICE_REQUEST_INTERVAL = float(os.getenv("STEAM_PRICE_REQUEST_INTERVAL", "3"))
+STEAM_PRICE_HOT_MINUTES = int(os.getenv("STEAM_PRICE_HOT_MINUTES", "120"))
+STEAM_PRICE_COLD_HOURS = int(os.getenv("STEAM_PRICE_COLD_HOURS", "24"))
+STEAM_PRICE_BATCH_MAX = int(os.getenv("STEAM_PRICE_BATCH_MAX", "60"))
+STEAM_PRICE_BACKOFF_MINUTES = int(os.getenv("STEAM_PRICE_BACKOFF_MINUTES", "15"))
+STEAM_PRICE_RELAY_URLS = get_env_list("STEAM_PRICE_RELAY_URLS", "")
+STEAM_PRICE_RELAY_TOKEN = os.getenv("STEAM_PRICE_RELAY_TOKEN", "").strip()
+
+# Market (Рынок): who may sell and how often lots are checked against the seller's Steam inventory.
+MARKET_SELLER_MIN_ACCOUNT_DAYS = int(os.getenv("MARKET_SELLER_MIN_ACCOUNT_DAYS", "30"))
+MARKET_SELLER_MIN_TOPUP = int(os.getenv("MARKET_SELLER_MIN_TOPUP", "500"))
+MARKET_INVENTORY_CHECK_PAUSE = float(os.getenv("MARKET_INVENTORY_CHECK_PAUSE", "3"))
 
 # Business panel: morning e-mail with yesterday's numbers to ADMIN_EMAILS (0 switches it off).
 BUSINESS_DAILY_REPORT = os.getenv("BUSINESS_DAILY_REPORT", "1").strip().lower() not in {"0", "false", "no", "off"}
