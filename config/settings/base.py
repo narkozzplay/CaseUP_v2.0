@@ -244,8 +244,10 @@ BACKUP_ROOT = BASE_DIR / os.getenv("BACKUP_DIR", "backups")
 # Daily backups (system.daily_backup): kept here this many days, and on the SFTP host (reg.ru hosting) longer.
 BACKUP_LOCAL_KEEP_DAYS = int(os.getenv("BACKUP_LOCAL_KEEP_DAYS", "7"))
 BACKUP_REMOTE_KEEP_DAYS = int(os.getenv("BACKUP_REMOTE_KEEP_DAYS", "30"))
+# sftp — main hosting account over SSH; ftps — a separate FTP user over FTP with TLS (port 21).
+BACKUP_PROTOCOL = os.getenv("BACKUP_PROTOCOL", "sftp").strip().lower()
 BACKUP_SFTP_HOST = os.getenv("BACKUP_SFTP_HOST", "").strip()
-BACKUP_SFTP_PORT = int(os.getenv("BACKUP_SFTP_PORT", "22"))
+BACKUP_SFTP_PORT = int(os.getenv("BACKUP_SFTP_PORT", "").strip() or ("21" if BACKUP_PROTOCOL == "ftps" else "22"))
 BACKUP_SFTP_USER = os.getenv("BACKUP_SFTP_USER", "").strip()
 BACKUP_SFTP_PASSWORD = os.getenv("BACKUP_SFTP_PASSWORD", "")
 BACKUP_SFTP_PATH = os.getenv("BACKUP_SFTP_PATH", "caseup-backups").strip()

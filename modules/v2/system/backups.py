@@ -2,12 +2,14 @@
 
 Every night (Celery beat, `system.daily_backup`) the database and media are dumped into BACKUP_ROOT
 (the `backup_data` volume), copies older than BACKUP_LOCAL_KEEP_DAYS are removed, and — when
-BACKUP_SFTP_HOST is configured — the new copy is uploaded over SFTP (reg.ru hosting) where copies
+BACKUP_SFTP_HOST is configured — the new copy is uploaded to the reg.ru hosting over SFTP (main hosting
+account) or FTPS (BACKUP_PROTOCOL=ftps: a separate FTP user that sees only its own folder), where copies
 older than BACKUP_REMOTE_KEEP_DAYS are removed too. The outcome is written to BACKUP_ROOT/last_backup.json
 (Control Center → Система shows it) and a failure is mailed to ADMINS.
 
-The SFTP server key is pinned on first connect (BACKUP_ROOT/.sftp_known_hosts) or up front with
-BACKUP_SFTP_HOST_KEY ("SHA256:…", printed by `manage.py backup_offsite --test`).
+The SFTP server key (and an FTPS certificate not signed by a known CA) is pinned on first connect
+(BACKUP_ROOT/.sftp_known_hosts) or up front with BACKUP_SFTP_HOST_KEY ("SHA256:…", printed by
+`manage.py backup_offsite --test`).
 """
 from __future__ import annotations
 
@@ -108,7 +110,7 @@ def _dir_size(path: Path) -> int:
     return sum(item.stat().st_size for item in path.rglob("*") if item.is_file())
 
 
-# --------------------------------------------------------------------------- SFTP
+# --------------------------------------------------------------------------- SFTP / FTPS
 
 
 def _fingerprint(key) -> str:
@@ -116,8 +118,42 @@ def _fingerprint(key) -> str:
     return "SHA256:" + base64.b64encode(digest).decode().rstrip("=")
 
 
+def protocol() -> str:
+    return "ftps" if (getattr(settings, "BACKUP_PROTOCOL", "") or "").strip().lower() == "ftps" else "sftp"
+
+
+def _known_hosts() -> tuple[Path, dict[str, str]]:
+    known_file = resolve_backup_root() / KNOWN_HOSTS_FILE
+    known = {}
+    if known_file.exists():
+        for line in known_file.read_text(encoding="utf-8").splitlines():
+            parts = line.split()
+            if len(parts) == 2:
+                known[parts[0]] = parts[1]
+    return known_file, known
+
+
+def _check_pinned(host_id: str, fingerprint: str, *, what: str) -> None:
+    """Pinned BACKUP_SFTP_HOST_KEY, or trust on first use (remembered in .sftp_known_hosts)."""
+    pinned = (getattr(settings, "BACKUP_SFTP_HOST_KEY", "") or "").strip()
+    known_file, known = _known_hosts()
+    expected = pinned or known.get(host_id)
+    if expected and expected != fingerprint:
+        raise BackupError(f"{what} изменился ({fingerprint}, ожидался {expected}). Если хостинг действительно сменил сервер — удалите {known_file.name} или обновите BACKUP_SFTP_HOST_KEY.")
+    if not expected:
+        known[host_id] = fingerprint
+        known_file.write_text("".join(f"{k} {v}\n" for k, v in known.items()), encoding="utf-8")
+
+
 def _connect():
-    """Open an SFTP session, checking the server key (pinned value or trust on first use)."""
+    """Open a session to the backup host: (closer, client, fingerprint). The client offers
+    stat/mkdir/put/rename/remove/listdir/rmdir/close the same way for SFTP and FTPS."""
+    if protocol() == "ftps":
+        return _connect_ftps()
+    return _connect_sftp()
+
+
+def _connect_sftp():
     import paramiko
 
     host = settings.BACKUP_SFTP_HOST
@@ -126,28 +162,132 @@ def _connect():
     transport.banner_timeout = 30
     try:
         transport.start_client(timeout=30)
-        server_key = transport.get_remote_server_key()
-        fingerprint = _fingerprint(server_key)
-        pinned = (getattr(settings, "BACKUP_SFTP_HOST_KEY", "") or "").strip()
-        known_file = resolve_backup_root() / KNOWN_HOSTS_FILE
-        known = {}
-        if known_file.exists():
-            for line in known_file.read_text(encoding="utf-8").splitlines():
-                parts = line.split()
-                if len(parts) == 2:
-                    known[parts[0]] = parts[1]
-        expected = pinned or known.get(f"{host}:{port}")
-        if expected and expected != fingerprint:
-            raise BackupError(f"Ключ SFTP-сервера изменился ({fingerprint}, ожидался {expected}). Если хостинг действительно сменил сервер — удалите {known_file.name} или обновите BACKUP_SFTP_HOST_KEY.")
-        if not expected:
-            known[f"{host}:{port}"] = fingerprint
-            known_file.write_text("".join(f"{k} {v}\n" for k, v in known.items()), encoding="utf-8")
+        fingerprint = _fingerprint(transport.get_remote_server_key())
+        _check_pinned(f"{host}:{port}", fingerprint, what="Ключ SFTP-сервера")
         transport.auth_password(settings.BACKUP_SFTP_USER, getattr(settings, "BACKUP_SFTP_PASSWORD", ""))
         if not transport.is_authenticated():
-            raise BackupError("SFTP: неверный логин или пароль.")
+            raise BackupError("Хостинг: неверный логин или пароль.")
         return transport, paramiko.SFTPClient.from_transport(transport), fingerprint
     except Exception:
         transport.close()
+        raise
+
+
+# --------------------------------------------------------------------------- FTPS (FTP over TLS)
+
+
+class _FtpsClient:
+    """SFTPClient-like wrapper over ftplib.FTP_TLS (explicit TLS, encrypted control and data)."""
+
+    def __init__(self, ftp):
+        self.ftp = ftp
+        self.home = ftp.pwd()
+
+    @staticmethod
+    def _wrap(func, *args):
+        import ftplib
+
+        try:
+            return func(*args)
+        except (ftplib.error_perm, ftplib.error_temp) as exc:
+            raise OSError(str(exc)) from exc
+
+    def stat(self, path):
+        from types import SimpleNamespace
+
+        try:
+            size = self._wrap(self.ftp.size, path)
+            if size is not None:
+                return SimpleNamespace(st_size=int(size))
+        except OSError:
+            pass
+        self._wrap(self.ftp.cwd, path)  # a directory?
+        self.ftp.cwd(self.home)
+        return SimpleNamespace(st_size=0)
+
+    def mkdir(self, path):
+        self._wrap(self.ftp.mkd, path)
+
+    def put(self, local, remote):
+        with open(local, "rb") as handle:
+            self._wrap(self.ftp.storbinary, f"STOR {remote}", handle)
+
+    def rename(self, old, new):
+        self._wrap(self.ftp.rename, old, new)
+
+    def remove(self, path):
+        self._wrap(self.ftp.delete, path)
+
+    def listdir(self, path):
+        names = self._wrap(self.ftp.nlst, path)
+        return sorted({posixpath.basename(name.rstrip("/")) for name in names} - {"", ".", ".."})
+
+    def rmdir(self, path):
+        self._wrap(self.ftp.rmd, path)
+
+    def close(self):
+        try:
+            self.ftp.quit()
+        except Exception:  # noqa: BLE001
+            self.ftp.close()
+
+
+def _ftps_class():
+    import ftplib
+
+    class SessionReusingFTPS(ftplib.FTP_TLS):
+        """Many FTP servers (ProFTPD, vsftpd) require the data connection to reuse the TLS session
+        of the control connection; plain ftplib does not, and uploads then fail with 425/522."""
+
+        def ntransfercmd(self, cmd, rest=None):
+            conn, size = ftplib.FTP.ntransfercmd(self, cmd, rest)
+            if self._prot_p:
+                conn = self.context.wrap_socket(conn, server_hostname=self.host, session=self.sock.session)
+            return conn, size
+
+    return SessionReusingFTPS
+
+
+def _cert_fingerprint(der: bytes) -> str:
+    return "SHA256:" + base64.b64encode(hashlib.sha256(der).digest()).decode().rstrip("=")
+
+
+def _connect_ftps():
+    import ssl
+
+    host = settings.BACKUP_SFTP_HOST
+    port = int(getattr(settings, "BACKUP_SFTP_PORT", 21))
+    pinned = bool((getattr(settings, "BACKUP_SFTP_HOST_KEY", "") or "").strip())
+
+    def open_session(context):
+        ftp = _ftps_class()(context=context, timeout=60)
+        ftp.connect(host, port)
+        ftp.auth()
+        return ftp
+
+    ftp = None
+    verified = False
+    if not pinned:
+        try:
+            ftp = open_session(ssl.create_default_context())
+            verified = True
+        except ssl.SSLCertVerificationError:
+            ftp = None  # self-signed / unknown CA: fall back to pinning the certificate below
+    if ftp is None:
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        ftp = open_session(context)
+    try:
+        fingerprint = _cert_fingerprint(ftp.sock.getpeercert(binary_form=True))
+        if not verified:
+            _check_pinned(f"ftps://{host}:{port}", fingerprint, what="Сертификат FTPS-сервера")
+        ftp.login(settings.BACKUP_SFTP_USER, getattr(settings, "BACKUP_SFTP_PASSWORD", ""))
+        ftp.prot_p()
+        client = _FtpsClient(ftp)
+        return client, client, fingerprint
+    except Exception:
+        ftp.close()
         raise
 
 
@@ -176,7 +316,7 @@ def upload(local_dir: Path) -> str:
             partial = remote + ".part"
             sftp.put(str(file), partial)
             if sftp.stat(partial).st_size != file.stat().st_size:
-                raise BackupError(f"SFTP: файл {file.name} загрузился не полностью.")
+                raise BackupError(f"Хостинг: файл {file.name} загрузился не полностью.")
             try:
                 sftp.remove(remote)
             except OSError:
@@ -288,5 +428,5 @@ def status_summary(*, now: datetime | None = None) -> dict:
     if finished is None or now - finished > timedelta(hours=30):
         return {"state": "warn", "text": "Последнему бэкапу больше суток", "status": status, "finished": finished}
     if not status.get("uploaded"):
-        return {"state": "warn", "text": "Бэкап есть только на этом сервере (SFTP не настроен)", "status": status, "finished": finished}
+        return {"state": "warn", "text": "Бэкап есть только на этом сервере (отправка на хостинг не настроена)", "status": status, "finished": finished}
     return {"state": "ok", "text": f"Сохранён на хостинге: {status.get('remote_path', '')}", "status": status, "finished": finished}
