@@ -36,3 +36,6 @@ Thumbs.db
 
 # Local generated archives
 *.zip
+
+# Downloaded runtime data (GeoIP database)
+var/

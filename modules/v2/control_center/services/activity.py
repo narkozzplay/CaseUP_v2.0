@@ -39,6 +39,8 @@ EVENT_LABELS = {
     "account.verification_reviewed": "Решение по верификации",
     "account.customization": "Оформление профиля",
     "account.privacy": "Настройки приватности",
+    "account.session_ended": "Завершён сеанс",
+    "account.sessions_ended_others": "Завершены другие сеансы",
     "balance.topup": "Пополнение баланса",
     "balance.case_open": "Списание за кейс",
     "balance.item_sale": "Зачисление за продажу",

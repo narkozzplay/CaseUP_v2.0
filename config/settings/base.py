@@ -101,6 +101,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "modules.v2.control_center.middleware.ActivityContextMiddleware",
+    "modules.v2.accounts.middleware.UserSessionMiddleware",
     "modules.v2.system.middleware.MaintenanceModeMiddleware",
     "modules.v2.system.middleware.ModuleAccessMiddleware",
     "modules.v2.profiles.middleware.UserLastSeenMiddleware",
@@ -326,6 +327,11 @@ PAYMENTS_WEBHOOK_IP_CHECK = os.getenv("PAYMENTS_WEBHOOK_IP_CHECK", "auto").strip
 # Reverse proxies in front of Django that append to X-Forwarded-For (prod: Nginx = 1; 0 = use REMOTE_ADDR).
 PAYMENTS_WEBHOOK_PROXY_COUNT = int(os.getenv("PAYMENTS_WEBHOOK_PROXY_COUNT", "1"))
 CELERY_BEAT_PAYMENTS_RECONCILE_SECONDS = int(os.getenv("CELERY_BEAT_PAYMENTS_RECONCILE_SECONDS", "300"))
+
+# Profile → Безопасность: signed-in devices. History of ended sessions is kept this long.
+USER_SESSION_RETENTION_DAYS = int(os.getenv("USER_SESSION_RETENTION_DAYS", "90"))
+# City by IP for sign-ins: DB-IP City Lite (.mmdb), downloaded by the accounts.update_geoip task.
+GEOIP_DATABASE_PATH = os.getenv("GEOIP_DATABASE_PATH", str(BASE_DIR / "var" / "geoip" / "dbip-city-lite.mmdb"))
 
 # Control Center → Логи: how long journal entries are kept (pruned daily by Celery beat).
 ACTIVITY_LOG_RETENTION_DAYS = int(os.getenv("ACTIVITY_LOG_RETENTION_DAYS", "365"))

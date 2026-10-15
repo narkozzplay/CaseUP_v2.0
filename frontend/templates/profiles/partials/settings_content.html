@@ -24,6 +24,21 @@
 
     <div class="profile-grid profile-grid--settings">
 
+        {# ===== БЕЗОПАСНОСТЬ (owner only) ===== #}
+        {% if is_owner_profile %}
+        <article class="card profile-card-accent" id="settings-security">
+            <div class="card-body">
+                <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Безопасность{% else %}Security{% endif %}</h2>
+                <p class="text-muted" style="margin-bottom:.75rem;">
+                    {% if LANGUAGE_CODE == "ru" %}Устройства, где выполнен вход в аккаунт: город, IP, браузер. Завершите сеанс, если видите незнакомое устройство.{% else %}Devices signed in to your account: city, IP, browser. End any session you don't recognise.{% endif %}
+                </p>
+                <a href="{% url 'accounts:security' %}" class="btn btn-primary btn-block" data-dashboard-nav="true">
+                    {% if LANGUAGE_CODE == "ru" %}Активные сеансы{% else %}Active sessions{% endif %}
+                </a>
+            </div>
+        </article>
+        {% endif %}
+
         {# ===== АВАТАРКА (owner only) ===== #}
         {% if is_owner_profile and avatar_upload_form %}
         <article class="card profile-card-accent" id="settings-avatar">

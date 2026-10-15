@@ -30,3 +30,60 @@ class LegalConsent(models.Model):
 
     def __str__(self) -> str:
         return f"LegalConsent(user={self.user_id}, agreement={self.agreement_version}, at={self.accepted_at:%Y-%m-%d %H:%M})"
+
+
+class UserSession(models.Model):
+    """One signed-in browser/device: where and how the user logged in, and when it was last active.
+
+    Mirrors a Django session (by key). Ending a session deletes the Django session itself, so the
+    device is signed out on its next request; the row stays as history until pruned.
+    """
+
+    class Method(models.TextChoices):
+        STEAM = "steam", "Steam"
+        PASSWORD = "password", "Пароль"
+        UNKNOWN = "", "—"
+
+    class EndReason(models.TextChoices):
+        LOGOUT = "logout", "Выход"
+        REVOKED = "revoked", "Завершён пользователем"
+        ADMIN = "admin", "Завершён администратором"
+        EXPIRED = "expired", "Истёк"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="device_sessions")
+    session_key = models.CharField(max_length=40, unique=True)
+    login_method = models.CharField(max_length=16, choices=Method.choices, blank=True, default="")
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    last_ip = models.GenericIPAddressField(null=True, blank=True)
+    city = models.CharField(max_length=120, blank=True, default="")
+    country = models.CharField(max_length=120, blank=True, default="")
+    user_agent = models.CharField(max_length=255, blank=True, default="")
+    device_type = models.CharField(max_length=16, blank=True, default="")
+    os = models.CharField(max_length=64, blank=True, default="")
+    browser = models.CharField(max_length=64, blank=True, default="")
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    last_seen_at = models.DateTimeField(default=timezone.now, db_index=True)
+    ended_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    ended_reason = models.CharField(max_length=16, choices=EndReason.choices, blank=True, default="")
+
+    class Meta:
+        ordering = ("-last_seen_at", "-id")
+        verbose_name = "User session"
+        verbose_name_plural = "User sessions"
+        indexes = [models.Index(fields=["user", "ended_at", "last_seen_at"])]
+
+    def __str__(self) -> str:
+        return f"UserSession(user={self.user_id}, {self.device_label}, ip={self.last_ip or self.ip_address})"
+
+    @property
+    def is_active(self) -> bool:
+        return self.ended_at is None
+
+    @property
+    def device_label(self) -> str:
+        parts = [part for part in (self.os, self.browser) if part]
+        return " · ".join(parts) or "Неизвестное устройство"
+
+    @property
+    def location_label(self) -> str:
+        return ", ".join(part for part in (self.city, self.country) if part)
