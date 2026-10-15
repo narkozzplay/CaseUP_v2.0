@@ -309,6 +309,9 @@ def finalize_sale_order(*, order: SaleOrder, created_by=None) -> SaleOrder:
     order.completed_at = now
     order.failure_reason = ""
     order.save(update_fields=["status", "payout_paid", "payout_paid_at", "completed_at", "failure_reason", "updated_at"])
+    from modules.v2.business.revenue import record_tradehub_order
+
+    record_tradehub_order(order)
     log_trade_event(order=order, offer=offer, event="sale_completed", message="Продажа завершена, выплата начислена.", created_by=created_by)
     return order
 

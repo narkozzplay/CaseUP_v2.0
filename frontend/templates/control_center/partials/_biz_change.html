@@ -1,0 +1,2 @@
+{# expects: c (int percent or None); inverse=True when growth is bad (costs) #}
+{% if c is not None %}<span class="biz-change {% if c > 0 %}{% if inverse %}text-down{% else %}text-up{% endif %}{% elif c < 0 %}{% if inverse %}text-up{% else %}text-down{% endif %}{% endif %}">{% if c > 0 %}▲ +{{ c }}%{% elif c < 0 %}▼ {{ c }}%{% else %}0%{% endif %}</span>{% endif %}

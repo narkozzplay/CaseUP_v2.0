@@ -12,25 +12,19 @@ from django.views.decorators.http import require_POST
 from modules.v2.profiles.rbac import get_user_role
 
 from .dashboard_shell import DASHBOARD_RELOAD_URL_HEADER, is_dashboard_partial_request, render_dashboard_page
-from .forms import SiteConfigurationForm, ThemeActivateForm
+from .forms import SiteConfigurationForm
 from .services import (
     build_page_title,
     build_theme_update_headers,
-    disable_runtime_module,
-    get_available_themes,
     get_control_center_summary,
     get_current_project_version,
     get_module_flag_release_map,
-    get_module_release_matrix,
     get_module_state_map,
     get_module_state_views,
     get_runtime_environment,
-    get_runtime_module_admin_rows,
     get_site_configuration,
-    sync_runtime_modules_from_manifests,
     update_module_states,
     preview_module_update,
-    set_active_theme,
 )
 from .module_registry import MODULE_REGISTRY
 from .settings_tools import diff_settings, export_settings_payload, get_cached_integration_health, snapshot_settings
@@ -147,115 +141,6 @@ def settings_page(request):
         preview_state_map = current_state_map
     context = _build_settings_context(role_access=role_access, config=config, form=form, current_state_map=current_state_map, preview=preview, preview_state_map=preview_state_map)
     return render_dashboard_page(request, full_template="system/settings.html", partial_template="system/partials/settings_content.html", context=context, page_title=build_page_title("System Settings"), active_menu_key="system_settings")
-
-
-@login_required
-def versioning_page(request):
-    role_access = get_user_role(request.user)
-    if not role_access.is_admin_plus:
-        return HttpResponseForbidden("Version control доступен только admin+.")
-    current_project_version = get_current_project_version()
-    context = {
-        "role_access": role_access,
-        "config": get_site_configuration(),
-        "summary": get_control_center_summary(),
-        "runtime_environment": get_runtime_environment(),
-        "current_project_version": current_project_version,
-        "module_release_rows": get_module_release_matrix(project_version=current_project_version),
-        "runtime_module_rows": get_runtime_module_admin_rows(project_version=current_project_version),
-        "themes": get_available_themes(project_version=current_project_version),
-    }
-    return render_dashboard_page(request, full_template="system/versioning.html", partial_template="system/partials/versioning_content.html", context=context, page_title=build_page_title("Versions & Themes"), active_menu_key="system_versioning")
-
-
-
-@login_required
-@require_POST
-def activate_theme_page(request):
-    role_access = get_user_role(request.user)
-    if not role_access.is_admin_plus:
-        return HttpResponseForbidden("Theme activation доступна только admin+.")
-
-    form = ThemeActivateForm(request.POST, current_version=get_current_project_version())
-    next_url = request.POST.get("next_url") or request.META.get("HTTP_REFERER") or reverse("system_config:versioning")
-    if not form.is_valid():
-        messages.error(request, "Не удалось активировать тему. Проверь совместимость темы с текущей версией проекта.")
-        return redirect(next_url)
-
-    theme = form.cleaned_data["theme"]
-    previous_theme = get_site_configuration().active_theme
-    try:
-        config = set_active_theme(theme)
-    except ValidationError as exc:
-        messages.error(request, str(exc))
-        return redirect(next_url)
-
-    messages.success(request, f"Тема '{theme.name}' активирована.")
-    if is_dashboard_partial_request(request):
-        current_project_version = get_current_project_version()
-        context = {
-            "role_access": role_access,
-            "config": config,
-            "summary": get_control_center_summary(),
-            "runtime_environment": get_runtime_environment(),
-            "current_project_version": current_project_version,
-            "module_release_rows": get_module_release_matrix(project_version=current_project_version),
-            "runtime_module_rows": get_runtime_module_admin_rows(project_version=current_project_version),
-            "themes": get_available_themes(project_version=current_project_version),
-        }
-        response_headers = build_theme_update_headers(previous_theme=previous_theme, next_theme=config.active_theme)
-        if response_headers.get("X-Dashboard-Theme-Mode") == "reload":
-            response_headers[DASHBOARD_RELOAD_URL_HEADER] = reverse("system_config:versioning")
-        return render_dashboard_page(
-            request,
-            full_template="system/versioning.html",
-            partial_template="system/partials/versioning_content.html",
-            context=context,
-            page_title=build_page_title("Versions & Themes"),
-            active_menu_key="system_versioning",
-            current_url=reverse("system_config:versioning"),
-            response_headers=response_headers,
-        )
-    return redirect(next_url)
-
-
-@login_required
-@require_POST
-def sync_runtime_modules_page(request):
-    role_access = get_user_role(request.user)
-    if not role_access.is_admin_plus:
-        return HttpResponseForbidden("Runtime module sync доступен только admin+.")
-
-    result = sync_runtime_modules_from_manifests()
-    message = (
-        f"Runtime modules sync: найдено {result.total}, создано {result.created}, "
-        f"обновлено {result.updated}, без изменений {result.skipped}, ошибок {result.failed}."
-    )
-    if result.failed:
-        messages.warning(request, message + " " + " | ".join(result.errors))
-    else:
-        messages.success(request, message)
-    return redirect("system_config:versioning")
-
-
-@login_required
-@require_POST
-def disable_runtime_module_page(request, module_key: str):
-    role_access = get_user_role(request.user)
-    if not role_access.is_admin_plus:
-        return HttpResponseForbidden("Runtime module disable доступен только admin+.")
-
-    try:
-        updated = disable_runtime_module(module_key=module_key)
-    except ValidationError as exc:
-        messages.error(request, str(exc))
-        return redirect("system_config:versioning")
-
-    if updated:
-        messages.success(request, f"Runtime module '{module_key}' отключён.")
-    else:
-        messages.info(request, f"Runtime module '{module_key}' уже отключён или не найден.")
-    return redirect("system_config:versioning")
 
 
 @login_required

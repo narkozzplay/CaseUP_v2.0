@@ -86,6 +86,7 @@ PROJECT_APPS = [
     "modules.v2.referrals.apps.ReferralsConfig",
     "modules.v2.promo.apps.PromoConfig",
     "modules.v2.antifraud.apps.AntifraudConfig",
+    "modules.v2.business.apps.BusinessConfig",
     "modules.v2.store.apps.StoreConfig",
     "modules.v2.web_constructor.apps.WebConstructorConfig",
 ]
@@ -294,6 +295,7 @@ SOCIAL_AUTH_PIPELINE = (
     "modules.v2.accounts.social_pipeline.steam_set_username",
     "social_core.pipeline.social_auth.social_uid",
     "social_core.pipeline.social_auth.auth_allowed",
+    "modules.v2.accounts.social_pipeline.prevent_foreign_steam_link",
     "social_core.pipeline.social_auth.social_user",
     "modules.v2.accounts.social_pipeline.require_legal_consent",
     "modules.v2.accounts.social_pipeline.enforce_registration_enabled",
@@ -388,6 +390,9 @@ REFERRAL_COUNT_TEST_PAYMENTS = os.getenv("REFERRAL_COUNT_TEST_PAYMENTS", "0").st
 MULTI_ACCOUNT_WINDOW_DAYS = int(os.getenv("MULTI_ACCOUNT_WINDOW_DAYS", "30"))
 MULTI_ACCOUNT_SHARED_IP_LIMIT = int(os.getenv("MULTI_ACCOUNT_SHARED_IP_LIMIT", "8"))
 USER_IP_RETENTION_DAYS = int(os.getenv("USER_IP_RETENTION_DAYS", "180"))
+
+# Business panel: morning e-mail with yesterday's numbers to ADMIN_EMAILS (0 switches it off).
+BUSINESS_DAILY_REPORT = os.getenv("BUSINESS_DAILY_REPORT", "1").strip().lower() not in {"0", "false", "no", "off"}
 
 # Promo codes: "only new accounts" means registered within this many days; test-mode payments do not
 # trigger top-up bonuses unless enabled.
