@@ -1,0 +1,20 @@
+<article class="ops-panel">
+    <div class="ops-panel__head"><h2 class="ops-panel__title">{{ title }}</h2><span class="ops-panel__hint">{{ rows|length }}</span></div>
+    <div class="table-wrap">
+        <table class="table cc-table">
+            <thead><tr><th>Сделка</th><th>Предмет</th><th class="cc-num">Сумма</th><th>Статус</th></tr></thead>
+            <tbody>
+                {% for deal in rows %}
+                    <tr>
+                        <td class="cc-mono"><a href="{% url 'market:deal' deal.code %}" data-dashboard-nav="true">{{ deal.code }}</a><span class="cc-sub">{{ deal.created_at|date:"d.m.Y H:i" }}</span></td>
+                        <td>{{ deal.listing.market_hash_name }}<span class="cc-sub">{% if other_role == "seller" %}продавец {{ deal.seller.username }}{% else %}покупатель {{ deal.buyer.username }}{% endif %}</span></td>
+                        <td class="cc-num">{{ deal.price|floatformat:"2u" }} ₽</td>
+                        <td><span class="cc-chip{% if deal.status == 'completed' %} cc-chip--ok{% elif deal.status == 'disputed' %} cc-chip--fail{% elif deal.status == 'cancelled' %}{% else %} cc-chip--info{% endif %}" title="{{ deal.get_status_display }}">{{ deal.short_status }}</span></td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="4" class="text-muted">Пока нет.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</article>

@@ -40,21 +40,28 @@ def _setting(name: str, default):
 # --------------------------------------------------------------------------- journal
 
 
-def log_event(kind: str, *, user=None, actor=None, listing=None, message: str = "", payload: dict | None = None, ip: str | None = None) -> MarketEvent:
+_SYSTEM = object()
+
+
+def log_event(kind: str, *, user=None, actor=_SYSTEM, listing=None, deal=None, message: str = "", payload: dict | None = None, ip: str | None = None) -> MarketEvent:
+    """Journal one market action. ``actor`` defaults to ``user``; pass ``actor=None`` for the site itself."""
     from modules.v2.control_center.models import ActivityCategory
     from modules.v2.control_center.services.activity import log_activity
 
+    actor = user if actor is _SYSTEM else actor
+    if deal is not None and listing is None:
+        listing = deal.listing
     event = MarketEvent.objects.create(
-        kind=kind, user=user, actor=actor or user, listing=listing, message=message[:255], payload=payload or {}, ip_address=ip or None
+        kind=kind, user=user, actor=actor, listing=listing, deal=deal, message=message[:255], payload=payload or {}, ip_address=ip or None
     )
     log_activity(
         category=ActivityCategory.TRADING,
         event=f"market.{kind}",
         summary=message[:255],
         user=user,
-        actor=actor or user,
+        actor=actor,
         amount=(payload or {}).get("price"),
-        obj=listing,
+        obj=deal or listing,
         payload=payload or {},
     )
     return event

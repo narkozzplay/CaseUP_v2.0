@@ -254,6 +254,9 @@ LEDGER_REASON_LABELS_RU = {
     LedgerReason.BUNDLE_PURCHASE: "Покупка набора",
     LedgerReason.REFERRAL_BONUS: "Бонус за рефералов",
     LedgerReason.DAILY_BONUS: "Ежедневный бонус",
+    LedgerReason.MARKET_PURCHASE: "Покупка на рынке",
+    LedgerReason.MARKET_REFUND: "Возврат по сделке",
+    LedgerReason.MARKET_SALE: "Продажа на рынке",
     LedgerReason.PROMO_BONUS: "Бонус по промокоду",
 }
 

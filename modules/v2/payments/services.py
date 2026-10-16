@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.conf import settings
 from django.db import transaction
@@ -50,9 +50,24 @@ def get_topup_presets() -> list[Decimal]:
     return presets
 
 
+def topup_fee_percent() -> Decimal:
+    from modules.v2.system.services import get_site_configuration
+
+    value = getattr(get_site_configuration(), "topup_fee_percent", None)
+    return Decimal(str(value if value is not None else "0")).quantize(MONEY_Q)
+
+
+def quote_topup(credit: Decimal) -> tuple[Decimal, Decimal]:
+    """(commission, total to pay) for putting ``credit`` on the balance."""
+    credit = Decimal(credit).quantize(MONEY_Q)
+    fee = (credit * topup_fee_percent() / Decimal("100")).quantize(MONEY_Q, rounding=ROUND_HALF_UP)
+    return fee, credit + fee
+
+
 def create_topup_payment(*, user, amount: Decimal, return_url_builder, terms_version: str = "") -> Payment:
     """Create a local Payment and register it with the active provider.
 
+    ``amount`` is what lands on the balance; the payer is charged it plus the top-up commission.
     return_url_builder(payment) -> absolute URL the provider sends the user back to.
     """
     provider = get_provider()
@@ -73,10 +88,13 @@ def create_topup_payment(*, user, amount: Decimal, return_url_builder, terms_ver
     if open_count >= max_open:
         raise TopupError("Слишком много неоплаченных платежей. Оплатите начатый платёж или подождите 15 минут.")
 
+    fee, total = quote_topup(amount)
     payment = Payment.objects.create(
         user=user,
         provider=provider.code,
-        amount=amount,
+        amount=total,
+        credit_amount=amount,
+        fee_amount=fee,
         currency=getattr(settings, "PAYMENTS_CURRENCY", "RUB"),
         description=f"Пополнение баланса CaseUP, пользователь {user.username}"[:255],
         is_test=provider.is_test_mode,
@@ -108,21 +126,42 @@ def create_topup_payment(*, user, amount: Decimal, return_url_builder, terms_ver
 def _credit(payment: Payment) -> None:
     entry = adjust_balance(
         user=payment.user,
-        delta=payment.amount,
+        delta=payment.balance_amount,
         reason=LedgerReason.TOPUP,
-        amount_snapshot=payment.amount,
+        amount_snapshot=payment.balance_amount,
         idempotency_key=f"payment:{payment.public_id}",
         comment=f"Пополнение через {payment.provider} · {payment.external_id}",
     )
     payment.ledger_entry = entry
+    if payment.fee_amount and payment.fee_amount > 0 and not payment.is_test:
+        from modules.v2.business.models import RevenueSource
+        from modules.v2.business.revenue import record_commission
+
+        record_commission(
+            source=RevenueSource.TOPUP_FEE,
+            amount=payment.fee_amount,
+            ref=f"payment:{payment.public_id}",
+            user=payment.user,
+            occurred_at=payment.paid_at,
+            note=f"Комиссия с пополнения на {payment.balance_amount:.2f} ₽",
+        )
     transaction.on_commit(lambda: _notify_credited(payment))
+
+
+def _provider_fee(payment: Payment):
+    """The provider's own fee from its payload (YooKassa: amount minus income_amount)."""
+    income = ((payment.provider_payload or {}).get("income_amount") or {}).get("value")
+    try:
+        return (payment.amount - Decimal(str(income))).quantize(MONEY_Q) if income is not None else None
+    except Exception:  # noqa: BLE001 - an odd payload just leaves the fee unknown
+        return None
 
 
 def _notify_credited(payment: Payment) -> None:
     from .notifications import KIND_TOPUP_SUCCEEDED
 
     try:
-        notify(payment.user, KIND_TOPUP_SUCCEEDED, object_id=payment.pk, payload={"amount": f"{payment.amount:.2f}"})
+        notify(payment.user, KIND_TOPUP_SUCCEEDED, object_id=payment.pk, payload={"amount": f"{payment.balance_amount:.2f}"})
     except Exception:  # noqa: BLE001 - the money is already credited; a failed notification must not hide that
         logger.exception("Top-up %s credited, but the notification failed", payment.public_id)
 
@@ -164,6 +203,7 @@ def sync_payment(payment: Payment, *, provider: BasePaymentProvider | None = Non
             else:
                 locked.status = Payment.Status.SUCCEEDED
                 locked.paid_at = locked.paid_at or timezone.now()
+                locked.provider_fee = _provider_fee(locked)
                 _credit(locked)
         else:
             locked.status = new_status

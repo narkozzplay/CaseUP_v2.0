@@ -1,0 +1,48 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Рынок</h1>
+            <p class="ops-hero__text">Сделки с гарантом. Споры решаются на странице сделки: вернуть деньги покупателю или передать продавцу — решение пишется в журнал сделки и в «Журнал».</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Лотов на витрине</dt><dd>{{ active_listings }}</dd></div>
+            <div><dt>Открытых сделок</dt><dd>{{ totals.open }}</dd></div>
+            <div><dt>Споров</dt><dd{% if totals.disputed %} class="metric-negative"{% endif %}>{{ totals.disputed }}</dd></div>
+            <div><dt>Заморожено</dt><dd>{{ totals.frozen|default:0|floatformat:"2u" }} ₽</dd></div>
+            <div><dt>Оборот</dt><dd>{{ totals.turnover|default:0|floatformat:"2u" }} ₽</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <form method="get" class="cc-toolbar">
+        <label class="cc-field cc-field--grow"><span>Поиск</span><input type="search" name="q" value="{{ filters.q }}" class="form-control" placeholder="MKT-код, предмет, покупатель или продавец"></label>
+        <label class="cc-field form-field"><span>Статус</span><select name="status"><option value="">Все</option>{% for code, label in status_options %}<option value="{{ code }}"{% if filters.status == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+        <div class="cc-toolbar__actions"><button type="submit" class="btn btn-primary btn-sm">Показать</button>{% if totals.disputed %}<a href="?status=disputed" class="btn btn-danger btn-sm">Споры ({{ totals.disputed }})</a>{% endif %}</div>
+    </form>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Сделки</h2><span class="ops-panel__hint">{{ page_obj.paginator.count }}</span></div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead><tr><th>Сделка</th><th style="min-width: 220px">Предмет</th><th>Покупатель</th><th>Продавец</th><th class="cc-num">Сумма</th><th>Статус</th></tr></thead>
+                <tbody>
+                    {% for deal in page_obj %}
+                        <tr>
+                            <td class="cc-mono"><a href="{% url 'market:deal' deal.code %}">{{ deal.code }}</a><span class="cc-sub">{{ deal.created_at|date:"d.m.Y H:i" }}</span></td>
+                            <td>{{ deal.listing.market_hash_name }}</td>
+                            <td>{% include "control_center/partials/_user_cell.html" with u=deal.buyer %}</td>
+                            <td>{% include "control_center/partials/_user_cell.html" with u=deal.seller %}</td>
+                            <td class="cc-num">{{ deal.price|floatformat:"2u" }} ₽</td>
+                            <td><span class="cc-chip{% if deal.status == 'completed' %} cc-chip--ok{% elif deal.status == 'disputed' %} cc-chip--fail{% elif deal.status != 'cancelled' %} cc-chip--info{% endif %}" title="{{ deal.get_status_display }}">{{ deal.short_status }}</span></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6" class="text-muted">Сделок пока нет.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+    {% include "control_center/partials/_pagination.html" %}
+</section>

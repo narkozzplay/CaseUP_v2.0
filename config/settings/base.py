@@ -407,6 +407,10 @@ STEAM_PRICE_RELAY_TOKEN = os.getenv("STEAM_PRICE_RELAY_TOKEN", "").strip()
 MARKET_SELLER_MIN_ACCOUNT_DAYS = int(os.getenv("MARKET_SELLER_MIN_ACCOUNT_DAYS", "30"))
 MARKET_SELLER_MIN_TOPUP = int(os.getenv("MARKET_SELLER_MIN_TOPUP", "500"))
 MARKET_INVENTORY_CHECK_PAUSE = float(os.getenv("MARKET_INVENTORY_CHECK_PAUSE", "3"))
+MARKET_SEND_HOURS = int(os.getenv("MARKET_SEND_HOURS", "24"))
+MARKET_HOLD_DAYS = int(os.getenv("MARKET_HOLD_DAYS", "7"))
+MARKET_DISPUTE_AFTER_HOURS = int(os.getenv("MARKET_DISPUTE_AFTER_HOURS", "24"))
+MARKET_PROOF_CHECKS_PER_RUN = int(os.getenv("MARKET_PROOF_CHECKS_PER_RUN", "20"))
 
 # Business panel: morning e-mail with yesterday's numbers to ADMIN_EMAILS (0 switches it off).
 BUSINESS_DAILY_REPORT = os.getenv("BUSINESS_DAILY_REPORT", "1").strip().lower() not in {"0", "false", "no", "off"}

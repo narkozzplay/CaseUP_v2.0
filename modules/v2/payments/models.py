@@ -23,7 +23,12 @@ class Payment(models.Model):
         related_name="payments",
     )
     provider = models.CharField(max_length=32)
+    # What the payer is charged: credit_amount (lands on the balance) + fee_amount (the top-up commission).
     amount = models.DecimalField(max_digits=14, decimal_places=2)
+    credit_amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    fee_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    # The provider's own fee (amount minus what it pays out), known once the payment succeeded.
+    provider_fee = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     currency = models.CharField(max_length=3, default="RUB")
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.CREATED)
     external_id = models.CharField(max_length=128, blank=True, default="")
@@ -68,6 +73,11 @@ class Payment(models.Model):
     @property
     def is_final(self) -> bool:
         return self.status in self.FINAL_STATUSES
+
+    @property
+    def balance_amount(self):
+        """What the top-up puts on the balance (old payments had no commission)."""
+        return self.credit_amount if self.credit_amount is not None else self.amount
 
     @property
     def is_credited(self) -> bool:

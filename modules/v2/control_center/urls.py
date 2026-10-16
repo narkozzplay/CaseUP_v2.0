@@ -25,6 +25,7 @@ urlpatterns = [
     path("referrals/<int:referral_id>/review/", views.referral_review, name="referral_review"),
     path("promo/", views.promo_codes, name="promo"),
     path("daily-bonus/", views.daily_bonus, name="daily_bonus"),
+    path("market/", views.market_deals, name="market"),
     path("promo/new/", views.promo_code_edit, name="promo_create"),
     path("promo/<int:promo_id>/", views.promo_code_edit, name="promo_edit"),
     path("promo/activations/<int:activation_id>/cancel/", views.promo_activation_cancel, name="promo_activation_cancel"),

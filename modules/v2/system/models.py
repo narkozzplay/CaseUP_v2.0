@@ -109,6 +109,8 @@ class SiteConfiguration(models.Model):
         default="",
         help_text="ИНН, ОГРНИП (если есть), регион или адрес для претензий.",
     )
+    # Added on top of every top-up: covers the payment provider's fee plus the site's commission.
+    topup_fee_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("8.50"))
     maintenance_mode_enabled = models.BooleanField(default=False)
     maintenance_message = models.TextField(blank=True, default="")
     registration_enabled = models.BooleanField(default=True)

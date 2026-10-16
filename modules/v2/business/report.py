@@ -53,6 +53,7 @@ def build_daily_report(*, day: date | None = None) -> tuple[str, str, str]:
     lines += [(f"  {CATEGORY_LABELS[code]}", _rub(money["categories"][code])) for code in CATEGORY_ORDER]
     lines += [
         ("Расходы на бонусы", _rub(money["bonus_total"])),
+        ("Комиссия платёжной системы", _rub(money["provider_fees"])),
         ("Чистый доход", f"{_rub(money['net'])}{_delta(money['net'], previous['net'])}"),
         ("Регистрации", f"{money['registrations']}{_delta(money['registrations'], previous['registrations'])}"),
     ]

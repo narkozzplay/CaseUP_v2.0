@@ -1,0 +1,18 @@
+<section class="section section--compact ops cc mkt">
+    <header class="cc-pagehead">
+        <div>
+            <a href="{% url 'market:index' %}" class="back-link" data-dashboard-nav="true">← Рынок</a>
+            <span class="eyebrow">Рынок CaseUP</span>
+            <h1 class="cc-pagehead__title">Мои сделки</h1>
+            <p class="ops-hero__text">Покупки и продажи с гарантом. Деньги по продажам приходят на баланс после передачи предмета и 7 дней защиты обмена Steam.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Удерживается по продажам</dt><dd>{{ held|floatformat:"2u" }} ₽</dd></div>
+        </dl>
+    </header>
+
+    <div class="mkt-stack">
+        {% include "market/partials/_deal_table.html" with title="Покупки" rows=purchases other_role="seller" %}
+        {% include "market/partials/_deal_table.html" with title="Продажи" rows=sales other_role="buyer" %}
+    </div>
+</section>

@@ -2,6 +2,8 @@
 
 .mkt-filters .mkt-price-input, .mkt-price-input { max-width: 120px; }
 .mkt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.mkt-stack { display: grid; gap: 16px; }
+.mkt-lot__seller .biz-metrics dt { white-space: nowrap; }
 .mkt-grid--compact { padding: 14px 18px; }
 
 .mkt-card {
@@ -49,3 +51,20 @@ a.mkt-card:hover { border-color: rgba(245, 166, 35, 0.5); transform: translateY(
     .mkt-lot__seller { grid-column: auto; }
     .mkt-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+.mkt-lot__notice { width: 100%; margin: 10px 0 0; padding: 10px 12px; border: 1px solid rgba(245, 166, 35, 0.4); background: var(--accent-soft); font-size: 0.85rem; }
+
+.mkt-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.mkt-steps__item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border); background: var(--panel); color: var(--text-muted); font-size: 0.82rem; }
+.mkt-steps__item span { display: grid; place-items: center; width: 22px; height: 22px; border: 1px solid var(--border-strong); font-family: var(--font-mono); font-size: 0.72rem; }
+.mkt-steps__item.is-done { color: var(--success); border-color: rgba(61, 220, 132, 0.35); }
+.mkt-steps__item.is-done span { border-color: var(--success); }
+.mkt-steps__item.is-current { color: var(--accent); border-color: rgba(245, 166, 35, 0.6); background: var(--accent-soft); }
+.mkt-deal-now .mkt-inline { margin-top: 6px; }
+@media (max-width: 720px) { .mkt-steps { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 640px) { .mkt .ops-hero__meta { flex-wrap: wrap; } .mkt .ops-hero__meta dd { white-space: normal; } }
+.mkt-chat { list-style: none; margin: 0; padding: 14px 18px; display: grid; gap: 10px; max-height: 520px; overflow-y: auto; }
+.mkt-chat__row { display: grid; gap: 4px; max-width: 80%; padding: 8px 12px; border: 1px solid var(--border); background: rgba(9, 11, 15, 0.55); }
+.mkt-chat__row.is-seller { justify-self: end; border-color: rgba(255, 170, 40, 0.35); }
+.mkt-chat__row.is-deleted { opacity: 0.6; border-style: dashed; }
+.mkt-chat__meta { color: var(--text-muted); font-family: var(--font-mono); font-size: 0.7rem; }
+.mkt-chat__body { overflow-wrap: anywhere; }

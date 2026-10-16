@@ -21,10 +21,19 @@ from .ip_allowlist import is_allowed_webhook_source
 from .models import Payment
 from .providers import PaymentProviderError, get_provider
 from .providers.dev import DevPaymentProvider
-from .services import TopupError, create_topup_payment, get_topup_limits, get_topup_presets, handle_webhook, sync_payment
+from .services import TopupError, create_topup_payment, get_topup_limits, get_topup_presets, handle_webhook, quote_topup, sync_payment, topup_fee_percent
 
 
 logger = logging.getLogger(__name__)
+
+
+RETURN_SESSION_KEY = "payments_return_to"
+
+
+def _safe_return_to(value: str) -> str:
+    """Only our own market pages may be returned to after a top-up (no open redirect)."""
+    value = (value or "").strip()
+    return value if value.startswith("/market/") and "//" not in value and "\\" not in value else ""
 
 
 def _pending_topup_promo(user):
@@ -42,7 +51,8 @@ def topup_view(request):
         data = request.POST.copy()
         if data.get("preset"):
             data["amount"] = data["preset"]
-    form = TopupForm(data)
+    form = TopupForm(data, initial={"amount": request.GET.get("amount") or None})
+    return_to = _safe_return_to(request.POST.get("next") or request.GET.get("next") or "")
 
     if request.method == "POST":
         if form.is_valid():
@@ -58,6 +68,9 @@ def topup_view(request):
             except TopupError as exc:
                 messages.error(request, str(exc))
             else:
+                if return_to:
+                    request.session.setdefault(RETURN_SESSION_KEY, {})[str(payment.public_id)] = return_to
+                    request.session.modified = True
                 if payment.status == Payment.Status.SUCCEEDED or not payment.confirmation_url:
                     return redirect("payments:return", public_id=payment.public_id)
                 return redirect(payment.confirmation_url)
@@ -73,6 +86,9 @@ def topup_view(request):
         "topup_balance": profile.balance_coins,
         "topup_payments": Payment.objects.filter(user=request.user).order_by("-created_at", "-id")[:10],
         "topup_promo": _pending_topup_promo(request.user),
+        "topup_fee_percent": topup_fee_percent(),
+        "topup_preset_quotes": [(preset, quote_topup(preset)[1]) for preset in get_topup_presets()],
+        "topup_next": return_to,
     }
     return render_dashboard_page(
         request,
@@ -92,8 +108,13 @@ def payment_return_view(request, public_id):
     except PaymentProviderError as exc:
         logger.warning("Top-up %s sync failed on return: %s", payment.public_id, exc)
 
+    return_to = (request.session.get(RETURN_SESSION_KEY) or {}).get(str(payment.public_id), "")
     if payment.status == Payment.Status.SUCCEEDED:
-        messages.success(request, f"Баланс пополнен на {payment.amount:.2f} ₽.")
+        messages.success(request, f"Баланс пополнен на {payment.balance_amount:.2f} ₽.")
+        if return_to:
+            request.session[RETURN_SESSION_KEY].pop(str(payment.public_id), None)
+            request.session.modified = True
+            return redirect(return_to)
     elif payment.status == Payment.Status.CANCELED:
         messages.warning(request, "Платёж отменён, деньги не списаны.")
     elif payment.status == Payment.Status.FAILED:

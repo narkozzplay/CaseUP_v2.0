@@ -1071,7 +1071,9 @@ def _find_existing_direct_space(user_a, user_b) -> SocialSpace | None:
     )
 
 
-def get_or_create_direct_space(user_a, user_b) -> SocialSpace:
+def get_or_create_direct_space(user_a, user_b, *, ignore_privacy: bool = False) -> SocialSpace:
+    """``ignore_privacy`` is for chats the site opens itself (a market deal): DM privacy settings are
+    skipped, but a block between the two users still refuses the chat."""
     if not getattr(user_a, "pk", None) or not getattr(user_b, "pk", None):
         raise ValueError("Both users must be saved.")
     if user_a.pk == user_b.pk:
@@ -1084,6 +1086,8 @@ def get_or_create_direct_space(user_a, user_b) -> SocialSpace:
 
         from modules.v2.social_friends.services import can_send_direct
         allowed, reason = can_send_direct(user_a, user_b)
+        if not allowed and ignore_privacy and reason.startswith("privacy_"):
+            allowed = True
         if not allowed:
             _DM_REASON_MESSAGES = {
                 "blocked_target": "Вы заблокировали этого пользователя.",

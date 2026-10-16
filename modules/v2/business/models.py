@@ -14,6 +14,7 @@ class RevenueCategory(models.TextChoices):
 
 class RevenueSource(models.TextChoices):
     SWITCH_FEE = "switch_fee", "Смена тарифа подписки"
+    TOPUP_FEE = "topup_fee", "Комиссия с пополнения"
     TRADEHUB = "tradehub", "Выкуп предметов (tradehub)"
     MARKET = "market", "Рынок"
     SUBSCRIPTION = "subscription", "Покупка подписки"
@@ -24,6 +25,7 @@ class RevenueSource(models.TextChoices):
 
 SOURCE_CATEGORY = {
     RevenueSource.SWITCH_FEE: RevenueCategory.COMMISSION,
+    RevenueSource.TOPUP_FEE: RevenueCategory.COMMISSION,
     RevenueSource.TRADEHUB: RevenueCategory.COMMISSION,
     RevenueSource.MARKET: RevenueCategory.COMMISSION,
     RevenueSource.SUBSCRIPTION: RevenueCategory.SUBSCRIPTION,

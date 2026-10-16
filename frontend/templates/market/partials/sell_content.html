@@ -62,7 +62,7 @@
     {% endif %}
 
     <article class="ops-panel">
-        <div class="ops-panel__head"><h2 class="ops-panel__title">Мои лоты</h2><span class="ops-panel__hint">{{ my_listings|length }}</span></div>
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Мои лоты</h2><a href="{% url 'market:deals' %}" class="ops-panel__link" data-dashboard-nav="true">Мои сделки →</a><span class="ops-panel__hint">{{ my_listings|length }}</span></div>
         <div class="table-wrap">
             <table class="table cc-table">
                 <thead><tr><th>Лот</th><th>Предмет</th><th class="cc-num">Цена</th><th>Статус</th><th>Действия</th></tr></thead>

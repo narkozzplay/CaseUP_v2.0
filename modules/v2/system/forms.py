@@ -62,6 +62,7 @@ class SiteConfigurationForm(forms.ModelForm):
             "public_base_url",
             "legal_owner_name",
             "legal_owner_details",
+            "topup_fee_percent",
             "maintenance_mode_enabled",
             "maintenance_message",
             "registration_enabled",
@@ -77,7 +78,16 @@ class SiteConfigurationForm(forms.ModelForm):
             "maintenance_message": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
             "legal_owner_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "ИП Иванов Иван Иванович"}),
             "legal_owner_details": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "ИНН 000000000000, ОГРНИП 000000000000000, г. Москва"}),
+            "topup_fee_percent": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0", "max": "50"}),
         }
+
+    def clean_topup_fee_percent(self):
+        value = self.cleaned_data["topup_fee_percent"]
+        if value is None:  # left out of the form: keep the current value
+            return self.instance.topup_fee_percent
+        if value < 0 or value > 50:
+            raise ValidationError("Комиссия при пополнении — от 0 до 50%.")
+        return value
 
     def clean_site_currency_rate(self):
         value = self.cleaned_data["site_currency_rate"]
@@ -94,6 +104,7 @@ class SiteConfigurationForm(forms.ModelForm):
         self.fields["current_project_version"].queryset = ProjectVersion.objects.order_by("version_order")
         self.fields["active_theme"].queryset = ThemeProfile.objects.filter(pk__in=[theme.pk for theme in get_available_themes(project_version=current_version)])
         self.fields["maintenance_mode_enabled"].widget.attrs["class"] = "toggle-control__input"
+        self.fields["topup_fee_percent"].required = False
         self.fields["registration_enabled"].widget.attrs["class"] = "toggle-control__input"
         for key, definition in MODULE_REGISTRY.items():
             self.fields[f"module__{key}"] = forms.BooleanField(

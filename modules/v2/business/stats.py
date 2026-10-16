@@ -38,7 +38,7 @@ PERIOD_PRESETS = (
 PRESET_DAYS = {"7d": 7, "30d": 30, "90d": 90}
 CATEGORY_LABELS = dict(RevenueCategory.choices)
 CATEGORY_ORDER = (RevenueCategory.COMMISSION, RevenueCategory.SUBSCRIPTION, RevenueCategory.STORE, RevenueCategory.CASES)
-COMMISSION_SOURCES = (RevenueSource.SWITCH_FEE, RevenueSource.TRADEHUB, RevenueSource.MARKET)
+COMMISSION_SOURCES = (RevenueSource.TOPUP_FEE, RevenueSource.SWITCH_FEE, RevenueSource.TRADEHUB, RevenueSource.MARKET)
 BONUS_REASONS = {
     LedgerReason.REFERRAL_BONUS: "Реферальные бонусы",
     LedgerReason.PROMO_BONUS: "Бонусы промокодов",
@@ -124,7 +124,7 @@ def _paid_payments():
 
 def money_summary(start, end) -> dict:
     payments = _paid_payments().filter(_range("paid_at", start, end))
-    topups = payments.aggregate(total=Sum("amount"), count=Count("id"), payers=Count("user_id", distinct=True))
+    topups = payments.aggregate(total=Sum("amount"), count=Count("id"), payers=Count("user_id", distinct=True), provider_fees=Sum("provider_fee"))
 
     revenue_qs = RevenueEntry.objects.filter(_range("occurred_at", start, end))
     by_category = {row["category"]: row["total"] for row in revenue_qs.values("category").annotate(total=Sum("amount"))}
@@ -153,7 +153,9 @@ def money_summary(start, end) -> dict:
         "commission": by_category.get(RevenueCategory.COMMISSION) or ZERO,
         "bonuses": bonuses,
         "bonus_total": bonus_total,
-        "net": revenue_total - bonus_total,
+        # What the payment provider kept from top-ups (YooKassa reports it per payment).
+        "provider_fees": topups["provider_fees"] or ZERO,
+        "net": revenue_total - bonus_total - (topups["provider_fees"] or ZERO),
         "registrations": User.objects.filter(_range("date_joined", start, end)).count(),
     }
 
@@ -419,7 +421,7 @@ def marketing_summary(period: Period) -> dict:
 def _compare(current: dict, previous: dict | None) -> dict:
     if previous is None:
         return {}
-    keys = ("topups", "revenue", "commission", "bonus_total", "net", "registrations", "payers")
+    keys = ("topups", "revenue", "commission", "bonus_total", "provider_fees", "net", "registrations", "payers")
     result = {key: change_percent(current[key], previous[key]) for key in keys}
     result["categories"] = {code: change_percent(current["categories"][code], previous["categories"][code]) for code in CATEGORY_ORDER}
     return result
