@@ -84,3 +84,30 @@ class SiteDeliveryTests(TestCase):
         event.refresh_from_db()
         self.assertEqual(event.delivery_status, UserPriceAlertEvent.Status.SENT)
         self.assertIn("chat id", event.error_message)
+
+
+class HealthCheckTests(TestCase):
+    @override_settings(TELEGRAM_RELAY_URL=RELAY, TELEGRAM_RELAY_TOKEN="relay-key")
+    def test_live_check_goes_through_the_relay_with_the_bot_token_in_use(self):
+        from modules.v2.system.services import _check_telegram, _telegram_bot_token
+
+        TelegramNotifierConfig.objects.create(singleton_key=1, is_enabled=True, bot_token="777777:NEWTOKENnewtokenNEWTOKENnewtoken")
+        self.assertEqual(_telegram_bot_token(), "777777:NEWTOKENnewtokenNEWTOKENnewtoken")
+        with patch("urllib.request.urlopen", return_value=fake_response({"ok": True, "result": {"username": "caseup_cs2cases_bot"}})) as urlopen:
+            status, message = _check_telegram(_telegram_bot_token())
+        self.assertEqual(urlopen.call_args.args[0].full_url, f"{RELAY}?method=getMe")
+        self.assertEqual(status, "up")
+        self.assertIn("@caseup_cs2cases_bot", message)
+
+    @override_settings(TELEGRAM_RELAY_URL=RELAY, TELEGRAM_RELAY_TOKEN="relay-key")
+    def test_rejected_token_is_explained(self):
+        from urllib.error import HTTPError
+
+        from modules.v2.system.services import _check_telegram
+
+        error = HTTPError(RELAY, 401, "Unauthorized", {}, None)
+        error.read = lambda: b'{"ok":false,"error_code":401}'
+        with patch("urllib.request.urlopen", side_effect=error):
+            status, message = _check_telegram("1:bad")
+        self.assertEqual(status, "degraded")
+        self.assertIn("BotFather", message)

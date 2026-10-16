@@ -274,7 +274,7 @@ def get_external_service_health() -> list[ExternalServiceHealth]:
     checks = [
         ("steam", "Steam API", get_integration_secret("steam_api_key"), integration.steam_health_mode, _check_steam),
         ("faceit", "FaceIT API", get_integration_secret("faceit_api_key"), integration.faceit_health_mode, _check_faceit),
-        ("telegram", "Telegram Bot API", get_integration_secret("telegram_bot_token"), integration.telegram_health_mode, _check_telegram),
+        ("telegram", "Telegram Bot API", _telegram_bot_token(), integration.telegram_health_mode, _check_telegram),
     ]
     results: list[ExternalServiceHealth] = []
     for key, label, secret, mode, checker in checks:
@@ -319,17 +319,34 @@ def _check_faceit(api_key: str) -> tuple[str, str]:
     return ("degraded", f"FaceIT API вернул HTTP {response.status_code}.")
 
 
-def _check_telegram(bot_token: str) -> tuple[str, str]:
+def _telegram_bot_token() -> str:
+    """The token the bot actually uses: TG Notifier settings first, then this integration key."""
+    from modules.v2.tg_notifier.services import resolve_bot_token
+
     try:
-        response = requests.get(f"https://api.telegram.org/bot{bot_token}/getMe", timeout=4)
-    except requests.RequestException as exc:
-        return ("down", f"Telegram API недоступен: {exc.__class__.__name__}.")
-    if not response.ok:
-        return ("degraded", f"Telegram API вернул HTTP {response.status_code}.")
-    payload = response.json() if response.headers.get("Content-Type", "").startswith("application/json") else {}
-    if payload.get("ok"):
-        return ("up", "Telegram bot token валиден.")
-    return ("degraded", "Telegram API вернул отрицательный ответ на getMe.")
+        return resolve_bot_token()
+    except Exception:  # noqa: BLE001
+        return get_integration_secret("telegram_bot_token")
+
+
+def _check_telegram(bot_token: str) -> tuple[str, str]:
+    """getMe through the same route as real messages (the relay, when Telegram is blocked from the server)."""
+    from modules.v2.tg_notifier.services import TelegramNotifierError, _build_telegram_endpoint, _telegram_api_request, relay_settings
+
+    via = " через ретранслятор" if relay_settings()[0] else ""
+    try:
+        payload = _telegram_api_request(endpoint=_build_telegram_endpoint(bot_token, "getMe"), payload={}, timeout=6)
+    except TelegramNotifierError as exc:
+        text = str(exc)
+        if "HTTP 401" in text:
+            return ("degraded", "Telegram отклонил токен бота (401): возьмите актуальный в @BotFather.")
+        if via and "HTTP 403" in text:
+            return ("degraded", "Ретранслятор отклонил запрос (403): ключ в telegram_relay.php не совпадает с ключом на сервере.")
+        if "HTTP" in text:
+            return ("degraded", f"Telegram{via} ответил ошибкой: {text[:160]}")
+        return ("down", f"Telegram API недоступен{via}: {text[:160]}")
+    username = (payload.get("result") or {}).get("username", "")
+    return ("up", f"Бот @{username} отвечает{via}." if username else f"Telegram bot token валиден{via}.")
 
 
 @request_memoize
