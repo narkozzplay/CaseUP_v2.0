@@ -1,0 +1,58 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Ошибки</h1>
+            <p class="ops-hero__text">Все ошибки сайта и фоновых задач, сгруппированные по месту в коде. О новой ошибке приходит тревога в Telegram-чат команды и уведомление админам. «Решено» — если повторится, ошибка откроется снова.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Открыто</dt><dd{% if stats.open %} class="metric-negative"{% endif %}>{{ stats.open }}</dd></div>
+            <div><dt>За сутки</dt><dd>{{ stats.day }}</dd></div>
+            <div><dt>Случаев за сутки</dt><dd>{{ stats.hits_day }}</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <div class="cc-toolbar cc-errors-toolbar">
+        <div class="cc-filters-chips">
+            <a href="?show=open" class="cc-chip cc-chip--link{% if show == 'open' %} is-active{% endif %}">Открытые</a>
+            <a href="?show=resolved" class="cc-chip cc-chip--link{% if show == 'resolved' %} is-active{% endif %}">Решённые</a>
+            <a href="?show=all" class="cc-chip cc-chip--link{% if show == 'all' %} is-active{% endif %}">Все</a>
+        </div>
+        <div class="cc-toolbar__actions">
+            <form method="post" action="{% url 'control_center:errors_action' %}">{% csrf_token %}<input type="hidden" name="action" value="test_alert"><input type="hidden" name="return_query" value="{{ pagination_query }}"><button type="submit" class="btn btn-secondary btn-sm">Проверить тревоги</button></form>
+            {% if stats.open %}<form method="post" action="{% url 'control_center:errors_action' %}">{% csrf_token %}<input type="hidden" name="action" value="resolve_all"><input type="hidden" name="return_query" value="{{ pagination_query }}"><button type="submit" class="btn btn-secondary btn-sm">Все решены</button></form>{% endif %}
+        </div>
+    </div>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">{% if show == 'resolved' %}Решённые{% elif show == 'all' %}Все ошибки{% else %}Открытые ошибки{% endif %}</h2><span class="ops-panel__hint">{{ page_obj.paginator.count }}</span></div>
+        <ul class="cc-errors">
+            {% for group in page_obj %}
+                <li class="cc-error{% if not group.is_open %} is-resolved{% endif %}">
+                    <div class="cc-error__main">
+                        <div class="cc-error__head">
+                            <span class="cc-chip{% if group.source == 'task' %} cc-chip--info{% elif group.source == 'web' %} cc-chip--fail{% endif %}">{{ group.get_source_display }}</span>
+                            <strong class="cc-error__title">{{ group.title }}</strong>
+                        </div>
+                        <span class="cc-error__meta">
+                            <code>{{ group.location|default:"—" }}</code>
+                            {% if group.last_context %} · {{ group.last_context }}{% endif %}
+                        </span>
+                        <span class="cc-error__meta">×{{ group.count }} · последний раз {{ group.last_seen|date:"d.m H:i:s" }} · впервые {{ group.first_seen|date:"d.m.Y H:i" }}{% if group.resolved_at %} · решено {{ group.resolved_at|date:"d.m H:i" }}{% endif %}</span>
+                        {% if group.last_traceback %}
+                            <details class="cc-error__trace"><summary>Подробности</summary><pre>{{ group.last_traceback }}</pre></details>
+                        {% endif %}
+                    </div>
+                    {% if group.is_open %}
+                        <form method="post" action="{% url 'control_center:errors_action' %}" class="cc-error__actions">{% csrf_token %}<input type="hidden" name="action" value="resolve"><input type="hidden" name="group_id" value="{{ group.pk }}"><input type="hidden" name="return_query" value="{{ pagination_query }}"><button type="submit" class="btn btn-secondary btn-sm">Решено</button></form>
+                    {% endif %}
+                </li>
+            {% empty %}
+                <li class="cc-errors__empty text-muted">{% if show == 'open' %}Открытых ошибок нет — всё работает.{% else %}Записей нет.{% endif %}</li>
+            {% endfor %}
+        </ul>
+    </article>
+    {% include "control_center/partials/_pagination.html" %}
+</section>

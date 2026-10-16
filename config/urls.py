@@ -2,7 +2,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.conf.urls.i18n import i18n_patterns
 from django.contrib import admin
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.urls import include, path
 
 from django.contrib.sitemaps.views import sitemap
@@ -16,10 +16,22 @@ def healthcheck(_request):
     return HttpResponse("OK")
 
 
+def readiness(_request):
+    """For an external monitor (UptimeRobot): 200 only when the database, the cache and background tasks
+    work; 503 otherwise. /health/ stays the cheap liveness check for the Docker healthcheck."""
+    from modules.v2.control_center.services import health
+
+    checks = [health.check_database(), health.check_cache(), health.check_scheduler()]
+    failed = any(check.status == health.FAIL for check in checks)
+    body = {"status": "fail" if failed else "ok", "checks": {check.key: check.status for check in checks}}
+    return JsonResponse(body, status=503 if failed else 200, headers={"Cache-Control": "no-store"})
+
+
 
 urlpatterns = [
     path("i18n/", include("django.conf.urls.i18n")),
     path("health/", healthcheck, name="healthcheck"),
+    path("health/ready/", readiness, name="readiness"),
     path("oauth/", include("social_django.urls", namespace="social_auth")),
     path("telegram/", include("modules.v2.tg_notifier.public_urls")),
     path("payments/", include("modules.v2.payments.public_urls")),

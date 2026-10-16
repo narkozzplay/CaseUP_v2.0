@@ -837,3 +837,40 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 70,
             },
         ]
+
+
+class ErrorGroup(models.Model):
+    """One kind of error (same exception at the same place) with how often and when it happened.
+
+    Filled by system.errors from the log (site requests, background code) and from failed Celery tasks;
+    shown in Control Center → «Ошибки»; new and returning groups raise an admin alert.
+    """
+
+    class Source(models.TextChoices):
+        WEB = "web", "Сайт"
+        TASK = "task", "Фоновая задача"
+        OTHER = "other", "Другое"
+
+    fingerprint = models.CharField(max_length=64, unique=True)
+    source = models.CharField(max_length=16, choices=Source.choices, default=Source.OTHER)
+    title = models.CharField(max_length=300)
+    location = models.CharField(max_length=300, blank=True, default="")
+    last_context = models.CharField(max_length=300, blank=True, default="", help_text="Страница или задача последнего случая")
+    last_traceback = models.TextField(blank=True, default="")
+    count = models.PositiveIntegerField(default=1)
+    first_seen = models.DateTimeField(auto_now_add=True)
+    last_seen = models.DateTimeField(db_index=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    alerted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-last_seen"]
+        verbose_name = "Ошибка"
+        verbose_name_plural = "Ошибки"
+
+    def __str__(self) -> str:
+        return self.title
+
+    @property
+    def is_open(self) -> bool:
+        return self.resolved_at is None
