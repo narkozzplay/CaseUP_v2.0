@@ -15,6 +15,7 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from common.search import render_search_not_found
 
@@ -311,53 +312,6 @@ def _build_price_analytics(stats_entries):
     }
 
 
-def _build_catalog_cards(items_qs, *, auto_update_categories=None):
-    auto_update_categories = set(auto_update_categories or [])
-    items = list(items_qs.order_by("family_name", "is_stattrak", "wear_order", "-updated_at"))
-
-    grouped = {}
-    for item in items:
-        key = item.family_name or item.market_hash_name
-        bucket = grouped.setdefault(
-            key,
-            {
-                "representative": None,
-                "variants": [],
-                "min_price": None,
-                "max_price": None,
-                "total_stock": 0,
-            },
-        )
-
-        bucket["variants"].append(item)
-        bucket["total_stock"] += item.stock
-
-        if bucket["representative"] is None:
-            bucket["representative"] = item
-
-        if item.price_rub is not None:
-            bucket["min_price"] = item.price_rub if bucket["min_price"] is None else min(bucket["min_price"], item.price_rub)
-            bucket["max_price"] = item.price_rub if bucket["max_price"] is None else max(bucket["max_price"], item.price_rub)
-
-    cards = []
-    for family_name, bucket in grouped.items():
-        rep = bucket["representative"]
-        cards.append(
-            {
-                "family_name": family_name,
-                "item": rep,
-                "variants_count": len(bucket["variants"]),
-                "total_stock": bucket["total_stock"],
-                "min_price": bucket["min_price"],
-                "max_price": bucket["max_price"],
-                "auto_update_enabled": rep.item_type in auto_update_categories,
-            }
-        )
-
-    cards.sort(key=lambda row: row["item"].updated_at, reverse=True)
-    return cards
-
-
 def _svg_number(value: float) -> str:
     text = f"{value:.2f}"
     if "." in text:
@@ -558,63 +512,47 @@ def catalog_list(request):
             description="Для просмотра каталога нужен активный подписочный уровень с визуальным доступом.",
         )
 
-    q = (request.GET.get("q") or "").strip()
-    item_type = (request.GET.get("type") or "").strip()
-    review = (request.GET.get("review") or "").strip()
+    from .services import browse
 
-    qs = SteamItem.objects.all()
+    can_edit = _catalog_staff_access(request.user)
+    filters = browse.parse_filters(request.GET, can_edit=can_edit)
+    fav_keys = browse.favorite_keys(request.user)
+    rows = browse.family_rows(filters, fav_keys=fav_keys)
+    page_obj = Paginator(rows, 24).get_page(request.GET.get("page") or 1)
 
-    if q:
-        qs = qs.filter(
-            Q(market_hash_name__icontains=q)
-            | Q(name__icontains=q)
-            | Q(name_ru__icontains=q)
-            | Q(weapon__icontains=q)
-            | Q(family_name__icontains=q)
-        )
-
-    if item_type:
-        qs = qs.filter(item_type=item_type)
-
-    if review == "1":
-        qs = qs.filter(needs_review=True)
-    elif review == "0":
-        qs = qs.filter(needs_review=False)
-
-    if q and not qs.exists():
-        reset_params = {}
-        if item_type:
-            reset_params["type"] = item_type
-        if review:
-            reset_params["review"] = review
-        reset_url = reverse("steam_catalog:list")
-        if reset_params:
-            reset_url = f"{reset_url}?{urlencode(reset_params)}"
+    if filters.q and not page_obj.paginator.count and not filters.favorites:
+        params = request.GET.copy()
+        for key in ("q", "page"):
+            params.pop(key, None)
+        reset_url = reverse("steam_catalog:list") + (f"?{params.urlencode()}" if params else "")
         return render_search_not_found(
             request,
-            query=q,
+            query=filters.q,
             title="Предметы не найдены",
-            hint="Steam Catalog не нашёл совпадений по твоему запросу. Попробуй убрать часть строки поиска или сбросить поиск.",
+            hint="Steam Catalog не нашёл совпадений. Попробуй другое написание (например, «ak redline») или сбрось фильтры.",
             reset_url=reset_url,
         )
 
-    auto_update_categories = set(
-        PriceAutoUpdateRule.objects
-        .filter(is_enabled=True)
-        .values_list("category", flat=True)
-    )
-
-    cards = _build_catalog_cards(qs, auto_update_categories=auto_update_categories)
-    paginator = Paginator(cards, 24)
-    page_obj = paginator.get_page(request.GET.get("page") or 1)
+    auto_update_categories = set(PriceAutoUpdateRule.objects.filter(is_enabled=True).values_list("category", flat=True))
+    cards = browse.build_cards(page_obj.object_list, filters, fav_keys=fav_keys, auto_update_categories=auto_update_categories)
 
     configured_columns = getattr(settings, "STEAM_CATALOG_GRID_COLUMNS", 7)
     try:
         configured_columns = int(configured_columns)
     except (TypeError, ValueError):
         configured_columns = 7
-
     configured_columns = max(5, min(configured_columns, 7))
+
+    def query_without(*names, **extra):
+        params = request.GET.copy()
+        for name in (*names, "page"):
+            params.pop(name, None)
+        for key, value in extra.items():
+            params[key] = value
+        return params.urlencode()
+
+    for chip in filters.chips:
+        chip["url"] = "?" + query_without(*chip["drop"])
 
     return render_dashboard_page(
         request,
@@ -622,18 +560,37 @@ def catalog_list(request):
         partial_template="steam_catalog/partials/list_content.html",
         context={
             "page_obj": page_obj,
-            "cards": page_obj.object_list,
-            "types": SteamItem.ItemType.choices,
-            "selected_type": item_type,
-            "selected_review": review,
-            "q": q,
+            "cards": cards,
+            "filters": filters,
+            "options": browse.filter_options(filters),
+            "favorites_count": len(fav_keys),
+            "type_tab_query": query_without("type", "fav"),
+            "fav_tab_query": query_without("fav", fav="1"),
+            "pagination_query": query_without(),
             "catalog_grid_columns": configured_columns,
-            "catalog_can_edit": _catalog_staff_access(request.user),
+            "catalog_can_edit": can_edit,
             "catalog_view_access_state": get_feature_access_state(request.user, STEAM_CATALOG_VIEW),
         },
         page_title=build_page_title("Steam Catalog"),
         active_menu_key="steam_catalog",
     )
+
+
+@login_required
+@require_POST
+def toggle_favorite(request, item_id: int):
+    from .services import browse
+
+    if not _catalog_view_access(request.user):
+        return HttpResponseForbidden("Steam Catalog закрыт тарифом.")
+    item = get_object_or_404(SteamItem, pk=item_id)
+    state = browse.toggle_favorite(request.user, item)
+    if request.headers.get("Accept", "").startswith("application/json"):
+        return JsonResponse({"favorite": state, "count": len(browse.favorite_keys(request.user))})
+    target = request.POST.get("next") or ""
+    if not target.startswith("/steam-catalog/") and not target.startswith(reverse("steam_catalog:list")):
+        target = reverse("steam_catalog:detail", args=[item.pk])
+    return redirect(target)
 
 
 @login_required
@@ -801,6 +758,12 @@ def catalog_reference_add(request, reference_id: int):
     return redirect("steam_catalog:detail", item_id=result.anchor_item.id)
 
 
+def _is_favorite(user, item) -> bool:
+    from .services.browse import is_favorite
+
+    return is_favorite(user, item)
+
+
 @login_required
 def catalog_detail(request, item_id: int):
     if not _catalog_view_access(request.user):
@@ -867,6 +830,7 @@ def catalog_detail(request, item_id: int):
         partial_template=detail_content_template,
         context={
             "item": item,
+            "is_favorite": _is_favorite(request.user, item),
             "family_items": family_items,
             "family_min_price": family_min_price,
             "family_max_price": family_max_price,

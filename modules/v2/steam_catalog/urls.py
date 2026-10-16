@@ -12,6 +12,7 @@ urlpatterns = [
     path("reference/import-all/", views.catalog_reference_import_all, name="reference_import_all"),
     path("reference/<int:reference_id>/add/", views.catalog_reference_add, name="reference_add"),
     path("<int:item_id>/", views.catalog_detail, name="detail"),
+    path("<int:item_id>/favorite/", views.toggle_favorite, name="favorite"),
     path("<int:item_id>/name-ru/", views.update_name_ru, name="update_name_ru"),
     path("<int:item_id>/price-update/", views.update_price, name="update_price"),
     path("<int:item_id>/stock/", views.add_stock_move, name="add_stock_move"),

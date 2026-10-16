@@ -566,3 +566,19 @@ class CS2ReferenceItem(models.Model):
         if self.kind == self.Kind.SKIN and self.wears:
             return f"{self.name} ({self.wears[0]})"
         return self.market_hash_name or self.name
+
+
+class SteamItemFavorite(models.Model):
+    """A catalog card the user starred. Cards group all wears of one skin, so the favorite is the family."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="steam_favorites")
+    family_key = models.CharField(max_length=255)
+    item = models.ForeignKey(SteamItem, on_delete=models.CASCADE, related_name="favorites")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [models.UniqueConstraint(fields=["user", "family_key"], name="steam_favorite_user_family_uniq")]
+
+    def __str__(self) -> str:
+        return f"{self.user_id}: {self.family_key}"

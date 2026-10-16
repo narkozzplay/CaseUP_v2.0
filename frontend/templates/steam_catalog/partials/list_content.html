@@ -8,52 +8,107 @@
     </div>
 
     <div class="catalog-toolbar">
-        <form method="get" class="catalog-toolbar__form" role="search">
-            <label class="catalog-search" for="q">
-                {% include "components/icon.html" with name="search" %}
-                <span class="visually-hidden">Поиск</span>
-                <input id="q" type="search" name="q" value="{{ q }}" placeholder="Поиск: AK-47, Redline, Kilowatt…" autocomplete="off">
-            </label>
-
-            <div class="form-field catalog-toolbar__select">
-                <label for="type">Тип</label>
-                <select id="type" name="type" class="form-control" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
-                    <option value="">Все</option>
-                    {% for value, label in types %}
-                        <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            {% if catalog_can_edit %}
-                <div class="form-field catalog-toolbar__select">
-                    <label for="review">Review</label>
-                    <select id="review" name="review" class="form-control" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
-                        <option value="">Все</option>
-                        <option value="1" {% if selected_review == "1" %}selected{% endif %}>Требует review</option>
-                        <option value="0" {% if selected_review == "0" %}selected{% endif %}>Без review</option>
+        <form method="get" class="catalog-toolbar__form catalog-filters" role="search">
+            {% if filters.favorites %}<input type="hidden" name="fav" value="1">{% endif %}
+            {% if filters.type %}<input type="hidden" name="type" value="{{ filters.type }}">{% endif %}
+            <div class="catalog-filters__row">
+                <label class="catalog-search" for="q">
+                    {% include "components/icon.html" with name="search" %}
+                    <span class="visually-hidden">Поиск</span>
+                    <input id="q" type="search" name="q" value="{{ filters.q }}" placeholder="Поиск: ak redline, Kilowatt, наклейка…" autocomplete="off">
+                </label>
+                <div class="form-field catalog-toolbar__select catalog-filters__sort">
+                    <label for="sort">Сортировка</label>
+                    <select id="sort" name="sort" class="form-control" data-autosubmit>
+                        {% for value, label in options.sorts %}<option value="{{ value }}" {% if filters.sort == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
                     </select>
                 </div>
-            {% endif %}
+                <div class="toolbar-actions">
+                    <button type="submit" class="btn btn-primary">Найти</button>
+                    <a href="{% url 'steam_catalog:reference' %}" class="btn btn-ghost" data-dashboard-nav="true">Справочник CS2</a>
+                    {% if catalog_can_edit %}
+                        <a href="{% url 'steam_catalog:add' %}" class="btn btn-secondary" data-market-search-open>+ Добавить предмет</a>
+                    {% elif feature_flags.subscriptions %}
+                        <a href="{% url 'subscriptions:plans' %}" class="btn btn-ghost">Тарифы</a>
+                    {% endif %}
+                </div>
+            </div>
 
-            <div class="toolbar-actions">
-                <button type="submit" class="btn btn-secondary">Фильтровать</button>
-                <a href="{% url 'steam_catalog:reference' %}" class="btn btn-ghost" data-dashboard-nav="true">Справочник CS2</a>
-                {% if catalog_can_edit %}
-                    <a href="{% url 'steam_catalog:add' %}" class="btn btn-primary" data-market-search-open>+ Добавить предмет</a>
-                {% else %}
-                    {% if feature_flags.subscriptions %}<a href="{% url 'subscriptions:plans' %}" class="btn btn-ghost">Тарифы</a>{% endif %}
-                {% endif %}
+            <div class="catalog-filters__grid">
+                <div class="form-field">
+                    <label for="group">Категория оружия</label>
+                    <select id="group" name="group" class="form-control" data-autosubmit>
+                        <option value="">Любая</option>
+                        {% for value, label in options.groups %}<option value="{{ value }}" {% if filters.group == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="weapon">Оружие</label>
+                    <select id="weapon" name="weapon" class="form-control" data-autosubmit>
+                        <option value="">Любое</option>
+                        {% for group in options.weapon_groups %}
+                            <optgroup label="{{ group.label }}">
+                                {% for name in group.weapons %}<option value="{{ name }}" {% if filters.weapon == name %}selected{% endif %}>{{ name }}</option>{% endfor %}
+                            </optgroup>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="rarity">Редкость</label>
+                    <select id="rarity" name="rarity" class="form-control" data-autosubmit>
+                        <option value="">Любая</option>
+                        {% for value, label in options.rarities %}<option value="{{ value }}" {% if filters.rarity == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="exterior">Износ</label>
+                    <select id="exterior" name="exterior" class="form-control" data-autosubmit>
+                        <option value="">Любой</option>
+                        {% for value, label in options.exteriors %}<option value="{{ value }}" {% if filters.exterior == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="stattrak">StatTrak™</label>
+                    <select id="stattrak" name="stattrak" class="form-control" data-autosubmit>
+                        <option value="">Не важно</option>
+                        <option value="1" {% if filters.stattrak == "1" %}selected{% endif %}>Только StatTrak™</option>
+                        <option value="0" {% if filters.stattrak == "0" %}selected{% endif %}>Без StatTrak™</option>
+                    </select>
+                </div>
+                <div class="form-field catalog-filters__price">
+                    <label for="price_min">Цена, ₽</label>
+                    <div class="catalog-filters__range">
+                        <input id="price_min" type="number" name="price_min" min="0" step="1" inputmode="decimal" class="form-control" placeholder="от" value="{{ filters.price_min|default_if_none:''|floatformat:'-2u' }}">
+                        <input type="number" name="price_max" min="0" step="1" inputmode="decimal" class="form-control" placeholder="до" aria-label="Цена до" value="{{ filters.price_max|default_if_none:''|floatformat:'-2u' }}">
+                    </div>
+                </div>
+                <div class="catalog-filters__checks">
+                    <label class="cc-field-check"><input type="checkbox" name="priced" value="1" data-autosubmit {% if filters.priced %}checked{% endif %}><span>Только с ценой</span></label>
+                    {% if catalog_can_edit %}
+                        <label class="cc-field-check"><input type="checkbox" name="stock" value="1" data-autosubmit {% if filters.in_stock %}checked{% endif %}><span>В наличии</span></label>
+                        <label class="cc-field-check"><input type="checkbox" name="review" value="1" data-autosubmit {% if filters.review == "1" %}checked{% endif %}><span>Требует review</span></label>
+                    {% endif %}
+                </div>
             </div>
         </form>
 
         <nav class="chip-tabs" aria-label="Тип предмета">
-            <a href="?q={{ q|urlencode }}&review={{ selected_review }}" class="chip-tab {% if not selected_type %}is-active{% endif %}">Все</a>
-            {% for value, label in types %}
-                <a href="?q={{ q|urlencode }}&type={{ value }}&review={{ selected_review }}" class="chip-tab {% if selected_type == value %}is-active{% endif %}">{{ label }}</a>
+            <a href="?{{ type_tab_query }}" class="chip-tab {% if not filters.type and not filters.favorites %}is-active{% endif %}" data-dashboard-nav="true">Все</a>
+            <a href="?{{ fav_tab_query }}" class="chip-tab chip-tab--fav {% if filters.favorites %}is-active{% endif %}" data-dashboard-nav="true">★ Избранное{% if favorites_count %} <span class="chip-tab__num">{{ favorites_count }}</span>{% endif %}</a>
+            {% for value, label in options.types %}
+                <a href="?{{ type_tab_query }}{% if type_tab_query %}&{% endif %}type={{ value }}" class="chip-tab {% if filters.type == value and not filters.favorites %}is-active{% endif %}" data-dashboard-nav="true">{{ label }}</a>
             {% endfor %}
             <span class="chip-tabs__count">{{ page_obj.paginator.count }} {% if page_obj.paginator.count == 1 %}позиция{% else %}позиций{% endif %}</span>
         </nav>
+
+        {% if filters.chips %}
+            <div class="catalog-active-filters">
+                {% for chip in filters.chips %}
+                    <a href="{{ chip.url }}" class="catalog-active-filter" data-dashboard-nav="true" title="Убрать фильтр">{{ chip.label }} <span aria-hidden="true">×</span></a>
+                {% endfor %}
+                <a href="{% url 'steam_catalog:list' %}" class="catalog-active-filters__reset" data-dashboard-nav="true">Сбросить всё</a>
+            </div>
+        {% endif %}
     </div>
 
     <div
@@ -63,6 +118,11 @@
         {% for card in cards %}
             <article class="card catalog-card catalog-card--compact rarity--{{ card.item.rarity_key|default:'none' }}">
                 <a href="{% url 'steam_catalog:detail' card.item.id %}" class="catalog-card__link" aria-label="{{ card.item.group_name }}"></a>
+
+                <form method="post" action="{% url 'steam_catalog:favorite' card.item.id %}" class="catalog-fav" data-catalog-fav>
+                    {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="catalog-fav__btn{% if card.is_favorite %} is-active{% endif %}" aria-pressed="{% if card.is_favorite %}true{% else %}false{% endif %}" title="{% if card.is_favorite %}Убрать из избранного{% else %}В избранное{% endif %}">★</button>
+                </form>
 
                 <div class="card-body">
                     <div class="catalog-card__media catalog-card__media--compact">
@@ -110,22 +170,34 @@
                 </div>
             </article>
         {% empty %}
+            {% if filters.favorites %}
+            <div class="empty-panel">
+                <strong>В избранном пока пусто</strong>
+                <p class="text-muted">Нажми ★ на карточке предмета — он появится здесь и всегда будет первым в общем списке.</p>
+            </div>
+            {% elif filters.is_filtered %}
+            <div class="empty-panel">
+                <strong>По этим фильтрам ничего нет</strong>
+                <p class="text-muted">Сними часть фильтров выше или <a href="{% url 'steam_catalog:list' %}" data-dashboard-nav="true">сбрось всё</a>.</p>
+            </div>
+            {% else %}
             <div class="empty-panel">
                 <strong>Каталог пока пуст</strong>
                 <p class="text-muted">{% if catalog_can_edit %}Добавь первый предмет, и он появится здесь вместе с ценой.{% else %}Предметы появятся, когда команда добавит их в каталог.{% endif %}</p>
                 {% if catalog_can_edit %}<a href="{% url 'steam_catalog:add' %}" class="btn btn-primary btn-sm" data-market-search-open>+ Добавить предмет</a>{% endif %}
             </div>
+            {% endif %}
         {% endfor %}
     </div>
 
     {% if page_obj.paginator.num_pages > 1 %}
         <div class="pagination-wrap">
             {% if page_obj.has_previous %}
-                <a class="btn btn-secondary btn-sm" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&type={{ selected_type }}&review={{ selected_review }}">Назад</a>
+                <a class="btn btn-secondary btn-sm" href="?{% if pagination_query %}{{ pagination_query }}&{% endif %}page={{ page_obj.previous_page_number }}" data-dashboard-nav="true">Назад</a>
             {% endif %}
             <span class="pagination-wrap__state">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
             {% if page_obj.has_next %}
-                <a class="btn btn-secondary btn-sm" href="?page={{ page_obj.next_page_number }}&q={{ q }}&type={{ selected_type }}&review={{ selected_review }}">Вперёд</a>
+                <a class="btn btn-secondary btn-sm" href="?{% if pagination_query %}{{ pagination_query }}&{% endif %}page={{ page_obj.next_page_number }}" data-dashboard-nav="true">Вперёд</a>
             {% endif %}
         </div>
     {% endif %}
