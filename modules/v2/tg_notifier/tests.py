@@ -257,7 +257,7 @@ class TgNotifierTests(TestCase):
         self.assertEqual(profile.telegram_first_name, "")
         self.assertIsNone(profile.telegram_linked_at)
 
-    @patch("modules.v2.tg_notifier.views.send_message")
+    @patch("modules.v2.tg_notifier.updates.send_message")
     def test_webhook_binds_profile_by_start_message(self, send_message_mock):
         user = self._make_user("tg_webhook_user", UserRole.FARMER)
         config = TelegramNotifierConfig.objects.create(
@@ -309,7 +309,7 @@ class TgNotifierTests(TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertJSONEqual(response.content, {"ok": False, "error": "forbidden"})
 
-    @patch("modules.v2.tg_notifier.views.send_message")
+    @patch("modules.v2.tg_notifier.updates.send_message")
     def test_webhook_does_not_fail_when_success_message_send_errors(self, send_message_mock):
         send_message_mock.side_effect = TelegramNotifierError("telegram temporary down")
 
@@ -347,7 +347,7 @@ class TgNotifierTests(TestCase):
         self.assertEqual(profile.telegram_chat_id, "7151390596")
         send_message_mock.assert_called_once()
 
-    @patch("modules.v2.tg_notifier.views.send_message")
+    @patch("modules.v2.tg_notifier.updates.send_message")
     def test_webhook_does_not_500_when_bind_fails_and_error_send_fails(self, send_message_mock):
         send_message_mock.side_effect = TelegramNotifierError("bot token invalid")
 

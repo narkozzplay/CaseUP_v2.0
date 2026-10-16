@@ -130,6 +130,7 @@ class SettingsPageTests(TestCase):
         self.assertNotContains(page, self.config.webhook_secret)
 
     def test_check_webhook_points_at_a_wrong_address(self):
+        TelegramNotifierConfig.objects.filter(pk=self.config.pk).update(updates_mode=TelegramNotifierConfig.UpdatesMode.WEBHOOK)
         info = services.TelegramWebhookInfoResult(url="https://case-up.ru/telegram/webhook/old/", pending_update_count=3, last_error_date=1760000000, last_error_message="Connection timed out", max_connections=40, ip_address="", has_custom_certificate=False)
         with patch("modules.v2.tg_notifier.views.get_webhook_info", return_value=info):
             page = self.client.post(reverse("tg_notifier:settings"), {"action": "check_webhook"})
@@ -140,3 +141,108 @@ class SettingsPageTests(TestCase):
         with patch("urllib.request.urlopen", return_value=fake_response({"ok": True, "result": {"username": "caseup_bot"}})):
             page = self.client.post(reverse("tg_notifier:settings"), {"action": "check_bot"})
         self.assertContains(page, "Бот @caseup_bot отвечает")
+
+
+class PollingTests(TestCase):
+    """«Опрос»: Telegram cannot reach the relay hosting, so the site fetches /start messages itself."""
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.config = TelegramNotifierConfig.objects.create(singleton_key=1, is_enabled=True, bot_token="123456:ABCDEFabcdefABCDEFabcdefABCDEFabc", bot_username="caseup_bot")
+        self.user = User.objects.create_user(username="tg_poll_user", password="x")
+
+    def _update(self, update_id: int, text: str, age_seconds: int = 5) -> dict:
+        return {
+            "update_id": update_id,
+            "message": {
+                "date": int(timezone.now().timestamp()) - age_seconds,
+                "chat": {"id": 7151390596, "type": "private"},
+                "from": {"id": 111, "username": "narkozzplay", "first_name": "Fedor"},
+                "text": text,
+            },
+        }
+
+    def test_start_message_links_profile_and_moves_offset(self):
+        from modules.v2.profiles.models import UserProfile
+
+        from . import updates
+        from .models import TelegramLinkToken
+
+        link = TelegramLinkToken.objects.create(user=self.user)
+        calls = []
+
+        def api(*, endpoint, payload, timeout=15):
+            calls.append((endpoint.rsplit("/", 1)[-1], payload))
+            return {"ok": True, "result": [self._update(500, f"/start caseup_{link.token}")]}
+
+        with patch.object(updates, "_telegram_api_request", side_effect=api), patch.object(updates, "send_message") as send:
+            worked, handled = updates.poll_once()
+
+        self.assertEqual((worked, handled), (True, 1))
+        self.assertEqual(calls[0][0], "getUpdates")
+        self.assertEqual(calls[0][1]["offset"], 1)
+        self.assertEqual(UserProfile.objects.get(user=self.user).telegram_chat_id, "7151390596")
+        send.assert_called_once()
+        self.config.refresh_from_db()
+        self.assertEqual(self.config.polling_offset, 500)
+        self.assertFalse(updates.get_poll_status()["error"])
+
+    def test_stale_message_is_acknowledged_without_reply(self):
+        from . import updates
+
+        with patch.object(updates, "_telegram_api_request", return_value={"ok": True, "result": [self._update(77, "/start caseup_old", age_seconds=3 * 3600)]}), patch.object(updates, "send_message") as send:
+            self.assertEqual(updates.poll_once(), (True, 0))
+        send.assert_not_called()
+        self.config.refresh_from_db()
+        self.assertEqual(self.config.polling_offset, 77)
+
+    def test_registered_webhook_is_removed(self):
+        from . import updates
+
+        methods = []
+
+        def api(*, endpoint, payload, timeout=15):
+            method = endpoint.rsplit("/", 1)[-1]
+            methods.append(method)
+            if method == "getUpdates":
+                raise services.TelegramNotifierError("Telegram API HTTP 409: Conflict: can't use getUpdates method while webhook is active")
+            return {"ok": True, "result": True}
+
+        with patch.object(updates, "_telegram_api_request", side_effect=api):
+            self.assertEqual(updates.poll_once(), (True, 0))
+        self.assertEqual(methods, ["getUpdates", "deleteWebhook"])
+
+    def test_idle_in_webhook_mode_or_when_disabled(self):
+        from . import updates
+
+        with patch.object(updates, "_telegram_api_request") as api:
+            TelegramNotifierConfig.objects.filter(pk=self.config.pk).update(updates_mode=TelegramNotifierConfig.UpdatesMode.WEBHOOK)
+            self.assertEqual(updates.poll_once(), (False, 0))
+            TelegramNotifierConfig.objects.filter(pk=self.config.pk).update(updates_mode=TelegramNotifierConfig.UpdatesMode.POLLING, is_enabled=False)
+            self.assertEqual(updates.poll_once(), (False, 0))
+        api.assert_not_called()
+
+    def test_error_is_shown_on_settings_page(self):
+        from django.core.management import call_command
+
+        from modules.v2.profiles.models import UserProfile, UserRole
+
+        from . import updates
+
+        admin = User.objects.create_user(username="tg_poll_admin", password="x")
+        UserProfile.objects.filter(user=admin).update(role=UserRole.ADMIN)
+        self.client.force_login(admin)
+        self.assertContains(self.client.get(reverse("tg_notifier:settings")), "ещё не запускался")
+
+        with patch.object(updates, "_telegram_api_request", side_effect=services.TelegramNotifierError("Telegram API HTTP 401: Unauthorized")):
+            # close_old_connections would drop the test transaction's connection.
+            with patch("modules.v2.tg_notifier.management.commands.telegram_poll.close_old_connections"), self.assertRaises(services.TelegramNotifierError):
+                call_command("telegram_poll", "--once")
+        page = self.client.get(reverse("tg_notifier:settings"))
+        self.assertContains(page, "Последний опрос")
+        self.assertContains(page, "401")
+
+        refused = self.client.post(reverse("tg_notifier:settings"), {"action": "register_webhook"}, follow=True)
+        self.assertContains(refused, "Опрос")

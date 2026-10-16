@@ -26,6 +26,7 @@ class TelegramNotifierSettingsForm(forms.ModelForm):
             "bot_username",
             "default_chat_id",
             "public_base_url",
+            "updates_mode",
             "investment_message_template",
         ]
         widgets = {
@@ -46,6 +47,7 @@ class TelegramNotifierSettingsForm(forms.ModelForm):
                     "placeholder": "Например: 123456789 или -1001234567890",
                 }
             ),
+            "updates_mode": forms.Select(attrs={"class": "form-control"}),
             "public_base_url": forms.URLInput(
                 attrs={
                     "class": "form-control",
@@ -61,6 +63,10 @@ class TelegramNotifierSettingsForm(forms.ModelForm):
             ),
         }
 
+    def clean_updates_mode(self):
+        # Older forms/clients don't send the field: keep what is stored.
+        return self.cleaned_data.get("updates_mode") or self.instance.updates_mode or TelegramNotifierConfig.UpdatesMode.POLLING
+
     def __init__(self, *args, **kwargs):
         instance: TelegramNotifierConfig | None = kwargs.get("instance")
         super().__init__(*args, **kwargs)
@@ -68,6 +74,7 @@ class TelegramNotifierSettingsForm(forms.ModelForm):
         self.fields["bot_username"].required = False
         self.fields["default_chat_id"].required = False
         self.fields["public_base_url"].required = False
+        self.fields["updates_mode"].required = False
         self.fields["investment_message_template"].required = True
 
         if instance is not None:

@@ -158,6 +158,43 @@ services:
       retries: 5
       start_period: 30s
 
+  # Telegram bot updates (/start linking) in «Опрос» mode: the site asks Telegram itself, through the relay.
+  # Idles when the bot is off or works in webhook mode.
+  telegram_poller:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    env_file:
+      - ${APP_ENV_FILE:-.env.dev}
+    environment:
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.dev}
+      DB_ENGINE: postgres
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-caseup_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-caseup}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-caseup}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      DJANGO_CACHE_URL: ${DJANGO_CACHE_URL:-redis://redis:6379/1}
+      RUN_MIGRATIONS: "0"
+      RUN_COLLECTSTATIC: "0"
+    command: python manage.py telegram_poll
+    healthcheck:
+      test: ["CMD-SHELL", "test $$(( $$(date +%s) - $$(stat -c %Y /tmp/telegram_poll.alive) )) -lt 180"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
 volumes:
   postgres_data:
   redis_data:

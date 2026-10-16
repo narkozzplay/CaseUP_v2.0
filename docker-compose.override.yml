@@ -26,3 +26,7 @@ services:
   celery_beat:
     volumes:
       - .:/app
+
+  telegram_poller:
+    volumes:
+      - .:/app
