@@ -1,0 +1,34 @@
+<article class="card profile-card-accent" id="settings-push" data-push-panel>
+    <div class="card-body">
+        <h2 class="section-title">Уведомления на устройстве</h2>
+        <p class="text-muted" style="margin-bottom:.75rem;">Пуш-уведомления в браузере и на телефоне — даже когда сайт закрыт: покупки и трейды на рынке, пополнения, новые входы в аккаунт, сообщения.</p>
+
+        <div class="push-panel__status" data-push-status>Проверяем это устройство…</div>
+        <p class="push-prompt__ios text-muted" data-push-ios hidden>На iPhone и iPad уведомления работают только из установленного приложения: «Поделиться» → «На экран „Домой“», затем откройте CaseUP с иконки и вернитесь сюда.</p>
+        <div class="push-panel__actions">
+            <button type="button" class="btn btn-primary btn-sm" data-push-enable hidden>Включить на этом устройстве</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-push-test hidden>Отправить тестовое</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-push-disable hidden>Выключить здесь</button>
+        </div>
+
+        {% if push_settings.devices %}
+            <ul class="push-panel__devices">
+                {% for device in push_settings.devices %}
+                    <li>
+                        <span>{{ device.device_label }}<small class="text-muted"> · с {{ device.created_at|date:"d.m.Y" }}</small></span>
+                        <form method="post" action="{% url 'webpush:unsubscribe' %}">{% csrf_token %}<input type="hidden" name="endpoint" value="{{ device.endpoint }}"><button type="submit" class="btn btn-ghost btn-sm">Отключить</button></form>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <form method="post" action="{% url 'webpush:categories' %}" class="form-stack push-panel__categories">
+            {% csrf_token %}
+            <span class="push-panel__label">О чём уведомлять</span>
+            {% for category in push_settings.categories %}
+                <label class="cc-field-check"><input type="checkbox" name="category" value="{{ category.key }}" {% if category.enabled %}checked{% endif %}><span>{{ category.label }}</span></label>
+            {% endfor %}
+            <button type="submit" class="btn btn-secondary btn-sm">Сохранить</button>
+        </form>
+    </div>
+</article>

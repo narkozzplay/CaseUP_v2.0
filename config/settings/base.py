@@ -89,6 +89,7 @@ PROJECT_APPS = [
     "modules.v2.business.apps.BusinessConfig",
     "modules.v2.daily_bonus.apps.DailyBonusConfig",
     "modules.v2.market.apps.MarketConfig",
+    "modules.v2.webpush.apps.WebPushConfig",
     "modules.v2.store.apps.StoreConfig",
     "modules.v2.web_constructor.apps.WebConstructorConfig",
 ]
@@ -142,6 +143,7 @@ TEMPLATES = [
                 "modules.v2.social.context_processors.social_sidebar",
                 "modules.v2.social_friends.context_processors.friends_sidebar",
                 "modules.v2.notifications.context_processors.notifications_header",
+                "modules.v2.webpush.context_processors.push_prompt",
                 "modules.v2.system.context_processors.system_settings",
                 "modules.v2.subscriptions.context_processors.subscription_context",
             ],

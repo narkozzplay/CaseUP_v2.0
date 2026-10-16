@@ -120,6 +120,12 @@ def _get_pending_sent(from_user, to_user) -> FriendRequest | None:
         return None
 
 
+def _prompt_push(user) -> None:
+    from modules.v2.webpush.services import prompt_after_commit
+
+    prompt_after_commit(user, "friend_request")
+
+
 def send_friend_request(from_user, to_user) -> FriendRequest:
     _require_users(from_user, to_user)
     if from_user.pk == to_user.pk:
@@ -160,6 +166,7 @@ def send_friend_request(from_user, to_user) -> FriendRequest:
             existing.status = FriendRequest.Status.PENDING
             existing.save(update_fields=["status", "updated_at"])
             notify(to_user, KIND_FRIEND_REQUEST, actor=from_user, object_id=existing.pk)
+            _prompt_push(from_user)
             return existing
 
         try:
@@ -168,6 +175,7 @@ def send_friend_request(from_user, to_user) -> FriendRequest:
         except IntegrityError:
             return FriendRequest.objects.get(from_user=from_user, to_user=to_user)
         notify(to_user, KIND_FRIEND_REQUEST, actor=from_user, object_id=req.pk)
+        _prompt_push(from_user)
         return req
 
 

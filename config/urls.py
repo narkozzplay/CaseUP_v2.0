@@ -9,10 +9,12 @@ from django.contrib.sitemaps.views import sitemap
 
 from frontend.seo import SITEMAPS, robots_txt
 from modules.v2.referrals.views import referral_link
+from modules.v2.webpush import views as webpush_views
 
 
 def healthcheck(_request):
     return HttpResponse("OK")
+
 
 
 urlpatterns = [
@@ -23,6 +25,8 @@ urlpatterns = [
     path("payments/", include("modules.v2.payments.public_urls")),
     path("r/<str:code>/", referral_link, name="referral_link"),
     path("robots.txt", robots_txt, name="robots_txt"),
+    path("sw.js", webpush_views.service_worker, name="service_worker"),
+    path("manifest.webmanifest", webpush_views.manifest, name="web_manifest"),
     path("sitemap.xml", sitemap, {"sitemaps": SITEMAPS}, name="sitemap"),
 ]
 
@@ -50,6 +54,7 @@ urlpatterns += i18n_patterns(
     path("promo/", include("modules.v2.promo.urls")),
     path("bonus/", include("modules.v2.daily_bonus.urls")),
     path("market/", include("modules.v2.market.urls")),
+    path("push/", include("modules.v2.webpush.urls")),
     path("customization/", include("modules.v2.profile_customization.urls")),
     path("cs2/stats/", include("modules.v2.cs2_stats.urls")),
     path("", include("frontend.urls")),

@@ -158,6 +158,9 @@ def claim(user, *, ip_address: str | None = None, now: datetime | None = None) -
     state.claims_total += 1
     state.save()
     _resolve_reminder(user)
+    from modules.v2.webpush.services import prompt_after_commit
+
+    prompt_after_commit(user, "daily_bonus")
     return entry
 
 

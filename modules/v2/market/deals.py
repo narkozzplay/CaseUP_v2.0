@@ -143,6 +143,9 @@ def _after_purchase(deal_id: int) -> None:
     deal = Deal.objects.select_related("listing", "buyer", "seller").get(pk=deal_id)
     _open_chat(deal)
     _notify(deal.seller, "new", deal, deadline=timezone.localtime(deal.send_deadline).strftime("%d.%m %H:%M"))
+    from modules.v2.webpush.services import request_prompt
+
+    request_prompt(deal.buyer, "market_buy")
 
 
 def _open_chat(deal: Deal) -> None:
@@ -159,6 +162,7 @@ def _open_chat(deal: Deal) -> None:
             space,
             f"🛒 Сделка {deal.code}: покупаю «{deal.listing.market_hash_name}» за {deal.price:.2f} ₽. "
             f"Деньги заморожены сайтом. Отправьте, пожалуйста, обмен в Steam: {reverse('market:deal', args=[deal.code])}",
+            push=False,  # the seller already gets the «new deal» notification
         )
     except Exception:  # noqa: BLE001 - the deal works without a chat; the page shows the trade link anyway
         logger.exception("Could not open the chat for %s", deal.code)

@@ -401,6 +401,9 @@ def profile_settings_view(request):
         return redirect("profiles:profile_settings")
 
     context = _build_settings_context(request=request, target_user=request.user)
+    from modules.v2.webpush.services import settings_context as push_settings_context
+
+    context["push_settings"] = push_settings_context(request.user)
     profile_display_name = context["profile_display_name"]
     return render_dashboard_page(
         request,

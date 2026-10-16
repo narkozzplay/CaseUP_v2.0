@@ -248,6 +248,9 @@ def create_listing(user, *, asset_id: str, price, ip: str | None = None) -> List
             checked_at=timezone.now(),
         )
     log_event(MarketEvent.Kind.LISTED, user=user, listing=listing, message=f"{listing.code}: {hash_name} за {price:.2f} ₽", payload={"price": str(price), "asset_id": listing.asset_id}, ip=ip)
+    from modules.v2.webpush.services import prompt_after_commit
+
+    prompt_after_commit(user, "market_listed")
     return listing
 
 

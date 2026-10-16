@@ -62,6 +62,19 @@
             </article>
         </div>
         <aside class="ops-grid__side">
+            {% if push %}
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Веб-пуши</h2><a href="{% url 'profiles:profile_settings' %}#settings-push" class="ops-panel__link">Тест себе →</a></div>
+                <dl class="cc-facts cc-facts--single">
+                    <div><dt>Подписано пользователей</dt><dd>{{ push.users }}</dd></div>
+                    <div><dt>Устройств</dt><dd>{{ push.devices }}</dd></div>
+                    <div><dt>Доставлено за сутки</dt><dd>{{ push.sent_day }}</dd></div>
+                    <div><dt>Ошибок / устаревших</dt><dd>{{ push.failed_day }} / {{ push.gone_day }}</dd></div>
+                    {% for row in push.by_category %}<div><dt>· {{ row.label }}</dt><dd>{{ row.total }}</dd></div>{% endfor %}
+                    <div><dt>Ключи VAPID</dt><dd>{% if push.public_key_ready %}созданы{% else %}создадутся при первой подписке{% endif %}</dd></div>
+                </dl>
+            </article>
+            {% endif %}
             <article class="ops-panel">
                 <div class="ops-panel__head"><h2 class="ops-panel__title">Окружение</h2></div>
                 <dl class="cc-facts cc-facts--single">
