@@ -901,7 +901,7 @@ def list_space_messages(user, space: SocialSpace, *, limit: int = MESSAGE_PAGE_S
     return [_build_message_row(user, message) for message in reversed(messages)]
 
 
-def create_space_message(user, space: SocialSpace, body: str) -> SocialMessage:
+def create_space_message(user, space: SocialSpace, body: str, *, push: bool = True) -> SocialMessage:
     membership = _require_visible_membership(user, space)
     clean_body = str(body or "").strip()
     if not clean_body:
@@ -921,6 +921,11 @@ def create_space_message(user, space: SocialSpace, body: str) -> SocialMessage:
         SocialMembership.objects.filter(pk=membership.pk).update(last_read_at=timestamp)
         space.last_activity_at = timestamp
         membership.last_read_at = timestamp
+        if push and space.space_type == SocialSpace.SpaceType.DIRECT:
+            from modules.v2.webpush.services import prompt_after_commit, push_direct_message
+
+            push_direct_message(message)
+            prompt_after_commit(user, "message")
     return message
 
 

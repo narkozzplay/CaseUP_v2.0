@@ -821,6 +821,19 @@ def moderation_action(request):
 # --------------------------------------------------------------------------- health
 
 
+def _push_summary():
+    from modules.v2.webpush.categories import CATEGORIES
+    from modules.v2.webpush.services import admin_summary
+
+    try:
+        summary = admin_summary()
+    except Exception:  # noqa: BLE001 - the status page must open even if this block fails
+        return None
+    labels = {**CATEGORIES, "test": "Тестовые", "other": "Прочее"}
+    summary["by_category"] = [{"label": labels.get(row["category"], row["category"]), "total": row["total"]} for row in summary["by_category"]]
+    return summary
+
+
 @login_required
 def system_health(request):
     role_access = _admin_access(request)
@@ -854,6 +867,7 @@ def system_health(request):
             for key, module in MODULE_REGISTRY.items()
         ],
         "recent_runs": recent_runs,
+        "push": _push_summary(),
         "checked_at": timezone.now(),
     }
     return _render(request, partial="control_center/partials/health_content.html", context=context, title="Система · Control Center", tab="health")

@@ -12,3 +12,4 @@ maxminddb>=2.6,<3.0
 pyotp>=2.9,<3.0
 segno>=1.6,<2.0
 paramiko>=5.0,<6.0
+pywebpush==1.14.1

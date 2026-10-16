@@ -39,6 +39,9 @@
         </article>
         {% endif %}
 
+        {# ===== ПУШ-УВЕДОМЛЕНИЯ (owner only) ===== #}
+        {% if is_owner_profile and push_settings %}{% include "webpush/_settings_card.html" %}{% endif %}
+
         {# ===== АВАТАРКА (owner only) ===== #}
         {% if is_owner_profile and avatar_upload_form %}
         <article class="card profile-card-accent" id="settings-avatar">

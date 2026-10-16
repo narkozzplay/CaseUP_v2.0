@@ -3,6 +3,12 @@
 <html lang="{{ LANGUAGE_CODE|default:'ru' }}">
 <head>
     {% include theme_head_template|default:"components/head.html" %}
+    <link rel="manifest" href="{% url 'web_manifest' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/brand/apple-touch-icon.png' %}">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="{{ site_settings.site_name|default:'CaseUP' }}">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>{% block title %}{{ site_settings.site_name|default:"CaseUP" }}{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
     <link rel="stylesheet" href="{% static 'css/layout.css' %}">

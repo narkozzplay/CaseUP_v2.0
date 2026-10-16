@@ -162,6 +162,9 @@ def _notify_credited(payment: Payment) -> None:
 
     try:
         notify(payment.user, KIND_TOPUP_SUCCEEDED, object_id=payment.pk, payload={"amount": f"{payment.balance_amount:.2f}"})
+        from modules.v2.webpush.services import request_prompt
+
+        request_prompt(payment.user, "topup")
     except Exception:  # noqa: BLE001 - the money is already credited; a failed notification must not hide that
         logger.exception("Top-up %s credited, but the notification failed", payment.public_id)
 
