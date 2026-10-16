@@ -1,0 +1,6 @@
+<nav class="cc-tabs mkt-nav" aria-label="Рынок">
+    <a href="{% url 'market:index' %}" class="cc-tab{% if mkt_tab == 'showcase' %} is-active{% endif %}" data-dashboard-nav="true"><span>Витрина</span></a>
+    <a href="{% url 'market:sell' %}" class="cc-tab{% if mkt_tab == 'sell' %} is-active{% endif %}" data-dashboard-nav="true"><span>Продать</span></a>
+    <a href="{% url 'market:deals' %}" class="cc-tab{% if mkt_tab == 'deals' %} is-active{% endif %}" data-dashboard-nav="true"><span>Мои сделки</span></a>
+    {% if mkt_is_seller %}<a href="{% url 'market:payout' %}" class="cc-tab{% if mkt_tab == 'payout' %} is-active{% endif %}" data-dashboard-nav="true"><span>Вывод</span></a>{% endif %}
+</nav>

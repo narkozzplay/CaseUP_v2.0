@@ -14,6 +14,7 @@ urlpatterns = [
     path("sell/lot/<int:listing_id>/cancel/", views.lot_cancel, name="lot_cancel"),
     path("lot/<int:listing_id>/buy/", views.lot_buy, name="buy"),
     path("deals/", views.my_deals, name="deals"),
+    path("payout/", views.payout_page, name="payout"),
     path("deal/<str:code>/", views.deal_page, name="deal"),
     path("deal/<str:code>/<str:action>/", views.deal_action, name="deal_action"),
 ]
