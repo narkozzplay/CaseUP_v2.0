@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from modules.v2.notifications.models import Notification
@@ -111,3 +112,31 @@ class HealthCheckTests(TestCase):
             status, message = _check_telegram("1:bad")
         self.assertEqual(status, "degraded")
         self.assertIn("BotFather", message)
+
+
+class SettingsPageTests(TestCase):
+    def setUp(self):
+        from modules.v2.profiles.models import UserProfile, UserRole
+
+        self.admin = User.objects.create_user(username="tg_admin", password="x")
+        UserProfile.objects.filter(user=self.admin).update(role=UserRole.ADMIN)
+        self.client.force_login(self.admin)
+        self.config = TelegramNotifierConfig.objects.create(singleton_key=1, is_enabled=True, bot_token="123456:ABCDEFabcdefABCDEFabcdefABCDEFabc", bot_username="caseup_bot", public_base_url="https://case-up.ru")
+
+    def test_page_explains_state_and_hides_the_webhook_secret(self):
+        page = self.client.get(reverse("tg_notifier:settings"))
+        self.assertContains(page, "Состояние")
+        self.assertContains(page, "Приём сообщений от бота")
+        self.assertNotContains(page, self.config.webhook_secret)
+
+    def test_check_webhook_points_at_a_wrong_address(self):
+        info = services.TelegramWebhookInfoResult(url="https://case-up.ru/telegram/webhook/old/", pending_update_count=3, last_error_date=1760000000, last_error_message="Connection timed out", max_connections=40, ip_address="", has_custom_certificate=False)
+        with patch("modules.v2.tg_notifier.views.get_webhook_info", return_value=info):
+            page = self.client.post(reverse("tg_notifier:settings"), {"action": "check_webhook"})
+        self.assertContains(page, "не тот адрес")
+        self.assertContains(page, "Connection timed out")
+
+    def test_check_bot(self):
+        with patch("urllib.request.urlopen", return_value=fake_response({"ok": True, "result": {"username": "caseup_bot"}})):
+            page = self.client.post(reverse("tg_notifier:settings"), {"action": "check_bot"})
+        self.assertContains(page, "Бот @caseup_bot отвечает")

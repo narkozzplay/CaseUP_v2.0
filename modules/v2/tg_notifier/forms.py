@@ -13,10 +13,10 @@ class TelegramNotifierSettingsForm(forms.ModelForm):
             attrs={
                 "class": "form-control",
                 "autocomplete": "new-password",
-                "placeholder": "Оставь пустым, чтобы не менять токен",
+                "placeholder": "Вставьте новый токен из @BotFather — или оставьте пустым",
             },
         ),
-        help_text="Токен не показывается повторно в форме. Оставь поле пустым, чтобы сохранить текущий.",
+        help_text="",
     )
 
     class Meta:
@@ -49,7 +49,7 @@ class TelegramNotifierSettingsForm(forms.ModelForm):
             "public_base_url": forms.URLInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Например: https://abc123.ngrok-free.dev",
+                    "placeholder": "https://case-up.ru",
                 }
             ),
             "investment_message_template": forms.Textarea(
