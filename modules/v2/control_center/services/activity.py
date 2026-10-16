@@ -72,6 +72,7 @@ EVENT_LABELS = {
     "balance.market_purchase": "Списание: покупка на рынке",
     "balance.market_refund": "Возврат по сделке",
     "balance.market_sale": "Зачисление: продажа на рынке",
+    "balance.market_payout": "Списание: вывод с рынка",
     "referral.bound": "Регистрация по приглашению",
     "referral.qualified": "Реферал пополнил баланс",
     "referral.flagged": "Реферал на проверке",

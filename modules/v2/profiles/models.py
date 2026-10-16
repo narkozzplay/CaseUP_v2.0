@@ -189,6 +189,7 @@ class LedgerReason(models.TextChoices):
     MARKET_PURCHASE = "market_purchase", "Market purchase"
     MARKET_REFUND = "market_refund", "Market refund"
     MARKET_SALE = "market_sale", "Market sale"
+    MARKET_PAYOUT = "market_payout", "Market payout"
 
 
 class LedgerEntry(models.Model):

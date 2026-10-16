@@ -1,0 +1,105 @@
+<section class="section section--compact ops cc mkt">
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Рынок CaseUP</span>
+            <h1 class="cc-pagehead__title">Вывод</h1>
+            <p class="ops-hero__text">Деньги за проданные на рынке предметы. Выводить можно только их — пополнения, бонусы, промокоды и предметы из кейсов сюда не входят.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Доступно к выводу</dt><dd class="metric-positive">{{ wallet.available|floatformat:"2u" }} ₽</dd></div>
+            <div><dt>Удерживается</dt><dd>{{ wallet.held|floatformat:"2u" }} ₽</dd></div>
+        </dl>
+    </header>
+
+    {% include "market/partials/_nav.html" %}
+
+    <div class="ref-rewards">
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Кошелёк продавца</h2></div>
+            <dl class="biz-metrics">
+                <div><dt>Заработано на рынке</dt><dd>{{ wallet.earned|floatformat:"2u" }} ₽</dd></div>
+                <div><dt>Выведено</dt><dd>{{ wallet.withdrawn|floatformat:"2u" }} ₽</dd></div>
+                {% if wallet.spent %}<div><dt>Потрачено на сайте</dt><dd>{{ wallet.spent|floatformat:"2u" }} ₽</dd></div>{% endif %}
+                <div><dt>Доступно к выводу</dt><dd class="metric-positive">{{ wallet.available|floatformat:"2u" }} ₽</dd></div>
+            </dl>
+        </article>
+
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Вывести деньги</h2>{% if not payouts_enabled %}<span class="cc-chip cc-chip--info">скоро</span>{% endif %}</div>
+            <div class="ref-body">
+                {% if payouts_enabled %}
+                    <p class="ref-text">Доступно {{ wallet.available|floatformat:"2u" }} ₽.</p>
+                {% else %}
+                    <p class="ref-text">Вывод денег сейчас в разработке — способ выплат появится позже. Заработанное уже учитывается здесь и никуда не пропадёт.</p>
+                    <p class="ref-text text-muted">Деньги с продаж лежат на обычном балансе, ими можно платить на сайте. Потраченная часть перестаёт быть доступной к выводу.</p>
+                    <div><button type="button" class="btn btn-primary btn-sm" disabled>Вывести</button></div>
+                {% endif %}
+            </div>
+        </article>
+    </div>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Удерживается</h2><span class="ops-panel__hint">{{ held_deals|length }}</span></div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead><tr><th>Сделка</th><th>Предмет</th><th class="cc-num">Сумма</th><th>Ждёт</th><th>Разблокировка</th></tr></thead>
+                <tbody>
+                    {% for row in held_deals %}
+                        <tr>
+                            <td class="cc-mono"><a href="{% url 'market:deal' row.deal.code %}" data-dashboard-nav="true">{{ row.deal.code }}</a><span class="cc-sub">{{ row.deal.created_at|date:"d.m.Y H:i" }}</span></td>
+                            <td>{{ row.deal.listing.market_hash_name }}<span class="cc-sub">покупатель {{ row.deal.buyer.username }}</span></td>
+                            <td class="cc-num">{{ row.deal.price|floatformat:"2u" }} ₽</td>
+                            <td>{{ row.waits }}</td>
+                            <td class="cc-mono">{% if row.unlock %}{{ row.unlock|date:"d.m.Y H:i" }}{% else %}—{% endif %}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="5" class="text-muted">Открытых продаж нет.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <div class="mkt-stack">
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">История продаж</h2><span class="ops-panel__hint">{{ sales|length }}</span></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Сделка</th><th>Предмет</th><th class="cc-num">Сумма</th><th>Завершена</th></tr></thead>
+                    <tbody>
+                        {% for deal in sales %}
+                            <tr>
+                                <td class="cc-mono"><a href="{% url 'market:deal' deal.code %}" data-dashboard-nav="true">{{ deal.code }}</a></td>
+                                <td>{{ deal.listing.market_hash_name }}<span class="cc-sub">покупатель {{ deal.buyer.username }}</span></td>
+                                <td class="cc-num metric-positive">+{{ deal.price|floatformat:"2u" }} ₽</td>
+                                <td class="cc-mono">{{ deal.completed_at|date:"d.m.Y H:i" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="4" class="text-muted">Завершённых продаж пока нет.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">История выводов</h2><span class="ops-panel__hint">{{ payouts|length }}</span></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Дата</th><th class="cc-num">Сумма</th><th>Комментарий</th></tr></thead>
+                    <tbody>
+                        {% for entry in payouts %}
+                            <tr>
+                                <td class="cc-mono">{{ entry.created_at|date:"d.m.Y H:i" }}</td>
+                                <td class="cc-num">{{ entry.delta|floatformat:"2u" }} ₽</td>
+                                <td>{{ entry.comment|default:"—" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="3" class="text-muted">Выводов пока не было.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </div>
+</section>

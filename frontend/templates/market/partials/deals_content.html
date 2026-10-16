@@ -11,6 +11,8 @@
         </dl>
     </header>
 
+    {% include "market/partials/_nav.html" %}
+
     <div class="mkt-stack">
         {% include "market/partials/_deal_table.html" with title="Покупки" rows=purchases other_role="seller" %}
         {% include "market/partials/_deal_table.html" with title="Продажи" rows=sales other_role="buyer" %}

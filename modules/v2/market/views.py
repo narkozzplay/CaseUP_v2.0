@@ -43,6 +43,7 @@ def showcase_page(request):
             "exterior_options": EXTERIOR_LABELS,
             "pagination_query": _querystring(request),
             "total_active": Listing.objects.filter(status=Listing.Status.ACTIVE).count(),
+            **_nav(request, "showcase"),
         },
         page_title=build_page_title("Рынок"),
         active_menu_key=MENU_KEY,
@@ -115,6 +116,7 @@ def sell_page(request):
             "inventory": inventory,
             "inventory_error": inventory_error,
             "my_listings": Listing.objects.filter(seller=request.user).select_related("steam_item").order_by("-created_at")[:100],
+            **_nav(request, "sell"),
         },
         page_title=build_page_title("Продать", "Рынок"),
         active_menu_key=MENU_KEY,
@@ -194,6 +196,36 @@ def lot_buy(request, listing_id: int):
     return redirect("market:deal", code=deal.code)
 
 
+def _nav(request, active: str) -> dict:
+    from .payouts import is_market_seller
+
+    return {"mkt_tab": active, "mkt_is_seller": is_market_seller(request.user)}
+
+
+@login_required
+def payout_page(request):
+    from . import payouts
+
+    if not payouts.is_market_seller(request.user):
+        messages.info(request, "Вкладка «Вывод» появится, когда вы выставите первый предмет на рынок.")
+        return redirect("market:sell")
+    return render_dashboard_page(
+        request,
+        full_template="market/payout.html",
+        partial_template="market/partials/payout_content.html",
+        context={
+            **_nav(request, "payout"),
+            "wallet": payouts.seller_wallet(request.user),
+            "held_deals": payouts.held_deals(request.user),
+            "sales": payouts.sales_history(request.user),
+            "payouts": payouts.payout_history(request.user),
+            "payouts_enabled": payouts.PAYOUTS_ENABLED,
+        },
+        page_title=build_page_title("Вывод", "Рынок"),
+        active_menu_key=MENU_KEY,
+    )
+
+
 @login_required
 def my_deals(request):
     from .deals import held_amount
@@ -208,6 +240,7 @@ def my_deals(request):
             "purchases": base.filter(buyer=request.user)[:100],
             "sales": base.filter(seller=request.user)[:100],
             "held": held_amount(request.user),
+            **_nav(request, "deals"),
         },
         page_title=build_page_title("Мои сделки", "Рынок"),
         active_menu_key=MENU_KEY,

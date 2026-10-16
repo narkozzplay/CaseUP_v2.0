@@ -2,7 +2,7 @@
 
 .mkt-filters .mkt-price-input, .mkt-price-input { max-width: 120px; }
 .mkt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
-.mkt-stack { display: grid; gap: 16px; }
+.mkt-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .mkt-lot__seller .biz-metrics dt { white-space: nowrap; }
 .mkt-grid--compact { padding: 14px 18px; }
 
@@ -68,3 +68,6 @@ a.mkt-card:hover { border-color: rgba(245, 166, 35, 0.5); transform: translateY(
 .mkt-chat__row.is-deleted { opacity: 0.6; border-style: dashed; }
 .mkt-chat__meta { color: var(--text-muted); font-family: var(--font-mono); font-size: 0.7rem; }
 .mkt-chat__body { overflow-wrap: anywhere; }
+.mkt-nav { margin-bottom: 16px; }
+.mkt-nav .cc-tab span { display: inline; }
+@media (max-width: 640px) { .mkt-nav { flex-wrap: wrap; } .mkt-nav .cc-tab { flex: 1 1 auto; justify-content: center; } }
