@@ -22,7 +22,13 @@
                 {% if item.is_stattrak %}<span class="tag tag--stattrak">StatTrak™</span>{% endif %}
                 {% if item.exterior %}<span class="tag">{{ item.exterior }}</span>{% endif %}
             </div>
-            <h1 class="item-hero__title">{{ item.group_name }}</h1>
+            <div class="item-hero__title-row">
+                <h1 class="item-hero__title">{{ item.group_name }}</h1>
+                <form method="post" action="{% url 'steam_catalog:favorite' item.id %}" class="catalog-fav catalog-fav--inline" data-catalog-fav>
+                    {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="catalog-fav__btn{% if is_favorite %} is-active{% endif %}" aria-pressed="{% if is_favorite %}true{% else %}false{% endif %}" title="{% if is_favorite %}Убрать из избранного{% else %}В избранное{% endif %}">★</button>
+                </form>
+            </div>
             {% if item.market_hash_name != item.group_name %}<p class="item-hero__variant">{{ item.market_hash_name }}</p>{% endif %}
 
             <div class="item-hero__price">
