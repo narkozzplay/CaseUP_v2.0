@@ -22,6 +22,7 @@ from modules.v2.subscriptions.services import get_feature_access_state
 
 from .forms import TelegramNotifierSettingsForm, TelegramTestSendForm
 from .services import (
+    relay_settings,
     TelegramNotifierError,
     bind_profile_by_telegram_start,
     build_test_message,
@@ -83,6 +84,7 @@ def _build_settings_context(*, role_access, settings_form, test_form, config, we
         "config": config,
         "template_variables": TEMPLATE_VARIABLES,
         "webhook_url": build_webhook_url(config),
+        "telegram_relay_url": relay_settings()[0],
         "webhook_info": webhook_info,
     }
 

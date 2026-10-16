@@ -245,9 +245,10 @@ class SteamTradingTests(TestCase):
         self.assertIsNotNone(purchase.unlock_notified_at)
         send_mock.assert_called_once()
 
+    @patch("modules.v2.steam_trading.services._telegram_enabled", return_value=True)
     @patch("modules.v2.steam_trading.services._telegram_send_message")
     @patch("modules.v2.steam_trading.services.settings.TELEGRAM_NOTIFICATIONS_ENABLED", True)
-    def test_dispatch_due_unlock_notifications_saves_error(self, send_mock):
+    def test_dispatch_due_unlock_notifications_saves_error(self, send_mock, _enabled):
         send_mock.side_effect = RuntimeError("telegram down")
         user = self._make_farmer("farmer_notify_error")
         item = self._make_case(price=Decimal("50.00"))
@@ -263,8 +264,12 @@ class SteamTradingTests(TestCase):
 
         purchase.refresh_from_db()
         self.assertEqual(summary.error_count, 1)
-        self.assertIsNone(purchase.unlock_notified_at)
+        # The owner was told on the site, so the purchase leaves the queue; the Telegram error stays on record.
+        self.assertIsNotNone(purchase.unlock_notified_at)
         self.assertEqual(purchase.unlock_notification_error, "telegram down")
+        from modules.v2.notifications.models import Notification
+
+        self.assertTrue(Notification.objects.filter(recipient=user, kind="steam_investment_unlocked", object_id=purchase.pk).exists())
 
     def test_create_sale_calculates_snapshots(self):
         user = self._make_farmer("farmer_sale_create")
@@ -780,8 +785,9 @@ class SteamTradingTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "TG отправка не удалась")
 
+    @patch("modules.v2.steam_trading.services._telegram_enabled", return_value=True)
     @patch("modules.v2.steam_trading.services._telegram_send_message")
-    def test_dispatch_unlock_notifications_uses_html_parse_mode(self, send_mock):
+    def test_dispatch_unlock_notifications_uses_html_parse_mode(self, send_mock, _enabled):
         owner = self._make_farmer("farmer_unlock_tg")
         purchase = self._make_purchase(user=owner, quantity=1)
         purchase.unlocked_at = timezone.now() - timezone.timedelta(minutes=1)

@@ -326,13 +326,52 @@ def _send_telegram_message(*, text: str, chat_id: str, parse_mode: str | None = 
     return send_message(text=text, chat_id=chat_id, parse_mode=parse_mode)
 
 
+def _notify_on_site(event: UserPriceAlertEvent) -> None:
+    from django.urls import reverse
+
+    from modules.v2.notifications.services import notify
+    from modules.v2.steam_catalog.notifications import KIND_PRICE_ALERT
+
+    arrow = "▲" if event.direction == UserPriceAlertRule.Direction.UP else "▼"
+    notify(
+        event.user,
+        KIND_PRICE_ALERT,
+        object_id=event.pk,
+        dedupe=False,
+        payload={
+            "title": f"{arrow} {event.item.group_name}: {event.change_percent:+.2f}%",
+            "body": f"{event.rule.name}: {event.baseline_price_rub} → {event.current_price_rub} ₽ ({event.change_rub:+.2f} ₽)",
+            "url": reverse("steam_catalog:detail", args=[event.item_id]),
+        },
+    )
+
+
+def _deliver(event: UserPriceAlertEvent) -> tuple[str, str, dict]:
+    """Sends one alert through the rule's channels; returns (sent_to, error, telegram payload)."""
+    Transport = UserPriceAlertRule.Transport
+    sent_to, errors, telegram_payload = [], [], {}
+    if event.transport in (Transport.SITE, Transport.BOTH):
+        _notify_on_site(event)
+        sent_to.append("site")
+    if event.transport in (Transport.TELEGRAM, Transport.BOTH):
+        chat_id = _resolve_chat_id(event)
+        if not chat_id:
+            errors.append("Telegram не привязан: chat id не настроен.")
+        else:
+            try:
+                result = _send_telegram_message(text=_build_user_price_alert_message(event), chat_id=chat_id, parse_mode=HTML_PARSE_MODE)
+            except Exception as exc:  # noqa: BLE001 - recorded on the event and the rule
+                errors.append(str(exc))
+            else:
+                sent_to.append(chat_id)
+                telegram_payload = result.payload
+    return ", ".join(sent_to), "; ".join(errors)[:500], telegram_payload
+
+
 def dispatch_pending_user_price_alerts(*, limit: int = 20) -> int:
     event_ids = list(
         UserPriceAlertEvent.objects
-        .filter(
-            delivery_status=UserPriceAlertEvent.Status.PENDING,
-            transport=UserPriceAlertRule.Transport.TELEGRAM,
-        )
+        .filter(delivery_status=UserPriceAlertEvent.Status.PENDING)
         .order_by("created_at", "id")
         .values_list("id", flat=True)[:limit]
     )
@@ -345,49 +384,36 @@ def dispatch_pending_user_price_alerts(*, limit: int = 20) -> int:
                 UserPriceAlertEvent.objects
                 .select_related("item", "rule", "user")
                 .select_for_update(skip_locked=True)
-                .filter(
-                    pk=event_id,
-                    delivery_status=UserPriceAlertEvent.Status.PENDING,
-                )
+                .filter(pk=event_id, delivery_status=UserPriceAlertEvent.Status.PENDING)
                 .first()
             )
             if event is None:
                 continue
 
-            chat_id = _resolve_chat_id(event)
-            if not chat_id:
+            sent_to, error, telegram_payload = _deliver(event)
+            now = timezone.now()
+            if not sent_to:
                 event.delivery_status = UserPriceAlertEvent.Status.ERROR
-                event.error_message = "Recipient chat id is not configured."
-                event.rule.last_error_at = timezone.now()
-                event.rule.last_error_message = event.error_message
-                event.rule.save(update_fields=["last_error_at", "last_error_message", "updated_at"])
-                event.save(update_fields=["delivery_status", "error_message"])
-                continue
-
-            try:
-                result = _send_telegram_message(
-                    text=_build_user_price_alert_message(event),
-                    chat_id=chat_id,
-                    parse_mode=HTML_PARSE_MODE,
-                )
-            except Exception as exc:
-                event.delivery_status = UserPriceAlertEvent.Status.ERROR
-                event.error_message = str(exc)[:500]
-                event.rule.last_error_at = timezone.now()
+                event.error_message = error or "Нет канала доставки."
+                event.rule.last_error_at = now
                 event.rule.last_error_message = event.error_message
                 event.rule.save(update_fields=["last_error_at", "last_error_message", "updated_at"])
                 event.save(update_fields=["delivery_status", "error_message"])
                 continue
 
             event.delivery_status = UserPriceAlertEvent.Status.SENT
-            event.sent_at = timezone.now()
-            event.sent_to = chat_id
-            event.payload = {**(event.payload or {}), "telegram_response": result.payload}
-            event.save(update_fields=["delivery_status", "sent_at", "sent_to", "payload"])
+            event.sent_at = now
+            event.sent_to = sent_to[:128]
+            event.error_message = error
+            if telegram_payload:
+                event.payload = {**(event.payload or {}), "telegram_response": telegram_payload}
+            event.save(update_fields=["delivery_status", "sent_at", "sent_to", "error_message", "payload"])
 
-            event.rule.last_sent_at = event.sent_at
-            event.rule.last_error_message = ""
-            event.rule.save(update_fields=["last_sent_at", "last_error_message", "updated_at"])
+            event.rule.last_sent_at = now
+            event.rule.last_error_message = error
+            if error:
+                event.rule.last_error_at = now
+            event.rule.save(update_fields=["last_sent_at", "last_error_message", "last_error_at", "updated_at"])
 
             sent_count += 1
 

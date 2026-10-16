@@ -1049,10 +1049,26 @@ def _create_notification_event(*, owner, event_type: str, payload: dict, item: F
 
 
 
+def _notify_on_site(user, text: str) -> None:
+    """Farm alerts land in the notification center (and on the user's devices as pushes)."""
+    from django.urls import reverse
+
+    from modules.v2.farm.notifications import KIND_FARM_ALERT
+    from modules.v2.notifications.services import notify
+
+    title, _sep, body = text.strip().partition("\n")
+    try:
+        notify(user, KIND_FARM_ALERT, dedupe=False, payload={"title": title.strip()[:200], "body": " · ".join(line.strip() for line in body.splitlines() if line.strip())[:600], "url": reverse("farm:dashboard")})
+    except Exception:  # noqa: BLE001 - a notification must not break farm bookkeeping
+        pass
+
+
 def _maybe_send_user_message(*, user, text: str) -> bool:
-    if not is_module_enabled("tg_notifier"):
-        return False
+    """Returns whether the Telegram copy was sent; the site notification goes out either way."""
     if not user_has_feature(user, FARM_TG_ALERTS, family="farmer"):
+        return False
+    _notify_on_site(user, text)
+    if not is_module_enabled("tg_notifier"):
         return False
     try:
         send_user_message(user=user, text=text, allow_default=False)
