@@ -21,19 +21,18 @@ from modules.v2.subscriptions.responses import render_feature_locked_response
 from modules.v2.subscriptions.services import get_feature_access_state
 
 from .forms import TelegramNotifierSettingsForm, TelegramTestSendForm
+from .models import TelegramNotifierConfig
+from .updates import get_poll_status, handle_update
 from .services import (
     relay_settings,
     resolve_bot_token,
     TelegramNotifierError,
-    bind_profile_by_telegram_start,
     build_test_message,
     build_webhook_url,
-    extract_start_token_from_message_text,
     get_telegram_notifier_config,
     get_webhook_info,
     register_webhook,
     send_message,
-    touch_profile_last_interaction_by_chat_id,
 )
 
 
@@ -83,17 +82,33 @@ def _webhook_status(config, webhook_info) -> dict | None:
         return None
     from datetime import datetime, timezone as dt_timezone
 
-    expected = build_webhook_url(config)
+    polling = config.updates_mode == TelegramNotifierConfig.UpdatesMode.POLLING
+    # In polling mode no webhook may be registered (the poller removes it by itself).
+    expected = "" if polling else build_webhook_url(config)
     error_at = None
     if webhook_info.last_error_date:
         error_at = datetime.fromtimestamp(int(webhook_info.last_error_date), tz=dt_timezone.utc)
     return {
         "url": webhook_info.url,
-        "matches": bool(webhook_info.url) and webhook_info.url == expected,
+        "matches": webhook_info.url == expected,
+        "polling": polling,
         "pending": webhook_info.pending_update_count,
         "error": webhook_info.last_error_message,
         "error_at": error_at,
     }
+
+
+def _poll_state(config) -> dict | None:
+    """What the poller last reported: fresh = it ran within the last two minutes."""
+    if config.updates_mode != TelegramNotifierConfig.UpdatesMode.POLLING:
+        return None
+    from django.utils import timezone
+
+    status = get_poll_status()
+    if not status:
+        return {"ran": False}
+    age = (timezone.now() - status["at"]).total_seconds()
+    return {"ran": True, "at": status["at"], "fresh": age < 120, "error": status.get("error", "")}
 
 
 def _build_settings_context(*, role_access, settings_form, test_form, config, webhook_info=None, bot_check=None):
@@ -109,6 +124,8 @@ def _build_settings_context(*, role_access, settings_form, test_form, config, we
         "telegram_relay_url": relay_settings()[0],
         "webhook_info": webhook_info,
         "webhook_status": _webhook_status(config, webhook_info),
+        "polling": config.updates_mode == TelegramNotifierConfig.UpdatesMode.POLLING,
+        "poll_state": _poll_state(config),
         "bot_check": bot_check,
         "has_bot_token": bool(resolve_bot_token(config)),
         "linked_users": UserProfile.objects.exclude(telegram_chat_id__isnull=True).exclude(telegram_chat_id="").count(),
@@ -211,6 +228,8 @@ def settings_page(request):
                 }
             )
             try:
+                if config.updates_mode == TelegramNotifierConfig.UpdatesMode.POLLING:
+                    raise TelegramNotifierError("включён режим «Опрос» — вебхук не нужен.")
                 response_payload = register_webhook(config=config)
             except TelegramNotifierError as exc:
                 messages.error(request, f"Регистрация webhook не удалась: {exc}")
@@ -397,47 +416,4 @@ def telegram_webhook_view(request, webhook_secret: str):
     if not isinstance(payload, dict):
         return JsonResponse({"ok": False, "error": "invalid_payload"}, status=400)
 
-    message = payload.get("message") or {}
-    chat = message.get("chat") or {}
-    from_user = message.get("from") or {}
-
-    chat_id = str(chat.get("id") or "").strip()
-    text = (message.get("text") or "").strip()
-
-    if not chat_id:
-        return JsonResponse({"ok": True, "ignored": "no_chat_id"})
-
-    start_token = extract_start_token_from_message_text(text)
-    if start_token:
-        try:
-            bind_profile_by_telegram_start(
-                start_token=start_token,
-                chat_id=chat_id,
-                telegram_username=str(from_user.get("username") or "").strip(),
-                telegram_first_name=str(from_user.get("first_name") or "").strip(),
-            )
-        except TelegramNotifierError as exc:
-            try:
-                send_message(
-                    chat_id=chat_id,
-                    text=f"❌ Не удалось подключить Telegram к профилю CaseUP: {exc}",
-                )
-            except TelegramNotifierError:
-                pass
-            return JsonResponse({"ok": True, "bound": False, "error": str(exc)})
-
-        warning = ""
-        try:
-            send_message(
-                chat_id=chat_id,
-                text="✅ Telegram успешно подключен к вашему профилю CaseUP.",
-            )
-        except TelegramNotifierError as exc:
-            warning = str(exc)
-
-        if warning:
-            return JsonResponse({"ok": True, "bound": True, "warning": warning})
-        return JsonResponse({"ok": True, "bound": True})
-
-    touch_profile_last_interaction_by_chat_id(chat_id)
-    return JsonResponse({"ok": True, "ignored": "no_start_token"})
+    return JsonResponse(handle_update(payload))

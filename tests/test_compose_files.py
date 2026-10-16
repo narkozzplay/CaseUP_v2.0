@@ -36,4 +36,5 @@ class ComposeFilesTests(TestCase):
     def test_dev_override_keeps_local_workflow(self):
         content = "\n".join(_code_lines("docker-compose.override.yml"))
         self.assertIn('"${DJANGO_PORT:-8000}:8000"', content)
-        self.assertEqual(content.count("- .:/app"), 3)
+        # web, celery_worker, celery_beat, telegram_poller
+        self.assertEqual(content.count("- .:/app"), 4)

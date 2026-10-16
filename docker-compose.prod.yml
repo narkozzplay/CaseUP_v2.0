@@ -51,6 +51,15 @@ services:
       - static_data:/app/staticfiles
       - celerybeat_data:/var/run/celery
 
+  telegram_poller:
+    depends_on:
+      web:
+        condition: service_healthy
+    env_file:
+      - ${APP_ENV_FILE:-.env.prod}
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+
   # Public entry point: HTTPS (Let's Encrypt, renewed automatically), www → apex redirect, /media/.
   # Only Caddy listens on the internet; Postgres/Redis stay internal, web is also on 127.0.0.1:18001.
   caddy:

@@ -39,17 +39,42 @@
                     <span>{% if telegram_relay_url %}Через ретранслятор <code>{{ telegram_relay_url }}</code>{% else %}Напрямую — с сервера в РФ не работает. Задайте <code>TELEGRAM_RELAY_URL</code> в <code>.env.prod</code> (docs/SERVER.md, раздел 8к).{% endif %}</span>
                 </div>
             </li>
+            {% if polling %}
+            <li class="tgn-step {% if not poll_state.ran %}is-unknown{% elif poll_state.fresh and not poll_state.error %}is-ok{% else %}is-bad{% endif %}">
+                <span class="tgn-step__dot" aria-hidden="true"></span>
+                <div class="tgn-step__body">
+                    <strong>Приём сообщений от бота</strong>
+                    <span>Нужен, чтобы пользователи могли подключить Telegram кнопкой Start. Сайт сам забирает сообщения у Telegram через ретранслятор.</span>
+                    <dl class="tgn-facts">
+                        {% if not poll_state.ran %}
+                            <div><dt>Сборщик</dt><dd class="metric-negative">ещё не запускался — нужен контейнер <code>telegram_poller</code></dd></div>
+                        {% else %}
+                            <div><dt>Последний опрос</dt><dd{% if not poll_state.fresh %} class="metric-negative"{% endif %}>{{ poll_state.at|date:"d.m H:i:s" }}{% if not poll_state.fresh %} — сборщик остановлен{% endif %}</dd></div>
+                            {% if poll_state.error %}<div><dt>Ошибка</dt><dd class="metric-negative">{{ poll_state.error }}</dd></div>{% endif %}
+                        {% endif %}
+                        {% if webhook_status %}
+                            <div><dt>Вебхук</dt><dd>{% if webhook_status.url %}<b class="metric-negative">ещё зарегистрирован</b> — сборщик снимет его сам{% else %}снят, как и нужно{% endif %}</dd></div>
+                            <div><dt>Ждут обработки</dt><dd>{{ webhook_status.pending }}</dd></div>
+                        {% endif %}
+                    </dl>
+                </div>
+                <div class="tgn-step__actions">
+                    <form method="post" data-dashboard-shell-form>{% csrf_token %}<input type="hidden" name="action" value="check_webhook"><button type="submit" class="btn btn-secondary btn-sm">Проверить приём</button></form>
+                </div>
+            </li>
+            {% else %}
             <li class="tgn-step {% if webhook_status %}{% if webhook_status.matches and not webhook_status.error %}is-ok{% else %}is-bad{% endif %}{% else %}is-unknown{% endif %}">
                 <span class="tgn-step__dot" aria-hidden="true"></span>
                 <div class="tgn-step__body">
                     <strong>Приём сообщений от бота</strong>
-                    <span>Нужен, чтобы пользователи могли подключить Telegram кнопкой Start.</span>
+                    <span>Нужен, чтобы пользователи могли подключить Telegram кнопкой Start. Telegram сам присылает сообщения на адрес ниже.</span>
                     {% if webhook_status %}
                         <dl class="tgn-facts">
                             <div><dt>Telegram шлёт на</dt><dd><code>{{ webhook_status.url|default:"— (не зарегистрирован)" }}</code>{% if not webhook_status.matches %} <b class="metric-negative">— не тот адрес, нажмите «Зарегистрировать»</b>{% endif %}</dd></div>
                             <div><dt>Ждут доставки</dt><dd>{{ webhook_status.pending }}</dd></div>
                             {% if webhook_status.error %}<div><dt>Последняя ошибка</dt><dd class="metric-negative">{{ webhook_status.error }}{% if webhook_status.error_at %} · {{ webhook_status.error_at|date:"d.m H:i" }}{% endif %}</dd></div>{% endif %}
                         </dl>
+                        {% if webhook_status.error %}<p class="text-muted tgn-hint">Если Telegram не может достучаться до адреса («Connection timed out»), переключите в настройках «Как бот получает сообщения» на «Опрос».</p>{% endif %}
                     {% endif %}
                 </div>
                 <div class="tgn-step__actions">
@@ -57,6 +82,7 @@
                     <form method="post" data-dashboard-shell-form>{% csrf_token %}<input type="hidden" name="action" value="check_webhook"><button type="submit" class="btn btn-secondary btn-sm">Проверить приём</button></form>
                 </div>
             </li>
+            {% endif %}
         </ol>
     </article>
 
@@ -101,6 +127,13 @@
                     {{ settings_form.public_base_url }}
                     <p class="text-muted tgn-hint">Для ссылок в сообщениях. Обычно <code>https://case-up.ru</code>.</p>
                     {{ settings_form.public_base_url.errors }}
+                </div>
+
+                <div class="form-field">
+                    <label for="{{ settings_form.updates_mode.id_for_label }}">Как бот получает сообщения</label>
+                    {{ settings_form.updates_mode }}
+                    <p class="text-muted tgn-hint">«Опрос» работает, даже когда Telegram не может достучаться до хостинга. Вебхук — только если входящие от Telegram проходят.</p>
+                    {{ settings_form.updates_mode.errors }}
                 </div>
 
                 <details class="tgn-template">

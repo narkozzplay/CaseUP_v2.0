@@ -44,6 +44,10 @@ def default_link_expiry():
 
 
 class TelegramNotifierConfig(models.Model):
+    class UpdatesMode(models.TextChoices):
+        POLLING = "polling", "Опрос (работает из РФ)"
+        WEBHOOK = "webhook", "Вебхук"
+
     singleton_key = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
     is_enabled = models.BooleanField(default=False)
     bot_token = EncryptedTextField(blank=True, default="")
@@ -52,6 +56,9 @@ class TelegramNotifierConfig(models.Model):
     webhook_secret = EncryptedTextField(blank=True, default=generate_webhook_secret, plain_max_length=64)
     public_base_url = models.URLField(max_length=255, blank=True, default="")
     investment_message_template = models.TextField(default=DEFAULT_INVESTMENT_MESSAGE_TEMPLATE)
+    updates_mode = models.CharField(max_length=16, choices=UpdatesMode.choices, default=UpdatesMode.POLLING)
+    # Last update_id handled by the poller; the next getUpdates asks for newer ones only.
+    polling_offset = models.BigIntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
