@@ -283,6 +283,37 @@ def build_unlock_notification_message(purchase: SteamPurchase) -> str:
     )
 
 
+def _telegram_enabled() -> bool:
+    from modules.v2.tg_notifier.services import is_enabled
+
+    try:
+        return is_enabled()
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _notify_unlock_on_site(purchase: SteamPurchase) -> bool:
+    """The owner of the purchase learns on the site (and by push) that the items can be sold."""
+    if not purchase.created_by_id:
+        return False
+    from modules.v2.notifications.services import notify
+    from modules.v2.steam_trading.notifications import KIND_INVESTMENT_UNLOCKED
+
+    row = build_purchase_row(purchase)
+    profit = f", прибыль после комиссии {_format_signed_money(row.profit_after_fee_rub)}" if row.profit_after_fee_rub is not None else ""
+    notify(
+        purchase.created_by,
+        KIND_INVESTMENT_UNLOCKED,
+        object_id=purchase.pk,
+        payload={
+            "title": f"🔓 Трейд-бан снят: {purchase.item.group_name}",
+            "body": f"{purchase.quantity} шт. готовы к продаже{profit}.",
+            "url": reverse("steam_trading:investments"),
+        },
+    )
+    return True
+
+
 def dispatch_due_unlock_notifications(*, limit: int = 20, now=None) -> UnlockDispatchSummary:
     now = now or timezone.now()
 
@@ -320,19 +351,23 @@ def dispatch_due_unlock_notifications(*, limit: int = 20, now=None) -> UnlockDis
 
             processed_count += 1
 
-            try:
-                _telegram_send_message(
-                    text=build_unlock_notification_message(purchase),
-                    parse_mode="HTML",
-                )
-            except Exception as exc:
+            on_site = _notify_unlock_on_site(purchase)
+            telegram_error = ""
+            if _telegram_enabled():
+                try:
+                    _telegram_send_message(
+                        text=build_unlock_notification_message(purchase),
+                        parse_mode="HTML",
+                    )
+                except Exception as exc:  # noqa: BLE001 - recorded on the purchase
+                    telegram_error = str(exc)[:4000]
+
+            if not on_site and telegram_error:
+                # Nobody was told: keep the purchase in the queue for the next run.
                 updated = (
                     SteamPurchase.objects
                     .filter(pk=purchase.pk, unlock_notified_at__isnull=True)
-                    .update(
-                        unlock_notification_error=str(exc)[:4000],
-                        updated_at=timezone.now(),
-                    )
+                    .update(unlock_notification_error=telegram_error, updated_at=timezone.now())
                 )
                 if updated:
                     error_count += 1
@@ -343,12 +378,14 @@ def dispatch_due_unlock_notifications(*, limit: int = 20, now=None) -> UnlockDis
                 .filter(pk=purchase.pk, unlock_notified_at__isnull=True)
                 .update(
                     unlock_notified_at=timezone.now(),
-                    unlock_notification_error="",
+                    unlock_notification_error=telegram_error,
                     updated_at=timezone.now(),
                 )
             )
             if updated:
                 sent_count += 1
+                if telegram_error:
+                    error_count += 1
 
     return UnlockDispatchSummary(
         processed_count=processed_count,

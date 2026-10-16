@@ -302,7 +302,9 @@ class UserPriceAlertRule(models.Model):
         NEW_EXTREME = "new_extreme", "После нового экстремума"
 
     class Transport(models.TextChoices):
-        TELEGRAM = "telegram", "Telegram"
+        SITE = "site", "На сайт и пуш-уведомлением"
+        BOTH = "both", "На сайт и в Telegram"
+        TELEGRAM = "telegram", "Только в Telegram"
 
     class DeliveryTarget(models.TextChoices):
         USER_CHAT = "user_chat", "В привязанный chat_id пользователя"
@@ -330,7 +332,7 @@ class UserPriceAlertRule(models.Model):
     repeat_step_rub = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     repeat_step_percent = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("0.00"))
     repeat_mode = models.CharField(max_length=16, choices=RepeatMode.choices, default=RepeatMode.ONCE, db_index=True)
-    transport = models.CharField(max_length=16, choices=Transport.choices, default=Transport.TELEGRAM, db_index=True)
+    transport = models.CharField(max_length=16, choices=Transport.choices, default=Transport.SITE, db_index=True)
     delivery_target = models.CharField(max_length=16, choices=DeliveryTarget.choices, default=DeliveryTarget.USER_CHAT, db_index=True)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT, db_index=True)
     last_triggered_at = models.DateTimeField(null=True, blank=True)
@@ -390,7 +392,7 @@ class UserPriceAlertEvent(models.Model):
     rule = models.ForeignKey(UserPriceAlertRule, on_delete=models.CASCADE, related_name="events")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="steam_price_alert_events")
     item = models.ForeignKey(SteamItem, on_delete=models.CASCADE, related_name="user_price_alert_events")
-    transport = models.CharField(max_length=16, choices=UserPriceAlertRule.Transport.choices, default=UserPriceAlertRule.Transport.TELEGRAM, db_index=True)
+    transport = models.CharField(max_length=16, choices=UserPriceAlertRule.Transport.choices, default=UserPriceAlertRule.Transport.SITE, db_index=True)
     delivery_target = models.CharField(max_length=16, choices=UserPriceAlertRule.DeliveryTarget.choices, default=UserPriceAlertRule.DeliveryTarget.USER_CHAT, db_index=True)
     delivery_status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING, db_index=True)
     trigger_source = models.CharField(max_length=16, blank=True, default="celery", db_index=True)

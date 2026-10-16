@@ -6,3 +6,8 @@ class SteamTradingConfig(AppConfig):
     name = "modules.v2.steam_trading"
     label = "steam_trading"
     verbose_name = "Steam Trading"
+
+    def ready(self):
+        from .notifications import register_notification_kinds
+
+        register_notification_kinds()

@@ -1094,9 +1094,10 @@ class UserPriceAlertRuleTests(TestCase):
             min_change_percent=Decimal("0.00"),
             repeat_mode=UserPriceAlertRule.RepeatMode.ONCE,
             status=UserPriceAlertRule.Status.ACTIVE,
+            transport=UserPriceAlertRule.Transport.TELEGRAM,
         )
         event = UserPriceAlertEvent.objects.create(
-            rule=rule, user=self.user, item=self.item,
+            rule=rule, user=self.user, item=self.item, transport=UserPriceAlertRule.Transport.TELEGRAM,
             direction=UserPriceAlertRule.Direction.DOWN,
             reference_point=rule.reference_point,
             reference_at=timezone.now() - timedelta(hours=2),

@@ -8,6 +8,9 @@ CATEGORIES = {
     "security": "Безопасность: новые входы и защита аккаунта",
     "daily_bonus": "Напоминание о бонусе дня",
     "friends": "Друзья: заявки",
+    "alerts": "Алерты цен",
+    "investments": "Инвестиции: снятие трейд-бана",
+    "farm": "Ферма: продажи, цены, бонусы",
 }
 
 KIND_CATEGORY = {
@@ -22,6 +25,9 @@ KIND_CATEGORY = {
     "daily_bonus_reminder": "daily_bonus",
     "friend_request": "friends",
     "friend_request_accepted": "friends",
+    "steam_price_alert": "alerts",
+    "steam_investment_unlocked": "investments",
+    "farm_alert": "farm",
 }
 
 # Pushes are short-lived: a reminder that arrives a day late is noise.

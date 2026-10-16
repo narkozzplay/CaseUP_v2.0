@@ -51,3 +51,18 @@ def get_renderer(kind: str) -> Renderer | None:
 
 def registered_kinds() -> tuple[str, ...]:
     return tuple(sorted(_RENDERERS))
+
+
+def payload_renderer(icon: str, default_url: str = "") -> Renderer:
+    """Renderer for kinds whose text is prepared when sent: payload {"title", "body", "url"}."""
+
+    def render(notification, lang: str) -> NotificationView:
+        payload = notification.payload or {}
+        return NotificationView(
+            title=str(payload.get("title") or "")[:200] or ("Новое уведомление" if lang == "ru" else "New notification"),
+            body=str(payload.get("body") or "")[:600],
+            url=str(payload.get("url") or default_url),
+            icon=icon,
+        )
+
+    return render

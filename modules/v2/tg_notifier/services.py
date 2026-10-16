@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import urllib.request
 from dataclasses import dataclass
 from decimal import Decimal
@@ -111,12 +112,33 @@ def _build_telegram_endpoint(bot_token: str, method: str) -> str:
     return f"https://api.telegram.org/bot{bot_token}/{method}"
 
 
+def relay_settings() -> tuple[str, str]:
+    """Telegram is blocked from Russian servers: requests can go through a relay on other hosting
+    (deploy/hosting/telegram_relay.php). Returns (relay URL, relay key); an empty URL means direct."""
+    url = (getattr(settings, "TELEGRAM_RELAY_URL", "") or "").strip()
+    token = (getattr(settings, "TELEGRAM_RELAY_TOKEN", "") or getattr(settings, "STEAM_PRICE_RELAY_TOKEN", "") or "").strip()
+    return url, token
+
+
+_ENDPOINT_RE = re.compile(r"^https://api\.telegram\.org/bot(?P<token>[^/]+)/(?P<method>[A-Za-z]+)$")
+
+
+def _route(endpoint: str) -> tuple[str, dict[str, str]]:
+    relay_url, relay_token = relay_settings()
+    match = _ENDPOINT_RE.match(endpoint)
+    if not relay_url or not match:
+        return endpoint, {}
+    separator = "&" if "?" in relay_url else "?"
+    return f"{relay_url}{separator}method={match['method']}", {"X-Relay-Token": relay_token, "X-Bot-Token": match["token"]}
+
+
 def _telegram_api_request(*, endpoint: str, payload: dict[str, Any], timeout: int = 15) -> dict[str, Any]:
     raw_payload = json.dumps(payload).encode("utf-8")
+    url, extra_headers = _route(endpoint)
     request = urllib.request.Request(
-        endpoint,
+        url,
         data=raw_payload,
-        headers={"Content-Type": "application/json; charset=utf-8"},
+        headers={"Content-Type": "application/json; charset=utf-8", **extra_headers},
         method="POST",
     )
 
@@ -453,7 +475,12 @@ def touch_profile_last_interaction_by_chat_id(chat_id: str) -> None:
 
 
 def build_webhook_url(config: TelegramNotifierConfig | None = None) -> str:
+    """Where Telegram delivers bot updates: the site itself, or the relay that forwards them to the site."""
     config = config or get_telegram_notifier_config()
+    relay_url, _relay_token = relay_settings()
+    if relay_url:
+        separator = "&" if "?" in relay_url else "?"
+        return f"{relay_url}{separator}inbound={config.webhook_secret}"
     return f"{ensure_public_base_url(config)}{reverse('tg_notifier_public:webhook', args=[config.webhook_secret])}"
 
 def register_webhook(config: TelegramNotifierConfig | None = None, timeout: int = 15) -> dict[str, Any]:
