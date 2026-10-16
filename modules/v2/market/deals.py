@@ -248,6 +248,12 @@ def open_dispute(user, code: str, *, reason: str, ip: str | None = None) -> Deal
         raise MarketError("Это не ваша сделка.")
     if deal.status not in (Deal.Status.PAID, Deal.Status.SENT, Deal.Status.HOLD):
         raise MarketError("По этой сделке спор открыть нельзя.")
+    if timezone.now() < deal.dispute_opens_at:
+        other = "продавца" if party == "buyer" else "покупателя"
+        raise MarketError(
+            f"Вызвать администрацию можно после {timezone.localtime(deal.dispute_opens_at):%d.%m %H:%M} — через 24 часа после открытия сделки. "
+            f"До этого у {other} ещё есть время выполнить сделку."
+        )
     reason = (reason or "").strip()
     if len(reason) < 10:
         raise MarketError("Опишите проблему подробнее (хотя бы пару предложений).")
@@ -258,6 +264,30 @@ def open_dispute(user, code: str, *, reason: str, ip: str | None = None) -> Deal
     other = deal.seller if party == "buyer" else deal.buyer
     transaction.on_commit(lambda: (_notify(other, "disputed", deal), _notify_admins(deal)))
     return deal
+
+
+def chat_for_admin(deal: Deal, admin, *, limit: int = 300) -> list:
+    """The parties' chat, read-only, for an admin who is not part of the deal. Deleted messages are kept
+    (marked) because they may matter in a dispute. Each look is logged once an hour per admin."""
+    from django.core.cache import cache
+
+    from modules.v2.control_center.models import ActivityCategory
+    from modules.v2.control_center.services.activity import log_activity
+    from modules.v2.social.models import SocialMessage
+
+    if not deal.chat_space_id:
+        return []
+    rows = list(SocialMessage.objects.filter(space_id=deal.chat_space_id).select_related("author").order_by("-created_at", "-id")[:limit])
+    if cache.add(f"market:chat_view:{deal.pk}:{admin.pk}", 1, 3600):
+        log_activity(
+            category=ActivityCategory.ADMIN,
+            event="market.deal_chat_viewed",
+            summary=f"{deal.code}: администратор открыл чат сторон"[:255],
+            user=deal.buyer,
+            actor=admin,
+            obj=deal,
+        )
+    return rows[::-1]
 
 
 # --------------------------------------------------------------------------- closing

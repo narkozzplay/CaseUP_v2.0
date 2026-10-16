@@ -66,7 +66,15 @@
         </article>
     </div>
 
-    {% if party and deal.status in "paid sent hold" %}
+    {% if party and deal.status in "paid sent hold" and not dispute_open %}
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Вызвать администрацию</h2></div>
+            <div class="ref-body">
+                <p class="ref-text mkt-lot__notice">У {% if party == "buyer" %}продавца{% else %}покупателя{% endif %} ещё есть время выполнить сделку. Вызвать администрацию можно будет с <b>{{ deal.dispute_opens_at|date:"d.m H:i" }}</b> — через 24 часа после открытия сделки. А пока напишите {% if party == "buyer" %}продавцу{% else %}покупателю{% endif %} в {% if chat_url %}<a href="{{ chat_url }}" data-dashboard-nav="true">чат сделки</a>{% else %}чат сделки{% endif %}.</p>
+                <div><button type="button" class="btn btn-danger btn-sm" disabled>Вызвать админа</button></div>
+            </div>
+        </article>
+    {% elif party and deal.status in "paid sent hold" %}
         <form method="post" action="{% url 'market:deal_action' deal.code 'dispute' %}" class="ops-panel">
             {% csrf_token %}
             <div class="ops-panel__head"><h2 class="ops-panel__title">Вызвать администрацию</h2></div>
@@ -88,6 +96,22 @@
                 <div><button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Применить решение? Отменить его будет нельзя.');">Применить решение</button></div>
             </div>
         </form>
+    {% endif %}
+
+    {% if admin_chat is not None %}
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Чат покупателя и продавца</h2><span class="cc-chip cc-chip--fail">видит только администрация</span></div>
+            <ul class="mkt-chat">
+                {% for message in admin_chat %}
+                    <li class="mkt-chat__row{% if message.author_id == deal.seller_id %} is-seller{% endif %}{% if message.is_deleted %} is-deleted{% endif %}">
+                        <span class="mkt-chat__meta">{{ message.created_at|date:"d.m H:i" }} · <b>{{ message.author.username }}</b> · {% if message.author_id == deal.seller_id %}продавец{% elif message.author_id == deal.buyer_id %}покупатель{% else %}—{% endif %}{% if message.is_deleted %} · удалено{% endif %}{% if message.edited_at %} · изменено{% endif %}</span>
+                        <span class="mkt-chat__body">{{ message.body|linebreaksbr }}</span>
+                    </li>
+                {% empty %}
+                    <li class="mkt-chat__row text-muted">Сообщений нет.</li>
+                {% endfor %}
+            </ul>
+        </article>
     {% endif %}
 
     <article class="ops-panel">

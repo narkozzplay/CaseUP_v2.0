@@ -154,6 +154,13 @@ class Deal(models.Model):
         return self.status in self.OPEN_STATUSES
 
     @property
+    def dispute_opens_at(self):
+        """Parties may call an admin only after the first day: until then the other side still has time."""
+        from datetime import timedelta
+
+        return self.created_at + timedelta(hours=int(getattr(settings, "MARKET_DISPUTE_AFTER_HOURS", 24)))
+
+    @property
     def short_status(self) -> str:
         """Status label without the explanation after the dash, for tables."""
         return self.get_status_display().split(" — ")[0]

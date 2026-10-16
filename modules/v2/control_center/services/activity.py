@@ -68,6 +68,7 @@ EVENT_LABELS = {
     "market.deal_cancelled": "Рынок: сделка отменена",
     "market.deal_disputed": "Рынок: вызов админа",
     "market.deal_resolved": "Рынок: спор решён",
+    "market.deal_chat_viewed": "Рынок: админ открыл чат сделки",
     "balance.market_purchase": "Списание: покупка на рынке",
     "balance.market_refund": "Возврат по сделке",
     "balance.market_sale": "Зачисление: продажа на рынке",

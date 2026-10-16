@@ -234,7 +234,7 @@ def deal_page(request, code: str):
     from modules.v2.social.models import SocialSpace
     from modules.v2.social.services import build_space_url
 
-    from .deals import deal_history
+    from .deals import chat_for_admin, deal_history
 
     deal, party, is_admin = _deal_for(request, code)
     if deal is None:
@@ -252,6 +252,8 @@ def deal_page(request, code: str):
             "chat_url": build_space_url(space) if space else "",
             "history": deal_history(deal),
             "deadline_passed": now >= deal.send_deadline,
+            "dispute_open": now >= deal.dispute_opens_at,
+            "admin_chat": chat_for_admin(deal, request.user) if is_admin and not party else None,
             "steps": _deal_steps(deal),
         },
         page_title=build_page_title(deal.code, "Рынок"),

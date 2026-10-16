@@ -160,7 +160,42 @@ class DisputeTests(DealTestCase):
         self.deal = self.bought()
         deals.mark_sent(self.seller, self.deal.code)
 
+    def day_passed(self):
+        Deal.objects.filter(pk=self.deal.pk).update(created_at=timezone.now() - timedelta(hours=25))
+
+    def test_admin_can_be_called_only_after_the_first_day(self):
+        client = Client()
+        client.force_login(self.buyer)
+        page = client.get(reverse("market:deal", args=[self.deal.code]))
+        self.assertContains(page, "У продавца ещё есть время выполнить сделку")
+        self.assertNotContains(page, 'name="reason"')
+        with self.assertRaisesMessage(MarketError, "через 24 часа после открытия сделки"):
+            deals.open_dispute(self.buyer, self.deal.code, reason="Обмен не пришёл, продавец молчит в чате")
+        self.day_passed()
+        self.assertContains(client.get(reverse("market:deal", args=[self.deal.code])), 'name="reason"')
+        deals.open_dispute(self.buyer, self.deal.code, reason="Обмен не пришёл, продавец молчит в чате")
+
+    def test_admin_reads_the_parties_chat(self):
+        from modules.v2.control_center.models import ActivityLog
+        from modules.v2.social.models import SocialMessage
+
+        self.deal.refresh_from_db()
+        message = SocialMessage.objects.create(space_id=self.deal.chat_space_id, author=self.seller, body="Отправил, проверь Steam")
+        SocialMessage.objects.create(space_id=self.deal.chat_space_id, author=self.buyer, body="Ничего нет", is_deleted=True)
+        client = Client()
+        client.force_login(self.admin)
+        page = client.get(reverse("market:deal", args=[self.deal.code]))
+        self.assertContains(page, "Чат покупателя и продавца")
+        self.assertContains(page, message.body)
+        self.assertContains(page, "Ничего нет")  # deleted messages stay visible to admins
+        client.get(reverse("market:deal", args=[self.deal.code]))
+        self.assertEqual(ActivityLog.objects.filter(event="market.deal_chat_viewed", actor=self.admin).count(), 1)
+        party = Client()
+        party.force_login(self.buyer)
+        self.assertNotContains(party.get(reverse("market:deal", args=[self.deal.code])), "Чат покупателя и продавца")
+
     def test_admin_refunds_the_buyer(self):
+        self.day_passed()
         with self.assertRaisesMessage(MarketError, "подробнее"):
             deals.open_dispute(self.buyer, self.deal.code, reason="нет")
         deals.open_dispute(self.buyer, self.deal.code, reason="Обмен не пришёл, продавец молчит в чате")
@@ -176,6 +211,7 @@ class DisputeTests(DealTestCase):
         self.assertContains(client.get(reverse("control_center:market"), {"status": "cancelled"}), self.deal.code)
 
     def test_admin_pays_the_seller(self):
+        self.day_passed()
         deals.open_dispute(self.seller, self.deal.code, reason="Покупатель получил предмет, но не подтверждает")
         deals.resolve_dispute(self.admin, self.deal.code, decision="pay_seller")
         self.assertEqual(balance(self.seller), Decimal("300.00"))
