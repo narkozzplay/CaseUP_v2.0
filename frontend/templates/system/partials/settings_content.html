@@ -56,6 +56,8 @@
                     <label class="cc-field form-field cc-span-2"><span>Владелец сайта (для соглашения)</span>{{ form.legal_owner_name }}
                         <small class="cc-help">Публикуется в <a href="{% url 'frontend:agreement' %}" target="_blank" rel="noopener" data-dashboard-nav="false">пользовательском соглашении</a>: кто оказывает услуги и принимает платежи.</small>{{ form.legal_owner_name.errors }}</label>
                     <label class="cc-field form-field cc-span-2"><span>Реквизиты владельца</span>{{ form.legal_owner_details }}{{ form.legal_owner_details.errors }}</label>
+                    <label class="cc-field form-field"><span>Комиссия при пополнении, %</span>{{ form.topup_fee_percent }}
+                        <small class="cc-help">Добавляется к сумме пополнения: комиссия платёжной системы + сервисный сбор. Внутренние покупки на сайте без комиссии.</small>{{ form.topup_fee_percent.errors }}</label>
                 </div>
             </article>
 

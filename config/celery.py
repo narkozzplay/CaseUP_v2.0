@@ -63,6 +63,11 @@ app.conf.beat_schedule = {
         "task": "daily_bonus.remind_streaks",
         "schedule": crontab(hour=18, minute=5),
     },
+    # Market deals: send-deadline reminders, automatic proof of the trade, completion after the hold.
+    "market-process-deals": {
+        "task": "market.process_deals",
+        "schedule": 15 * 60.0,
+    },
     # Takes market lots off the showcase when the item left the seller's Steam inventory.
     "market-verify-listings": {
         "task": "market.verify_listings",

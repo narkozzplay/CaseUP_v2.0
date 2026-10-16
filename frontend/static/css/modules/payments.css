@@ -544,3 +544,7 @@ a.wallet-chip:hover {
 }
 
 .topup-promo .ui-icon { flex: 0 0 auto; color: var(--success); }
+
+.topup-preset__total { flex-basis: 100%; white-space: nowrap; letter-spacing: 0; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.68rem; font-weight: 400; }
+.topup-table__fee { display: block; color: var(--text-muted); font-size: 0.7rem; }
+.topup-preset { flex-wrap: wrap; }

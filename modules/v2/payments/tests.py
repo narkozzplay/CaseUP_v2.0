@@ -17,6 +17,14 @@ from .services import sync_payment
 User = get_user_model()
 
 
+def _set_fee(percent: str) -> None:
+    from modules.v2.system.services import get_site_configuration
+
+    config = get_site_configuration()
+    config.topup_fee_percent = Decimal(percent)
+    config.save(update_fields=["topup_fee_percent"])
+
+
 def _yookassa_response(*, status="pending", payment_id="2d8f-yk", amount="300.00", currency="RUB", test=True, status_code=200):
     response = mock.Mock()
     response.status_code = status_code
@@ -101,6 +109,7 @@ class DevProviderFlowTests(TestCase):
 @override_settings(YOOKASSA_SHOP_ID="123456", YOOKASSA_SECRET_KEY="test_secret")
 class YooKassaFlowTests(TestCase):
     def setUp(self):
+        _set_fee("0")  # these tests check the provider flow, the commission has its own tests
         self.user = User.objects.create_user(username="yk_payer", password="pass12345")
         self.client.login(username="yk_payer", password="pass12345")
 
@@ -431,6 +440,7 @@ class CheckYooKassaCommandTests(TestCase):
 @override_settings(DEBUG=True)
 class TopupAgreementConsentTests(TestCase):
     def setUp(self):
+        _set_fee("0")  # these tests check the provider flow, the commission has its own tests
         self.user = User.objects.create_user(username="consent", password="pass12345")
         self.client.login(username="consent", password="pass12345")
 
@@ -466,3 +476,55 @@ class TopupAgreementConsentTests(TestCase):
 
         self.assertContains(response, 'name="accept_terms"')
         self.assertContains(response, reverse("frontend:agreement"))
+
+
+@override_settings(DEBUG=True)
+class TopupCommissionTests(TestCase):
+    def setUp(self):
+        _set_fee("8.5")
+        self.user = User.objects.create_user(username="fee_payer", password="pass12345")
+        self.client.login(username="fee_payer", password="pass12345")
+
+    def test_dev_payment_puts_the_amount_on_the_balance(self):
+        from modules.v2.profiles.models import UserProfile
+
+        page = self.client.get(reverse("payments:topup"))
+        self.assertContains(page, "к оплате 542.50 ₽")  # the 500 preset
+        self.client.post(reverse("payments:topup"), {"amount": "100", "accept_terms": "on"})
+        payment = Payment.objects.get(user=self.user)
+        self.assertEqual((payment.amount, payment.credit_amount, payment.fee_amount), (Decimal("108.50"), Decimal("100.00"), Decimal("8.50")))
+        response = self.client.post(reverse("payments:dev_checkout", args=[payment.public_id]), {"outcome": "pay"}, follow=True)
+        self.assertContains(response, "Баланс пополнен на 100.00")
+        self.assertEqual(UserProfile.objects.get(user=self.user).balance_coins, Decimal("100.00"))
+
+    @override_settings(YOOKASSA_SHOP_ID="123456", YOOKASSA_SECRET_KEY="live_secret")
+    @mock.patch("modules.v2.payments.providers.yookassa.requests.request")
+    def test_live_payment_books_the_fee_and_the_provider_cost(self, request_mock):
+        from modules.v2.business.models import RevenueEntry, RevenueSource
+
+        request_mock.return_value = _yookassa_response(amount="108.50", test=False)
+        self.client.post(reverse("payments:topup"), {"amount": "100", "accept_terms": "on"})
+        succeeded = _yookassa_response(status="succeeded", amount="108.50", test=False)
+        succeeded.json.return_value["income_amount"] = {"value": "104.70", "currency": "RUB"}
+        request_mock.return_value = succeeded
+        body = {"event": "payment.succeeded", "object": {"id": "2d8f-yk", "status": "succeeded"}}
+        self.client.post(reverse("payments_public:webhook", args=["yookassa"]), data=json.dumps(body), content_type="application/json")
+
+        payment = Payment.objects.get(user=self.user)
+        self.assertEqual((payment.status, payment.provider_fee), (Payment.Status.SUCCEEDED, Decimal("3.80")))
+        self.assertEqual(LedgerEntry.objects.get(user=self.user).delta, Decimal("100.00"))
+        self.assertEqual(RevenueEntry.objects.get(source=RevenueSource.TOPUP_FEE).amount, Decimal("8.50"))
+
+    def test_return_after_payment_goes_back_to_the_market_lot(self):
+        self.client.post(reverse("payments:topup") + "?next=/market/lot/7/?buy=1", {"amount": "100", "accept_terms": "on", "next": "/market/lot/7/?buy=1"})
+        payment = Payment.objects.get(user=self.user)
+        response = self.client.post(reverse("payments:dev_checkout", args=[payment.public_id]), {"outcome": "pay"})
+        follow = self.client.get(response["Location"])
+        self.assertRedirects(follow, "/market/lot/7/?buy=1", fetch_redirect_response=False)
+
+    def test_foreign_return_address_is_ignored(self):
+        self.client.post(reverse("payments:topup"), {"amount": "100", "accept_terms": "on", "next": "https://evil.example/"})
+        payment = Payment.objects.get(user=self.user)
+        response = self.client.post(reverse("payments:dev_checkout", args=[payment.public_id]), {"outcome": "pay"})
+        follow = self.client.get(response["Location"])
+        self.assertRedirects(follow, reverse("payments:topup"), fetch_redirect_response=False)

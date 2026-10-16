@@ -17,6 +17,7 @@
                     <div><dt>Цена в Steam</dt><dd>{% if listing.steam_price %}{{ listing.steam_price|floatformat:"2u" }} ₽{% else %}—{% endif %}</dd></div>
                     <div><dt>Выставлен</dt><dd>{{ listing.created_at|date:"d.m.Y H:i" }}</dd></div>
                 </dl>
+                {% if own_deal %}<p class="mkt-lot__notice">Сделка <a href="{% url 'market:deal' own_deal.code %}" data-dashboard-nav="true">{{ own_deal.code }}</a> — {{ own_deal.get_status_display|lower }}.</p>{% endif %}
                 <div class="mkt-lot__buy">
                     <strong class="mkt-lot__price">{{ listing.price|floatformat:"2u" }} ₽</strong>
                     {% if is_owner %}
@@ -29,8 +30,20 @@
                             <form method="post" action="{% url 'market:lot_cancel' listing.pk %}" onsubmit="return confirm('Снять лот с витрины?');">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Снять с продажи</button></form>
                         {% endif %}
                     {% elif listing.status == "active" %}
-                        <button type="button" class="btn btn-primary" disabled title="Покупка откроется вместе со сделками">Купить</button>
-                        <span class="text-muted mkt-lot__hint">Покупка с гарантом откроется на следующем этапе запуска рынка.</span>
+                        {% if buy_problems %}
+                            <span class="mkt-lot__hint text-down">{{ buy_problems.0 }}</span>
+                            <a href="{% url 'market:sell' %}" class="btn btn-secondary btn-sm" data-dashboard-nav="true">Сохранить трейд-ссылку</a>
+                        {% else %}
+                            {% if after_topup and not shortfall %}<p class="mkt-lot__notice">Баланс пополнен. Подтвердите покупку — деньги заморозятся до получения предмета.</p>{% endif %}
+                            <form method="post" action="{% url 'market:buy' listing.pk %}" onsubmit="return confirm('Купить «{{ listing.market_hash_name|escapejs }}» за {{ listing.price|floatformat:"2u" }} ₽? Деньги заморозятся до получения предмета.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary">{% if shortfall %}Купить сразу{% else %}Купить{% endif %}</button>
+                            </form>
+                            <span class="text-muted mkt-lot__hint">
+                                {% if shortfall %}Не хватает {{ shortfall|floatformat:"2u" }} ₽ — пополним баланс на {{ topup_amount|floatformat:"0" }} ₽ (к оплате {{ topup_total|floatformat:"2u" }} ₽ с комиссией) и вернём вас сюда.
+                                {% else %}Без комиссии. Деньги замораживаются сайтом: продавец получит их после передачи предмета и 7 дней защиты обмена Steam.{% endif %}
+                            </span>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>

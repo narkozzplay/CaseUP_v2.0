@@ -1,0 +1,7 @@
+{% extends "layouts/base_dashboard.html" %}
+
+{% block title %}Мои сделки | {{ site_settings.site_name|default:"CaseUP" }}{% endblock %}
+
+{% block content %}
+    {% include "market/partials/deals_content.html" %}
+{% endblock %}

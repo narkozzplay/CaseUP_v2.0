@@ -53,7 +53,7 @@
             <div class="ops-kpi__body">
                 <span class="ops-kpi__label">Чистый доход</span>
                 <strong class="ops-kpi__value {% if money.net < 0 %}text-down{% endif %}">{% money money.net %}</strong>
-                <span class="ops-kpi__meta">доход − бонусы {% include "control_center/partials/_biz_change.html" with c=changes.net %}</span>
+                <span class="ops-kpi__meta">доход − бонусы − платёжка {% include "control_center/partials/_biz_change.html" with c=changes.net %}</span>
             </div>
         </div>
         <div class="ops-kpi">
@@ -139,6 +139,7 @@
                         {% for row in money.bonuses %}
                             <tr><td class="text-muted">− {{ row.label }}</td><td class="cc-num">{% money row.total %}</td><td></td></tr>
                         {% endfor %}
+                        <tr><td class="text-muted">− Комиссия платёжной системы</td><td class="cc-num">{% money money.provider_fees %}</td><td></td></tr>
                         <tr class="biz-total"><td><b>Чистый доход</b></td><td class="cc-num"><b class="{% if money.net < 0 %}text-down{% else %}text-up{% endif %}">{% money money.net %}</b></td><td></td></tr>
                     </tbody>
                 </table>

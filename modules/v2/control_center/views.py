@@ -1507,3 +1507,41 @@ def daily_bonus(request):
         "summary": summary,
     }
     return _render(request, partial="control_center/partials/daily_bonus_content.html", context=context, title="Бонус дня · Control Center", tab="daily_bonus")
+
+
+# --------------------------------------------------------------------------- market
+
+
+@login_required
+def market_deals(request):
+    from modules.v2.market.models import Deal, Listing
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    status = (request.GET.get("status") or "").strip()
+    q = (request.GET.get("q") or "").strip()
+    qs = Deal.objects.select_related("listing", "buyer", "buyer__profile_v2", "seller", "seller__profile_v2")
+    if status in Deal.Status.values:
+        qs = qs.filter(status=status)
+    if q:
+        filters = Q(code__iexact=q) | Q(listing__market_hash_name__icontains=q) | Q(buyer__username__icontains=q) | Q(seller__username__icontains=q)
+        qs = qs.filter(filters)
+    page_obj = Paginator(qs.order_by("-created_at", "-id"), 50).get_page(request.GET.get("page") or 1)
+    totals = Deal.objects.aggregate(
+        open=Count("id", filter=Q(status__in=Deal.OPEN_STATUSES)),
+        disputed=Count("id", filter=Q(status=Deal.Status.DISPUTED)),
+        completed=Count("id", filter=Q(status=Deal.Status.COMPLETED)),
+        turnover=Sum("price", filter=Q(status=Deal.Status.COMPLETED)),
+        frozen=Sum("price", filter=Q(status__in=Deal.OPEN_STATUSES)),
+    )
+    context = {
+        "role_access": role_access,
+        "page_obj": page_obj,
+        "filters": {"status": status, "q": q},
+        "status_options": Deal.Status.choices,
+        "totals": totals,
+        "active_listings": Listing.objects.filter(status=Listing.Status.ACTIVE).count(),
+        "pagination_query": _querystring(request),
+    }
+    return _render(request, partial="control_center/partials/market_content.html", context=context, title="Рынок · Control Center", tab="market")

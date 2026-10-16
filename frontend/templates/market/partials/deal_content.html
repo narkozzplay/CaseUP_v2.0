@@ -1,0 +1,101 @@
+<section class="section section--compact ops cc mkt">
+    <header class="cc-pagehead">
+        <div>
+            <a href="{% url 'market:deals' %}" class="back-link" data-dashboard-nav="true">← Мои сделки</a>
+            <span class="eyebrow">Сделка с гарантом</span>
+            <h1 class="cc-pagehead__title">{{ deal.code }}</h1>
+            <p class="ops-hero__text">{{ deal.listing.market_hash_name }} · {{ deal.price|floatformat:"2u" }} ₽</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Статус</dt><dd class="{% if deal.status == 'completed' %}metric-positive{% elif deal.status == 'disputed' or deal.status == 'cancelled' %}metric-negative{% endif %}" title="{{ deal.get_status_display }}">{{ deal.short_status }}</dd></div>
+            <div><dt>Вы</dt><dd>{% if party == "buyer" %}покупатель{% elif party == "seller" %}продавец{% else %}администрация{% endif %}</dd></div>
+        </dl>
+    </header>
+
+    <ol class="mkt-steps">
+        {% for step in steps %}<li class="mkt-steps__item{% if step.done %} is-done{% endif %}{% if step.current %} is-current{% endif %}"><span>{{ forloop.counter }}</span>{{ step.label }}</li>{% endfor %}
+    </ol>
+
+    <div class="ref-rewards">
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Что сейчас</h2></div>
+            <div class="ref-body mkt-deal-now">
+                {% if deal.status == "paid" %}
+                    {% if party == "seller" %}
+                        <p class="ref-text">Покупатель оплатил, деньги заморожены сайтом. <b>Отправьте обмен в Steam до {{ deal.send_deadline|date:"d.m H:i" }}</b> по трейд-ссылке покупателя и нажмите «Трейд отправлен».</p>
+                        <div class="mkt-inline">
+                            <a href="{{ deal.buyer_trade_url }}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Открыть обмен в Steam ↗</a>
+                            <form method="post" action="{% url 'market:deal_action' deal.code 'sent' %}">{% csrf_token %}<button type="submit" class="btn btn-primary btn-sm">Трейд отправлен</button></form>
+                            <form method="post" action="{% url 'market:deal_action' deal.code 'cancel' %}" onsubmit="return confirm('Отменить сделку? Деньги вернутся покупателю, лот снимется с продажи.');">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Отменить сделку</button></form>
+                        </div>
+                    {% elif party == "buyer" %}
+                        <p class="ref-text">Деньги заморожены. Продавец должен отправить обмен в Steam до <b>{{ deal.send_deadline|date:"d.m H:i" }}</b>. Получили предмет раньше — подтвердите.</p>
+                        <div class="mkt-inline">
+                            <form method="post" action="{% url 'market:deal_action' deal.code 'received' %}" onsubmit="return confirm('Предмет точно пришёл к вам в Steam?');">{% csrf_token %}<button type="submit" class="btn btn-primary btn-sm">Трейд принят</button></form>
+                            {% if deadline_passed %}<form method="post" action="{% url 'market:deal_action' deal.code 'cancel' %}" onsubmit="return confirm('Отменить сделку и вернуть деньги?');">{% csrf_token %}<button type="submit" class="btn btn-secondary btn-sm">Отменить и вернуть деньги</button></form>{% endif %}
+                        </div>
+                    {% endif %}
+                {% elif deal.status == "sent" %}
+                    {% if party == "buyer" %}
+                        <p class="ref-text">Продавец отправил обмен {{ deal.sent_at|date:"d.m H:i" }}. Примите его в Steam и нажмите «Трейд принят». Если обмена нет — напишите продавцу или вызовите администрацию.</p>
+                        <form method="post" action="{% url 'market:deal_action' deal.code 'received' %}" onsubmit="return confirm('Предмет точно пришёл к вам в Steam?');">{% csrf_token %}<button type="submit" class="btn btn-primary btn-sm">Трейд принят</button></form>
+                    {% else %}
+                        <p class="ref-text">Ждём, когда покупатель примет обмен. Если он молчит, сайт сам проверит его инвентарь: найдём предмет — начнётся удержание 7 дней, после которого сделка закроется автоматически.</p>
+                    {% endif %}
+                {% elif deal.status == "hold" %}
+                    <p class="ref-text">Предмет передан{% if deal.proof_at and not deal.accepted_at %} (сайт подтвердил по инвентарю){% endif %}. Деньги удерживаются до <b>{{ deal.hold_until|date:"d.m.Y H:i" }}</b> — пока действует защита обмена Steam. Если за это время ничего не случится, {% if party == "seller" %}вы получите{% else %}продавец получит{% endif %} {{ deal.price|floatformat:"2u" }} ₽ автоматически.</p>
+                {% elif deal.status == "completed" %}
+                    <p class="ref-text">Сделка завершена {{ deal.completed_at|date:"d.m.Y H:i" }}: {{ deal.price|floatformat:"2u" }} ₽ зачислены продавцу.</p>
+                {% elif deal.status == "cancelled" %}
+                    <p class="ref-text">Сделка отменена {{ deal.cancelled_at|date:"d.m.Y H:i" }}: {{ deal.cancel_reason }}. Деньги возвращены покупателю.</p>
+                {% elif deal.status == "disputed" %}
+                    <p class="ref-text">Открыт спор {{ deal.disputed_at|date:"d.m H:i" }}{% if deal.disputed_by %} ({{ deal.disputed_by.username }}){% endif %}: «{{ deal.dispute_reason }}». Таймеры остановлены, решение примет администрация.</p>
+                {% endif %}
+                {% if deal.resolution %}<p class="ref-text"><b>Решение администрации:</b> {{ deal.get_resolution_display }}{% if deal.resolution_note %} — {{ deal.resolution_note }}{% endif %}.</p>{% endif %}
+            </div>
+        </article>
+
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Участники</h2>{% if chat_url %}<a href="{{ chat_url }}" class="ops-panel__link" data-dashboard-nav="true">Чат сделки →</a>{% endif %}</div>
+            <dl class="biz-metrics">
+                <div><dt>Покупатель</dt><dd>{% include "control_center/partials/_user_cell.html" with u=deal.buyer %}</dd></div>
+                <div><dt>Продавец</dt><dd>{% include "control_center/partials/_user_cell.html" with u=deal.seller %}</dd></div>
+                <div><dt>Лот</dt><dd><a href="{% url 'market:lot' deal.listing_id %}" data-dashboard-nav="true">{{ deal.listing.code }}</a></dd></div>
+                <div><dt>Открыта</dt><dd>{{ deal.created_at|date:"d.m.Y H:i" }}</dd></div>
+            </dl>
+        </article>
+    </div>
+
+    {% if party and deal.status in "paid sent hold" %}
+        <form method="post" action="{% url 'market:deal_action' deal.code 'dispute' %}" class="ops-panel">
+            {% csrf_token %}
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Вызвать администрацию</h2></div>
+            <div class="ref-body">
+                <label class="cc-field"><span>Что случилось</span><textarea name="reason" rows="3" class="form-control" minlength="10" maxlength="2000" required placeholder="Например: продавец не отправляет обмен и не отвечает в чате"></textarea></label>
+                <div><button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Вызвать администрацию? Сделка будет заморожена до решения.');">Вызвать админа</button></div>
+            </div>
+        </form>
+    {% endif %}
+
+    {% if is_admin and deal.status == "disputed" %}
+        <form method="post" action="{% url 'market:deal_action' deal.code 'resolve' %}" class="ops-panel ma-abuse">
+            {% csrf_token %}
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Решение по спору</h2><span class="cc-chip cc-chip--fail">admin</span></div>
+            <div class="ref-body">
+                <label class="cc-field-check"><input type="radio" name="decision" value="refund" required><span>Вернуть {{ deal.price|floatformat:"2u" }} ₽ покупателю</span></label>
+                <label class="cc-field-check"><input type="radio" name="decision" value="pay_seller"><span>Передать {{ deal.price|floatformat:"2u" }} ₽ продавцу</span></label>
+                <label class="cc-field"><span>Комментарий (увидят обе стороны)</span><input name="note" maxlength="500" class="form-control"></label>
+                <div><button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Применить решение? Отменить его будет нельзя.');">Применить решение</button></div>
+            </div>
+        </form>
+    {% endif %}
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Журнал сделки</h2><span class="ops-panel__hint">каждое действие</span></div>
+        <ul class="ref-list">
+            {% for event in history %}
+                <li class="promo-row"><span class="promo-row__code">{{ event.created_at|date:"d.m H:i" }}</span><span class="promo-row__benefit">{{ event.get_kind_display }}<span class="promo-row__until">{{ event.message }}{% if event.actor %} · {{ event.actor.username }}{% elif event.kind != "deal_created" %} · сайт{% endif %}</span></span></li>
+            {% endfor %}
+        </ul>
+    </article>
+</section>
