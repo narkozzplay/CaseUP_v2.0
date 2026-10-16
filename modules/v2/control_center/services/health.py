@@ -219,6 +219,32 @@ def check_email() -> HealthCheck:
     return HealthCheck("email", "Почта", OK, host, "Ошибки сайта и сбои бэкапа: " + ", ".join(email for _name, email in admins)[:120])
 
 
+def check_scheduler() -> HealthCheck:
+    """The watchdog task runs every 2 minutes: a fresh heartbeat means beat schedules and a worker executes."""
+    if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+        return HealthCheck("scheduler", "Планировщик задач", INFO, "Eager-режим")
+    from modules.v2.system.watchdog import HEARTBEAT_STALE_SECONDS, heartbeat_age_seconds
+
+    age = heartbeat_age_seconds()
+    if age is None:
+        return HealthCheck("scheduler", "Планировщик задач", FAIL, "Нет пульса", "Задача system.watchdog ни разу не выполнялась: проверьте celery_beat и celery_worker")
+    label = f"{int(age)} с назад" if age < 120 else f"{int(age // 60)} мин назад"
+    if age > HEARTBEAT_STALE_SECONDS:
+        return HealthCheck("scheduler", "Планировщик задач", FAIL, label, "Фоновые задачи стоят: dc ps, dc logs --tail=100 celery_beat celery_worker")
+    return HealthCheck("scheduler", "Планировщик задач", OK, label, "Пульс каждые 2 минуты")
+
+
+def check_errors() -> HealthCheck:
+    from modules.v2.system.models import ErrorGroup
+
+    open_groups = ErrorGroup.objects.filter(resolved_at__isnull=True)
+    day = open_groups.filter(last_seen__gte=timezone.now() - timedelta(hours=24)).count()
+    total = open_groups.count()
+    if not total:
+        return HealthCheck("errors", "Ошибки", OK, "Нет открытых")
+    return HealthCheck("errors", "Ошибки", WARN if day else OK, f"{total} открыто", f"За сутки: {day}. Control Center → «Ошибки»")
+
+
 def read_build_version() -> str:
     path = Path(settings.BASE_DIR) / "VERSION.txt"
     try:
@@ -249,7 +275,7 @@ def full_checks() -> list[HealthCheck]:
     checks = [check_database(), check_migrations(), check_cache(), check_celery_broker()]
     if checks[-1].status != FAIL:
         checks.append(check_celery_workers())
-    checks.extend([check_price_updates(), check_disk(include_media=True), check_backups(), check_email()])
+    checks.extend([check_scheduler(), check_errors(), check_price_updates(), check_disk(include_media=True), check_backups(), check_email()])
     return checks
 
 

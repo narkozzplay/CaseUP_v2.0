@@ -152,7 +152,7 @@ services:
       - static_data:/app/staticfiles
       - celerybeat_data:/var/run/celery
     healthcheck:
-      test: ["CMD-SHELL", "test -f /var/run/celery/celerybeat-schedule || pgrep -f 'celery -A config beat' >/dev/null"]
+      test: ["CMD", "python", "deploy/beat_healthcheck.py"]
       interval: 30s
       timeout: 10s
       retries: 5

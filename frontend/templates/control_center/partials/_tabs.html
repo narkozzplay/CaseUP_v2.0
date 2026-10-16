@@ -12,6 +12,7 @@
     <a href="{% url 'control_center:moderation' %}" class="cc-tab{% if cc_tab == 'moderation' %} is-active{% endif %}">{% include "components/icon.html" with name="cc_moderation" %}<span>Модерация</span></a>
     <a href="{% url 'control_center:audit' %}" class="cc-tab{% if cc_tab == 'audit' %} is-active{% endif %}">{% include "components/icon.html" with name="cc_audit" %}<span>Журнал</span></a>
     <a href="{% url 'control_center:activity' %}" class="cc-tab{% if cc_tab == 'activity' %} is-active{% endif %}">{% include "components/icon.html" with name="clock" %}<span>Логи</span></a>
+    <a href="{% url 'control_center:errors' %}" class="cc-tab{% if cc_tab == 'errors' %} is-active{% endif %}">{% include "components/icon.html" with name="warn" %}<span>Ошибки</span></a>
     <a href="{% url 'control_center:health' %}" class="cc-tab{% if cc_tab == 'health' %} is-active{% endif %}">{% include "components/icon.html" with name="cc_health" %}<span>Система</span></a>
     <span class="cc-tabs__spacer"></span>
     <a href="{% url 'system_config:settings' %}" class="cc-tab cc-tab--ghost{% if cc_tab == 'settings' %} is-active{% endif %}" title="System Settings">{% include "components/icon.html" with name="system_settings" %}<span>Настройки</span></a>

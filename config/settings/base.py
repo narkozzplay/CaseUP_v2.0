@@ -207,11 +207,13 @@ LOGGING = {
         "console": {"class": "logging.StreamHandler", "formatter": "standard"},
         # 500 errors by mail to ADMINS; the same error is mailed at most once per 30 minutes.
         "mail_admins": {"level": "ERROR", "filters": ["require_debug_false"], "class": "common.logging.ThrottledAdminEmailHandler"},
+        # Every error also goes to the error journal (Control Center → «Ошибки») and from there to admin alerts.
+        "error_journal": {"level": "ERROR", "class": "modules.v2.system.errors.ErrorJournalHandler"},
     },
-    "root": {"handlers": ["console"], "level": DJANGO_LOG_LEVEL},
+    "root": {"handlers": ["console", "error_journal"], "level": DJANGO_LOG_LEVEL},
     "loggers": {
-        "django": {"handlers": ["console"], "level": DJANGO_LOG_LEVEL, "propagate": False},
-        "django.request": {"handlers": ["console", "mail_admins"], "level": "ERROR", "propagate": False},
+        "django": {"handlers": ["console", "error_journal"], "level": DJANGO_LOG_LEVEL, "propagate": False},
+        "django.request": {"handlers": ["console", "mail_admins", "error_journal"], "level": "ERROR", "propagate": False},
     },
 }
 

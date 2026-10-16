@@ -11,7 +11,11 @@ from modules.v2.profiles.services.presence import touch_user_last_seen
 class LoggingSettingsTests(TestCase):
     def test_django_errors_reach_console_without_debug(self):
         # Django's default config prints django.request only when DEBUG=True.
-        self.assertEqual(base.LOGGING["loggers"]["django"]["handlers"], ["console"])
+        self.assertIn("console", base.LOGGING["loggers"]["django"]["handlers"])
+        # ...and every error also lands in the error journal (Control Center → «Ошибки»).
+        self.assertIn("error_journal", base.LOGGING["loggers"]["django"]["handlers"])
+        self.assertIn("error_journal", base.LOGGING["loggers"]["django.request"]["handlers"])
+        self.assertIn("error_journal", base.LOGGING["root"]["handlers"])
         self.assertNotIn("filters", base.LOGGING["handlers"]["console"])
 
 

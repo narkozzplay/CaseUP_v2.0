@@ -11,6 +11,11 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
 app.conf.beat_schedule = {
+    # Heartbeat + admin alerts (Telegram team chat, push) when a health check breaks or new errors appear.
+    "system-watchdog": {
+        "task": "system.watchdog",
+        "schedule": 120.0,
+    },
     "run-due-price-auto-updates": {
         "task": "celery_tasks.run_due_price_auto_updates",
         "schedule": float(settings.CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS),

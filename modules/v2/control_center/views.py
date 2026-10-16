@@ -873,6 +873,64 @@ def system_health(request):
     return _render(request, partial="control_center/partials/health_content.html", context=context, title="Система · Control Center", tab="health")
 
 
+# --------------------------------------------------------------------------- error journal
+
+ERRORS_PAGE_SIZE = 30
+
+
+def error_journal(request):
+    from modules.v2.system.models import ErrorGroup
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    show = request.GET.get("show") or "open"
+    qs = ErrorGroup.objects.all()
+    if show == "resolved":
+        qs = qs.filter(resolved_at__isnull=False)
+    elif show != "all":
+        show = "open"
+        qs = qs.filter(resolved_at__isnull=True)
+    day_ago = timezone.now() - timedelta(hours=24)
+    open_qs = ErrorGroup.objects.filter(resolved_at__isnull=True)
+    context = {
+        "role_access": role_access,
+        "page_obj": Paginator(qs.order_by("-last_seen"), ERRORS_PAGE_SIZE).get_page(request.GET.get("page") or 1),
+        "show": show,
+        "stats": {
+            "open": open_qs.count(),
+            "day": open_qs.filter(last_seen__gte=day_ago).count(),
+            "hits_day": open_qs.filter(last_seen__gte=day_ago).aggregate(total=Sum("count"))["total"] or 0,
+        },
+        "pagination_query": _querystring(request),
+    }
+    return _render(request, partial="control_center/partials/errors_content.html", context=context, title="Ошибки · Control Center", tab="errors")
+
+
+@require_POST
+def error_journal_action(request):
+    from modules.v2.system.alerts import send_admin_alert
+    from modules.v2.system.models import ErrorGroup
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    action = request.POST.get("action")
+    if action == "resolve":
+        updated = ErrorGroup.objects.filter(pk=request.POST.get("group_id"), resolved_at__isnull=True).update(resolved_at=timezone.now())
+        if updated:
+            messages.success(request, "Ошибка отмечена решённой. Если повторится — откроется снова и придёт тревога.")
+    elif action == "resolve_all":
+        updated = ErrorGroup.objects.filter(resolved_at__isnull=True).update(resolved_at=timezone.now())
+        messages.success(request, f"Отмечено решёнными: {updated}.")
+    elif action == "test_alert":
+        result = send_admin_alert(f"test:{timezone.now().timestamp()}", "Проверка тревог", f"Тестовая тревога от {request.user.username}. Если вы это видите — канал работает.", url="/control-center/errors/")
+        channels = [name for name, ok in (("Telegram", result["telegram"]), ("почта", result["mail"])) if ok]
+        channels.append(f"уведомления админам: {result['notified']}")
+        messages.success(request, "Тревога отправлена: " + ", ".join(channels) + ".")
+    return redirect(f"{reverse('control_center:errors')}?{request.POST.get('return_query', '')}")
+
+
 # --------------------------------------------------------------------------- activity log
 
 
