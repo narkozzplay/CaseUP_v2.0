@@ -1,262 +1,149 @@
-<section class="section section--compact">
-    <div class="dashboard-hero card dashboard-hero--admin">
-        <div class="card-body dashboard-hero__body">
-            <div>
-                <span class="eyebrow">Admin+</span>
-                <h1 class="page-title page-title--sm">TG Notifier</h1>
-                <p class="text-muted dashboard-hero__text">
-                    Управление Telegram-ботом, webhook и шаблоном инвестиционного уведомления.
-                </p>
-            </div>
-
-            <div class="dashboard-hero__meta">
-                <span class="status-pill">
-                    Статус:
-                    {% if feature_flags.tg_notifier %}enabled{% else %}disabled{% endif %}
-                </span>
-                <span class="status-pill">Chat: {{ config.default_chat_id|default:"—" }}</span>
-                <span class="status-pill">Token: {{ config.masked_bot_token }}</span>
-            </div>
+<section class="section section--compact ops cc tgn">
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Telegram-бот</h1>
+            <p class="ops-hero__text">Бот присылает пользователям алерты цен, снятие трейд-бана и события фермы. С сервера в РФ Telegram недоступен, поэтому связь идёт через ретранслятор на хостинге.</p>
         </div>
-    </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Бот</dt><dd class="{% if config.is_enabled %}metric-positive{% else %}metric-negative{% endif %}">{% if config.is_enabled %}включён{% else %}выключен{% endif %}</dd></div>
+            <div><dt>Подключили Telegram</dt><dd>{{ linked_users }}</dd></div>
+        </dl>
+    </header>
 
-    <div class="profile-grid profile-grid--3">
-        <article class="card" style="grid-column: span 2;">
-            <div class="card-body">
-                <h2 class="section-title">Настройки Telegram</h2>
+    {# ---------- state checklist ---------- #}
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Состояние</h2><span class="ops-panel__hint">сверху вниз — если всё зелёное, бот работает</span></div>
+        <ol class="tgn-steps">
+            <li class="tgn-step {% if config.is_enabled %}is-ok{% else %}is-bad{% endif %}">
+                <span class="tgn-step__dot" aria-hidden="true"></span>
+                <div class="tgn-step__body">
+                    <strong>Бот включён</strong>
+                    <span>{% if config.is_enabled %}Уведомления в Telegram отправляются.{% else %}Включите переключатель в настройках ниже.{% endif %}</span>
+                </div>
+            </li>
+            <li class="tgn-step {% if bot_check %}{% if bot_check.ok %}is-ok{% else %}is-bad{% endif %}{% elif has_bot_token %}is-unknown{% else %}is-bad{% endif %}">
+                <span class="tgn-step__dot" aria-hidden="true"></span>
+                <div class="tgn-step__body">
+                    <strong>Токен бота {% if config.bot_username %}<code>@{{ config.bot_username }}</code>{% endif %}</strong>
+                    <span>{% if bot_check %}{{ bot_check.text }}{% elif has_bot_token %}Задан: {{ config.masked_bot_token }}. Нажмите «Проверить», чтобы спросить Telegram.{% else %}Не задан — вставьте токен из @BotFather в настройках.{% endif %}</span>
+                </div>
+                {% if has_bot_token %}
+                    <form method="post" data-dashboard-shell-form>{% csrf_token %}<input type="hidden" name="action" value="check_bot"><button type="submit" class="btn btn-secondary btn-sm">Проверить</button></form>
+                {% endif %}
+            </li>
+            <li class="tgn-step {% if telegram_relay_url %}is-ok{% else %}is-warn{% endif %}">
+                <span class="tgn-step__dot" aria-hidden="true"></span>
+                <div class="tgn-step__body">
+                    <strong>Связь с Telegram</strong>
+                    <span>{% if telegram_relay_url %}Через ретранслятор <code>{{ telegram_relay_url }}</code>{% else %}Напрямую — с сервера в РФ не работает. Задайте <code>TELEGRAM_RELAY_URL</code> в <code>.env.prod</code> (docs/SERVER.md, раздел 8к).{% endif %}</span>
+                </div>
+            </li>
+            <li class="tgn-step {% if webhook_status %}{% if webhook_status.matches and not webhook_status.error %}is-ok{% else %}is-bad{% endif %}{% else %}is-unknown{% endif %}">
+                <span class="tgn-step__dot" aria-hidden="true"></span>
+                <div class="tgn-step__body">
+                    <strong>Приём сообщений от бота</strong>
+                    <span>Нужен, чтобы пользователи могли подключить Telegram кнопкой Start.</span>
+                    {% if webhook_status %}
+                        <dl class="tgn-facts">
+                            <div><dt>Telegram шлёт на</dt><dd><code>{{ webhook_status.url|default:"— (не зарегистрирован)" }}</code>{% if not webhook_status.matches %} <b class="metric-negative">— не тот адрес, нажмите «Зарегистрировать»</b>{% endif %}</dd></div>
+                            <div><dt>Ждут доставки</dt><dd>{{ webhook_status.pending }}</dd></div>
+                            {% if webhook_status.error %}<div><dt>Последняя ошибка</dt><dd class="metric-negative">{{ webhook_status.error }}{% if webhook_status.error_at %} · {{ webhook_status.error_at|date:"d.m H:i" }}{% endif %}</dd></div>{% endif %}
+                        </dl>
+                    {% endif %}
+                </div>
+                <div class="tgn-step__actions">
+                    <form method="post" data-dashboard-shell-form>{% csrf_token %}<input type="hidden" name="action" value="register_webhook"><button type="submit" class="btn btn-primary btn-sm">Зарегистрировать</button></form>
+                    <form method="post" data-dashboard-shell-form>{% csrf_token %}<input type="hidden" name="action" value="check_webhook"><button type="submit" class="btn btn-secondary btn-sm">Проверить приём</button></form>
+                </div>
+            </li>
+        </ol>
+    </article>
 
-                <form method="post" class="form-stack" data-dashboard-shell-form>
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="save_settings">
-                
-                    <div class="form-field toggle-field">
-                        <label class="toggle-control" for="{{ settings_form.is_enabled.id_for_label }}">
-                            {{ settings_form.is_enabled }}
-                            <span class="toggle-control__track" aria-hidden="true"></span>
-                            <span class="toggle-control__text">Включить TG notifier</span>
-                        </label>
-                        {{ settings_form.is_enabled.errors }}
-                    </div>
-                
+    <div class="tgn-grid">
+        {# ---------- settings ---------- #}
+        <form method="post" class="ops-panel tgn-settings" data-dashboard-shell-form>
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_settings">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Настройки</h2></div>
+            <div class="ref-body form-stack">
+                <label class="toggle-control" for="{{ settings_form.is_enabled.id_for_label }}">
+                    {{ settings_form.is_enabled }}
+                    <span class="toggle-control__track" aria-hidden="true"></span>
+                    <span class="toggle-control__text">Бот включён</span>
+                </label>
+                {{ settings_form.is_enabled.errors }}
+
+                <div class="form-field">
+                    <label for="{{ settings_form.bot_token.id_for_label }}">Токен бота</label>
+                    {{ settings_form.bot_token }}
+                    <p class="text-muted tgn-hint">Сейчас: {{ config.masked_bot_token|default:"не задан" }}. Пустое поле оставит токен как есть.</p>
+                    {{ settings_form.bot_token.errors }}
+                </div>
+
+                <div class="tgn-row">
                     <div class="form-field">
-                        <label for="{{ settings_form.bot_token.id_for_label }}">Bot token</label>
-                        {{ settings_form.bot_token }}
-                        {% if settings_form.bot_token.help_text %}
-                            <p class="text-muted">{{ settings_form.bot_token.help_text }}</p>
-                        {% endif %}
-                        {{ settings_form.bot_token.errors }}
-                    </div>
-                
-                    <div class="form-field">
-                        <label for="{{ settings_form.bot_username.id_for_label }}">Bot username</label>
+                        <label for="{{ settings_form.bot_username.id_for_label }}">Имя бота</label>
                         {{ settings_form.bot_username }}
-                        <p class="text-muted">Без @. Нужен для deep-link подключения Telegram к профилю пользователя.</p>
+                        <p class="text-muted tgn-hint">Без @ — для ссылки «Подключить Telegram».</p>
                         {{ settings_form.bot_username.errors }}
                     </div>
-                
                     <div class="form-field">
-                        <label for="{{ settings_form.default_chat_id.id_for_label }}">Default chat id</label>
+                        <label for="{{ settings_form.default_chat_id.id_for_label }}">Чат по умолчанию</label>
                         {{ settings_form.default_chat_id }}
+                        <p class="text-muted tgn-hint">Сюда идут общие уведомления команды.</p>
                         {{ settings_form.default_chat_id.errors }}
                     </div>
-                
-                    <div class="form-field">
-                        <label for="{{ settings_form.public_base_url.id_for_label }}">Public base URL</label>
-                        {{ settings_form.public_base_url }}
-                        <p class="text-muted">
-                            Например: публичный HTTPS URL через ngrok или домен.
-                        </p>
-                        {{ settings_form.public_base_url.errors }}
-                    </div>
-                
-                    <div class="form-field">
-                        <label for="{{ settings_form.investment_message_template.id_for_label }}">
-                            Шаблон инвестиционного сообщения
-                        </label>
-                        {{ settings_form.investment_message_template }}
-                        <p class="text-muted">
-                            Используй Django-template переменные вида <code>{% templatetag openvariable %} item_name {% templatetag closevariable %}</code>.
-                        </p>
-                        {{ settings_form.investment_message_template.errors }}
-                    </div>
-                
-                    <div class="auth-card__actions">
-                        <button type="submit" class="btn btn-primary btn-block">Сохранить настройки</button>
-                    </div>
-                </form>
-            </div>
-        </article>
-
-        <article class="card">
-            <div class="card-body">
-                <h2 class="section-title">Тестовая отправка</h2>
-
-                <form method="post" class="form-stack" data-dashboard-shell-form>
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="test_send">
-
-                    <div class="form-field">
-                        <label for="{{ test_form.chat_id.id_for_label }}">Chat id</label>
-                        {{ test_form.chat_id }}
-                        <p class="text-muted">Оставь пустым, чтобы использовать default chat id.</p>
-                        {{ test_form.chat_id.errors }}
-                    </div>
-
-                    <div class="form-field">
-                        <label for="{{ test_form.text.id_for_label }}">Текст сообщения</label>
-                        {{ test_form.text }}
-                        {{ test_form.text.errors }}
-                    </div>
-
-                    <div class="auth-card__actions">
-                        <button type="submit" class="btn btn-primary btn-block">Отправить тест</button>
-                    </div>
-                </form>
-            </div>
-        </article>
-    </div>
-
-    <div class="profile-grid profile-grid--3">
-        <article class="card" style="grid-column: span 2;">
-            <div class="card-body">
-                <div class="section-head-inline">
-                    <h2 class="section-title">Доступные переменные шаблона</h2>
-                    <span class="text-muted">{{ template_variables|length }}</span>
-                </div>
-
-                <div class="table-wrap">
-                    <table class="table table--dark">
-                        <thead>
-                            <tr>
-                                <th>Переменная</th>
-                                <th>Описание</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for variable, description in template_variables %}
-                                <tr>
-                                    <td><code>{% templatetag openvariable %} {{ variable }} {% templatetag closevariable %}</code></td>
-                                    <td>{{ description }}</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </article>
-
-        <article class="card">
-            <div class="card-body">
-                <h2 class="section-title">Поведение</h2>
-                <div class="dashboard-list">
-                    <div class="dashboard-list__row">
-                        <strong>Manual test-send</strong>
-                        <span class="text-muted">sync POST</span>
-                    </div>
-                    <div class="dashboard-list__row">
-                        <strong>Investment TG button</strong>
-                        <span class="text-muted">без Celery</span>
-                    </div>
-                    <div class="dashboard-list__row">
-                        <strong>Fallback bootstrap</strong>
-                        <span class="text-muted">из env при первом создании</span>
-                    </div>
-                </div>
-            </div>
-        </article>
-    </div>
-
-    <div class="profile-grid profile-grid--3">
-        <article class="card" style="grid-column: span 2;">
-            <div class="card-body">
-                <h2 class="section-title">Webhook</h2>
-                <p class="text-muted">
-                    Для user-link flow Telegram должен слать update на этот endpoint.
-                </p>
-
-                <div class="flash flash--{% if telegram_relay_url %}success{% else %}warning{% endif %}" style="margin-bottom:.75rem;">
-                    {% if telegram_relay_url %}
-                        Связь с Telegram идёт через ретранслятор <code>{{ telegram_relay_url }}</code> — в обе стороны: отправка сообщений и приём обновлений бота.
-                    {% else %}
-                        Сайт обращается к Telegram напрямую. С серверов в РФ Telegram недоступен — задайте <code>TELEGRAM_RELAY_URL</code> в <code>.env.prod</code> (см. docs/SERVER.md, раздел 8к).
-                    {% endif %}
                 </div>
 
                 <div class="form-field">
-                    <label>Webhook URL</label>
-                    <input type="text" class="form-control" value="{{ webhook_url }}" readonly>
+                    <label for="{{ settings_form.public_base_url.id_for_label }}">Адрес сайта</label>
+                    {{ settings_form.public_base_url }}
+                    <p class="text-muted tgn-hint">Для ссылок в сообщениях. Обычно <code>https://case-up.ru</code>.</p>
+                    {{ settings_form.public_base_url.errors }}
                 </div>
 
-                <div class="dashboard-list">
-                    <div class="dashboard-list__row">
-                        <strong>Требование</strong>
-                        <span class="text-muted">публичный HTTPS URL</span>
+                <details class="tgn-template">
+                    <summary>Шаблон сообщения об инвестиции <span class="text-muted">— кнопка TG в «Инвестициях»</span></summary>
+                    <div class="form-field">
+                        {{ settings_form.investment_message_template }}
+                        {{ settings_form.investment_message_template.errors }}
                     </div>
-                    <div class="dashboard-list__row">
-                        <strong>Bot username</strong>
-                        <span class="text-muted">{{ config.bot_username|default:"—" }}</span>
-                    </div>
-                    <div class="dashboard-list__row">
-                        <strong>Webhook secret</strong>
-                        <span class="text-muted">{{ config.webhook_secret }}</span>
-                    </div>
-                    <div class="dashboard-list__row">
-                        <strong>Public base URL</strong>
-                        <span class="text-muted">{{ config.public_base_url|default:site_settings.public_base_url|default:"—" }}</span>
-                    </div>
-                </div>
-
-                <div class="profile-grid" style="margin-top: 16px;">
-                    <form method="post" data-dashboard-shell-form>
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="register_webhook">
-                        <button type="submit" class="btn btn-primary">Зарегистрировать webhook</button>
-                    </form>
-
-                    <form method="post" data-dashboard-shell-form>
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="check_webhook">
-                        <button type="submit" class="btn btn-secondary">Проверить webhook</button>
-                    </form>
-                </div>
-
-                {% if webhook_info %}
-                    <div class="table-wrap" style="margin-top: 20px;">
-                        <table class="table table--dark">
+                    <div class="table-wrap">
+                        <table class="table cc-table">
+                            <thead><tr><th>Переменная</th><th>Что подставится</th></tr></thead>
                             <tbody>
-                                <tr>
-                                    <th>Текущий URL в Telegram</th>
-                                    <td><code>{{ webhook_info.url|default:"—" }}</code></td>
-                                </tr>
-                                <tr>
-                                    <th>Pending updates</th>
-                                    <td>{{ webhook_info.pending_update_count }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Last error message</th>
-                                    <td>{{ webhook_info.last_error_message|default:"—" }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Last error date</th>
-                                    <td>{{ webhook_info.last_error_date|default:"—" }}</td>
-                                </tr>
-                                <tr>
-                                    <th>IP address</th>
-                                    <td>{{ webhook_info.ip_address|default:"—" }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Max connections</th>
-                                    <td>{{ webhook_info.max_connections|default:"—" }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Custom certificate</th>
-                                    <td>{% if webhook_info.has_custom_certificate %}yes{% else %}no{% endif %}</td>
-                                </tr>
+                                {% for variable, description in template_variables %}
+                                    <tr><td class="cc-mono">{% templatetag openvariable %} {{ variable }} {% templatetag closevariable %}</td><td>{{ description }}</td></tr>
+                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                {% endif %}
+                </details>
+
+                <div><button type="submit" class="btn btn-primary">Сохранить</button></div>
             </div>
-        </article>
+        </form>
+
+        {# ---------- test message ---------- #}
+        <form method="post" class="ops-panel" data-dashboard-shell-form>
+            {% csrf_token %}
+            <input type="hidden" name="action" value="test_send">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Тестовое сообщение</h2></div>
+            <div class="ref-body form-stack">
+                <div class="form-field">
+                    <label for="{{ test_form.chat_id.id_for_label }}">Кому (chat id)</label>
+                    {{ test_form.chat_id }}
+                    <p class="text-muted tgn-hint">Пусто — в чат по умолчанию.</p>
+                    {{ test_form.chat_id.errors }}
+                </div>
+                <div class="form-field">
+                    <label for="{{ test_form.text.id_for_label }}">Текст</label>
+                    {{ test_form.text }}
+                    {{ test_form.text.errors }}
+                </div>
+                <div><button type="submit" class="btn btn-primary">Отправить</button></div>
+            </div>
+        </form>
     </div>
 </section>

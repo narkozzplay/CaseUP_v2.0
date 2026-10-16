@@ -417,3 +417,33 @@
 .push-panel__label { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
 [data-push-panel] [hidden],
 [data-push-prompt] [hidden] { display: none !important; }
+
+/* ---------- Telegram bot settings page ---------- */
+
+.tgn-steps { list-style: none; margin: 0; padding: 0; }
+.tgn-step { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-start; padding: 14px 18px; border-top: 1px solid var(--border); }
+.tgn-step:first-child { border-top: 0; }
+.tgn-step__dot { flex: none; width: 12px; height: 12px; margin-top: 5px; border-radius: 50%; background: var(--text-muted); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04); }
+.tgn-step.is-ok .tgn-step__dot { background: var(--success); box-shadow: 0 0 0 3px rgba(61, 220, 132, 0.18); }
+.tgn-step.is-bad .tgn-step__dot { background: #ff5c5c; box-shadow: 0 0 0 3px rgba(255, 92, 92, 0.18); }
+.tgn-step.is-warn .tgn-step__dot { background: var(--accent); box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18); }
+.tgn-step__body { flex: 1 1 200px; min-width: 0; display: grid; gap: 4px; }
+.tgn-step__body > span { color: var(--text-soft); font-size: 0.88rem; overflow-wrap: anywhere; }
+.tgn-step__body code { font-size: 0.8rem; }
+.tgn-step form { margin: 0; }
+.tgn-step__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.tgn-facts { display: grid; gap: 4px; margin: 6px 0 0; padding: 8px 10px; border: 1px solid var(--border); background: rgba(9, 11, 15, 0.55); font-size: 0.84rem; }
+.tgn-facts div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 8px; }
+.tgn-facts dt { color: var(--text-muted); }
+.tgn-facts dd { margin: 0; overflow-wrap: anywhere; }
+.tgn-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.tgn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tgn-hint { margin: 0; font-size: 0.8rem; }
+.tgn-template { border: 1px solid var(--border); padding: 10px 12px; }
+.tgn-template summary { cursor: pointer; font-weight: 600; }
+.tgn-template[open] summary { margin-bottom: 10px; }
+.tgn-template textarea { min-height: 220px; font-family: var(--font-mono); font-size: 0.82rem; }
+@media (max-width: 900px) {
+    .tgn-grid, .tgn-row { grid-template-columns: 1fr; }
+    .tgn-facts div { grid-template-columns: 1fr; }
+}

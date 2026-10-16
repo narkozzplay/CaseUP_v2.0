@@ -23,6 +23,7 @@ from modules.v2.subscriptions.services import get_feature_access_state
 from .forms import TelegramNotifierSettingsForm, TelegramTestSendForm
 from .services import (
     relay_settings,
+    resolve_bot_token,
     TelegramNotifierError,
     bind_profile_by_telegram_start,
     build_test_message,
@@ -76,7 +77,28 @@ NOTIFICATION_TYPES = [
 ]
 
 
-def _build_settings_context(*, role_access, settings_form, test_form, config, webhook_info=None):
+def _webhook_status(config, webhook_info) -> dict | None:
+    """Telegram's view of the webhook in plain words (only after «Проверить приём»)."""
+    if webhook_info is None:
+        return None
+    from datetime import datetime, timezone as dt_timezone
+
+    expected = build_webhook_url(config)
+    error_at = None
+    if webhook_info.last_error_date:
+        error_at = datetime.fromtimestamp(int(webhook_info.last_error_date), tz=dt_timezone.utc)
+    return {
+        "url": webhook_info.url,
+        "matches": bool(webhook_info.url) and webhook_info.url == expected,
+        "pending": webhook_info.pending_update_count,
+        "error": webhook_info.last_error_message,
+        "error_at": error_at,
+    }
+
+
+def _build_settings_context(*, role_access, settings_form, test_form, config, webhook_info=None, bot_check=None):
+    from modules.v2.profiles.models import UserProfile
+
     return {
         "role_access": role_access,
         "settings_form": settings_form,
@@ -86,6 +108,10 @@ def _build_settings_context(*, role_access, settings_form, test_form, config, we
         "webhook_url": build_webhook_url(config),
         "telegram_relay_url": relay_settings()[0],
         "webhook_info": webhook_info,
+        "webhook_status": _webhook_status(config, webhook_info),
+        "bot_check": bot_check,
+        "has_bot_token": bool(resolve_bot_token(config)),
+        "linked_users": UserProfile.objects.exclude(telegram_chat_id__isnull=True).exclude(telegram_chat_id="").count(),
     }
 
 
@@ -97,6 +123,7 @@ def settings_page(request):
 
     config = get_telegram_notifier_config()
     webhook_info = None
+    bot_check = None
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -211,6 +238,15 @@ def settings_page(request):
                     )
                 return redirect("tg_notifier:settings")
 
+        elif action == "check_bot":
+            from modules.v2.system.services import _check_telegram
+
+            settings_form = TelegramNotifierSettingsForm(instance=config)
+            test_form = TelegramTestSendForm(initial={"chat_id": config.default_chat_id, "text": build_test_message()})
+            token = resolve_bot_token(config)
+            status, text = _check_telegram(token) if token else ("missing_key", "Токен бота не задан.")
+            bot_check = {"ok": status == "up", "text": text}
+
         elif action == "check_webhook":
             settings_form = TelegramNotifierSettingsForm(instance=config)
             test_form = TelegramTestSendForm(
@@ -248,6 +284,7 @@ def settings_page(request):
         test_form=test_form,
         config=config,
         webhook_info=webhook_info,
+        bot_check=bot_check,
     )
     return render_dashboard_page(
         request,
