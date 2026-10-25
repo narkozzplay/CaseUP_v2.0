@@ -99,6 +99,11 @@ def _guest_cache_set(key: str | None, value) -> None:
         logger.warning("Guest catalog cache write failed", exc_info=True)
 
 
+def _base_template(request) -> str:
+    """Guests see the catalog inside the public site layout; signed-in users inside their dashboard."""
+    return "layouts/base_dashboard.html" if request.user.is_authenticated else "steam_catalog/base_guest.html"
+
+
 def _locked_for_guest(request, **locked_kwargs):
     """Without access: a guest is sent to sign in (and comes back), a signed-in user sees the plans card."""
     if not request.user.is_authenticated:
@@ -627,6 +632,7 @@ def catalog_list(request):
             "catalog_view_access_state": get_feature_access_state(request.user, STEAM_CATALOG_VIEW),
             "ads_feed_every_n": get_feed_every_n(request.user, request=request),
             **seo.list_meta(request, filters, page_obj),
+            "catalog_base_template": _base_template(request),
         },
         page_title=build_page_title("Steam Catalog"),
         active_menu_key="steam_catalog",
@@ -927,6 +933,7 @@ def catalog_detail(request, item_id: int, slug: str | None = None):
             "steam_catalog_detail_content_template": detail_content_template,
             "steam_catalog_detail_mode_template": detail_mode_template,
             **seo.item_meta(request, item, family_min_price=family_min_price, family_max_price=family_max_price),
+            "catalog_base_template": _base_template(request),
         },
         page_title=seo.item_title(item),
         active_menu_key="steam_catalog",

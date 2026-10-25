@@ -1,0 +1,28 @@
+{% extends "layouts/base_public.html" %}
+{% load static %}
+{% comment %}Catalog pages for guests: the public site header and footer instead of the empty dashboard shell.{% endcomment %}
+
+{% block extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/modules/steam_catalog.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modules/control_center.css' %}">
+{% endblock %}
+
+{% block page %}
+    {% include theme_navbar_public_template|default:"components/navbar_public.html" %}
+
+    <main class="site-main">
+        <div class="container catalog-guest">
+            {% include "components/messages.html" %}
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    {% include theme_footer_template|default:"components/footer.html" %}
+{% endblock %}
+
+{% block extra_js %}
+    {{ block.super }}
+    <script src="{% static 'js/catalog_favorites.js' %}"></script>
+    <script src="{% static 'js/price_chart.js' %}"></script>
+{% endblock %}
