@@ -454,6 +454,10 @@ def _resolve_new_ticket_notifications(ticket: SupportTicket) -> None:
     resolve_notifications(KIND_NEW, ticket.pk)
 
 
+# Ten short lines keep the message far below Telegram's 4096 characters; the rest go out on the next run.
+ESCALATION_BATCH = 10
+
+
 def escalate_stale_tickets(*, now=None) -> int:
     """Tells the team in Telegram about new tickets nobody took within SUPPORT_ESCALATE_AFTER_HOURS.
 
@@ -471,7 +475,7 @@ def escalate_stale_tickets(*, now=None) -> int:
             assignee__isnull=True,
             escalated_at__isnull=True,
             created_at__lte=now - timedelta(hours=hours),
-        ).order_by("created_at", "id")[:20]
+        ).order_by("created_at", "id")[:ESCALATION_BATCH]
     )
     if not stale or not is_module_enabled("tg_notifier"):
         return 0
@@ -493,7 +497,8 @@ def _stale_tickets_text(tickets, *, hours: float, now) -> str:
     lines = [f"⏰ Обращения в поддержку без ответа больше {hours:g} ч: {len(tickets)}", ""]
     for ticket in tickets:
         waited = int((now - ticket.created_at).total_seconds() // 3600)
-        lines.append(f"#{ticket.pk} «{ticket.subject}» · {ticket.get_category_display()} · ждёт {waited} ч")
+        subject = ticket.subject if len(ticket.subject) <= 60 else ticket.subject[:59].rstrip() + "…"
+        lines.append(f"#{ticket.pk} «{subject}» · {ticket.get_category_display()} · ждёт {waited} ч")
         if base:
             lines.append(f"{base}{reverse('support:detail', args=[ticket.pk])}")
     if base:

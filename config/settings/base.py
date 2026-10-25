@@ -360,6 +360,10 @@ TELEGRAM_RELAY_URL = os.getenv("TELEGRAM_RELAY_URL", "").strip()
 TELEGRAM_RELAY_TOKEN = os.getenv("TELEGRAM_RELAY_TOKEN", "").strip()
 WEB_CONSTRUCTOR_MAX_IMAGE_UPLOAD_BYTES = int(os.getenv("WEB_CONSTRUCTOR_MAX_IMAGE_UPLOAD_BYTES", "5242880"))
 SITE_BASE_URL = os.getenv("SITE_BASE_URL", "http://127.0.0.1:8000").strip().rstrip("/")
+
+# Support: a new ticket nobody took within this many hours is sent to the team in Telegram.
+SUPPORT_ESCALATE_AFTER_HOURS = float(os.getenv("SUPPORT_ESCALATE_AFTER_HOURS", "3") or 3)
+
 CASEUP_LAB_BASE_URL = os.getenv("CASEUP_LAB_BASE_URL", "").strip().rstrip("/")
 
 CELERY_BEAT_PENDING_ALERT_DISPATCHER_SECONDS = int(

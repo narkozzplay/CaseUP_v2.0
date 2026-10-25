@@ -295,3 +295,15 @@ class StaffAlertTests(SupportTestCase):
             self.assertEqual(services.escalate_stale_tickets(), 0)
         ticket.refresh_from_db()
         self.assertIsNone(ticket.escalated_at)
+
+    def test_escalation_message_stays_short(self):
+        for index in range(services.ESCALATION_BATCH + 2):
+            self.open_ticket(user=make_user(f"sup_many_{index}"), subject="Очень длинная тема " * 8)
+        SupportTicket.objects.update(created_at=timezone.now() - timedelta(hours=4))
+        with mock.patch("modules.v2.system.services.is_module_enabled", return_value=True), \
+                mock.patch("modules.v2.tg_notifier.services.resolve_default_chat_id", return_value="-100team"), \
+                mock.patch("modules.v2.tg_notifier.services.ensure_public_base_url", return_value="https://case-up.ru"), \
+                mock.patch("modules.v2.tg_notifier.services.send_message") as send:
+            self.assertEqual(services.escalate_stale_tickets(), services.ESCALATION_BATCH)
+            self.assertLess(len(send.call_args.kwargs["text"]), 4096)
+            self.assertEqual(services.escalate_stale_tickets(), 2)
