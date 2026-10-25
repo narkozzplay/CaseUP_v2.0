@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import math
 from datetime import timedelta
 from decimal import Decimal
@@ -51,6 +52,8 @@ from .services.helpers import canonical_listing_url, rarity_ru_label_from_key
 from .services.reference import catalog_ids_for_reference, fill_catalog_from_reference
 from . import seo
 
+logger = logging.getLogger(__name__)
+
 
 def _catalog_staff_access(user) -> bool:
     if not getattr(user, "is_authenticated", False):
@@ -72,14 +75,28 @@ def _guest_cache_key(request, page: str) -> str | None:
     """Cache key for data shown to guests: same for every guest, so many visits cost one query."""
     if request.user.is_authenticated or getattr(settings, "STEAM_CATALOG_GUEST_CACHE_SECONDS", 0) <= 0:
         return None
-    query = "&".join(f"{key}={value}" for key, value in sorted(request.GET.items()))
+    query = urlencode(sorted(request.GET.items()))
     digest = hashlib.md5(f"{page}|{get_language()}|{query}".encode()).hexdigest()
     return f"steam-catalog:guest:{digest}"
 
 
+def _guest_cache_get(key: str | None):
+    if not key:
+        return None
+    try:
+        return cache.get(key)
+    except Exception:  # noqa: BLE001 - without the cache guests get fresh data, not an error
+        logger.warning("Guest catalog cache read failed", exc_info=True)
+        return None
+
+
 def _guest_cache_set(key: str | None, value) -> None:
-    if key:
+    if not key:
+        return
+    try:
         cache.set(key, value, settings.STEAM_CATALOG_GUEST_CACHE_SECONDS)
+    except Exception:  # noqa: BLE001
+        logger.warning("Guest catalog cache write failed", exc_info=True)
 
 
 def _locked_for_guest(request, **locked_kwargs):
@@ -545,7 +562,7 @@ def catalog_list(request):
     filters = browse.parse_filters(request.GET, can_edit=can_edit)
     fav_keys = browse.favorite_keys(request.user)
     guest_key = _guest_cache_key(request, "list")
-    cached = cache.get(guest_key) if guest_key else None
+    cached = _guest_cache_get(guest_key)
     if cached is not None:
         # A paginator over a range gives the same page numbers without counting the rows again.
         page_obj = Paginator(range(cached["count"]), 24).get_page(request.GET.get("page") or 1)
@@ -841,7 +858,7 @@ def catalog_detail(request, item_id: int, slug: str | None = None):
 
     can_view_deep_analytics = _catalog_analytics_access(request.user)
     guest_key = _guest_cache_key(request, f"detail:{item.pk}")
-    history_data = cache.get(guest_key) if guest_key else None
+    history_data = _guest_cache_get(guest_key)
     if history_data is None:
         history_qs = item.price_history.all()
         if range_start is not None:

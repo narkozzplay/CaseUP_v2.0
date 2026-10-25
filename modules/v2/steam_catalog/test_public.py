@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -131,6 +132,21 @@ class GuestCacheTests(TestCase):
         signed_in = Client()
         signed_in.force_login(User.objects.create_user(username="fan", password="x"))
         self.assertContains(signed_in.get(reverse("steam_catalog:list")), "Recoil Case")
+
+    def test_encoded_query_values_get_their_own_cache_entry(self):
+        make_item("AK-47 | Redline (Field-Tested)", weapon="AK-47")
+        make_item("Recoil Case", item_type="case")
+        client = Client()
+        client.get(reverse("steam_catalog:list") + "?sort=name%26weapon%3DAK-47")
+        filtered = client.get(reverse("steam_catalog:list") + "?sort=name&weapon=AK-47")
+        self.assertNotContains(filtered, "Recoil Case")
+
+    def test_cache_outage_falls_back_to_fresh_data(self):
+        with patch("modules.v2.steam_catalog.views.cache.get", side_effect=ConnectionError), \
+                patch("modules.v2.steam_catalog.views.cache.set", side_effect=ConnectionError):
+            client = Client()
+            self.assertContains(client.get(reverse("steam_catalog:list")), "AWP | Asiimov")
+            self.assertEqual(client.get(self.item.get_absolute_url()).status_code, 200)
 
     def test_cached_list_keeps_paging(self):
         for index in range(30):
