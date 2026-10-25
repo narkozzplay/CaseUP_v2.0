@@ -6,6 +6,7 @@ from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -210,7 +211,19 @@ class PollingTests(TestCase):
             updates.poll_once()
         status = updates.get_poll_status()
         self.assertIsNone(status["failing_since"])
-        self.assertIsNotNone(status["last_error_at"])
+        ok_since = status["ok_since"]
+        self.assertIsNotNone(ok_since)
+
+        with patch.object(updates, "_telegram_api_request", return_value={"ok": True, "result": []}):
+            updates.poll_once()
+        self.assertEqual(updates.get_poll_status()["ok_since"], ok_since)
+
+        # A long gap without polls (poller was down) starts a new clean run.
+        stale = dict(updates.get_poll_status(), at=timezone.now() - timedelta(minutes=30))
+        cache.set(updates.POLL_STATUS_KEY, stale)
+        with patch.object(updates, "_telegram_api_request", return_value={"ok": True, "result": []}):
+            updates.poll_once()
+        self.assertGreater(updates.get_poll_status()["ok_since"], ok_since)
 
     def test_stale_message_is_acknowledged_without_reply(self):
         from . import updates

@@ -143,10 +143,11 @@ def check_telegram_poller() -> str:
         minutes = int((now - failing_since).total_seconds() // 60)
         return _transition("tg_poller", label, True, f"Опросы не проходят {minutes} мин. Последняя ошибка: {status['error'][:200]}", url)
 
-    last_error_at = status.get("last_error_at")
-    flapping = bool(last_error_at) and (now - last_error_at) < timedelta(minutes=TG_POLL_CLEAN_MINUTES)
-    if flapping and cache.get(STATE_KEY.format(key="tg_poller")):
-        # Already reported and still unstable: neither a new alert nor a premature «снова в норме».
+    ok_since = status.get("ok_since")
+    settled = bool(ok_since) and (now - ok_since) >= timedelta(minutes=TG_POLL_CLEAN_MINUTES)
+    if not settled and cache.get(STATE_KEY.format(key="tg_poller")):
+        # Already reported and not clean for long enough (errors or a restarted poller): neither a new alert nor
+        # a premature «снова в норме».
         return ""
     return _transition("tg_poller", label, False, "Опросы идут.", url)
 

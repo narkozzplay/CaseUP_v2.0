@@ -151,16 +151,16 @@ class WatchdogTests(TestCase):
             self.assertEqual(watchdog.check_telegram_poller(), "alert")
         self.assertIn("telegram_poller", alert.call_args.args[2])
 
-    def _poll_status(self, *, error="", failing_minutes=0, last_error_minutes=None):
+    def _poll_status(self, *, error="", failing_minutes=0, ok_minutes=0, age_minutes=0):
         from modules.v2.tg_notifier.updates import POLL_STATUS_KEY
 
         now = timezone.now()
         cache.set(POLL_STATUS_KEY, {
-            "at": now,
+            "at": now - timedelta(minutes=age_minutes),
             "error": error,
             "handled": 0,
             "failing_since": now - timedelta(minutes=failing_minutes) if error else None,
-            "last_error_at": now - timedelta(minutes=last_error_minutes) if last_error_minutes is not None else None,
+            "ok_since": None if error else now - timedelta(minutes=ok_minutes),
         })
 
     def test_telegram_poller_hiccups_do_not_flood_admins(self):
@@ -169,26 +169,33 @@ class WatchdogTests(TestCase):
         TelegramNotifierConfig.objects.create(singleton_key=1, is_enabled=True, bot_token="123456:ABCDEFabcdefABCDEFabcdefABCDEFabc")
         with patch.object(watchdog, "send_admin_alert", return_value={}) as alert:
             # A single 502 and the recovery after it: nothing to report.
-            self._poll_status(error="Telegram API HTTP 502", failing_minutes=1, last_error_minutes=0)
+            self._poll_status(error="Telegram API HTTP 502", failing_minutes=1)
             self.assertEqual(watchdog.check_telegram_poller(), "")
-            self._poll_status(last_error_minutes=2)
+            self._poll_status(ok_minutes=2)
             self.assertEqual(watchdog.check_telegram_poller(), "")
             alert.assert_not_called()
 
             # Sustained failure: one alert.
-            self._poll_status(error="Telegram API HTTP 502", failing_minutes=20, last_error_minutes=0)
+            self._poll_status(error="Telegram API HTTP 502", failing_minutes=20)
             self.assertEqual(watchdog.check_telegram_poller(), "alert")
             self.assertIn("502", alert.call_args.args[2])
 
             # A poll got through between errors: still unstable, no «снова в норме» yet.
-            self._poll_status(last_error_minutes=3)
+            self._poll_status(ok_minutes=3)
             self.assertEqual(watchdog.check_telegram_poller(), "")
             self.assertEqual(alert.call_count, 1)
 
             # Clean long enough: one recovery message.
-            self._poll_status(last_error_minutes=30)
+            self._poll_status(ok_minutes=30)
             self.assertEqual(watchdog.check_telegram_poller(), "recovered")
             self.assertEqual(alert.call_count, 2)
+
+            # Stopped poller: alert; restarted, the first clean poll is not a recovery yet.
+            self._poll_status(ok_minutes=40, age_minutes=10)
+            self.assertEqual(watchdog.check_telegram_poller(), "alert")
+            self._poll_status(ok_minutes=1)
+            self.assertEqual(watchdog.check_telegram_poller(), "")
+            self.assertEqual(alert.call_count, 3)
 
     def test_run_is_the_heartbeat(self):
         with patch.object(watchdog, "_health_checks", return_value=[]):

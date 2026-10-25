@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import timedelta
 from typing import Any
 
 from django.core.cache import cache
@@ -35,6 +36,8 @@ LONG_POLL_SECONDS = 10
 # Older messages are dropped instead of answered: link tokens live 30 minutes anyway.
 STALE_UPDATE_SECONDS = 30 * 60
 POLL_STATUS_KEY = "tg_notifier:poll_status"
+# Polls run every few seconds (at most 2 minutes apart while backing off): a longer gap means the poller was down.
+POLL_GAP_MINUTES = 5
 
 
 def handle_update(payload: dict[str, Any]) -> dict[str, Any]:
@@ -85,21 +88,23 @@ def handle_update(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _save_status(*, error: str, handled: int) -> None:
-    """Besides the last poll, keeps when the current run of failures began (failing_since) and when the last
-    error happened (last_error_at): the watchdog alerts only on sustained trouble, not on a single 502."""
+    """Besides the last poll, keeps when the current run of failures began (failing_since) and when the current run
+    of clean polls began (ok_since): the watchdog alerts only on sustained trouble, not on a single 502, and reports
+    recovery only after a sustained clean run."""
     now = timezone.now()
     previous = cache.get(POLL_STATUS_KEY) or {}
-    status = {"at": now, "error": error, "handled": handled, "last_error_at": previous.get("last_error_at")}
+    # A gap without polls (poller stopped) breaks a streak just like an error does.
+    continuous = bool(previous) and (now - previous["at"]) < timedelta(minutes=POLL_GAP_MINUTES)
+    status = {"at": now, "error": error, "handled": handled, "failing_since": None, "ok_since": None}
     if error:
-        status["failing_since"] = (previous.get("failing_since") if previous.get("error") else None) or now
-        status["last_error_at"] = now
+        status["failing_since"] = (previous.get("failing_since") if continuous and previous.get("error") else None) or now
     else:
-        status["failing_since"] = None
+        status["ok_since"] = (previous.get("ok_since") if continuous and not previous.get("error") else None) or now
     cache.set(POLL_STATUS_KEY, status, timeout=7 * 24 * 3600)
 
 
 def get_poll_status() -> dict[str, Any] | None:
-    """Last poll as {at, error, handled, failing_since, last_error_at}; None if the poller never ran."""
+    """Last poll as {at, error, handled, failing_since, ok_since}; None if the poller never ran."""
     return cache.get(POLL_STATUS_KEY)
 
 
