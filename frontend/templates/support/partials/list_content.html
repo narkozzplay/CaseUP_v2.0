@@ -1,0 +1,42 @@
+<section class="section section--compact ops cc support">
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Помощь</span>
+            <h1 class="cc-pagehead__title">Поддержка</h1>
+            <p class="ops-hero__text">Опишите проблему, приложите скриншот — модератор ответит здесь, а уведомление придёт на сайт{% if request.user.profile_v2.telegram_is_linked %} и в Telegram{% endif %}.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Открытых</dt><dd>{{ active_count }}</dd></div>
+            <div><dt>Всего</dt><dd>{{ page_obj.paginator.count }}</dd></div>
+        </dl>
+    </header>
+
+    <div class="support-actions">
+        <a href="{% url 'support:create' %}" class="btn btn-primary" data-dashboard-nav="true">{% include "components/icon.html" with name="plus" %}Новое обращение</a>
+        {% if is_staff %}<a href="{% url 'support:queue' %}" class="btn btn-secondary" data-dashboard-nav="true">{% include "components/icon.html" with name="support_queue" %}Очередь обращений{% if queue_count %} · {{ queue_count }}{% endif %}</a>{% endif %}
+    </div>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Мои обращения</h2></div>
+        {% if page_obj.object_list %}
+            <div class="support-tickets">
+                {% for t in page_obj %}
+                    <a href="{% url 'support:detail' t.pk %}" class="support-ticket{% if t.user_unread %} is-unread{% endif %}" data-dashboard-nav="true">
+                        <span class="support-ticket__id">#{{ t.pk }}</span>
+                        <span class="support-ticket__main">
+                            <strong>{{ t.subject }}</strong>
+                            <span>{{ t.get_category_display }} · обновлено {{ t.last_message_at|date:"d.m.Y H:i" }}</span>
+                        </span>
+                        <span class="support-ticket__side">
+                            {% if t.user_unread %}<span class="chat-badge">новое</span>{% endif %}
+                            {% include "support/partials/_status.html" %}
+                        </span>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="ops-empty">Обращений пока нет. Если что-то не работает или есть вопрос — создайте обращение.</p>
+        {% endif %}
+    </article>
+    {% include "control_center/partials/_pagination.html" %}
+</section>

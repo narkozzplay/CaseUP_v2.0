@@ -1,0 +1,54 @@
+<section class="section section--compact ops cc support">
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Модерация</span>
+            <h1 class="cc-pagehead__title">Очередь обращений</h1>
+            <p class="ops-hero__text">Возьмите новое обращение в работу и ответьте — пользователь получит уведомление на сайте и в Telegram. Сверху то, что ждёт дольше всех, высокий приоритет — первым.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Новые</dt><dd class="{% if counts.new %}metric-positive{% endif %}">{{ counts.new }}</dd></div>
+            <div><dt>Мои</dt><dd>{{ counts.mine }}</dd></div>
+            <div><dt>Открытые</dt><dd>{{ counts.active }}</dd></div>
+        </dl>
+    </header>
+
+    <div class="cc-filters-chips">
+        {% for code, label, count in scopes %}
+            <a href="?scope={{ code }}" class="cc-chip cc-chip--link{% if filters.scope == code %} is-active{% endif %}" data-dashboard-nav="true">{{ label }}{% if count is not None %} · {{ count }}{% endif %}</a>
+        {% endfor %}
+    </div>
+
+    <form method="get" class="cc-toolbar">
+        <input type="hidden" name="scope" value="{{ filters.scope }}">
+        <label class="cc-field cc-field--grow"><span>Поиск</span><input type="search" name="q" value="{{ filters.q }}" class="form-control" placeholder="#номер, тема, ник или логин"></label>
+        <label class="cc-field form-field"><span>Категория</span>
+            <select name="category"><option value="">Все</option>{% for code, label in categories %}<option value="{{ code }}"{% if filters.category == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        </label>
+        <div class="cc-toolbar__actions"><button type="submit" class="btn btn-primary btn-sm">Найти</button></div>
+    </form>
+
+    <article class="ops-panel">
+        {% if rows %}
+            <div class="support-tickets">
+                {% for row in rows %}
+                    {% with t=row.ticket %}
+                        <a href="{% url 'support:detail' t.pk %}" class="support-ticket support-ticket--queue support-ticket--{{ t.priority }}" data-dashboard-nav="true">
+                            <span class="support-ticket__id">#{{ t.pk }}</span>
+                            <span class="support-ticket__main">
+                                <strong>{{ t.subject }}</strong>
+                                <span>{{ row.requester.name }} · {{ t.get_category_display }} · {{ t.last_message_at|date:"d.m.Y H:i" }}{% if t.assignee_id %} · у {{ t.assignee.username }}{% endif %}</span>
+                            </span>
+                            <span class="support-ticket__side">
+                                {% if t.priority == "high" %}<span class="support-prio">высокий</span>{% endif %}
+                                {% include "support/partials/_status.html" %}
+                            </span>
+                        </a>
+                    {% endwith %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="ops-empty">Здесь пусто — все обращения разобраны.</p>
+        {% endif %}
+    </article>
+    {% include "control_center/partials/_pagination.html" %}
+</section>

@@ -1,0 +1,110 @@
+<section class="section section--compact ops cc support">
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">{% if staff_view %}<a href="{% url 'support:queue' %}" data-dashboard-nav="true">Очередь обращений</a>{% else %}<a href="{% url 'support:index' %}" data-dashboard-nav="true">Поддержка</a>{% endif %} · #{{ ticket.pk }}</span>
+            <h1 class="cc-pagehead__title">{{ ticket.subject }}</h1>
+            <p class="ops-hero__text">{% with t=ticket %}{% include "support/partials/_status.html" %}{% endwith %} {{ ticket.get_category_display }} · создано {{ ticket.created_at|date:"d.m.Y H:i" }}</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Модератор</dt><dd>{% if assignee %}{{ assignee.name }}{% else %}ещё не назначен{% endif %}</dd></div>
+            {% if staff_view %}<div><dt>Приоритет</dt><dd>{{ ticket.get_priority_display }}</dd></div>{% endif %}
+        </dl>
+    </header>
+
+    <div class="support-layout{% if staff_view %} support-layout--staff{% endif %}">
+        <div class="support-main">
+            <article class="ops-panel support-thread">
+                {% for row in rows %}
+                    {% with m=row.message %}
+                        {% if m.is_system %}
+                            <p class="support-sys">{{ m.body }} <time>{{ m.created_at|date:"d.m H:i" }}</time></p>
+                        {% else %}
+                            <div class="support-msg{% if m.is_staff %} support-msg--staff{% endif %}{% if m.is_internal %} support-msg--internal{% endif %}{% if row.is_mine %} support-msg--mine{% endif %}">
+                                <img src="{{ row.author.avatar_url }}" alt="" class="support-msg__avatar" loading="lazy">
+                                <div class="support-msg__body">
+                                    <div class="support-msg__head">
+                                        <strong>{{ row.author.name }}</strong>
+                                        {% if m.is_staff %}<span class="support-msg__tag">Поддержка</span>{% endif %}
+                                        {% if m.is_internal %}<span class="support-msg__tag support-msg__tag--internal">Заметка, пользователь не видит</span>{% endif %}
+                                        <time>{{ m.created_at|date:"d.m.Y H:i" }}</time>
+                                    </div>
+                                    {% if m.body %}<div class="support-msg__text">{{ m.body|linebreaksbr }}</div>{% endif %}
+                                    {% if m.attachments.all %}
+                                        <div class="support-files">
+                                            {% for a in m.attachments.all %}
+                                                {% if a.is_image %}
+                                                    <a href="{% url 'support:attachment' a.pk %}" target="_blank" rel="noopener" class="support-file support-file--image"><img src="{% url 'support:attachment' a.pk %}" alt="{{ a.original_name }}" loading="lazy"></a>
+                                                {% else %}
+                                                    <a href="{% url 'support:attachment' a.pk %}" class="support-file">{% include "components/icon.html" with name="cc_download" %}<span>{{ a.original_name }}</span><small>{{ a.size|filesizeformat }}</small></a>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+                {% endfor %}
+            </article>
+
+            {% if ticket.is_closed and not staff_view %}
+                <p class="ops-empty" id="reply">Обращение закрыто. Если вопрос остался — <a href="{% url 'support:create' %}" data-dashboard-nav="true">создайте новое</a>.</p>
+            {% else %}
+                <form method="post" action="{% url 'support:reply' ticket.pk %}" enctype="multipart/form-data" class="ops-panel support-form" id="reply">
+                    {% csrf_token %}
+                    <label class="cc-field"><span>{% if staff_view %}Ответ пользователю{% else %}Ваше сообщение{% endif %}</span><textarea name="body" rows="5" maxlength="5000" class="form-control" placeholder="{% if staff_view %}Ответ увидит пользователь и получит уведомление{% else %}Напишите сообщение{% endif %}"></textarea></label>
+                    {% include "support/partials/_attach_field.html" %}
+                    <div class="support-form__actions">
+                        <button type="submit" class="btn btn-primary">{% include "components/icon.html" with name="send" %}{% if staff_view %}Ответить{% else %}Отправить{% endif %}</button>
+                        {% if staff_view %}<button type="submit" name="internal" value="1" class="btn btn-secondary">Сохранить как заметку</button>{% endif %}
+                        {% if not staff_view and not ticket.is_closed %}<button type="submit" form="support-close-form" class="btn btn-ghost">Закрыть обращение</button>{% endif %}
+                    </div>
+                </form>
+                {% if not staff_view %}<form method="post" action="{% url 'support:close' ticket.pk %}" id="support-close-form" hidden>{% csrf_token %}</form>{% endif %}
+            {% endif %}
+        </div>
+
+        {% if staff_view %}
+            <aside class="support-side">
+                <article class="ops-panel">
+                    <div class="ops-panel__head"><h2 class="ops-panel__title">Пользователь</h2></div>
+                    <div class="support-side__body">
+                    <a href="{% url 'profiles:profile_detail' ticket.user_id %}" class="support-person" data-dashboard-nav="true">
+                        <img src="{{ requester.avatar_url }}" alt="" loading="lazy">
+                        <span><strong>{{ requester.name }}</strong><small>{{ ticket.user.username }}</small></span>
+                    </a>
+                    {% if ticket.page_url %}<p class="support-side__note">Создано со страницы <code>{{ ticket.page_url }}</code></p>{% endif %}
+                    {% if other_tickets %}
+                        <ul class="support-side__list">
+                            {% for t in other_tickets %}<li><a href="{% url 'support:detail' t.pk %}" data-dashboard-nav="true">#{{ t.pk }} {{ t.subject|truncatechars:40 }}</a> {% include "support/partials/_status.html" %}</li>{% endfor %}
+                        </ul>
+                    {% endif %}
+                    </div>
+                </article>
+
+                <article class="ops-panel">
+                    <div class="ops-panel__head"><h2 class="ops-panel__title">Обработка</h2></div>
+                    <div class="support-side__body">
+                    {% if ticket.assignee_id != request.user.pk or ticket.status != "in_progress" and ticket.status != "waiting_user" %}
+                        <form method="post" action="{% url 'support:take' ticket.pk %}" class="support-form__actions">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary btn-block">{% if ticket.assignee_id and ticket.assignee_id != request.user.pk %}Забрать себе{% else %}Взять в работу{% endif %}</button>
+                        </form>
+                    {% endif %}
+                    <form method="post" action="{% url 'support:manage' ticket.pk %}" class="support-manage">
+                        {% csrf_token %}
+                        <label class="cc-field form-field"><span>Статус</span>
+                            <select name="status">{% for code, label in statuses %}<option value="{{ code }}"{% if ticket.status == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+                        </label>
+                        <label class="cc-field form-field"><span>Приоритет</span>
+                            <select name="priority">{% for code, label in priorities %}<option value="{{ code }}"{% if ticket.priority == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+                        </label>
+                        <button type="submit" class="btn btn-secondary btn-block">Сохранить</button>
+                    </form>
+                    <p class="support-side__note">Ответ переводит обращение в «Ждёт ответа», сообщение пользователя возвращает его в работу. «Решён» и «Закрыт» присылают пользователю уведомление.</p>
+                    </div>
+                </article>
+            </aside>
+        {% endif %}
+    </div>
+</section>

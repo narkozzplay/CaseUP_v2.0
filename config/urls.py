@@ -66,6 +66,7 @@ urlpatterns += i18n_patterns(
     path("social/", include("modules.v2.social.urls")),
     path("social/", include("modules.v2.social_friends.urls")),
     path("notifications/", include("modules.v2.notifications.urls")),
+    path("support/", include("modules.v2.support.urls")),
     path("referrals/", include("modules.v2.referrals.urls")),
     path("promo/", include("modules.v2.promo.urls")),
     path("bonus/", include("modules.v2.daily_bonus.urls")),

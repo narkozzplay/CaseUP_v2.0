@@ -1,0 +1,26 @@
+<section class="section section--compact ops cc support">
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow"><a href="{% url 'support:index' %}" data-dashboard-nav="true">Поддержка</a></span>
+            <h1 class="cc-pagehead__title">Новое обращение</h1>
+            <p class="ops-hero__text">Чем подробнее опишете — тем быстрее поможем: что делали, что ожидали, что получилось. Не пишите пароли и коды из Steam Guard.</p>
+        </div>
+    </header>
+
+    <form method="post" action="{% url 'support:create' %}" enctype="multipart/form-data" class="ops-panel support-form">
+        {% csrf_token %}
+        <input type="hidden" name="page_url" value="{{ values.page_url }}">
+        <div class="support-form__row">
+            <label class="cc-field cc-field--grow"><span>Тема</span><input type="text" name="subject" value="{{ values.subject }}" maxlength="160" required class="form-control" placeholder="Коротко о проблеме"></label>
+            <label class="cc-field form-field"><span>Категория</span>
+                <select name="category">{% for code, label in categories %}<option value="{{ code }}"{% if values.category == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+            </label>
+        </div>
+        <label class="cc-field"><span>Описание</span><textarea name="body" rows="7" maxlength="5000" required class="form-control" placeholder="Опишите проблему">{{ values.body }}</textarea></label>
+        {% include "support/partials/_attach_field.html" %}
+        <div class="support-form__actions">
+            <button type="submit" class="btn btn-primary">{% include "components/icon.html" with name="send" %}Отправить</button>
+            <a href="{% url 'support:index' %}" class="btn btn-ghost" data-dashboard-nav="true">Отмена</a>
+        </div>
+    </form>
+</section>

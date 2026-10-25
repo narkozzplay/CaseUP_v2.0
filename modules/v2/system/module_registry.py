@@ -127,6 +127,13 @@ MODULE_REGISTRY: dict[str, ModuleDefinition] = {
         namespaces=("profile_customization",),
         default_enabled=True,
     ),
+    "support": ModuleDefinition(
+        key="support",
+        label="Поддержка",
+        description="Служба поддержки: обращения пользователей и очередь тикетов для модераторов.",
+        namespaces=("support",),
+        default_enabled=True,
+    ),
 }
 
 NAMESPACE_TO_MODULE_KEY = {
