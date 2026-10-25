@@ -6,3 +6,10 @@ def send_telegram_copy(user_id: int, text: str, url: str) -> bool:
     from .services import send_telegram_now
 
     return send_telegram_now(user_id, text, url)
+
+
+@shared_task(name="support.escalate_stale_tickets", ignore_result=True)
+def escalate_stale_tickets_task() -> int:
+    from .services import escalate_stale_tickets
+
+    return escalate_stale_tickets()

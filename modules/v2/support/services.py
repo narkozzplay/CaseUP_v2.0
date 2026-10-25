@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import mimetypes
+from datetime import timedelta
 from pathlib import Path
 
 from django.db import transaction
@@ -134,6 +135,7 @@ def create_ticket(*, user, subject: str, category: str, body: str, files=None, p
         )
         message = SupportMessage.objects.create(ticket=ticket, author=user, body=body)
         _save_attachments(message, validated)
+    transaction.on_commit(lambda: _notify_staff_new_ticket(ticket, message))
     return ticket
 
 
@@ -202,6 +204,7 @@ def take_ticket(*, ticket: SupportTicket, moderator) -> SupportTicket:
         ticket.user_unread = True
         ticket.save(update_fields=["assignee", "status", "closed_at", "user_unread", "updated_at"])
         _system_line(ticket, moderator, "Обращение взято в работу.")
+    _resolve_new_ticket_notifications(ticket)
     return ticket
 
 
@@ -404,6 +407,124 @@ def _notify_assignee(ticket: SupportTicket, message: SupportMessage) -> None:
         )
     except Exception:  # noqa: BLE001
         logger.exception("Failed to notify the assignee of ticket %s.", ticket.pk)
+
+
+def support_staff_users():
+    """Everyone who works the queue: role mod and above, and Django superusers."""
+    from django.contrib.auth import get_user_model
+
+    from modules.v2.profiles.models import UserRole
+    from modules.v2.profiles.rbac import ROLE_RANK
+
+    roles = [role for role, rank in ROLE_RANK.items() if rank >= ROLE_RANK[UserRole.MOD]]
+    return (
+        get_user_model()
+        .objects.filter(Q(profile_v2__role__in=roles) | Q(is_superuser=True), is_active=True)
+        .select_related("profile_v2")
+        .distinct()
+    )
+
+
+def _notify_staff_new_ticket(ticket: SupportTicket, message: SupportMessage) -> int:
+    from modules.v2.notifications.services import notify
+
+    from .notifications import KIND_NEW
+
+    payload = {
+        "title": f"Новое обращение #{ticket.pk}: {ticket.subject}"[:200],
+        "body": f"{ticket.get_category_display()} · {_snippet(message.body, 200)}",
+        "url": reverse("support:detail", args=[ticket.pk]),
+    }
+    sent = 0
+    for moderator in support_staff_users().exclude(pk=ticket.user_id):
+        try:
+            if notify(moderator, KIND_NEW, actor=ticket.user, object_id=ticket.pk, payload=payload):
+                sent += 1
+        except Exception:  # noqa: BLE001 - one broken recipient must not stop the rest
+            logger.exception("Failed to notify moderator %s about ticket %s.", moderator.pk, ticket.pk)
+    return sent
+
+
+def _resolve_new_ticket_notifications(ticket: SupportTicket) -> None:
+    """Once someone took the ticket, the "new ticket" alert is no longer a call to action for the others."""
+    from modules.v2.notifications.services import resolve_notifications
+
+    from .notifications import KIND_NEW
+
+    resolve_notifications(KIND_NEW, ticket.pk)
+
+
+def escalate_stale_tickets(*, now=None) -> int:
+    """Tells the team in Telegram about new tickets nobody took within SUPPORT_ESCALATE_AFTER_HOURS.
+
+    One message per run lists all of them: to the team chat (TG Notifier → «Чат по умолчанию») and to every
+    moderator who linked Telegram. Each ticket is escalated once."""
+    from django.conf import settings
+
+    from modules.v2.system.services import is_module_enabled
+
+    now = now or timezone.now()
+    hours = float(getattr(settings, "SUPPORT_ESCALATE_AFTER_HOURS", 3))
+    stale = list(
+        SupportTicket.objects.filter(
+            status=Status.OPEN,
+            assignee__isnull=True,
+            escalated_at__isnull=True,
+            created_at__lte=now - timedelta(hours=hours),
+        ).order_by("created_at", "id")[:20]
+    )
+    if not stale or not is_module_enabled("tg_notifier"):
+        return 0
+
+    text = _stale_tickets_text(stale, hours=hours, now=now)
+    if not _send_team_telegram(text):
+        return 0
+    SupportTicket.objects.filter(pk__in=[ticket.pk for ticket in stale]).update(escalated_at=now)
+    return len(stale)
+
+
+def _stale_tickets_text(tickets, *, hours: float, now) -> str:
+    from modules.v2.tg_notifier.services import ensure_public_base_url
+
+    try:
+        base = ensure_public_base_url()
+    except Exception:  # noqa: BLE001
+        base = ""
+    lines = [f"⏰ Обращения в поддержку без ответа больше {hours:g} ч: {len(tickets)}", ""]
+    for ticket in tickets:
+        waited = int((now - ticket.created_at).total_seconds() // 3600)
+        lines.append(f"#{ticket.pk} «{ticket.subject}» · {ticket.get_category_display()} · ждёт {waited} ч")
+        if base:
+            lines.append(f"{base}{reverse('support:detail', args=[ticket.pk])}")
+    if base:
+        lines += ["", f"Очередь: {base}{reverse('support:queue')}"]
+    return "\n".join(lines)
+
+
+def _send_team_telegram(text: str) -> bool:
+    """True when at least one chat got the message."""
+    from modules.v2.tg_notifier.services import resolve_default_chat_id, send_message
+
+    chats = []
+    try:
+        default_chat = (resolve_default_chat_id() or "").strip()
+    except Exception:  # noqa: BLE001
+        default_chat = ""
+    if default_chat:
+        chats.append(default_chat)
+    for moderator in support_staff_users():
+        chat_id = (getattr(moderator.profile_v2, "telegram_chat_id", "") or "").strip()
+        if chat_id and chat_id not in chats:
+            chats.append(chat_id)
+
+    delivered = False
+    for chat_id in chats:
+        try:
+            send_message(text=text, chat_id=chat_id, timeout=10)
+            delivered = True
+        except Exception:  # noqa: BLE001
+            logger.warning("Support escalation to chat %s failed.", chat_id, exc_info=True)
+    return delivered
 
 
 def _send_telegram(user_id: int, text: str, url: str) -> None:

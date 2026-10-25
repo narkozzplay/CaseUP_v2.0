@@ -60,6 +60,8 @@ class SupportTicket(models.Model):
     # The support team answered or changed the status and the author has not opened the ticket since.
     user_unread = models.BooleanField(default=False)
     closed_at = models.DateTimeField(null=True, blank=True)
+    # When the team was reminded in Telegram that nobody took the new ticket.
+    escalated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Support ticket"
