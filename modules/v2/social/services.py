@@ -957,15 +957,11 @@ def count_unread_messages_for_user(user) -> dict[str, object]:
     if not getattr(user, "is_authenticated", False):
         return result
 
+    # All membership conditions must live in a single filter() call: a second
+    # filter() over the multi-valued ``space__memberships`` relation adds a new
+    # JOIN that matches every member of the space, multiplying the count.
     unread_rows = (
         SocialMessage.objects.filter(
-            space__memberships__user=user,
-            space__memberships__status__in=VISIBLE_MEMBERSHIP_STATUSES,
-            space__is_active=True,
-            is_deleted=False,
-        )
-        .exclude(author=user)
-        .filter(
             Q(
                 space__memberships__last_read_at__isnull=False,
                 created_at__gt=F("space__memberships__last_read_at"),
@@ -973,8 +969,13 @@ def count_unread_messages_for_user(user) -> dict[str, object]:
             | Q(
                 space__memberships__last_read_at__isnull=True,
                 created_at__gt=F("space__memberships__joined_at"),
-            )
+            ),
+            space__memberships__user=user,
+            space__memberships__status__in=VISIBLE_MEMBERSHIP_STATUSES,
+            space__is_active=True,
+            is_deleted=False,
         )
+        .exclude(author=user)
         .values("space_id", "space__space_type")
         .annotate(total=Count("id"))
     )
