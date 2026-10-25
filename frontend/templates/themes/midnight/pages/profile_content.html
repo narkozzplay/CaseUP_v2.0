@@ -1,10 +1,10 @@
-{% load i18n %}
+{% load i18n donations %}
 <section class="section section--compact">
     <article class="card dashboard-hero">
         <div class="card-body dashboard-hero__body">
             <div>
                 <span class="eyebrow">{% trans "Profile" %}</span>
-                <h1 class="page-title page-title--sm">{{ profile_display_name }}</h1>
+                <h1 class="page-title page-title--sm">{{ profile_display_name }}{% sponsor_badge profile_user %}</h1>
                 <p class="text-muted dashboard-hero__text">{% trans "Unified identity and linked services in the Midnight interface." %}</p>
             </div>
             <div class="dashboard-hero__meta">
