@@ -12,7 +12,7 @@ from django.utils import timezone
 from modules.v2.steam_catalog.services import dispatch_pending_price_drop_alerts
 from modules.v2.steam_trading.services import dispatch_due_unlock_notifications
 
-from .services import run_due_rules, run_price_auto_update_rule
+from .services import run_due_rules, run_price_auto_update_rule, task_deadline
 
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ _CS2_REQUEST_DELAY_SECONDS = 0.4
 
 @shared_task(name="celery_tasks.run_price_auto_update_rule")
 def run_price_auto_update_rule_task(rule_id: int, triggered_by: str = "manual") -> dict:
-    summary = run_price_auto_update_rule(rule_id, triggered_by=triggered_by)
+    summary = run_price_auto_update_rule(rule_id, triggered_by=triggered_by, deadline=task_deadline())
     return {
         "rule_id": summary.rule_id,
         "category": summary.category,

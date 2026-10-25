@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import http.client
 import json
 import re
 import urllib.request
@@ -152,6 +153,10 @@ def _telegram_api_request(*, endpoint: str, payload: dict[str, Any], timeout: in
         raise TelegramNotifierError(f"Telegram API connection error: {exc}") from exc
     except TimeoutError as exc:
         raise TelegramNotifierError("Telegram API timeout.") from exc
+    except (http.client.HTTPException, OSError) as exc:
+        # RemoteDisconnected, reset connections and the like: urllib does not wrap errors raised while reading
+        # the response. They are network hiccups, not bugs.
+        raise TelegramNotifierError(f"Telegram API connection error: {exc.__class__.__name__}: {exc}") from exc
 
     try:
         data = json.loads(raw_body)

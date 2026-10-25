@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import logging
+import time
 from dataclasses import dataclass
 from datetime import timedelta
+
+from celery.exceptions import SoftTimeLimitExceeded
 
 from django.conf import settings
 from django.db import transaction
@@ -16,6 +20,11 @@ from modules.v2.steam_catalog.services.price_queue import batch_limit, refresh_b
 
 from .models import PriceAutoUpdateRule, PriceAutoUpdateRunLog
 
+logger = logging.getLogger(__name__)
+
+# Left unused at the end of a task: finishing the rule, alert detection and logs after the last request.
+TASK_TIME_RESERVE_SECONDS = 60
+
 
 @dataclass(frozen=True)
 class RuleRunSummary:
@@ -26,6 +35,12 @@ class RuleRunSummary:
     updated_items_count: int
     history_written_count: int
     errors_count: int
+
+
+def task_deadline() -> float:
+    """``time.monotonic()`` moment by which price requests must stop so the Celery soft time limit is never hit."""
+    soft_limit = int(getattr(settings, "CELERY_TASK_SOFT_TIME_LIMIT", 900) or 900)
+    return time.monotonic() + max(soft_limit - TASK_TIME_RESERVE_SECONDS, 30)
 
 
 def _get_running_state_stale_after() -> timedelta:
@@ -122,7 +137,7 @@ def _finalize_run_log(
     )
 
 
-def run_price_auto_update_rule(rule_id: int, *, triggered_by: str = "beat") -> RuleRunSummary:
+def run_price_auto_update_rule(rule_id: int, *, triggered_by: str = "beat", deadline: float | None = None) -> RuleRunSummary:
     started_at = timezone.now()
     run_log: PriceAutoUpdateRunLog | None = None
     touched_items_count = 0
@@ -192,7 +207,15 @@ def run_price_auto_update_rule(rule_id: int, *, triggered_by: str = "beat") -> R
 
         # A small batch of the stalest items (hot ones first) instead of the whole category:
         # the catalog is far bigger than what Steam answers in one run.
-        batch = refresh_batch(category=rule.category, limit=batch_limit(rule.interval_minutes), source=f"celery:{rule.category}")
+        # The batch is sized to the time the task has left and stops at the deadline: the unfinished part is
+        # simply the stalest and goes first next run.
+        budget = deadline - time.monotonic() if deadline is not None else None
+        batch = refresh_batch(
+            category=rule.category,
+            limit=batch_limit(rule.interval_minutes, budget_seconds=budget),
+            source=f"celery:{rule.category}",
+            deadline=deadline,
+        )
         errors: list[str] = list(batch.errors)
         touched_items_count = batch.checked
         updated_items_count = batch.updated
@@ -269,12 +292,14 @@ def run_price_auto_update_rule(rule_id: int, *, triggered_by: str = "beat") -> R
         )
     except Exception as exc:
         finished_at = timezone.now()
+        # SoftTimeLimitExceeded and the like have an empty str(): keep at least the exception name.
+        error_text = str(exc) or exc.__class__.__name__
 
         with transaction.atomic():
             locked_rule = PriceAutoUpdateRule.objects.select_for_update().get(pk=rule_id)
             locked_rule.last_run_at = finished_at
             locked_rule.last_status = PriceAutoUpdateRule.Status.ERROR
-            locked_rule.last_error = str(exc)
+            locked_rule.last_error = error_text
             if locked_rule.is_enabled:
                 locked_rule.schedule_next_run(from_dt=locked_rule.last_run_at)
             else:
@@ -298,16 +323,28 @@ def run_price_auto_update_rule(rule_id: int, *, triggered_by: str = "beat") -> R
                 updated_items_count=updated_items_count,
                 history_written_count=history_written_count,
                 errors_count=1,
-                error_summary=str(exc),
+                error_summary=error_text,
             )
 
         raise
 
 
-def run_due_rules(*, triggered_by: str = "beat") -> list[RuleRunSummary]:
+def run_due_rules(*, triggered_by: str = "beat", deadline: float | None = None) -> list[RuleRunSummary]:
+    """Runs the due rules one after another within one task. The remaining time is shared evenly between the
+    rules still waiting, so a slow category cannot eat the time of the others, and one failing rule does not stop
+    the rest."""
+    deadline = deadline if deadline is not None else task_deadline()
     summaries: list[RuleRunSummary] = []
+    rule_ids = list(get_due_rules().values_list("id", flat=True))
 
-    for rule in get_due_rules():
-        summaries.append(run_price_auto_update_rule(rule.id, triggered_by=triggered_by))
+    for index, rule_id in enumerate(rule_ids):
+        now = time.monotonic()
+        rule_deadline = min(deadline, now + (deadline - now) / (len(rule_ids) - index))
+        try:
+            summaries.append(run_price_auto_update_rule(rule_id, triggered_by=triggered_by, deadline=rule_deadline))
+        except SoftTimeLimitExceeded:
+            raise
+        except Exception:  # noqa: BLE001 - the rule already recorded the error; the others must still run
+            logger.exception("price auto-update rule %s failed", rule_id)
 
     return summaries

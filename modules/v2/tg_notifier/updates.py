@@ -84,12 +84,22 @@ def handle_update(payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "ignored": "no_start_token"}
 
 
-def _save_status(**status) -> None:
-    cache.set(POLL_STATUS_KEY, {"at": timezone.now(), **status}, timeout=7 * 24 * 3600)
+def _save_status(*, error: str, handled: int) -> None:
+    """Besides the last poll, keeps when the current run of failures began (failing_since) and when the last
+    error happened (last_error_at): the watchdog alerts only on sustained trouble, not on a single 502."""
+    now = timezone.now()
+    previous = cache.get(POLL_STATUS_KEY) or {}
+    status = {"at": now, "error": error, "handled": handled, "last_error_at": previous.get("last_error_at")}
+    if error:
+        status["failing_since"] = (previous.get("failing_since") if previous.get("error") else None) or now
+        status["last_error_at"] = now
+    else:
+        status["failing_since"] = None
+    cache.set(POLL_STATUS_KEY, status, timeout=7 * 24 * 3600)
 
 
 def get_poll_status() -> dict[str, Any] | None:
-    """Last poll as {at, error, handled}; None if the poller never ran."""
+    """Last poll as {at, error, handled, failing_since, last_error_at}; None if the poller never ran."""
     return cache.get(POLL_STATUS_KEY)
 
 

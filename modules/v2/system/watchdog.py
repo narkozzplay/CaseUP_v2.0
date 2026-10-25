@@ -6,7 +6,9 @@
 - Health checks from Control Center → «Система»: an alert when one turns bad, a reminder while it stays bad,
   a «снова в норме» message when it recovers.
 - New errors in the error journal: one combined alert per run.
-- Telegram poller («Опрос» mode): no polls for 5 minutes or a poll error.
+- Telegram poller («Опрос» mode): no polls for 5 minutes or poll errors for TG_POLL_FAILING_MINUTES in a row.
+  Single 502s / dropped connections of Telegram or the relay are normal and recover by themselves, so they are
+  not reported; after an alert «снова в норме» comes only once polls have been clean for TG_POLL_CLEAN_MINUTES.
 """
 
 from __future__ import annotations
@@ -25,6 +27,9 @@ HEARTBEAT_KEY = "ops:heartbeat"
 HEARTBEAT_STALE_SECONDS = 10 * 60
 STATE_KEY = "ops:watch:{key}"
 REMIND_SECONDS = 6 * 3600
+TG_POLL_STALE_MINUTES = 5
+TG_POLL_FAILING_MINUTES = 15
+TG_POLL_CLEAN_MINUTES = 15
 
 # check key → statuses that count as broken. WARN of the database (slow query) or e-mail (not configured)
 # is not worth waking anybody up.
@@ -122,19 +127,28 @@ def check_telegram_poller() -> str:
         from modules.v2.tg_notifier.updates import get_poll_status
     except Exception:  # noqa: BLE001
         return ""
+    label, url = "Приём сообщений Telegram", "/control-center/tg-notifier/"
     config = get_telegram_notifier_config()
     if config.updates_mode != TelegramNotifierConfig.UpdatesMode.POLLING or not is_enabled(config) or not resolve_bot_token(config):
-        return _transition("tg_poller", "Приём сообщений Telegram", False, "", "/control-center/tg-notifier/")
+        return _transition("tg_poller", label, False, "", url)
     status = get_poll_status()
+    now = timezone.now()
     if not status:
-        broken, detail = True, "Сборщик telegram_poller ни разу не опрашивал Telegram — контейнер запущен?"
-    elif (timezone.now() - status["at"]) > timedelta(minutes=5):
-        broken, detail = True, f"Последний опрос {timezone.localtime(status['at']):%d.%m %H:%M} — сборщик остановлен."
-    elif status.get("error"):
-        broken, detail = True, f"Ошибка опроса: {status['error'][:200]}"
-    else:
-        broken, detail = False, "Опросы идут."
-    return _transition("tg_poller", "Приём сообщений Telegram", broken, detail, "/control-center/tg-notifier/")
+        return _transition("tg_poller", label, True, "Сборщик telegram_poller ни разу не опрашивал Telegram — контейнер запущен?", url)
+    if (now - status["at"]) > timedelta(minutes=TG_POLL_STALE_MINUTES):
+        return _transition("tg_poller", label, True, f"Последний опрос {timezone.localtime(status['at']):%d.%m %H:%M} — сборщик остановлен.", url)
+
+    failing_since = status.get("failing_since")
+    if status.get("error") and failing_since and (now - failing_since) >= timedelta(minutes=TG_POLL_FAILING_MINUTES):
+        minutes = int((now - failing_since).total_seconds() // 60)
+        return _transition("tg_poller", label, True, f"Опросы не проходят {minutes} мин. Последняя ошибка: {status['error'][:200]}", url)
+
+    last_error_at = status.get("last_error_at")
+    flapping = bool(last_error_at) and (now - last_error_at) < timedelta(minutes=TG_POLL_CLEAN_MINUTES)
+    if flapping and cache.get(STATE_KEY.format(key="tg_poller")):
+        # Already reported and still unstable: neither a new alert nor a premature «снова в норме».
+        return ""
+    return _transition("tg_poller", label, False, "Опросы идут.", url)
 
 
 def run_watchdog() -> dict:

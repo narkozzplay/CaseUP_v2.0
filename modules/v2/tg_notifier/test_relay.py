@@ -189,6 +189,29 @@ class PollingTests(TestCase):
         self.assertEqual(self.config.polling_offset, 500)
         self.assertFalse(updates.get_poll_status()["error"])
 
+    def test_dropped_connection_is_a_notifier_error_and_poll_status_tracks_the_streak(self):
+        import http.client
+
+        from . import services, updates
+
+        with patch.object(services.urllib.request, "urlopen", side_effect=http.client.RemoteDisconnected("Remote end closed connection without response")):
+            with self.assertRaises(services.TelegramNotifierError):
+                updates.poll_once()
+        first = updates.get_poll_status()
+        self.assertIn("RemoteDisconnected", first["error"])
+        self.assertIsNotNone(first["failing_since"])
+
+        with patch.object(updates, "_telegram_api_request", side_effect=services.TelegramNotifierError("Telegram API HTTP 502")):
+            with self.assertRaises(services.TelegramNotifierError):
+                updates.poll_once()
+        self.assertEqual(updates.get_poll_status()["failing_since"], first["failing_since"])
+
+        with patch.object(updates, "_telegram_api_request", return_value={"ok": True, "result": []}):
+            updates.poll_once()
+        status = updates.get_poll_status()
+        self.assertIsNone(status["failing_since"])
+        self.assertIsNotNone(status["last_error_at"])
+
     def test_stale_message_is_acknowledged_without_reply(self):
         from . import updates
 
