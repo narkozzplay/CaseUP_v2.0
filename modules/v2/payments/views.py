@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse, HttpResponseNotAllowed
@@ -32,9 +33,17 @@ RETURN_PREFIXES = ("/market/", "/donate/")
 
 
 def _safe_return_to(value: str) -> str:
-    """Only our own market and donation pages may be returned to after a top-up (no open redirect)."""
+    """Only our own market and donation pages may be returned to after a top-up (no open redirect).
+
+    The pages may carry a language prefix (/en/donate/), since they live in i18n_patterns.
+    """
     value = (value or "").strip()
-    return value if value.startswith(RETURN_PREFIXES) and "//" not in value and "\\" not in value else ""
+    path = value
+    for code, _name in settings.LANGUAGES:
+        if path.startswith(f"/{code}/"):
+            path = path[len(code) + 1:]
+            break
+    return value if path.startswith(RETURN_PREFIXES) and "//" not in value and "\\" not in value else ""
 
 
 def _pending_topup_promo(user):

@@ -115,7 +115,10 @@ class DonatePageTests(TestCase):
 
     def test_topup_may_return_to_the_donation_page(self):
         self.assertEqual(_safe_return_to("/donate/?amount=100"), "/donate/?amount=100")
+        self.assertEqual(_safe_return_to("/en/donate/?amount=100"), "/en/donate/?amount=100")
         self.assertEqual(_safe_return_to("//evil.example/donate/"), "")
+        self.assertEqual(_safe_return_to("/en//evil.example/donate/"), "")
+        self.assertEqual(_safe_return_to("/en/profile/"), "")
 
 
 class WidgetPlacementTests(TestCase):
