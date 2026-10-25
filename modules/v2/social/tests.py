@@ -677,6 +677,26 @@ class SocialLayerTests(TestCase):
         self.assertEqual(unread["total"], 0)
         self.assertEqual(unread["by_space_id"], {})
 
+    def test_unread_counts_not_multiplied_by_other_members(self):
+        third = User.objects.create_user(username="unread_third", password="pass12345")
+        fourth = User.objects.create_user(username="unread_fourth", password="pass12345")
+        space = create_social_space(
+            self.user, "Crowded Group", SocialSpace.SpaceType.GROUP, members=[self.member, third, fourth]
+        )
+        for index in range(5):
+            create_space_message(self.member, space, f"message {index}")
+
+        unread = count_unread_messages_for_user(self.user)
+        self.assertEqual(unread["total"], 5)
+        self.assertEqual(unread["by_space_id"][space.id], 5)
+
+        mark_space_read(self.user, space)
+        unread = count_unread_messages_for_user(self.user)
+        self.assertEqual(unread["total"], 0)
+
+        unread = count_unread_messages_for_user(third)
+        self.assertEqual(unread["by_space_id"][space.id], 5)
+
     def test_unread_counts_group_by_space_type(self):
         direct = create_social_space(self.user, "Direct Unread", SocialSpace.SpaceType.DIRECT, members=[self.member])
         group = create_social_space(self.user, "Group Unread", SocialSpace.SpaceType.GROUP, members=[self.member])
