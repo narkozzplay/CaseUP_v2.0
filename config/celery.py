@@ -102,6 +102,11 @@ app.conf.beat_schedule = {
         "task": "payments.reconcile_pending_payments",
         "schedule": float(settings.CELERY_BEAT_PAYMENTS_RECONCILE_SECONDS),
     },
+    # Price digest for the public Telegram channel; the posting times are set on the TG bot settings page.
+    "tg-channel-price-digest": {
+        "task": "tg_notifier.post_channel_digest",
+        "schedule": 300.0,
+    },
     "auto-sync-cs2-faceit-stats": {
         "task": "celery_tasks.auto_sync_cs2_faceit_stats",
         "schedule": float(settings.CELERY_BEAT_CS2_FACEIT_STATS_SYNC_SECONDS),

@@ -443,7 +443,11 @@
 .tgn-template summary { cursor: pointer; font-weight: 600; }
 .tgn-template[open] summary { margin-bottom: 10px; }
 .tgn-template textarea { min-height: 220px; font-family: var(--font-mono); font-size: 0.82rem; }
+.tgn-channel { margin-top: 16px; }
+.tgn-row--3 { grid-template-columns: repeat(3, 1fr); }
+.tgn-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.tgn-preview { margin: 0; padding: 12px 14px; border: 1px solid var(--border); background: rgba(9, 11, 15, 0.55); white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.88rem; line-height: 1.5; }
 @media (max-width: 900px) {
-    .tgn-grid, .tgn-row { grid-template-columns: 1fr; }
+    .tgn-grid, .tgn-row, .tgn-row--3 { grid-template-columns: 1fr; }
     .tgn-facts div { grid-template-columns: 1fr; }
 }

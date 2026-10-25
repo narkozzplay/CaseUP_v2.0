@@ -20,7 +20,8 @@ from modules.v2.subscriptions.feature_codes import TG_NOTIFIER_USER
 from modules.v2.subscriptions.responses import render_feature_locked_response
 from modules.v2.subscriptions.services import get_feature_access_state
 
-from .forms import TelegramNotifierSettingsForm, TelegramTestSendForm
+from .channel_digest import build_digest_text, post_digest
+from .forms import TelegramChannelDigestForm, TelegramNotifierSettingsForm, TelegramTestSendForm
 from .models import TelegramNotifierConfig
 from .updates import get_poll_status, handle_update
 from .services import (
@@ -111,7 +112,9 @@ def _poll_state(config) -> dict | None:
     return {"ran": True, "at": status["at"], "fresh": age < 120, "error": status.get("error", "")}
 
 
-def _build_settings_context(*, role_access, settings_form, test_form, config, webhook_info=None, bot_check=None):
+def _build_settings_context(
+    *, role_access, settings_form, test_form, config, webhook_info=None, bot_check=None, channel_form=None, channel_preview=None
+):
     from modules.v2.profiles.models import UserProfile
 
     return {
@@ -128,6 +131,8 @@ def _build_settings_context(*, role_access, settings_form, test_form, config, we
         "poll_state": _poll_state(config),
         "bot_check": bot_check,
         "has_bot_token": bool(resolve_bot_token(config)),
+        "channel_form": channel_form or TelegramChannelDigestForm(instance=config),
+        "channel_preview": channel_preview,
         "linked_users": UserProfile.objects.exclude(telegram_chat_id__isnull=True).exclude(telegram_chat_id="").count(),
     }
 
@@ -141,11 +146,35 @@ def settings_page(request):
     config = get_telegram_notifier_config()
     webhook_info = None
     bot_check = None
+    channel_form = None
+    channel_preview = None
 
     if request.method == "POST":
         action = request.POST.get("action")
 
-        if action == "save_settings":
+        if action in {"save_channel", "preview_channel", "post_channel_now"}:
+            settings_form = TelegramNotifierSettingsForm(instance=config)
+            test_form = TelegramTestSendForm(initial={"chat_id": config.default_chat_id, "text": build_test_message()})
+            if action == "save_channel":
+                channel_form = TelegramChannelDigestForm(request.POST, instance=config)
+                if channel_form.is_valid():
+                    channel_form.save()
+                    channel_form = None
+                    messages.success(request, "Настройки автопостинга сохранены.")
+            elif action == "preview_channel":
+                try:
+                    channel_preview = build_digest_text(config) or "За сутки нет заметных изменений среди предметов со свежими ценами — пост не выйдет."
+                except TelegramNotifierError as exc:
+                    messages.error(request, f"Предпросмотр не удался: {exc}")
+            else:
+                try:
+                    channel_preview = post_digest(config)
+                except TelegramNotifierError as exc:
+                    messages.error(request, f"Пост в канал не отправлен: {exc}")
+                else:
+                    messages.success(request, f"Сводка опубликована в {config.channel_chat_id}.")
+
+        elif action == "save_settings":
             settings_form = TelegramNotifierSettingsForm(request.POST, instance=config)
             test_form = TelegramTestSendForm(
                 initial={
@@ -304,6 +333,8 @@ def settings_page(request):
         config=config,
         webhook_info=webhook_info,
         bot_check=bot_check,
+        channel_form=channel_form,
+        channel_preview=channel_preview,
     )
     return render_dashboard_page(
         request,
