@@ -61,3 +61,8 @@ PAYMENTS_WEBHOOK_IP_CHECK = "off"
 
 # Price queue tests never sleep between Steam requests.
 STEAM_PRICE_REQUEST_INTERVAL = 0
+
+# Guest rate limit and page cache are tested on their own (override_settings); elsewhere they would make
+# tests depend on how many requests ran before them.
+GUEST_RATE_LIMIT_REQUESTS = 0
+STEAM_CATALOG_GUEST_CACHE_SECONDS = 0

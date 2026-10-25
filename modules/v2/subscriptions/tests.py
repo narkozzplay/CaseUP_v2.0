@@ -90,9 +90,9 @@ class SubscriptionServicesTests(TestCase):
     def test_user_has_feature_false_without_subscription(self):
         self.assertFalse(user_has_feature(self.user, STEAM_CATALOG_DEEP_ANALYTICS))
 
-    def test_catalog_view_is_free_after_login(self):
+    def test_catalog_view_is_free_for_everyone(self):
         self.assertTrue(user_has_feature(self.user, STEAM_CATALOG_VIEW))
-        self.assertFalse(user_has_feature(AnonymousUser(), STEAM_CATALOG_VIEW))
+        self.assertTrue(user_has_feature(AnonymousUser(), STEAM_CATALOG_VIEW))
 
     def test_feature_access_allows_when_subscriptions_module_disabled(self):
         update_module_states({"subscriptions": False})

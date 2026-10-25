@@ -110,6 +110,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "modules.v2.antifraud.middleware.IpBanMiddleware",
+    "modules.v2.antifraud.ratelimit.GuestRateLimitMiddleware",
     "modules.v2.control_center.middleware.ActivityContextMiddleware",
     "modules.v2.accounts.middleware.UserSessionMiddleware",
     "modules.v2.accounts.middleware.TwoFactorMiddleware",
@@ -336,6 +337,16 @@ CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS = int(
 )
 
 STEAM_CATALOG_GRID_COLUMNS = int(os.getenv("STEAM_CATALOG_GRID_COLUMNS", "7"))
+
+# Guests (not signed in) on the public catalog and sitemap: at most N requests per window per IP, then 429.
+# 0 turns the limit off. Search robots back off on 429 by themselves.
+GUEST_RATE_LIMIT_REQUESTS = int(os.getenv("GUEST_RATE_LIMIT_REQUESTS", "60"))
+GUEST_RATE_LIMIT_WINDOW = int(os.getenv("GUEST_RATE_LIMIT_WINDOW", "60"))
+GUEST_RATE_LIMIT_PATHS = tuple(
+    prefix.strip() for prefix in os.getenv("GUEST_RATE_LIMIT_PATHS", "/steam-catalog/,/en/steam-catalog/,/sitemap").split(",") if prefix.strip()
+)
+# Guest pages of the catalog are cached this many seconds (0 = off).
+STEAM_CATALOG_GUEST_CACHE_SECONDS = int(os.getenv("STEAM_CATALOG_GUEST_CACHE_SECONDS", "600"))
 
 TELEGRAM_NOTIFICATIONS_ENABLED = os.getenv("TELEGRAM_NOTIFICATIONS_ENABLED", "0").lower() in {"1", "true", "yes"}
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()

@@ -80,7 +80,7 @@ ACTIVE_VIEW_ALIASES = {
     "farm_drop_pool": {"farm:drop_pool", "farm:drop_pool_remove"},
     "farm_legacy_logs": {"farm:drops_list", "farm:drops_add"},
     "tradehub_dashboard": {"tradehub:dashboard", "tradehub:sales_list", "tradehub:sale_detail", "tradehub:create_order", "tradehub:sale_action", "tradehub:bots_list", "tradehub:bots_add"},
-    "steam_catalog": {"steam_catalog:list", "steam_catalog:add", "steam_catalog:detail", "steam_catalog:alert_rules", "steam_catalog:alert_help", "steam_catalog:alert_history", "steam_catalog:alert_rule_create", "steam_catalog:alert_rule_edit", "steam_catalog:alert_rule_delete", "steam_catalog:user_alert_create", "steam_catalog:user_alert_toggle"},
+    "steam_catalog": {"steam_catalog:list", "steam_catalog:add", "steam_catalog:detail", "steam_catalog:item", "steam_catalog:alert_rules", "steam_catalog:alert_help", "steam_catalog:alert_history", "steam_catalog:alert_rule_create", "steam_catalog:alert_rule_edit", "steam_catalog:alert_rule_delete", "steam_catalog:user_alert_create", "steam_catalog:user_alert_toggle"},
     "steam_investments": {"steam_trading:investments", "steam_trading:list", "steam_trading:add", "steam_trading:sell"},
     "control_center": {
         "frontend:admin_panel",

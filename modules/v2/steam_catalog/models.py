@@ -5,6 +5,8 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.urls import reverse
+from django.utils.text import slugify
 from django.utils.translation import get_language
 
 
@@ -79,6 +81,14 @@ class SteamItem(models.Model):
             return value
 
         return f"https://community.cloudflare.steamstatic.com/economy/image/{value}/{size}x{size}"
+
+    @property
+    def slug(self) -> str:
+        """URL part from the Steam name: "AK-47 | Redline (Field-Tested)" -> "ak-47-redline-field-tested"."""
+        return slugify(self.market_hash_name.replace("™", ""))[:120].strip("-") or "item"
+
+    def get_absolute_url(self) -> str:
+        return reverse("steam_catalog:item", kwargs={"item_id": self.pk, "slug": self.slug})
 
     def __str__(self) -> str:
         return self.market_hash_name

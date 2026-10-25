@@ -1,0 +1,13 @@
+{% load caseup_brand %}{% brand_asset "og_cover" as og_cover_url %}<meta name="description" content="{% if seo_description %}{{ seo_description }}{% else %}{{ site_settings.site_name|default:'CaseUP' }}: {% if LANGUAGE_CODE == 'ru' %}цены скинов CS2, алерты, инвестиции, фарм и статистика Steam и FACEIT{% else %}CS2 skin prices, alerts, investments, farming and Steam &amp; FACEIT stats{% endif %}{% endif %}">
+{% if seo_robots %}<meta name="robots" content="{{ seo_robots }}">
+{% endif %}<meta property="og:site_name" content="{{ site_settings.site_name|default:'CaseUP' }}">
+<meta property="og:type" content="{{ seo_og_type|default:'website' }}">
+<meta property="og:title" content="{% if seo_title %}{{ seo_title }}{% else %}{{ site_settings.site_name|default:'CaseUP' }}{% if LANGUAGE_CODE == 'ru' %} — панель трейдера CS2{% else %} — CS2 trader panel{% endif %}{% endif %}">
+<meta property="og:description" content="{% if seo_description %}{{ seo_description }}{% elif LANGUAGE_CODE == 'ru' %}Цены скинов CS2, алерты, инвестиции, кейсы, фарм и статистика Steam и FACEIT в одной панели.{% else %}CS2 skin prices, alerts, investments, cases, farming and Steam &amp; FACEIT stats in one panel.{% endif %}">
+<meta property="og:url" content="{% if seo_canonical %}{{ seo_canonical }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endif %}">
+<meta property="og:locale" content="{% if LANGUAGE_CODE == 'ru' %}ru_RU{% else %}en_US{% endif %}">
+<link rel="canonical" href="{% if seo_canonical %}{{ seo_canonical }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endif %}">
+{% if seo_image %}<meta property="og:image" content="{{ seo_image }}">
+<meta name="twitter:card" content="summary">{% elif og_cover_url %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ og_cover_url }}">
+<meta name="twitter:card" content="summary_large_image">{% endif %}
+{% if seo_jsonld %}<script type="application/ld+json">{{ seo_jsonld }}</script>{% endif %}

@@ -101,7 +101,7 @@ class SteamCatalogTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, item.group_name)
-        self.assertContains(response, "режиме просмотра")
+        self.assertContains(response, "Цены скинов CS2 в Steam")
         self.assertNotContains(response, "Добавить предмет")
 
     def test_catalog_search_without_results_returns_404_page(self):
@@ -139,12 +139,12 @@ class SteamCatalogTests(TestCase):
         SteamItemPriceHistory.objects.create(item=item, price_rub=Decimal("51.20"), source="manual")
 
         self.client.login(username="catalog_level1_detail", password="StrongPass123")
-        response = self.client.get(reverse("steam_catalog:detail", args=[item.id]))
+        response = self.client.get(item.get_absolute_url())
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, item.group_name)
         self.assertContains(response, "Анализ цены по подписке")
-        self.assertContains(response, "Редактирование закрыто")
+        self.assertNotContains(response, "Сохранить движение")
 
     def test_catalog_detail_uses_item_media_class_for_case_png(self):
         user = User.objects.create_user(username="catalog_case_png", password="StrongPass123")
@@ -159,7 +159,7 @@ class SteamCatalogTests(TestCase):
         )
 
         self.client.login(username="catalog_case_png", password="StrongPass123")
-        response = self.client.get(reverse("steam_catalog:detail", args=[item.id]))
+        response = self.client.get(item.get_absolute_url())
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'class="steam-catalog-detail__media"', html=False)
@@ -180,7 +180,7 @@ class SteamCatalogTests(TestCase):
         )
 
         self.client.login(username="catalog_skin_png", password="StrongPass123")
-        response = self.client.get(reverse("steam_catalog:detail", args=[item.id]))
+        response = self.client.get(item.get_absolute_url())
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'class="steam-catalog-detail__image"', html=False)
@@ -199,7 +199,7 @@ class SteamCatalogTests(TestCase):
         )
 
         self.client.login(username="catalog_no_icon", password="StrongPass123")
-        response = self.client.get(reverse("steam_catalog:detail", args=[item.id]))
+        response = self.client.get(item.get_absolute_url())
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'class="steam-catalog-detail__image-fallback"', html=False)
@@ -220,7 +220,7 @@ class SteamCatalogTests(TestCase):
         SteamItemPriceHistory.objects.create(item=item, price_rub=Decimal("42.00"), source="manual")
 
         self.client.login(username="catalog_level2_detail", password="StrongPass123")
-        response = self.client.get(reverse("steam_catalog:detail", args=[item.id]))
+        response = self.client.get(item.get_absolute_url())
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Период анализа")
@@ -461,7 +461,7 @@ class SteamCatalogTests(TestCase):
 
         self._grant_plan(user, 2)
         self.client.force_login(user)
-        response = self.client.get(reverse("steam_catalog:detail", args=[item.id]), {"range": "week"})
+        response = self.client.get(item.get_absolute_url(), {"range": "week"})
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["selected_price_history_range"], "week")
@@ -496,7 +496,7 @@ class SteamCatalogTests(TestCase):
     
         self._grant_plan(user, 2)
         self.client.force_login(user)
-        response = self.client.get(reverse("steam_catalog:detail", args=[item.id]), {"range": "day"})
+        response = self.client.get(item.get_absolute_url(), {"range": "day"})
     
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["selected_price_history_range"], "day")
@@ -528,7 +528,7 @@ class SteamCatalogTests(TestCase):
 
         self._grant_plan(user, 2)
         self.client.force_login(user)
-        response = self.client.get(reverse("steam_catalog:detail", args=[item.id]), {"range": "week"})
+        response = self.client.get(item.get_absolute_url(), {"range": "week"})
 
         self.assertEqual(response.status_code, 200)
 
@@ -641,7 +641,7 @@ class SteamCatalogTests(TestCase):
         self._grant_plan(user, 2)
         self.client.force_login(user)
         response = self.client.get(
-            reverse("steam_catalog:detail", args=[item.id]),
+            item.get_absolute_url(),
             {"range": "day"},
         )
     
@@ -1201,7 +1201,7 @@ class SteamCatalogStoreModuleSlotTests(TestCase):
 
     def test_detail_renders_without_module_override_by_default(self):
         self.client.login(username="catalog_store_slot", password="StrongPass123")
-        response = self.client.get(reverse("steam_catalog:detail", args=[self.item.id]))
+        response = self.client.get(self.item.get_absolute_url())
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Price Graphics Plus")
@@ -1212,7 +1212,7 @@ class SteamCatalogStoreModuleSlotTests(TestCase):
         activate_module_slot(user=self.user, listing_id=self.module_listing.id, slot=STEAM_CATALOG_DETAIL_CONTENT_SLOT)
 
         self.client.login(username="catalog_store_slot", password="StrongPass123")
-        response = self.client.get(reverse("steam_catalog:detail", args=[self.item.id]))
+        response = self.client.get(self.item.get_absolute_url())
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Price Graphics Plus")
@@ -1226,7 +1226,7 @@ class SteamCatalogStoreModuleSlotTests(TestCase):
         activate_module_slot(user=self.user, listing_id=self.mode_module_listing.id, slot=STEAM_CATALOG_DETAIL_MODE_SLOT)
 
         self.client.login(username="catalog_store_slot", password="StrongPass123")
-        response = self.client.get(reverse("steam_catalog:detail", args=[self.item.id]))
+        response = self.client.get(self.item.get_absolute_url())
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Steam Catalog 2.0 foundation")
@@ -1444,7 +1444,7 @@ class CS2ReferenceTests(TestCase):
         response = self.client.post(reverse("steam_catalog:reference_add", args=[reference.id]))
 
         anchor = SteamItem.objects.get(market_hash_name="AK-47 | Redline (Minimal Wear)")
-        self.assertRedirects(response, reverse("steam_catalog:detail", args=[anchor.id]), fetch_redirect_response=False)
+        self.assertRedirects(response, anchor.get_absolute_url(), fetch_redirect_response=False)
         family = SteamItem.objects.filter(family_name="AK-47 | Redline")
         self.assertGreater(family.count(), 1)
         self.assertFalse(family.filter(icon_url="").exists())

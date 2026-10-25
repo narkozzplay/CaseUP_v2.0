@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import math
 from datetime import timedelta
 from decimal import Decimal
@@ -9,6 +10,8 @@ from django.conf import settings
 from django.contrib import messages
 
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import redirect_to_login
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
@@ -16,6 +19,7 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import get_language
 from django.views.decorators.http import require_POST
 
 from common.search import render_search_not_found
@@ -45,6 +49,7 @@ from .services.bulk_import import read_status as read_bulk_import_status, write_
 from .services import MarketSearchError, refresh_item_prices, search_market_items, upsert_from_market_input
 from .services.helpers import canonical_listing_url, rarity_ru_label_from_key
 from .services.reference import catalog_ids_for_reference, fill_catalog_from_reference
+from . import seo
 
 
 def _catalog_staff_access(user) -> bool:
@@ -61,6 +66,27 @@ def _catalog_view_access(user) -> bool:
 
 def _catalog_analytics_access(user) -> bool:
     return user_has_feature(user, STEAM_CATALOG_DEEP_ANALYTICS)
+
+
+def _guest_cache_key(request, page: str) -> str | None:
+    """Cache key for data shown to guests: same for every guest, so many visits cost one query."""
+    if request.user.is_authenticated or getattr(settings, "STEAM_CATALOG_GUEST_CACHE_SECONDS", 0) <= 0:
+        return None
+    query = "&".join(f"{key}={value}" for key, value in sorted(request.GET.items()))
+    digest = hashlib.md5(f"{page}|{get_language()}|{query}".encode()).hexdigest()
+    return f"steam-catalog:guest:{digest}"
+
+
+def _guest_cache_set(key: str | None, value) -> None:
+    if key:
+        cache.set(key, value, settings.STEAM_CATALOG_GUEST_CACHE_SECONDS)
+
+
+def _locked_for_guest(request, **locked_kwargs):
+    """Without access: a guest is sent to sign in (and comes back), a signed-in user sees the plans card."""
+    if not request.user.is_authenticated:
+        return redirect_to_login(request.get_full_path())
+    return render_feature_locked_response(request, feature_code=STEAM_CATALOG_VIEW, **locked_kwargs)
 
 
 PRICE_HISTORY_RANGE_CHOICES = (
@@ -505,12 +531,10 @@ def _build_price_chart(chart_entries):
     }
 
 
-@login_required
 def catalog_list(request):
     if not _catalog_view_access(request.user):
-        return render_feature_locked_response(
+        return _locked_for_guest(
             request,
-            feature_code=STEAM_CATALOG_VIEW,
             title="Steam Catalog закрыт тарифом",
             description="Для просмотра каталога нужен активный подписочный уровень с визуальным доступом.",
         )
@@ -520,8 +544,14 @@ def catalog_list(request):
     can_edit = _catalog_staff_access(request.user)
     filters = browse.parse_filters(request.GET, can_edit=can_edit)
     fav_keys = browse.favorite_keys(request.user)
-    rows = browse.family_rows(filters, fav_keys=fav_keys)
-    page_obj = Paginator(rows, 24).get_page(request.GET.get("page") or 1)
+    guest_key = _guest_cache_key(request, "list")
+    cached = cache.get(guest_key) if guest_key else None
+    if cached is not None:
+        # A paginator over a range gives the same page numbers without counting the rows again.
+        page_obj = Paginator(range(cached["count"]), 24).get_page(request.GET.get("page") or 1)
+    else:
+        rows = browse.family_rows(filters, fav_keys=fav_keys)
+        page_obj = Paginator(rows, 24).get_page(request.GET.get("page") or 1)
 
     if filters.q and not page_obj.paginator.count and not filters.favorites:
         params = request.GET.copy()
@@ -536,8 +566,13 @@ def catalog_list(request):
             reset_url=reset_url,
         )
 
-    auto_update_categories = set(PriceAutoUpdateRule.objects.filter(is_enabled=True).values_list("category", flat=True))
-    cards = browse.build_cards(page_obj.object_list, filters, fav_keys=fav_keys, auto_update_categories=auto_update_categories)
+    if cached is not None:
+        cards, options = cached["cards"], cached["options"]
+    else:
+        auto_update_categories = set(PriceAutoUpdateRule.objects.filter(is_enabled=True).values_list("category", flat=True))
+        cards = browse.build_cards(page_obj.object_list, filters, fav_keys=fav_keys, auto_update_categories=auto_update_categories)
+        options = browse.filter_options(filters)
+        _guest_cache_set(guest_key, {"count": page_obj.paginator.count, "cards": cards, "options": options})
 
     configured_columns = getattr(settings, "STEAM_CATALOG_GRID_COLUMNS", 7)
     try:
@@ -565,7 +600,7 @@ def catalog_list(request):
             "page_obj": page_obj,
             "cards": cards,
             "filters": filters,
-            "options": browse.filter_options(filters),
+            "options": options,
             "favorites_count": len(fav_keys),
             "type_tab_query": query_without("type", "fav"),
             "fav_tab_query": query_without("fav", fav="1"),
@@ -574,6 +609,7 @@ def catalog_list(request):
             "catalog_can_edit": can_edit,
             "catalog_view_access_state": get_feature_access_state(request.user, STEAM_CATALOG_VIEW),
             "ads_feed_every_n": get_feed_every_n(request.user, request=request),
+            **seo.list_meta(request, filters, page_obj),
         },
         page_title=build_page_title("Steam Catalog"),
         active_menu_key="steam_catalog",
@@ -593,7 +629,7 @@ def toggle_favorite(request, item_id: int):
         return JsonResponse({"favorite": state, "count": len(browse.favorite_keys(request.user))})
     target = request.POST.get("next") or ""
     if not target.startswith("/steam-catalog/") and not target.startswith(reverse("steam_catalog:list")):
-        target = reverse("steam_catalog:detail", args=[item.pk])
+        target = item.get_absolute_url()
     return redirect(target)
 
 
@@ -616,7 +652,7 @@ def catalog_add(request):
                 )
             else:
                 messages.success(request, "Предмет добавлен в Steam Catalog.")
-            return redirect("steam_catalog:detail", item_id=result.anchor_item.id)
+            return redirect(result.anchor_item)
     else:
         form = AddSteamItemForm()
 
@@ -759,7 +795,7 @@ def catalog_reference_add(request, reference_id: int):
         messages.success(request, f"{reference.name}: добавлено {result.variants_created} вариантов.")
     else:
         messages.success(request, f"{reference.name} добавлен в Steam Catalog.")
-    return redirect("steam_catalog:detail", item_id=result.anchor_item.id)
+    return redirect(result.anchor_item)
 
 
 def _is_favorite(user, item) -> bool:
@@ -768,17 +804,21 @@ def _is_favorite(user, item) -> bool:
     return is_favorite(user, item)
 
 
-@login_required
-def catalog_detail(request, item_id: int):
+def catalog_detail(request, item_id: int, slug: str | None = None):
     if not _catalog_view_access(request.user):
-        return render_feature_locked_response(
+        return _locked_for_guest(
             request,
-            feature_code=STEAM_CATALOG_VIEW,
             title="Карточка Steam Catalog закрыта тарифом",
             description="Доступ к карточкам каталога открывается только при активной подписке с feature Steam Catalog View.",
         )
 
     item = get_object_or_404(SteamItem, pk=item_id)
+    if slug != item.slug:
+        # One address per item for search engines: the old /<id>/ and outdated names redirect here.
+        target = item.get_absolute_url()
+        if request.GET:
+            target = f"{target}?{request.GET.urlencode()}"
+        return redirect(target, permanent=True)
 
     family_items = (
         SteamItem.objects
@@ -799,16 +839,27 @@ def catalog_detail(request, item_id: int):
     )
     range_start = _get_price_history_range_start(selected_price_history_range)
 
-    history_qs = item.price_history.all()
-    if range_start is not None:
-        history_qs = history_qs.filter(created_at__gte=range_start)
+    can_view_deep_analytics = _catalog_analytics_access(request.user)
+    guest_key = _guest_cache_key(request, f"detail:{item.pk}")
+    history_data = cache.get(guest_key) if guest_key else None
+    if history_data is None:
+        history_qs = item.price_history.all()
+        if range_start is not None:
+            history_qs = history_qs.filter(created_at__gte=range_start)
 
-    filtered_history_asc = list(history_qs.order_by("created_at"))
-    price_history = list(reversed(filtered_history_asc[-50:]))
-
-    chart_entries = _build_raw_chart_entries(filtered_history_asc, selected_price_history_range)
-    price_chart = _build_price_chart(chart_entries)
-    price_analytics = _build_price_analytics(filtered_history_asc)
+        filtered_history_asc = list(history_qs.order_by("created_at"))
+        chart_entries = _build_raw_chart_entries(filtered_history_asc, selected_price_history_range)
+        history_data = {
+            # Guests never see the raw history table, so only the latest entry is kept for them.
+            "price_history": list(reversed(filtered_history_asc[-50:] if not guest_key else filtered_history_asc[-1:])),
+            "price_history_total": len(filtered_history_asc),
+            "price_chart": _build_price_chart(chart_entries),
+            "price_analytics": _build_price_analytics(filtered_history_asc),
+        }
+        _guest_cache_set(guest_key, history_data)
+    price_history = history_data["price_history"]
+    price_chart = history_data["price_chart"]
+    price_analytics = history_data["price_analytics"]
 
     auto_update_rule = (
         PriceAutoUpdateRule.objects
@@ -843,7 +894,7 @@ def catalog_detail(request, item_id: int):
             "name_ru_form": name_ru_form,
             "moves": item.stock_moves.select_related("reason", "created_by")[:20],
             "price_history": price_history,
-            "price_history_total": len(filtered_history_asc),
+            "price_history_total": history_data["price_history_total"],
             "price_chart": price_chart,
             "price_analytics": price_analytics,
             "latest_price_entry": price_history[0] if price_history else None,
@@ -853,13 +904,14 @@ def catalog_detail(request, item_id: int):
             "auto_update_rule": auto_update_rule,
             "auto_update_enabled": auto_update_rule is not None,
             "catalog_can_edit": _catalog_staff_access(request.user),
-            "catalog_can_view_deep_analytics": _catalog_analytics_access(request.user),
+            "catalog_can_view_deep_analytics": can_view_deep_analytics,
             "catalog_analytics_access_state": get_feature_access_state(request.user, STEAM_CATALOG_DEEP_ANALYTICS),
             "steam_market_url": canonical_listing_url(appid=730, market_hash_name=item.market_hash_name),
             "steam_catalog_detail_content_template": detail_content_template,
             "steam_catalog_detail_mode_template": detail_mode_template,
+            **seo.item_meta(request, item, family_min_price=family_min_price, family_max_price=family_max_price),
         },
-        page_title=f"{item.group_name} | Steam Catalog",
+        page_title=seo.item_title(item),
         active_menu_key="steam_catalog",
     )
 
@@ -871,12 +923,12 @@ def update_name_ru(request, item_id: int):
 
     item = get_object_or_404(SteamItem, pk=item_id)
     if request.method != "POST":
-        return redirect("steam_catalog:detail", item_id=item.id)
+        return redirect(item)
 
     form = SteamItemNameRuForm(request.POST, instance=item)
     if not form.is_valid():
         messages.error(request, "Не удалось сохранить РУ_нейм.")
-        return redirect("steam_catalog:detail", item_id=item.id)
+        return redirect(item)
 
     name_ru = (form.cleaned_data.get("name_ru") or "").strip() or None
 
@@ -888,7 +940,7 @@ def update_name_ru(request, item_id: int):
         item.save(update_fields=["name_ru", "updated_at"])
         messages.success(request, "РУ_нейм обновлён.")
 
-    return redirect("steam_catalog:detail", item_id=item.id)
+    return redirect(item)
 
 
 @login_required
@@ -899,7 +951,7 @@ def update_price(request, item_id: int):
     item = get_object_or_404(SteamItem, pk=item_id)
 
     if request.method != "POST":
-        return redirect("steam_catalog:detail", item_id=item.id)
+        return redirect(item)
 
     result = refresh_item_prices(
         item,
@@ -909,7 +961,7 @@ def update_price(request, item_id: int):
 
     if result.touched_count == 0:
         messages.error(request, "Не удалось получить актуальную цену из Steam.")
-        return redirect("steam_catalog:detail", item_id=item.id)
+        return redirect(item)
 
     if result.updated_count:
         messages.success(
@@ -922,7 +974,7 @@ def update_price(request, item_id: int):
             f"Цена уже актуальна. Проверено: {result.touched_count} шт. Новых записей истории: {result.history_written}.",
         )
 
-    return redirect("steam_catalog:detail", item_id=item.id)
+    return redirect(item)
 
 
 @login_required
@@ -933,7 +985,7 @@ def add_stock_move(request, item_id: int):
     item = get_object_or_404(SteamItem, pk=item_id)
 
     if request.method != "POST":
-        return redirect("steam_catalog:detail", item_id=item.id)
+        return redirect(item)
 
     form = StockMovementCreateForm(request.POST)
     if form.is_valid():
@@ -942,7 +994,7 @@ def add_stock_move(request, item_id: int):
     else:
         messages.error(request, "Не удалось сохранить движение склада.")
 
-    return redirect("steam_catalog:detail", item_id=item.id)
+    return redirect(item)
 
 
 @login_required
