@@ -79,6 +79,13 @@ class StockMovementCreateForm(forms.Form):
         return move
 
 
+def lock_alert_quota(user) -> None:
+    """Lock the user's row so concurrent alert saves count active alerts one at a time (call inside atomic)."""
+    from django.contrib.auth import get_user_model
+
+    get_user_model().objects.select_for_update().filter(pk=user.pk).exists()
+
+
 def alert_limit_error(user) -> str:
     """Error text when the user already has as many active alerts as their plan allows, else ""."""
     from modules.v2.subscriptions.limits import PRICE_ALERTS

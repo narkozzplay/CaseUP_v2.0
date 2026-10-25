@@ -67,7 +67,18 @@ def remind_expiring_subscriptions(*, now=None) -> int:
         )
         .filter(Q(starts_at__isnull=True) | Q(starts_at__lte=now))
     )
+    reminded = 0
     for subscription in due:
+        # Claim the reminder for this exact end date: a renewal that committed meanwhile moved it and keeps its own.
+        claimed = UserSubscription.objects.filter(
+            pk=subscription.pk,
+            status=UserSubscription.Status.ACTIVE,
+            expires_at=subscription.expires_at,
+            expiry_reminder_sent_at__isnull=True,
+        ).update(expiry_reminder_sent_at=now)
+        if not claimed:
+            continue
+        reminded += 1
         local_end = timezone.localtime(subscription.expires_at)
         _notify(
             subscription.user,
@@ -76,8 +87,7 @@ def remind_expiring_subscriptions(*, now=None) -> int:
             title=f"Подписка «{subscription.plan.name}» скоро закончится",
             body=f"Тариф действует до {local_end:%d.%m.%Y %H:%M}. Продлите его заранее, чтобы не потерять доступ.",
         )
-        UserSubscription.objects.filter(pk=subscription.pk).update(expiry_reminder_sent_at=now)
-    return len(due)
+    return reminded
 
 
 def process_subscription_lifecycle(*, now=None) -> dict[str, int]:
