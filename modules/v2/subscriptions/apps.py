@@ -6,3 +6,8 @@ class SubscriptionsConfig(AppConfig):
     name = "modules.v2.subscriptions"
     label = "subscriptions"
     verbose_name = "Subscriptions"
+
+    def ready(self):
+        from .notifications import register_notification_kinds
+
+        register_notification_kinds()

@@ -88,19 +88,17 @@
                     <span class="eyebrow">Аналитика</span>
                     <h2 class="section-title">История цены</h2>
                 </div>
-                {% if catalog_can_view_deep_analytics %}
-                    <nav class="price-panel__ranges" aria-label="Период">
-                        {% for value, label in price_history_range_choices %}
-                            <a href="?range={{ value }}#price-history" data-price-range-link class="price-chart__range-btn{% if selected_price_history_range == value %} is-active{% endif %}"{% if selected_price_history_range == value %} aria-current="true"{% endif %}>{{ label }}</a>
-                        {% endfor %}
-                    </nav>
-                {% endif %}
+                <nav class="price-panel__ranges" aria-label="Период">
+                    {% for value, label in price_history_range_choices %}
+                        <a href="?range={{ value }}#price-history" data-price-range-link class="price-chart__range-btn{% if selected_price_history_range == value %} is-active{% endif %}"{% if selected_price_history_range == value %} aria-current="true"{% endif %}>{{ label }}</a>
+                    {% endfor %}
+                </nav>
             </div>
 
-            {% if catalog_can_view_deep_analytics %}
             {% if price_chart.has_data %}
                 {% with currency=site_settings.site_currency_symbol|default:"₽" %}
                 <div class="price-chart">
+                    {% if catalog_can_view_deep_analytics %}
                     <div class="price-stats">
                         <div class="price-stat price-stat--main">
                             <span class="price-stat__label">Текущая</span>
@@ -128,6 +126,9 @@
                             <span class="price-stat__note">{{ price_analytics.drawdown_percent|stringformat:".2f" }}% · {{ price_analytics.drawdown_label }}</span>
                         </div>
                     </div>
+                    {% else %}
+                    {% include "subscriptions/partials/upgrade_card.html" with access_state=catalog_analytics_access_state title="Анализ цены по подписке" description="Тренд, мин/макс, просадка, сравнение периода и сырая история цен входят в тариф «Плюс». График цены доступен бесплатно." compact=True %}
+                    {% endif %}
 
                     {% localize off %}
                     <div class="pc" data-price-chart data-currency="{{ currency }}">
@@ -190,6 +191,7 @@
                     </div>
                     {% endlocalize %}
 
+                    {% if catalog_can_view_deep_analytics %}
                     <div class="price-chart__footer">
                         <span class="price-chart__analytics-caption">Период анализа: {{ price_analytics.period_span_label }}</span>
                         <span>{{ price_history_total }} записей · {{ price_chart.points|length }} точек на графике</span>
@@ -219,6 +221,7 @@
                             </table>
                         </div>
                     </details>
+                    {% endif %}
                 </div>
                 {% endwith %}
             {% else %}
@@ -227,11 +230,10 @@
                     <p class="text-muted">История цены за выбранный период пока не накоплена. Нажми «Обновить цену» или выбери период пошире.</p>
                 </div>
             {% endif %}
-            {% else %}
-                {% include "subscriptions/partials/upgrade_card.html" with access_state=catalog_analytics_access_state title="Глубокая аналитика закрыта" description="График, сырая история цен и блок аналитики по периоду входят в подписочный уровень Steam Catalog Deep Analytics." compact=True %}
-            {% endif %}
         </div>
     </article>
+
+    {% ad_slot "item_below_chart" %}
 
     <div class="item-columns">
         <article class="card">

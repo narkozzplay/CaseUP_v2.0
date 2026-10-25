@@ -36,7 +36,9 @@ class SteamTradingTests(TestCase):
         self.client = Client()
 
     def _grant_plan(self, user, level: int):
-        plan = SubscriptionPlan.objects.get(level=level)
+        # Old test levels mapped onto the new lineup: 1 = no ads, 2-3 = Plus, 4-5 = Pro.
+        code = {1: "site_no_ads", 2: "site_plus", 3: "site_plus"}.get(level, "site_pro")
+        plan = SubscriptionPlan.objects.get(code=code)
         return UserSubscription.objects.create(user=user, plan=plan)
 
     def _make_farmer(self, username="farmer_trade"):

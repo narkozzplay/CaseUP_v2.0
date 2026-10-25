@@ -57,12 +57,12 @@ class CanCustomizeTests(TestCase):
         self.assertTrue(can_customize_profile(self.store_author))
 
     def test_level5_can(self):
-        plan = SubscriptionPlan.objects.get(level=5)
+        plan = SubscriptionPlan.objects.get(code="site_pro")
         UserSubscription.objects.create(user=self.regular, plan=plan, family="site")
         self.assertTrue(can_customize_profile(self.regular))
 
     def test_level4_cannot(self):
-        plan = SubscriptionPlan.objects.get(level=4)
+        plan = SubscriptionPlan.objects.get(code="site_plus")
         UserSubscription.objects.create(user=self.regular, plan=plan, family="site")
         self.assertFalse(can_customize_profile(self.regular))
 
@@ -76,7 +76,7 @@ class BackgroundServiceTests(TestCase):
         self.admin = _make_admin("admin_bg")
         self.regular = _make_user("regular_bg")
         # Give regular user level 5 access
-        plan = SubscriptionPlan.objects.get(level=5)
+        plan = SubscriptionPlan.objects.get(code="site_pro")
         UserSubscription.objects.create(user=self.regular, plan=plan, family="site")
 
     def test_add_background(self):
@@ -141,7 +141,7 @@ class AvatarServiceTests(TestCase):
     def setUp(self):
         self.admin = _make_admin("admin_av")
         self.regular = _make_user("regular_av")
-        plan = SubscriptionPlan.objects.get(level=5)
+        plan = SubscriptionPlan.objects.get(code="site_pro")
         UserSubscription.objects.create(user=self.regular, plan=plan, family="site")
 
     def test_add_avatar(self):

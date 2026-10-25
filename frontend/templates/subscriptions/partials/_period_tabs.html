@@ -1,0 +1,7 @@
+<nav class="pricing-periods" aria-label="Срок подписки">
+    {% for tab in period_tabs %}
+        <a href="?months={{ tab.months }}" class="pricing-periods__tab{% if tab.is_active %} is-active{% endif %}"{% if tab.is_active %} aria-current="true"{% endif %}>
+            {{ tab.months }} мес.{% if tab.discount_percent %} <span class="pricing-periods__save">−{{ tab.discount_percent }}%</span>{% endif %}
+        </a>
+    {% endfor %}
+</nav>

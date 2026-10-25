@@ -5,8 +5,8 @@ import re
 from django.db import transaction
 
 from modules.v2.profiles.rbac import get_user_role
-from modules.v2.subscriptions.models import SubscriptionPlan
-from modules.v2.subscriptions.services import get_active_subscription
+from modules.v2.subscriptions.feature_codes import PROFILE_CUSTOMIZATION
+from modules.v2.subscriptions.services import user_has_feature
 
 from .effects import SLOT_FRAME, SLOT_HERO, SLOT_NAME, SLOTS, get_effect
 from .models import SteamAvatar, SteamBackground, UserCustomization
@@ -17,7 +17,7 @@ from .models import SteamAvatar, SteamBackground, UserCustomization
 # ---------------------------------------------------------------------------
 
 def can_customize_profile(user) -> bool:
-    """True if admin_plus OR store_author OR active Site Level 5 (Pro)."""
+    """True if admin_plus OR store_author OR a plan with the profile_customization feature (Pro)."""
     if not getattr(user, "is_authenticated", False):
         return False
     role = get_user_role(user)
@@ -31,14 +31,12 @@ def can_customize_profile(user) -> bool:
             profile = None
     if profile and getattr(profile, "is_store_author", False):
         return True
-    # Level 5 Pro Site plan
-    sub = get_active_subscription(user, family=SubscriptionPlan.Family.SITE)
-    return bool(sub and sub.plan and sub.plan.level >= 5)
+    return user_has_feature(user, PROFILE_CUSTOMIZATION)
 
 
 def _require_can_customize(user) -> None:
     if not can_customize_profile(user):
-        raise PermissionError("Кастомизация профиля недоступна. Требуется Level 5 Pro или права admin.")
+        raise PermissionError("Кастомизация профиля недоступна. Требуется тариф Pro или права admin.")
 
 
 def _require_admin_plus(user) -> None:

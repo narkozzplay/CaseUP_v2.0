@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from modules.v2.subscriptions.models import SubscriptionPlan, UserSubscription
+from modules.v2.subscriptions.models import SubscriptionFeature, SubscriptionPlan, UserSubscription
 
 from .models import SteamItem, SteamItemFavorite
 from .services import browse
@@ -72,7 +72,7 @@ class CatalogFilterTests(TestCase):
 class CatalogFavoriteTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="fan", password="x")
-        UserSubscription.objects.create(user=self.user, plan=SubscriptionPlan.objects.get(level=1))
+        UserSubscription.objects.create(user=self.user, plan=SubscriptionPlan.objects.get(code="site_no_ads"))
         self.client = Client()
         self.client.force_login(self.user)
         self.old = skin("AWP | Asiimov", "Battle-Scarred", "7490")
@@ -104,6 +104,7 @@ class CatalogFavoriteTests(TestCase):
         self.assertFalse(SteamItemFavorite.objects.exists())
 
     def test_locked_catalog_cannot_star(self):
+        SubscriptionFeature.objects.filter(code="steam_catalog_view").update(free_tier=SubscriptionFeature.FreeTier.NONE)
         plain = User.objects.create_user(username="plain", password="x")
         client = Client()
         client.force_login(plain)

@@ -1,0 +1,26 @@
+{% if slot %}
+<aside class="ad-slot ad-slot--{{ slot.key }}" aria-label="Реклама">
+    <span class="ad-slot__label">Реклама</span>
+    {% if slot.provider == "house" %}
+        {% with banner=slot.placement %}
+            <a class="ad-house{% if banner.house_image %} ad-house--image{% endif %}" {% if banner.house_url %}href="{{ banner.house_url }}"{% if banner.house_url|slice:":4" == "http" %} target="_blank" rel="noopener sponsored" data-dashboard-nav="false"{% endif %}{% endif %}>
+                {% if banner.house_image %}<img class="ad-house__image" src="{{ banner.house_image.url }}" alt="{{ banner.house_title }}" loading="lazy">{% endif %}
+                {% if banner.house_title or banner.house_text %}
+                    <span class="ad-house__copy">
+                        {% if banner.house_title %}<strong class="ad-house__title">{{ banner.house_title }}</strong>{% endif %}
+                        {% if banner.house_text %}<span class="ad-house__text">{{ banner.house_text }}</span>{% endif %}
+                    </span>
+                {% endif %}
+                {% if banner.house_button %}<span class="btn btn-primary btn-sm ad-house__button">{{ banner.house_button }}</span>{% endif %}
+            </a>
+        {% endwith %}
+    {% elif slot.provider == "custom" %}
+        <div class="ad-slot__body">{{ slot.custom_html|safe }}</div>
+    {% elif slot.provider == "google" %}
+        <ins class="adsbygoogle ad-slot__body" style="display:block" data-ad-client="{{ slot.adsense_client_id }}" data-ad-slot="{{ slot.block_id }}" data-ad-format="auto" data-full-width-responsive="true" data-caseup-ad="google"></ins>
+    {% else %}
+        <div class="ad-slot__body" data-caseup-ad="yandex" data-ad-block="{{ slot.block_id }}"></div>
+    {% endif %}
+    {% if slot.show_remove_link %}<a href="{% url 'subscriptions:plans' %}" class="ad-slot__remove">Убрать рекламу за 99 ₽</a>{% endif %}
+</aside>
+{% endif %}

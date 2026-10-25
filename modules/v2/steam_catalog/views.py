@@ -36,7 +36,9 @@ from modules.v2.subscriptions.services import get_feature_access_state, user_has
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
 
-from .forms import AddSteamItemForm, SteamItemNameRuForm, StockMovementCreateForm, UserPriceAlertRuleForm
+from modules.v2.ads.services import get_feed_every_n
+
+from .forms import AddSteamItemForm, SteamItemNameRuForm, StockMovementCreateForm, UserPriceAlertRuleForm, alert_limit_error
 from .models import CS2ReferenceItem, SteamItem, UserPriceAlertEvent, UserPriceAlertRule
 from .services.bulk_import import read_status as read_bulk_import_status, write_status as write_bulk_import_status
 from .services import MarketSearchError, refresh_item_prices, search_market_items, upsert_from_market_input
@@ -570,6 +572,7 @@ def catalog_list(request):
             "catalog_grid_columns": configured_columns,
             "catalog_can_edit": can_edit,
             "catalog_view_access_state": get_feature_access_state(request.user, STEAM_CATALOG_VIEW),
+            "ads_feed_every_n": get_feed_every_n(request.user),
         },
         page_title=build_page_title("Steam Catalog"),
         active_menu_key="steam_catalog",
@@ -991,6 +994,11 @@ def user_alert_rule_toggle(request, rule_id: int):
     if request.method != "POST":
         return HttpResponseForbidden("Method not allowed.")
     rule = get_object_or_404(UserPriceAlertRule, pk=rule_id, user=request.user)
+    if rule.status != UserPriceAlertRule.Status.ACTIVE:
+        limit_message = alert_limit_error(request.user)
+        if limit_message:
+            messages.error(request, limit_message)
+            return redirect("steam_catalog:alert_rules")
     rule.status = UserPriceAlertRule.Status.DISABLED if rule.status == UserPriceAlertRule.Status.ACTIVE else UserPriceAlertRule.Status.ACTIVE
     rule.save(update_fields=["status", "updated_at"])
     messages.success(request, "Статус правила обновлен.")

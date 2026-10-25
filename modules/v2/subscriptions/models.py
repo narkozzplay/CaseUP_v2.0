@@ -15,10 +15,16 @@ ZERO_MONEY = Decimal("0.00")
 
 
 class SubscriptionFeature(models.Model):
+    class FreeTier(models.TextChoices):
+        NONE = "none", "Только по подписке"
+        GUEST = "guest", "Бесплатно всем"
+        REGISTERED = "registered", "Бесплатно после входа"
+
     code = models.CharField(max_length=64, unique=True)
     name = models.CharField(max_length=120)
     description = models.TextField(blank=True, default="")
     module_key = models.CharField(max_length=64, blank=True, default="")
+    free_tier = models.CharField(max_length=16, choices=FreeTier.choices, default=FreeTier.NONE)
     is_active = models.BooleanField(default=True, db_index=True)
     sort_order = models.PositiveSmallIntegerField(default=100)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -66,6 +72,8 @@ class SubscriptionPlan(models.Model):
     description = models.TextField(blank=True, default="")
     ui_badge = models.CharField(max_length=64, blank=True, default="")
     ui_features = models.JSONField(default=list, blank=True)
+    # Quotas by key (see limits.py); a missing key falls back to the free quota, null means unlimited.
+    limits = models.JSONField(default=dict, blank=True)
     price_rub = models.DecimalField(max_digits=12, decimal_places=2, default=ZERO_MONEY)
     price_floor_rub = models.DecimalField(max_digits=12, decimal_places=2, default=ZERO_MONEY)
     manual_price_adjustment_rub = models.DecimalField(max_digits=12, decimal_places=2, default=ZERO_MONEY)
@@ -113,6 +121,13 @@ class SubscriptionPlan(models.Model):
             if value:
                 normalized_ui_features.append(value)
         self.ui_features = normalized_ui_features
+        if self.limits is None:
+            self.limits = {}
+        if not isinstance(self.limits, dict):
+            raise ValidationError({"limits": "Limits must be a JSON object."})
+        for key, value in self.limits.items():
+            if value is not None and (not isinstance(value, int) or isinstance(value, bool) or value < 0):
+                raise ValidationError({"limits": f"Limit {key} must be a non-negative integer or null."})
         if self.price_rub < ZERO_MONEY:
             raise ValidationError({"price_rub": "Plan price cannot be negative."})
         if self.price_floor_rub < ZERO_MONEY:
@@ -194,6 +209,10 @@ class SubscriptionPricingConfig(models.Model):
     enhanced_benefits_weight_rub = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("49.00"))
     global_price_floor_rub = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("99.00"))
     reasonable_delta_percent = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("15.00"))
+    # Long-term discounts for paying several months at once.
+    period_discount_3m_percent = models.PositiveSmallIntegerField(default=10)
+    period_discount_6m_percent = models.PositiveSmallIntegerField(default=15)
+    period_discount_12m_percent = models.PositiveSmallIntegerField(default=25)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -229,6 +248,9 @@ class SubscriptionPricingConfig(models.Model):
             errors["reduced_commission_capture_ratio_percent"] = "Capture ratio cannot be negative."
         if self.reasonable_delta_percent <= ZERO_MONEY:
             errors["reasonable_delta_percent"] = "Reasonable delta must be greater than 0."
+        for field_name in ("period_discount_3m_percent", "period_discount_6m_percent", "period_discount_12m_percent"):
+            if getattr(self, field_name) > 90:
+                errors[field_name] = "Discount cannot exceed 90%."
         if errors:
             raise ValidationError(errors)
 
@@ -267,6 +289,7 @@ class UserSubscription(models.Model):
     )
     starts_at = models.DateTimeField(default=timezone.now, db_index=True)
     expires_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    expiry_reminder_sent_at = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -17,8 +17,9 @@
                     <span class="eyebrow">Subscriptions</span>
                     <h1 class="page-title">Тарифы подписки</h1>
                     <p class="hero-text pricing-hero__text">
-                        Site-линейка открывает общие возможности платформы.
-                        Farmer-линейка живет отдельно и может быть активна одновременно с site-планом.
+                        Каталог цен, графики, избранное и {{ free_alert_limit }} алерта доступны бесплатно.
+                        Подписка убирает рекламу и открывает анализ цен, Telegram и инструменты инвестора.
+                        Farmer-тарифы живут отдельно и действуют одновременно с тарифом сайта.
                     </p>
                     <div class="pricing-hero__actions">
                         <a href="{% url 'subscriptions:farmer_plans' %}" class="btn btn-secondary btn-sm">Farmer-планы</a>
@@ -33,7 +34,6 @@
                         <div class="pricing-current-plan">
                             <span class="badge">Текущий тариф</span>
                             <strong>{{ current_subscription.active_plan.name }}</strong>
-                            <span>Level {{ current_subscription.plan_level }}</span>
                             {% if current_subscription.active_subscription.expires_at %}
                                 <small>Активен до {{ current_subscription.active_subscription.expires_at|date:"d.m.Y H:i" }}</small>
                             {% else %}
@@ -42,9 +42,9 @@
                         </div>
                     {% else %}
                         <div class="pricing-current-plan pricing-current-plan--empty">
-                            <span class="badge">Balance purchase</span>
-                            <strong>Покупка идет напрямую с баланса профиля</strong>
-                            <small>Пополняй баланс у администратора и активируй тариф без отдельного платежного слоя.</small>
+                            <span class="badge">Оплата с баланса</span>
+                            <strong>Тариф покупается с баланса профиля</strong>
+                            <small>Пополни баланс и активируй тариф в один клик. Срок — 30 дней, за 3 дня до конца придёт напоминание.</small>
                         </div>
                     {% endif %}
                 </div>
@@ -55,19 +55,45 @@
 
 <section class="section section--compact">
     <div class="container">
+        {% include "subscriptions/partials/_period_tabs.html" %}
         <div class="plan-grid">
+            <article class="plan-card plan-card--free{% if request.user.is_authenticated and not current_subscription.has_active_subscription %} plan-card--current{% endif %}">
+                <header class="plan-card__head">
+                    <span class="plan-card__badge">Free</span>
+                    {% if request.user.is_authenticated and not current_subscription.has_active_subscription %}<span class="plan-card__badge plan-card__badge--current">Ваш тариф</span>{% endif %}
+                </header>
+                <h2 class="plan-card__name">Бесплатно</h2>
+                <div class="plan-card__price">
+                    <strong>{% money 0 %}</strong>
+                    <span>навсегда</span>
+                </div>
+                <p class="plan-card__description">Всё, чтобы следить за ценами CS2. С рекламой.</p>
+                <ul class="plan-card__features">
+                    <li>Каталог предметов, поиск и фильтры</li>
+                    <li>Текущие цены и график цены</li>
+                    <li>Избранное</li>
+                    <li>{{ free_alert_limit }} ценовых алерта на сайте и в пуш</li>
+                </ul>
+                <div class="plan-card__action">
+                    {% if request.user.is_authenticated %}
+                        <a href="{% url 'steam_catalog:list' %}" class="btn btn-secondary btn-block">Открыть каталог</a>
+                    {% else %}
+                        <a href="{% url 'accounts:login' %}" class="btn btn-secondary btn-block">Войти бесплатно</a>
+                    {% endif %}
+                </div>
+            </article>
             {% for plan in plans %}
-                                <article class="plan-card plan-card--l{{ plan.level }}{% if current_subscription.active_plan and current_subscription.active_plan.id == plan.id %} plan-card--current{% endif %}">
+                <article class="plan-card plan-card--{{ plan.code }}{% if current_subscription.active_plan and current_subscription.active_plan.id == plan.id %} plan-card--current{% endif %}">
                     <header class="plan-card__head">
-                        <span class="plan-card__level">L{{ plan.level }}</span>
                         {% if plan.ui_badge %}<span class="plan-card__badge">{{ plan.ui_badge }}</span>{% endif %}
                         {% if current_subscription.active_plan and current_subscription.active_plan.id == plan.id %}<span class="plan-card__badge plan-card__badge--current">Ваш тариф</span>{% endif %}
                     </header>
                     <h2 class="plan-card__name">{{ plan.name }}</h2>
                     <div class="plan-card__price">
-                        <strong>{% money plan.price_rub %}</strong>
-                        <span>/ {{ plan.billing_period_days }} дн.</span>
+                        <strong>{% money plan.period_price %}</strong>
+                        <span>/ {% if selected_months == 1 %}{{ plan.billing_period_days }} дн.{% else %}{{ selected_months }} мес.{% endif %}</span>
                     </div>
+                    {% if selected_months != 1 %}<p class="plan-card__per-month">{% money plan.period_per_month %} в месяц вместо {% money plan.price_rub %}</p>{% endif %}
                     <p class="plan-card__description">{{ plan.description }}</p>
 
                     <ul class="plan-card__features">
@@ -99,6 +125,7 @@
                         {% else %}
                             <form method="post" action="{% url 'subscriptions:purchase_plan' plan.id %}" class="inline-form inline-form--block">
                                 {% csrf_token %}
+                                <input type="hidden" name="months" value="{{ selected_months }}">
                                 <button type="submit" class="btn btn-primary btn-block">{{ plan.purchase_ui.button_label }}</button>
                             </form>
                         {% endif %}
@@ -119,7 +146,7 @@
             <div class="card-body">
                 <div class="section-heading">
                     <h2>Матрица возможностей</h2>
-                    <p class="text-muted">Коммерческие подписки отделены от RBAC и глобальных module flags.</p>
+                    <p class="text-muted">Что входит в каждый тариф.</p>
                 </div>
 
                 <div class="table-wrap">
@@ -127,6 +154,7 @@
                         <thead>
                             <tr>
                                 <th>Возможность</th>
+                                <th>Бесплатно</th>
                                 {% for plan in plans %}
                                     <th>{{ plan.name }}</th>
                                 {% endfor %}
@@ -139,9 +167,12 @@
                                         <strong>{{ row.feature.name }}</strong>
                                         <div class="text-muted">{{ row.feature.description }}</div>
                                     </td>
+                                    <td class="pricing-compare-table__cell">
+                                        {% if row.is_free %}<span class="pricing-check">✓</span>{% else %}<span class="pricing-check pricing-check--off">—</span>{% endif %}
+                                    </td>
                                     {% for plan in plans %}
                                         <td class="pricing-compare-table__cell">
-                                            {% if plan.id in row.plan_ids %}
+                                            {% if row.is_free or plan.id in row.plan_ids %}
                                                 <span class="pricing-check">✓</span>
                                             {% else %}
                                                 <span class="pricing-check pricing-check--off">—</span>

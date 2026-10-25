@@ -260,7 +260,7 @@ class UsersCatalogTests(TestCase):
         admin.profile_v2.save(update_fields=["role"])
 
         target = User.objects.create_user(username="target_subscribed", password="StrongPass123")
-        plan = SubscriptionPlan.objects.get(level=4)
+        plan = SubscriptionPlan.objects.get(code="site_plus")
         UserSubscription.objects.create(user=target, plan=plan)
 
         self.client.login(username="admin_sub_view", password="StrongPass123")
@@ -277,7 +277,7 @@ class UsersCatalogTests(TestCase):
         admin.profile_v2.save(update_fields=["role"])
 
         target = User.objects.create_user(username="target_manage_profile", password="StrongPass123")
-        plan = SubscriptionPlan.objects.get(level=5)
+        plan = SubscriptionPlan.objects.get(code="site_pro")
 
         self.client.login(username="admin_manage_profile", password="StrongPass123")
         response = self.client.post(
@@ -550,7 +550,7 @@ class UsersCatalogTests(TestCase):
         # Theme preferences moved from profile page to settings page
         update_module_states({"store": True})
         user = User.objects.create_user(username="theme_profile_user", password="StrongPass123")
-        plan = SubscriptionPlan.objects.get(level=1)
+        plan = SubscriptionPlan.objects.get(code="site_no_ads")
         UserSubscription.objects.create(user=user, plan=plan)
         listing = ThemeStoreListing.objects.get(key="steam-catalog-price-graph-theme")
         self.client.login(username="theme_profile_user", password="StrongPass123")
@@ -572,7 +572,7 @@ class UsersCatalogTests(TestCase):
     def test_profile_theme_preferences_update_persists_scope_selection(self):
         update_module_states({"store": True})
         user = User.objects.create_user(username="theme_profile_save_user", password="StrongPass123")
-        plan = SubscriptionPlan.objects.get(level=1)
+        plan = SubscriptionPlan.objects.get(code="site_no_ads")
         UserSubscription.objects.create(user=user, plan=plan)
         listing = ThemeStoreListing.objects.get(key="steam-catalog-price-graph-theme")
         UserThemePurchase.objects.create(

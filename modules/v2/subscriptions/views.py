@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
@@ -17,11 +19,17 @@ from .forms import (
     SitePlanPricingFormSet,
     SubscriptionPricingConfigForm,
 )
-from .models import SubscriptionFeaturePricingRule, SubscriptionPlan
+from .limits import FREE_LIMITS, PRICE_ALERTS
+from .models import SubscriptionFeature, SubscriptionFeaturePricingRule, SubscriptionPlan
 from .pricing import evaluate_family_pricing
 from .services import (
     SubscriptionPurchaseError,
+    PERIOD_MONTHS,
     get_available_plans,
+    get_period_discount_percent,
+    get_period_options,
+    get_period_price,
+    normalize_months,
     get_subscription_context,
     get_subscription_pricing_config,
     get_subscription_purchase_quote,
@@ -45,11 +53,14 @@ def _purchase_redirect_name(family: str) -> str:
     return "subscriptions:farmer_plans" if family == FARMER_FAMILY else "subscriptions:plans"
 
 
-def _attach_purchase_ui(*, plans, user, viewer_balance):
+def _attach_purchase_ui(*, plans, user, viewer_balance, months=1):
     is_authenticated = getattr(user, "is_authenticated", False)
 
     for plan in plans:
-        quote = get_subscription_purchase_quote(user=user, plan=plan)
+        quote = get_subscription_purchase_quote(user=user, plan=plan, months=months)
+        plan.period_options = get_period_options(plan)
+        plan.period_price = get_period_price(plan, quote.months)
+        plan.period_per_month = (plan.period_price / quote.months).quantize(Decimal("0.01"))
 
         purchase_ui = {
             "state": "buy",
@@ -71,14 +82,36 @@ def _attach_purchase_ui(*, plans, user, viewer_balance):
                     "show_amount": False,
                 }
             )
-        elif quote.is_same_plan:
+        elif quote.is_same_plan and not quote.is_renewal:
             purchase_ui.update(
                 {
                     "state": "current",
                     "button_label": "Активен сейчас",
-                    "hint": "Этот тариф уже действует.",
+                    "hint": "Этот тариф уже действует бессрочно.",
                     "is_disabled": True,
                     "show_amount": False,
+                }
+            )
+        elif quote.is_renewal and viewer_balance is not None and viewer_balance < quote.charge_amount:
+            purchase_ui.update(
+                {
+                    "state": "topup",
+                    "button_label": "Пополнить баланс",
+                    "hint": (
+                        f"Для продления нужно {quote.charge_amount:.2f} ₽, "
+                        f"на балансе {viewer_balance:.2f} ₽."
+                    ),
+                    "href": reverse("payments:topup"),
+                    "show_amount": True,
+                }
+            )
+        elif quote.is_renewal:
+            purchase_ui.update(
+                {
+                    "state": "renew",
+                    "button_label": "Продлить",
+                    "hint": quote.message,
+                    "show_amount": True,
                 }
             )
         elif quote.blocked_by_higher_level:
@@ -120,13 +153,16 @@ def _attach_purchase_ui(*, plans, user, viewer_balance):
     return plans
 
 
-def _build_comparison_features(plans):
+def _build_comparison_features(plans, *, free_features=()):
     plan_feature_sets = {
         plan.id: {feature.code for feature in plan.features.all() if feature.is_active}
         for plan in plans
     }
-    comparison_features = []
-    seen_feature_ids = set()
+    comparison_features = [
+        {"feature": feature, "plan_ids": tuple(plan.id for plan in plans), "is_free": True}
+        for feature in free_features
+    ]
+    seen_feature_ids = {feature.id for feature in free_features}
     for plan in plans:
         for feature in plan.features.all():
             if not feature.is_active or feature.id in seen_feature_ids:
@@ -140,17 +176,30 @@ def _build_comparison_features(plans):
                         for candidate in plans
                         if feature.code in plan_feature_sets.get(candidate.id, set())
                     ),
+                    "is_free": False,
                 }
             )
     return comparison_features
 
 
+def _selected_months(request) -> int:
+    return normalize_months(request.GET.get("months"))
+
+
+def _period_tabs(selected: int) -> list[dict]:
+    return [
+        {"months": months, "discount_percent": get_period_discount_percent(months), "is_active": months == selected}
+        for months in PERIOD_MONTHS
+    ]
+
+
 def plans_page(request):
+    months = _selected_months(request)
     plans = get_available_plans(family=SITE_FAMILY)
     current_subscription = get_subscription_context(getattr(request, "user", None), family=SITE_FAMILY)
     current_farmer_subscription = get_subscription_context(getattr(request, "user", None), family=FARMER_FAMILY)
     viewer_balance = _get_viewer_balance(getattr(request, "user", None))
-    plans = _attach_purchase_ui(plans=plans, user=getattr(request, "user", None), viewer_balance=viewer_balance)
+    plans = _attach_purchase_ui(plans=plans, user=getattr(request, "user", None), viewer_balance=viewer_balance, months=months)
 
     next_plan = None
     if current_subscription.active_plan is not None:
@@ -159,9 +208,19 @@ def plans_page(request):
             None,
         )
 
+    free_features = list(
+        SubscriptionFeature.objects
+        .filter(is_active=True)
+        .exclude(free_tier=SubscriptionFeature.FreeTier.NONE)
+        .order_by("sort_order", "name", "id")
+    )
+
     context = {
         "plans": plans,
-        "comparison_features": _build_comparison_features(plans),
+        "comparison_features": _build_comparison_features(plans, free_features=free_features),
+        "free_alert_limit": FREE_LIMITS[PRICE_ALERTS],
+        "selected_months": months,
+        "period_tabs": _period_tabs(months),
         "current_subscription": current_subscription,
         "current_farmer_subscription": current_farmer_subscription,
         "next_plan": next_plan,
@@ -172,13 +231,14 @@ def plans_page(request):
 
 
 def farmer_plans_page(request):
+    months = _selected_months(request)
     plans = get_available_plans(family=FARMER_FAMILY)
     role_access = get_user_role(getattr(request, "user", None))
     current_subscription = get_subscription_context(getattr(request, "user", None), family=FARMER_FAMILY)
     current_site_subscription = get_subscription_context(getattr(request, "user", None), family=SITE_FAMILY)
     pricing_rows = evaluate_family_pricing(family=FARMER_FAMILY)
     viewer_balance = _get_viewer_balance(getattr(request, "user", None))
-    plans = _attach_purchase_ui(plans=plans, user=getattr(request, "user", None), viewer_balance=viewer_balance)
+    plans = _attach_purchase_ui(plans=plans, user=getattr(request, "user", None), viewer_balance=viewer_balance, months=months)
 
     context = {
         "plans": plans,
@@ -188,11 +248,13 @@ def farmer_plans_page(request):
         "pricing_rows": pricing_rows,
         "role_access": role_access,
         "show_pricing_meta": role_access.is_admin_plus,
+        "selected_months": months,
+        "period_tabs": _period_tabs(months),
         "viewer_balance": viewer_balance,
         "free_access_items": (
-            "Farm dashboard, farm accounts и weekly drops остаются доступны без farmer-подписки.",
-            "Базовый обзор активного пула и последних сессий доступен без deep analytics.",
-            "Коммерческие функции — deep analytics, TG alerts, reduced commission и bonus program — открываются отдельной farmer-line.",
+            "Дашборд фермы, аккаунты и недельные дропы доступны без farmer-подписки.",
+            "Базовый обзор активного пула и последних сессий доступен без глубокой аналитики.",
+            "Farmer открывает аналитику фермы и TG-алерты, Farmer Pro добавляет сниженную комиссию, аналитику продаж и бонусную программу. Оба тарифа убирают рекламу.",
         ),
     }
     return render(request, "subscriptions/farmer_plans.html", context)
@@ -204,15 +266,17 @@ def purchase_plan_with_balance_view(request, plan_id: int):
         return redirect("subscriptions:plans")
 
     plan = get_object_or_404(SubscriptionPlan, pk=plan_id, is_active=True)
+    months = normalize_months(request.POST.get("months"))
 
     try:
-        purchase_subscription_with_balance(user=request.user, plan=plan)
+        purchase_subscription_with_balance(user=request.user, plan=plan, months=months)
     except SubscriptionPurchaseError as exc:
         messages.error(request, str(exc))
     else:
-        messages.success(request, f"Тариф {plan.name} успешно активирован.")
+        messages.success(request, f"Тариф {plan.name} успешно активирован на {months} мес.")
 
-    return redirect(_purchase_redirect_name(plan.family))
+    url = reverse(_purchase_redirect_name(plan.family))
+    return redirect(f"{url}?months={months}" if months != 1 else url)
 
 
 @login_required

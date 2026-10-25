@@ -49,21 +49,22 @@
 
 <section class="section section--compact">
     <div class="container">
+        {% include "subscriptions/partials/_period_tabs.html" %}
         <div class="plan-grid">
             {% for plan in plans %}
                 {% for row in pricing_rows %}
                     {% if row.plan.id == plan.id %}
-                        <article class="plan-card plan-card--l{{ plan.level|add:1 }}{% if current_subscription.active_plan and current_subscription.active_plan.id == plan.id %} plan-card--current{% endif %}">
+                        <article class="plan-card plan-card--{{ plan.code }}{% if current_subscription.active_plan and current_subscription.active_plan.id == plan.id %} plan-card--current{% endif %}">
                             <header class="plan-card__head">
-                                <span class="plan-card__level">F{{ plan.level }}</span>
                                 {% if plan.ui_badge %}<span class="plan-card__badge">{{ plan.ui_badge }}</span>{% endif %}
                                 {% if current_subscription.active_plan and current_subscription.active_plan.id == plan.id %}<span class="plan-card__badge plan-card__badge--current">Ваш тариф</span>{% endif %}
                             </header>
                             <h2 class="plan-card__name">{{ plan.name }}</h2>
                             <div class="plan-card__price">
-                                <strong>{% money plan.price_rub %}</strong>
-                                <span>/ {{ plan.billing_period_days }} дн.</span>
+                                <strong>{% money plan.period_price %}</strong>
+                                <span>/ {% if selected_months == 1 %}{{ plan.billing_period_days }} дн.{% else %}{{ selected_months }} мес.{% endif %}</span>
                             </div>
+                            {% if selected_months != 1 %}<p class="plan-card__per-month">{% money plan.period_per_month %} в месяц вместо {% money plan.price_rub %}</p>{% endif %}
                             {% if show_pricing_meta %}
                                 <div class="pricing-feature-chips pricing-feature-chips--metrics">
                                     <span class="status-pill status-pill--sm">Рекомендация: {% money row.recommended_price_rub %}</span>
@@ -101,6 +102,7 @@
                                 {% else %}
                                     <form method="post" action="{% url 'subscriptions:purchase_plan' plan.id %}" class="inline-form inline-form--block">
                                         {% csrf_token %}
+                                        <input type="hidden" name="months" value="{{ selected_months }}">
                                         <button type="submit" class="btn btn-primary btn-block">{{ plan.purchase_ui.button_label }}</button>
                                     </form>
                                 {% endif %}

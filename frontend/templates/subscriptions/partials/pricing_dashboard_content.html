@@ -64,6 +64,14 @@
                                 {% include "subscriptions/partials/_pricing_field.html" with field=f.reasonable_delta_percent %}
                             </div>
                         </article>
+                        <article class="ops-panel">
+                            <div class="ops-panel__head"><h2 class="ops-panel__title">Скидки за срок</h2></div>
+                            <div class="pricing-fields">
+                                {% include "subscriptions/partials/_pricing_field.html" with field=f.period_discount_3m_percent %}
+                                {% include "subscriptions/partials/_pricing_field.html" with field=f.period_discount_6m_percent %}
+                                {% include "subscriptions/partials/_pricing_field.html" with field=f.period_discount_12m_percent %}
+                            </div>
+                        </article>
                     {% endwith %}
                 </div>
                 <aside class="ops-grid__side">

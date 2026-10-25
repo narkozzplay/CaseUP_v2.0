@@ -64,6 +64,8 @@
             {% endfor %}
         </div>
 
+        {% ad_slot "sidebar_bottom" %}
+
         <div class="dashboard-sidebar__footer">
             {% include "components/language_switcher.html" %}
             {% if request.user.is_authenticated %}

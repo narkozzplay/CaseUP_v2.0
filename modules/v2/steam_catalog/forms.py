@@ -79,6 +79,20 @@ class StockMovementCreateForm(forms.Form):
         return move
 
 
+def alert_limit_error(user) -> str:
+    """Error text when the user already has as many active alerts as their plan allows, else ""."""
+    from modules.v2.subscriptions.limits import PRICE_ALERTS
+    from modules.v2.subscriptions.services import get_user_limit
+
+    limit = get_user_limit(user, PRICE_ALERTS)
+    if limit is None:
+        return ""
+    active = UserPriceAlertRule.objects.filter(user=user, status=UserPriceAlertRule.Status.ACTIVE).count()
+    if active < limit:
+        return ""
+    return f"Активных алертов уже {active} из {limit} по вашему тарифу. Выключите один из них или повысьте тариф."
+
+
 class UserPriceAlertRuleForm(forms.ModelForm):
     class Meta:
         model = UserPriceAlertRule
@@ -144,6 +158,17 @@ class UserPriceAlertRuleForm(forms.ModelForm):
         self.fields["item_type"].required = False
         if user is not None:
             self.instance.user = user
+        self._was_active = bool(self.instance.pk) and self.instance.status == UserPriceAlertRule.Status.ACTIVE
+
+    def clean(self):
+        cleaned_data = super().clean()
+        user = getattr(self.instance, "user", None)
+        becomes_active = cleaned_data.get("status") == UserPriceAlertRule.Status.ACTIVE and not self._was_active
+        if user is not None and becomes_active:
+            message = alert_limit_error(user)
+            if message:
+                self.add_error("status", message)
+        return cleaned_data
 
     def save(self, commit=True):
         instance = super().save(commit=False)

@@ -88,6 +88,11 @@ app.conf.beat_schedule = {
         "task": "business.daily_report",
         "schedule": crontab(hour=9, minute=5),
     },
+    # Closes expired subscriptions and warns users 3 days before the end.
+    "subscriptions-lifecycle": {
+        "task": "subscriptions.process_lifecycle",
+        "schedule": 60 * 60.0,
+    },
     "reconcile-referrals": {
         "task": "referrals.reconcile",
         "schedule": 6 * 60 * 60.0,

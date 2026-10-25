@@ -14,7 +14,7 @@ from django.urls import reverse
 
 from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserRole
 from modules.v2.profiles.services.balance import adjust_balance
-from modules.v2.subscriptions.models import SubscriptionPlan
+from modules.v2.subscriptions.models import SubscriptionFeature, SubscriptionPlan
 from modules.v2.subscriptions.services import assign_user_subscription_plan
 from modules.v2.system.module_plugins import (
     discover_runtime_modules,
@@ -73,7 +73,7 @@ PNG_1X1_BYTES = _build_test_png_bytes()
 
 
 def _grant_steam_catalog_access(user) -> None:
-    plan = SubscriptionPlan.objects.get(level=1)
+    plan = SubscriptionPlan.objects.get(code="site_no_ads")
     assign_user_subscription_plan(user=user, plan=plan)
 
 
@@ -388,7 +388,7 @@ class StoreFoundationFlowTests(TestCase):
         self.assertFalse(LedgerEntry.objects.filter(user=self.user, reason=LedgerReason.STORE_PURCHASE).exists())
 
     def test_store_access_resolver_subscription_only_for_included_products(self):
-        level_5 = SubscriptionPlan.objects.get(code="level_5_pro")
+        level_5 = SubscriptionPlan.objects.get(code="site_pro")
         assign_user_subscription_plan(user=self.subscriber, plan=level_5)
 
         with_sub = resolve_store_product_access_state(user=self.subscriber, listing=self.module_listing)
@@ -400,7 +400,7 @@ class StoreFoundationFlowTests(TestCase):
         self.assertEqual(without_sub.access_source, "none")
 
     def test_access_source_priority_prefers_purchase_over_subscription(self):
-        level_5 = SubscriptionPlan.objects.get(code="level_5_pro")
+        level_5 = SubscriptionPlan.objects.get(code="site_pro")
         assign_user_subscription_plan(user=self.user, plan=level_5)
         adjust_balance(user=self.user, delta=Decimal("300.00"), reason="topup", amount_snapshot=Decimal("300.00"))
         purchase_store_listing_with_balance(user=self.user, listing_id=self.module_listing.id)
@@ -505,18 +505,24 @@ class StoreFoundationFlowTests(TestCase):
         self.assertFalse(state.can_activate)
 
     def test_target_scope_gating_blocks_purchase_without_steam_catalog_access(self):
+        # The catalog is free by default; gating only matters when an admin makes it paid.
+        SubscriptionFeature.objects.filter(code="steam_catalog_view").update(free_tier=SubscriptionFeature.FreeTier.NONE)
         adjust_balance(user=self.no_access_user, delta=Decimal("500.00"), reason="topup", amount_snapshot=Decimal("500.00"))
 
         with self.assertRaises(ThemePurchaseError):
             purchase_store_listing_with_balance(user=self.no_access_user, listing_id=self.module_listing.id)
 
     def test_target_scope_gating_blocks_bundle_purchase_without_steam_catalog_access(self):
+        # The catalog is free by default; gating only matters when an admin makes it paid.
+        SubscriptionFeature.objects.filter(code="steam_catalog_view").update(free_tier=SubscriptionFeature.FreeTier.NONE)
         adjust_balance(user=self.no_access_user, delta=Decimal("500.00"), reason="topup", amount_snapshot=Decimal("500.00"))
 
         with self.assertRaises(ThemePurchaseError):
             purchase_bundle_with_balance(user=self.no_access_user, listing_id=self.bundle_listing.id)
 
     def test_target_scope_gating_marks_store_card_unavailable(self):
+        # The catalog is free by default; gating only matters when an admin makes it paid.
+        SubscriptionFeature.objects.filter(code="steam_catalog_view").update(free_tier=SubscriptionFeature.FreeTier.NONE)
         card = get_store_card_for_user(user=self.no_access_user, listing=self.module_listing)
 
         self.assertFalse(card["has_target_scope_access"])

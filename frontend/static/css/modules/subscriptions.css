@@ -555,11 +555,12 @@ select.form-control option {
     border-top-color: var(--plan-accent);
 }
 
-.plan-card--l1 { --plan-accent: var(--rarity-consumer, #b0c3d9); }
-.plan-card--l2 { --plan-accent: var(--rarity-milspec, #4b69ff); }
-.plan-card--l3 { --plan-accent: var(--rarity-restricted, #8847ff); }
-.plan-card--l4 { --plan-accent: var(--rarity-classified, #d32ce6); }
-.plan-card--l5 { --plan-accent: var(--rarity-covert, #eb4b4b); }
+.plan-card--free { --plan-accent: var(--rarity-consumer, #b0c3d9); }
+.plan-card--site_no_ads { --plan-accent: var(--rarity-milspec, #4b69ff); }
+.plan-card--site_plus { --plan-accent: var(--rarity-restricted, #8847ff); }
+.plan-card--site_pro { --plan-accent: var(--rarity-covert, #eb4b4b); }
+.plan-card--farmer_start { --plan-accent: var(--rarity-milspec, #4b69ff); }
+.plan-card--farmer_pro { --plan-accent: var(--rarity-covert, #eb4b4b); }
 
 .plan-card--current {
     box-shadow: 0 0 0 1px var(--accent), 0 0 32px rgba(245, 166, 35, 0.12);
@@ -604,8 +605,14 @@ select.form-control option {
 
 .plan-card__price {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
     gap: 6px;
+}
+
+.plan-card__price strong,
+.plan-card__price span {
+    white-space: nowrap;
 }
 
 .plan-card__price strong {
@@ -694,4 +701,40 @@ select.form-control option {
     font-family: var(--font-mono);
     font-size: 0.72rem;
     line-height: 1.6;
+}
+
+/* Billing period switcher (1/3/6/12 months) */
+.pricing-periods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.pricing-periods__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+    border-radius: 999px;
+    color: var(--text-muted, #9aa4b2);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.pricing-periods__tab.is-active {
+    border-color: var(--accent, #f5a623);
+    color: var(--text, #fff);
+}
+
+.pricing-periods__save {
+    color: var(--success, #3ecf8e);
+    font-size: 0.85em;
+}
+
+.plan-card__per-month {
+    margin: -4px 0 8px;
+    font-size: 13px;
+    color: var(--success, #3ecf8e);
 }

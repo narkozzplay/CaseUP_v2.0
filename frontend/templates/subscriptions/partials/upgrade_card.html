@@ -20,8 +20,5 @@
         {% else %}
             <a href="{% url 'subscriptions:plans' %}" class="btn btn-primary btn-sm">Смотреть тарифы</a>
         {% endif %}
-        {% if access_state.required_plan %}
-            <span class="feature-lock-card__hint">Минимальный апгрейд: Level {{ access_state.required_plan.level }}</span>
-        {% endif %}
     </div>
 </div>

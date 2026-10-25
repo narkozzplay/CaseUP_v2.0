@@ -11,7 +11,7 @@
             {% if can_customize %}
                 {% if LANGUAGE_CODE == "ru" %}Доступно{% else %}Unlocked{% endif %}
             {% else %}
-                {% if LANGUAGE_CODE == "ru" %}Нужен Level 5 Pro{% else %}Level 5 Pro required{% endif %}
+                {% if LANGUAGE_CODE == "ru" %}Нужен тариф Pro{% else %}Pro plan required{% endif %}
             {% endif %}
         </span>
     </header>
@@ -19,8 +19,8 @@
     {% if not can_customize %}
         <div class="pcz-lock">
             <div>
-                <strong>{% if LANGUAGE_CODE == "ru" %}Примерять можно всем, применять с Level 5 Pro{% else %}Anyone can try, Level 5 Pro can apply{% endif %}</strong>
-                <p>{% if LANGUAGE_CODE == "ru" %}Эффекты CaseUP, анимированные фоны и аватарки из Steam входят в Site-план Level 5 Pro. Также доступны авторам магазина и администрации.{% else %}CaseUP effects and animated Steam backgrounds and avatars come with the Level 5 Pro site plan. Store authors and staff have them too.{% endif %}</p>
+                <strong>{% if LANGUAGE_CODE == "ru" %}Примерять можно всем, применять с тарифом Pro{% else %}Anyone can try, the Pro plan can apply{% endif %}</strong>
+                <p>{% if LANGUAGE_CODE == "ru" %}Эффекты CaseUP, анимированные фоны и аватарки из Steam входят в тариф Pro. Также доступны авторам магазина и администрации.{% else %}CaseUP effects and animated Steam backgrounds and avatars come with the Pro plan. Store authors and staff have them too.{% endif %}</p>
             </div>
             <a href="{% url 'subscriptions:plans' %}" class="btn btn-primary btn-sm" data-dashboard-nav="false">{% if LANGUAGE_CODE == "ru" %}Смотреть тарифы{% else %}See plans{% endif %}</a>
         </div>

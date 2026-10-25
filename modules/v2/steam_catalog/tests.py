@@ -13,7 +13,7 @@ from django.urls import reverse
 
 from modules.v2.profiles.models import UserProfile, UserRole
 from modules.v2.profiles.services.balance import adjust_balance
-from modules.v2.subscriptions.models import SubscriptionPlan, UserSubscription
+from modules.v2.subscriptions.models import SubscriptionFeature, SubscriptionPlan, UserSubscription
 from modules.v2.system.services import update_module_states
 from modules.v2.tg_notifier.models import TelegramNotifierConfig
 from .models import (
@@ -41,11 +41,21 @@ class SteamCatalogTests(TestCase):
         self.client = Client()
 
     def _grant_plan(self, user, level: int):
-        plan = SubscriptionPlan.objects.get(level=level)
+        # Old test levels mapped onto the new lineup: 1 = no ads, 2-3 = Plus, 4-5 = Pro.
+        code = {1: "site_no_ads", 2: "site_plus", 3: "site_plus"}.get(level, "site_pro")
+        plan = SubscriptionPlan.objects.get(code=code)
         return UserSubscription.objects.create(user=user, plan=plan)
 
-    def test_catalog_forbidden_for_plain_user(self):
+    def test_catalog_open_for_plain_user(self):
         user = User.objects.create_user(username="user1", password="StrongPass123")
+        self.client.login(username="user1", password="StrongPass123")
+
+        response = self.client.get(reverse("steam_catalog:list"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_catalog_locked_when_admin_makes_it_paid(self):
+        SubscriptionFeature.objects.filter(code="steam_catalog_view").update(free_tier=SubscriptionFeature.FreeTier.NONE)
+        User.objects.create_user(username="user1", password="StrongPass123")
         self.client.login(username="user1", password="StrongPass123")
 
         response = self.client.get(reverse("steam_catalog:list"))
@@ -59,9 +69,9 @@ class SteamCatalogTests(TestCase):
 
         self.client.login(username="admin1", password="StrongPass123")
         response = self.client.get(reverse("steam_catalog:list"))
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
 
-    def test_catalog_forbidden_for_superuser_without_subscription(self):
+    def test_catalog_open_for_superuser_without_subscription(self):
         user = User.objects.create_user(
             username="catalog_super_no_sub",
             password="StrongPass123",
@@ -72,8 +82,7 @@ class SteamCatalogTests(TestCase):
         self.client.login(username="catalog_super_no_sub", password="StrongPass123")
         response = self.client.get(reverse("steam_catalog:list"))
 
-        self.assertEqual(response.status_code, 403)
-        self.assertContains(response, "Steam Catalog закрыт тарифом", status_code=403)
+        self.assertEqual(response.status_code, 200)
 
     def test_catalog_available_for_level_1_subscription_in_view_mode(self):
         user = User.objects.create_user(username="catalog_subscriber", password="StrongPass123")
@@ -126,12 +135,15 @@ class SteamCatalogTests(TestCase):
             is_active=True,
         )
 
+        SteamItemPriceHistory.objects.create(item=item, price_rub=Decimal("50.00"), source="manual")
+        SteamItemPriceHistory.objects.create(item=item, price_rub=Decimal("51.20"), source="manual")
+
         self.client.login(username="catalog_level1_detail", password="StrongPass123")
         response = self.client.get(reverse("steam_catalog:detail", args=[item.id]))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, item.group_name)
-        self.assertContains(response, "Глубокая аналитика закрыта")
+        self.assertContains(response, "Анализ цены по подписке")
         self.assertContains(response, "Редактирование закрыто")
 
     def test_catalog_detail_uses_item_media_class_for_case_png(self):
@@ -212,7 +224,7 @@ class SteamCatalogTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Период анализа")
-        self.assertNotContains(response, "Глубокая аналитика закрыта")
+        self.assertNotContains(response, "Анализ цены по подписке")
 
     def test_catalog_subscription_respects_global_module_flag(self):
         user = User.objects.create_user(username="catalog_flag_user", password="StrongPass123")
@@ -1150,7 +1162,7 @@ class SteamCatalogStoreModuleSlotTests(TestCase):
         update_module_states({"steam_catalog": True, "store": True, "subscriptions": True})
 
         self.user = User.objects.create_user(username="catalog_store_slot", password="StrongPass123")
-        plan = SubscriptionPlan.objects.get(level=1)
+        plan = SubscriptionPlan.objects.get(code="site_no_ads")
         UserSubscription.objects.create(user=self.user, plan=plan)
 
         self.item = SteamItem.objects.create(
