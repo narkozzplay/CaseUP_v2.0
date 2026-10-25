@@ -520,7 +520,9 @@ def _send_team_telegram(text: str) -> bool:
     if default_chat:
         chats.append(default_chat)
     for moderator in support_staff_users():
-        chat_id = (getattr(moderator.profile_v2, "telegram_chat_id", "") or "").strip()
+        # A superuser may have no profile row; the missing relation raises AttributeError, so getattr covers it.
+        profile = getattr(moderator, "profile_v2", None)
+        chat_id = (getattr(profile, "telegram_chat_id", "") or "").strip()
         if chat_id and chat_id not in chats:
             chats.append(chat_id)
 

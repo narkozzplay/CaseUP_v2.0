@@ -294,6 +294,17 @@ class StaffAlertTests(SupportTestCase):
         self.assertIsNotNone(stale.escalated_at)
         self.assertIsNone(fresh.escalated_at)
 
+    def test_escalation_tolerates_staff_without_profile(self):
+        root = User.objects.create_superuser(username="sup_root", password="x", email="r@example.com")
+        UserProfile.objects.filter(user=root).delete()
+        ticket = self.open_ticket()
+        SupportTicket.objects.filter(pk=ticket.pk).update(created_at=timezone.now() - timedelta(hours=4))
+        with mock.patch("modules.v2.system.services.is_module_enabled", return_value=True), \
+                mock.patch("modules.v2.tg_notifier.services.resolve_default_chat_id", return_value="-100team"), \
+                mock.patch("modules.v2.tg_notifier.services.send_message") as send:
+            self.assertEqual(services.escalate_stale_tickets(), 1)
+            send.assert_called_once()
+
     def test_escalation_retries_when_telegram_fails(self):
         ticket = self.open_ticket()
         SupportTicket.objects.filter(pk=ticket.pk).update(created_at=timezone.now() - timedelta(hours=5))
