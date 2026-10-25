@@ -112,6 +112,11 @@ app.conf.beat_schedule = {
         "task": "tg_notifier.post_channel_digest",
         "schedule": 300.0,
     },
+    # New support tickets nobody took within 3 hours: one reminder to the team in Telegram.
+    "support-escalate-stale-tickets": {
+        "task": "support.escalate_stale_tickets",
+        "schedule": 600.0,
+    },
     "auto-sync-cs2-faceit-stats": {
         "task": "celery_tasks.auto_sync_cs2_faceit_stats",
         "schedule": float(settings.CELERY_BEAT_CS2_FACEIT_STATS_SYNC_SECONDS),

@@ -33,6 +33,7 @@ KIND_CATEGORY = {
     "support_reply": "support",
     "support_status": "support",
     "support_staff": "support",
+    "support_new": "support",
 }
 
 # Pushes are short-lived: a reminder that arrives a day late is noise.
