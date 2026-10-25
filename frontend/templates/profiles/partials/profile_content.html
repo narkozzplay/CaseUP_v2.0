@@ -1,3 +1,4 @@
+{% load donations %}
 <section class="section section--compact">
     <div class="profile-hero profile-hero--dashboard card {% if effective_bg_static %}profile-hero--with-bg{% endif %}"
          {% if effective_bg_static %}style="--profile-bg: url('{{ effective_bg_static }}');"{% endif %}>
@@ -41,7 +42,7 @@
                 <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}</span>
 
                 <h1 class="page-title page-title--sm">
-                    {% if profile_effects.name %}<span class="pfx-name {{ profile_effects.name }}" data-text="{{ profile_display_name }}">{{ profile_display_name }}</span>{% else %}{{ profile_display_name }}{% endif %}{% if profile_verification_badge %}{% include "components/verification_badge.html" with badge=profile_verification_badge %}{% endif %}
+                    {% if profile_effects.name %}<span class="pfx-name {{ profile_effects.name }}" data-text="{{ profile_display_name }}">{{ profile_display_name }}</span>{% else %}{{ profile_display_name }}{% endif %}{% if profile_verification_badge %}{% include "components/verification_badge.html" with badge=profile_verification_badge %}{% endif %}{% sponsor_badge profile_user %}
                 </h1>
 
                 <p class="text-muted profile-hero__subtitle">

@@ -65,6 +65,14 @@
                     <label class="cc-field-check">{{ form.show_in_menu }}<span>Пункт «Поддержать проект» в меню</span></label>
                 </div>
             </div>
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Роль «Спонсор»</h2><span class="ops-panel__hint">1-го числа админам приходит список кандидатов</span></div>
+            <div class="cc-form-grid">
+                <label class="cc-field-check cc-span-2">{{ form.sponsors_enabled }}<span>Искать кандидатов на роль «Спонсор»</span></label>
+                {% include "control_center/partials/_promo_field.html" with f=form.sponsor_top_size hint="Топ месяца обнуляется 1-го числа, суммы прошлых месяцев сохраняются." %}
+                {% include "control_center/partials/_promo_field.html" with f=form.sponsor_monthly_min hint="Донаты за месяц должны быть больше этой суммы. Роль действует весь следующий месяц." %}
+                {% include "control_center/partials/_promo_field.html" with f=form.sponsor_lifetime_min hint="Когда донаты за всё время превысят её, придёт уведомление. Роль бессрочная." %}
+                <label class="cc-field-check">{{ form.sponsor_notify_donor }}<span>Сообщать донатеру, когда роль выдана</span></label>
+            </div>
             <div class="ref-body"><div><button type="submit" class="btn btn-primary btn-sm">Сохранить</button></div></div>
         </form>
 
@@ -81,6 +89,84 @@
             </form>
         </aside>
     </div>
+
+    <article class="ops-panel" id="sponsors">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Спонсоры: кандидаты</h2><span class="ops-panel__hint">выдача, отказ и снятие пишутся в журнал</span></div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead><tr><th>Пользователь</th><th>Основание</th><th class="cc-num">Сумма</th><th>Найден</th><th></th></tr></thead>
+                <tbody>
+                    {% for item in sponsor_candidates %}
+                        <tr>
+                            <td>{% include "control_center/partials/_user_cell.html" with u=item.user %}</td>
+                            <td>{% if item.kind == "lifetime" %}За всё время{% else %}Топ-{{ item.rank }} за {{ item.period|date:"F Y"|lower }}{% endif %}</td>
+                            <td class="cc-num">{% money item.amount %}</td>
+                            <td class="cc-mono">{{ item.created_at|date:"d.m.Y" }}</td>
+                            <td class="cc-actions">
+                                <form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="sponsor"><input type="hidden" name="sponsorship_id" value="{{ item.pk }}"><button type="submit" name="decision" value="grant" class="btn btn-primary btn-sm">Выдать роль</button> <button type="submit" name="decision" value="decline" class="btn btn-ghost btn-sm">Отклонить</button></form>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="5" class="text-muted">Кандидатов нет. Список пополняется 1-го числа и когда кто-то переходит порог за всё время.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <div class="ref-rewards">
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Топ-{{ goal.sponsor_top_size }} за {{ sponsor_month }}</h2><span class="ops-panel__hint">порог {% money goal.sponsor_monthly_min %}</span></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>#</th><th>Пользователь</th><th class="cc-num">За месяц</th><th>Порог</th></tr></thead>
+                    <tbody>
+                        {% for row in sponsor_top %}
+                            <tr><td>{{ row.rank }}</td><td>{% include "control_center/partials/_user_cell.html" with u=row.user %}</td><td class="cc-num">{% money row.total %}</td><td>{% if row.qualifies %}<span class="metric-positive">пройден</span>{% else %}<span class="text-muted">нет</span>{% endif %}</td></tr>
+                        {% empty %}
+                            <tr><td colspan="4" class="text-muted">В этом месяце донатов ещё нет.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Действующие спонсоры</h2></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Пользователь</th><th>Роль</th><th>Истекает</th><th></th></tr></thead>
+                    <tbody>
+                        {% for item in sponsor_active %}
+                            <tr>
+                                <td>{% include "control_center/partials/_user_cell.html" with u=item.user %}</td>
+                                <td>{{ item.get_kind_display }}</td>
+                                <td class="cc-mono">{% if item.expires_at %}{{ item.expires_at|date:"d.m.Y" }}{% else %}навсегда{% endif %}</td>
+                                <td class="cc-actions"><form method="post" class="inline-form cc-form--danger">{% csrf_token %}<input type="hidden" name="action" value="sponsor"><input type="hidden" name="sponsorship_id" value="{{ item.pk }}"><button type="submit" name="decision" value="revoke" class="btn btn-ghost btn-sm">Снять</button></form></td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="4" class="text-muted">Спонсоров пока нет.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </div>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Донаты по месяцам</h2><span class="ops-panel__hint">топ-20 за всё время</span></div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead><tr><th>Пользователь</th>{% for label in sponsor_history.periods %}<th class="cc-num">{{ label }}</th>{% endfor %}<th class="cc-num">Всего</th></tr></thead>
+                <tbody>
+                    {% for row in sponsor_history.rows %}
+                        <tr><td>{% include "control_center/partials/_user_cell.html" with u=row.user %}{% if row.is_sponsor %}<span class="sponsor-tag">Спонсор</span>{% endif %}</td>{% for value in row.months %}<td class="cc-num">{% if value %}{% money value %}{% else %}<span class="text-muted">—</span>{% endif %}</td>{% endfor %}<td class="cc-num"><b>{% money row.lifetime %}</b></td></tr>
+                    {% empty %}
+                        <tr><td colspan="8" class="text-muted">Донатов ещё не было.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
 
     <div class="ref-rewards">
         <article class="ops-panel">

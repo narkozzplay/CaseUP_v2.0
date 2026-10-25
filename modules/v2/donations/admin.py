@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Donation, DonationGoal
+from .models import Donation, DonationGoal, Sponsorship
 
 
 @admin.register(DonationGoal)
@@ -21,3 +21,11 @@ class DonationAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # A donation is backed by a ledger debit; deleting the row would only hide money from the totals.
         return False
+
+
+@admin.register(Sponsorship)
+class SponsorshipAdmin(admin.ModelAdmin):
+    list_display = ("user", "kind", "period", "amount", "status", "expires_at", "decided_by")
+    list_filter = ("kind", "status")
+    search_fields = ("user__username",)
+    raw_id_fields = ("user", "decided_by")

@@ -68,6 +68,11 @@ app.conf.beat_schedule = {
         "task": "daily_bonus.remind_streaks",
         "schedule": crontab(hour=18, minute=5),
     },
+    # 1st of the month: last month's top donors become «Спонсор» candidates; admins get a notification.
+    "donations-monthly-sponsors": {
+        "task": "donations.monthly_sponsors",
+        "schedule": crontab(day_of_month=1, hour=10, minute=0),
+    },
     # Market deals: send-deadline reminders, automatic proof of the trade, completion after the hold.
     "market-process-deals": {
         "task": "market.process_deals",

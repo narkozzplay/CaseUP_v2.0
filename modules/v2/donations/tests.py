@@ -14,9 +14,10 @@ from modules.v2.control_center.models import AdminAuditLog, AuditAction
 from modules.v2.payments.views import _safe_return_to
 from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserProfile, UserRole
 
-from . import services
+from . import services, sponsors
 from .forms import DonationGoalForm
-from .models import Donation, DonationGoal
+from .models import Donation, DonationGoal, Sponsorship
+from .notifications import KIND_SPONSOR_CANDIDATES, KIND_SPONSOR_GRANTED
 
 User = get_user_model()
 
@@ -173,3 +174,83 @@ class ControlCenterTests(TestCase):
         form = DonationGoalForm(self.form_data(preset_amounts="5, 100", min_amount="10"), instance=DonationGoal.load())
         self.assertFalse(form.is_valid())
         self.assertIn("preset_amounts", form.errors)
+
+
+class SponsorTests(TestCase):
+    def setUp(self):
+        from modules.v2.notifications.models import Notification
+
+        self.Notification = Notification
+        enable()
+        self.admin = make_user("sp_admin", role=UserRole.ADMIN)
+        self.today = timezone.localdate()
+        self.last_month = sponsors.add_months(sponsors.month_start(self.today), -1)
+
+    def donation(self, user, amount, *, period=None):
+        when = timezone.make_aware(timezone.datetime.combine((period or self.last_month).replace(day=10), timezone.datetime.min.time()))
+        return Donation.objects.create(user=user, amount=Decimal(amount), created_at=when)
+
+    def test_monthly_top_gives_candidates_once_and_starts_over_each_month(self):
+        rich, middle, small, fourth = (make_user(f"sp_{name}") for name in ("rich", "middle", "small", "fourth"))
+        self.donation(rich, "4000")
+        self.donation(rich, "3500")
+        self.donation(middle, "6000")
+        self.donation(small, "5000")  # «больше 5000» — exactly 5000 does not count
+        self.donation(fourth, "100")
+
+        created = sponsors.find_monthly_candidates(today=self.today)
+        self.assertEqual([(item.user.username, item.rank, item.amount) for item in created], [("sp_rich", 1, Decimal("7500.00")), ("sp_middle", 2, Decimal("6000.00"))])
+        notice = self.Notification.objects.get(recipient=self.admin, kind=KIND_SPONSOR_CANDIDATES)
+        self.assertIn("sp_rich", notice.payload["names"])
+        self.assertEqual(sponsors.find_monthly_candidates(today=self.today), [])
+
+        self.assertEqual(sponsors.monthly_top(sponsors.month_start(self.today)), [])
+        history = sponsors.history(today=self.today)
+        rich_row = next(row for row in history["rows"] if row["user"] == rich)
+        self.assertEqual((rich_row["months"][1], rich_row["lifetime"]), (Decimal("7500.00"), Decimal("7500.00")))
+
+    def test_lifetime_threshold_makes_a_candidate_once(self):
+        donor = make_user("sp_loyal", balance="20000")
+        self.donation(donor, "9980")
+        with self.captureOnCommitCallbacks(execute=True):
+            services.donate(user=donor, amount=Decimal("20"), token=uuid.uuid4())  # exactly 10000 is not «больше»
+        self.assertFalse(Sponsorship.objects.filter(user=donor).exists())
+        with self.captureOnCommitCallbacks(execute=True):
+            services.donate(user=donor, amount=Decimal("10"), token=uuid.uuid4())
+            services.donate(user=donor, amount=Decimal("15"), token=uuid.uuid4())
+        lifetime = Sponsorship.objects.get(user=donor, kind=Sponsorship.Kind.LIFETIME)
+        self.assertEqual((lifetime.status, lifetime.amount), (Sponsorship.Status.CANDIDATE, Decimal("10010.00")))
+        self.assertEqual(self.Notification.objects.filter(recipient=self.admin, kind=KIND_SPONSOR_CANDIDATES).count(), 1)
+
+    def test_admin_grants_declines_and_revokes_in_control_center(self):
+        donor, other = make_user("sp_granted"), make_user("sp_declined")
+        self.donation(donor, "8000")
+        self.donation(other, "5500")
+        monthly, declined = sponsors.find_monthly_candidates(today=self.today)
+        client = Client()
+        client.force_login(self.admin)
+        page = client.get(reverse("control_center:donations"))
+        self.assertContains(page, "Выдать роль")
+
+        url = reverse("control_center:donations")
+        client.post(url, {"action": "sponsor", "sponsorship_id": monthly.pk, "decision": "grant"})
+        client.post(url, {"action": "sponsor", "sponsorship_id": declined.pk, "decision": "decline"})
+        monthly.refresh_from_db()
+        self.assertEqual(monthly.status, Sponsorship.Status.GRANTED)
+        self.assertEqual(timezone.localtime(monthly.expires_at).date(), sponsors.add_months(self.last_month, 2))
+        self.assertTrue(sponsors.is_sponsor(donor))
+        self.assertFalse(sponsors.is_sponsor(other))
+        granted = self.Notification.objects.get(recipient=donor, kind=KIND_SPONSOR_GRANTED)
+        self.assertTrue(granted.payload["until"])
+        self.assertTrue(AdminAuditLog.objects.filter(action=AuditAction.DONATION_UPDATE, target_user=donor).exists())
+
+        client.post(url, {"action": "sponsor", "sponsorship_id": monthly.pk, "decision": "revoke"})
+        self.assertFalse(sponsors.is_sponsor(donor))
+        self.assertEqual(client.post(url, {"action": "sponsor", "sponsorship_id": "junk", "decision": "grant"}).status_code, 404)
+
+    def test_renderers(self):
+        from .notifications import render_candidates, render_granted
+
+        note = self.Notification(kind=KIND_SPONSOR_CANDIDATES, payload={"reason": "monthly", "month": "октябрь 2026", "threshold": "5000", "names": ["a", "b"]})
+        self.assertIn("октябрь 2026", render_candidates(note, "ru").title)
+        self.assertIn("навсегда", render_granted(self.Notification(kind=KIND_SPONSOR_GRANTED, payload={"until": ""}), "ru").body)

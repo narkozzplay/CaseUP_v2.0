@@ -15,3 +15,11 @@ def donation_widget(context, placement: str):
         "LANGUAGE_CODE": context.get("LANGUAGE_CODE"),
         "request": context.get("request"),
     }
+
+
+@register.inclusion_tag("donations/sponsor_badge.html", takes_context=True)
+def sponsor_badge(context, user):
+    """A «Спонсор» tag next to a name while the user holds the role."""
+    from ..sponsors import is_sponsor
+
+    return {"show": is_sponsor(user), "LANGUAGE_CODE": context.get("LANGUAGE_CODE")}

@@ -36,6 +36,7 @@ class DonorRow:
     amount: Decimal
     message: str
     created_at: object
+    is_sponsor: bool = False
 
 
 @dataclass
@@ -69,8 +70,12 @@ def build_state(goal: DonationGoal, *, recent: bool = True, today: date | None =
         days_left = max((goal.deadline - (today or timezone.localdate())).days, 0)
     rows = []
     if recent and goal.show_recent_donors:
-        for donation in campaign.select_related("user", "user__profile_v2")[:RECENT_SIZE]:
-            rows.append(DonorRow(_donor_name(donation), donation.amount, donation.message, donation.created_at))
+        from .sponsors import sponsor_user_ids
+
+        latest = list(campaign.select_related("user", "user__profile_v2")[:RECENT_SIZE])
+        sponsors = sponsor_user_ids(donation.user_id for donation in latest if not donation.is_anonymous)
+        for donation in latest:
+            rows.append(DonorRow(_donor_name(donation), donation.amount, donation.message, donation.created_at, donation.user_id in sponsors and not donation.is_anonymous))
     return WidgetState(
         goal=goal,
         collected=collected,
@@ -148,7 +153,7 @@ def donate(*, user, amount, token, message: str = "", is_anonymous: bool = False
         existing = Donation.objects.filter(ledger_entry_id=entry.pk).first()
         if existing is not None:
             return existing
-        return Donation.objects.create(
+        donation = Donation.objects.create(
             user=user,
             amount=amount,
             message=message,
@@ -156,6 +161,10 @@ def donate(*, user, amount, token, message: str = "", is_anonymous: bool = False
             goal_title=goal.title,
             ledger_entry_id=entry.pk,
         )
+        from .sponsors import check_lifetime
+
+        check_lifetime(user)
+        return donation
 
 
 def start_new_campaign(goal: DonationGoal | None = None) -> DonationGoal:

@@ -24,6 +24,7 @@ KIND_CATEGORY = {
     "account_2fa_locked": "security",
     "antifraud_multi_account": "security",
     "daily_bonus_reminder": "daily_bonus",
+    "donation_sponsor_granted": "balance",
     "friend_request": "friends",
     "friend_request_accepted": "friends",
     "steam_price_alert": "alerts",

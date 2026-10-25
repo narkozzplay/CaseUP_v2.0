@@ -56,6 +56,14 @@ class DonationGoal(models.Model):
     show_in_sidebar = models.BooleanField("В боковом меню кабинета", default=False)
     show_in_menu = models.BooleanField("Пункт «Поддержать проект» в меню", default=True)
 
+    # Sponsor role: the month's top donors above sponsor_monthly_min get it for the next month,
+    # everyone whose donations ever total more than sponsor_lifetime_min gets it for good. An admin grants it.
+    sponsors_enabled = models.BooleanField("Роль «Спонсор» включена", default=True)
+    sponsor_top_size = models.PositiveSmallIntegerField("Сколько донатеров в топе месяца", default=3)
+    sponsor_monthly_min = models.DecimalField("Порог за месяц, ₽", max_digits=14, decimal_places=2, default=Decimal("5000.00"))
+    sponsor_lifetime_min = models.DecimalField("Порог за всё время, ₽", max_digits=14, decimal_places=2, default=Decimal("10000.00"))
+    sponsor_notify_donor = models.BooleanField("Сообщать донатеру о выдаче роли", default=True)
+
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -99,3 +107,45 @@ class Donation(models.Model):
 
     def __str__(self) -> str:
         return f"Donation({self.user_id}, {self.amount})"
+
+
+class Sponsorship(models.Model):
+    """The «Спонсор» role: a candidate found by the monthly top or the lifetime total, then granted by an admin."""
+
+    class Kind(models.TextChoices):
+        MONTHLY = "monthly", "Топ месяца"
+        LIFETIME = "lifetime", "За всё время"
+
+    class Status(models.TextChoices):
+        CANDIDATE = "candidate", "Ждёт решения"
+        GRANTED = "granted", "Выдана"
+        DECLINED = "declined", "Отклонена"
+        REVOKED = "revoked", "Снята"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="sponsorships")
+    kind = models.CharField(max_length=16, choices=Kind.choices)
+    # First day of the month the donations were made in; empty for the lifetime role.
+    period = models.DateField(null=True, blank=True)
+    amount = models.DecimalField("Сумма донатов", max_digits=14, decimal_places=2, default=ZERO)
+    rank = models.PositiveSmallIntegerField(null=True, blank=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.CANDIDATE, db_index=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    decided_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    decided_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        verbose_name = "Sponsorship"
+        verbose_name_plural = "Sponsorships"
+        constraints = [
+            models.UniqueConstraint(fields=["user", "kind", "period"], name="donations_sponsorship_once_per_period"),
+            models.UniqueConstraint(fields=["user"], condition=models.Q(kind="lifetime"), name="donations_sponsorship_one_lifetime"),
+        ]
+
+    def __str__(self) -> str:
+        return f"Sponsorship({self.user_id}, {self.kind}, {self.period}, {self.status})"
+
+    @property
+    def is_active(self) -> bool:
+        return self.status == self.Status.GRANTED and (self.expires_at is None or self.expires_at > timezone.now())
