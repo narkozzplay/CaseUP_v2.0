@@ -84,6 +84,54 @@
             </div>
         </article>
 
+        <article class="ops-panel tgn-channel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Текст поста</h2><span class="ops-panel__hint">подстановки: {% for key, label in text_placeholders %}<span title="{{ label }}">&#123;{{ key }}&#125;</span>{% if not forloop.last %}, {% endif %}{% endfor %}</span></div>
+            <div class="ref-body form-stack">
+                <div class="tgn-row">
+                    <div class="form-field">
+                        <label for="{{ schedule_form.channel_digest_title.id_for_label }}">Заголовок</label>
+                        {{ schedule_form.channel_digest_title }}
+                        <p class="text-muted tgn-hint">Первая строка поста, жирным. Например: «📊 Цены CS2 · {date} {time}».</p>
+                        {{ schedule_form.channel_digest_title.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ schedule_form.channel_digest_card_title.id_for_label }}">Заголовок на картинке</label>
+                        {{ schedule_form.channel_digest_card_title }}
+                        <p class="text-muted tgn-hint">Без подстановок, дата и время на картинке есть всегда.</p>
+                        {{ schedule_form.channel_digest_card_title.errors }}
+                    </div>
+                </div>
+                <div class="tgn-row">
+                    <div class="form-field">
+                        <label for="{{ schedule_form.channel_digest_intro.id_for_label }}">Вступление</label>
+                        {{ schedule_form.channel_digest_intro }}
+                        <p class="text-muted tgn-hint">Идёт после заголовка, перед рубриками.</p>
+                        {{ schedule_form.channel_digest_intro.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ schedule_form.channel_digest_outro.id_for_label }}">Текст в конце</label>
+                        {{ schedule_form.channel_digest_outro }}
+                        <p class="text-muted tgn-hint">После рубрик, перед ссылкой. Например, призыв зайти на сайт.</p>
+                        {{ schedule_form.channel_digest_outro.errors }}
+                    </div>
+                </div>
+                <div class="tgn-row">
+                    <div class="form-field">
+                        <label for="{{ schedule_form.channel_digest_link_text.id_for_label }}">Текст ссылки на сайт</label>
+                        {{ schedule_form.channel_digest_link_text }}
+                        <p class="text-muted tgn-hint">Ведёт на страницу топа (с картинкой) или в каталог (без неё).</p>
+                        {{ schedule_form.channel_digest_link_text.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ schedule_form.channel_digest_hashtags.id_for_label }}">Хэштеги</label>
+                        {{ schedule_form.channel_digest_hashtags }}
+                        {{ schedule_form.channel_digest_hashtags.errors }}
+                    </div>
+                </div>
+                <p class="text-muted tgn-hint">Текст вставляется как есть, без HTML. Эмодзи можно.</p>
+            </div>
+        </article>
+
         <div class="tgn-actions tgn-channel">
             <button type="submit" name="action" value="save" class="btn btn-primary">Сохранить</button>
             <button type="submit" name="action" value="preview" class="btn btn-secondary">Предпросмотр</button>

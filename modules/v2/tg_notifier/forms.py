@@ -147,6 +147,12 @@ class TelegramChannelDigestForm(forms.ModelForm):
             "channel_digest_times",
             "channel_digest_fresh_hours",
             "channel_digest_with_image",
+            "channel_digest_title",
+            "channel_digest_intro",
+            "channel_digest_outro",
+            "channel_digest_link_text",
+            "channel_digest_hashtags",
+            "channel_digest_card_title",
         ]
         widgets = {
             "channel_digest_enabled": forms.CheckboxInput(attrs={"class": "toggle-control__input"}),
@@ -154,7 +160,16 @@ class TelegramChannelDigestForm(forms.ModelForm):
             "channel_digest_times": forms.TextInput(attrs={"class": "form-control", "placeholder": "20:00 или 10:00, 20:00"}),
             "channel_digest_fresh_hours": forms.NumberInput(attrs={"class": "form-control", "min": 1, "max": 72}),
             "channel_digest_with_image": forms.CheckboxInput(attrs={"class": "toggle-control__input"}),
+            "channel_digest_title": forms.TextInput(attrs={"class": "form-control"}),
+            "channel_digest_intro": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Пусто — без вступления"}),
+            "channel_digest_outro": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Пусто — без текста"}),
+            "channel_digest_link_text": forms.TextInput(attrs={"class": "form-control", "placeholder": "Пусто — без ссылки"}),
+            "channel_digest_hashtags": forms.TextInput(attrs={"class": "form-control", "placeholder": "Пусто — без хэштегов"}),
+            "channel_digest_card_title": forms.TextInput(attrs={"class": "form-control"}),
         }
+
+    # The caption under the picture is capped at 1024 characters by Telegram; the top itself needs room too.
+    CAPTION_TEXT_BUDGET = 600
 
     def clean_channel_chat_id(self):
         value = (self.cleaned_data.get("channel_chat_id") or "").strip()
@@ -186,6 +201,15 @@ class TelegramChannelDigestForm(forms.ModelForm):
                 self.add_error("channel_chat_id", "Укажите канал, куда постить.")
             if not cleaned.get("channel_digest_times"):
                 self.add_error("channel_digest_times", "Укажите хотя бы одно время.")
+        if cleaned.get("channel_digest_with_image"):
+            wording = ["channel_digest_title", "channel_digest_intro", "channel_digest_outro", "channel_digest_link_text", "channel_digest_hashtags"]
+            length = sum(len((cleaned.get(name) or "").strip()) for name in wording)
+            if length > self.CAPTION_TEXT_BUDGET:
+                self.add_error(
+                    "channel_digest_intro",
+                    f"С картинкой текст идёт подписью, а Telegram даёт на неё 1024 символа. Сейчас текст без топа занимает "
+                    f"{length} символов, нужно не больше {self.CAPTION_TEXT_BUDGET}: сократите вступление или текст в конце.",
+                )
         return cleaned
 
 

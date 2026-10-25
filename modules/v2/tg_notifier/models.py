@@ -68,6 +68,13 @@ class TelegramNotifierConfig(models.Model):
     channel_digest_fresh_hours = models.PositiveSmallIntegerField(default=12)
     # Attach a picture of the top (a screenshot of the digest card) and put the text into its caption.
     channel_digest_with_image = models.BooleanField(default=True)
+    # Post wording, editable on the autopost page. Placeholders: see channel_digest.TEXT_PLACEHOLDERS.
+    channel_digest_title = models.CharField(max_length=200, blank=True, default="📊 Цены CS2 за сутки · {date}")
+    channel_digest_intro = models.TextField(max_length=500, blank=True, default="")
+    channel_digest_outro = models.TextField(max_length=500, blank=True, default="")
+    channel_digest_link_text = models.CharField(max_length=120, blank=True, default="🔎 Цены и графики — {site}")
+    channel_digest_hashtags = models.CharField(max_length=200, blank=True, default="#CaseUP #CounterStrike2")
+    channel_digest_card_title = models.CharField(max_length=60, blank=True, default="Цены CS2 за сутки")
     channel_digest_last_sent_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
