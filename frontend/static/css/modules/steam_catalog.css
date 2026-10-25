@@ -1617,3 +1617,4 @@ a.catalog-fav__btn { text-decoration: none; }
     .catalog-filters__grid { grid-template-columns: 1fr 1fr; }
     .catalog-filters__price, .catalog-filters__checks { grid-column: 1 / -1; }
 }
+.catalog-guest { padding-top: 28px; padding-bottom: 56px; }

@@ -61,6 +61,14 @@ class GuestCatalogTests(TestCase):
         self.assertContains(self.client.get(reverse("steam_catalog:list")), "Stock: 7")
         self.assertContains(self.client.get(self.item.get_absolute_url()), "<dt>Stock</dt><dd>7</dd>")
 
+    def test_guest_gets_the_public_layout_and_user_the_dashboard(self):
+        for url in (reverse("steam_catalog:list"), self.item.get_absolute_url()):
+            page = self.client.get(url)
+            self.assertContains(page, 'class="site-header"')
+            self.assertNotContains(page, "data-dashboard-shell")
+        self.client.force_login(User.objects.create_user(username="fan", password="x"))
+        self.assertContains(self.client.get(self.item.get_absolute_url()), "data-dashboard-shell")
+
     def test_item_address_has_the_name_and_old_addresses_redirect(self):
         self.assertEqual(self.item.slug, "ak-47-redline-field-tested")
         self.assertEqual(self.item.get_absolute_url(), f"/steam-catalog/{self.item.pk}-ak-47-redline-field-tested/")
