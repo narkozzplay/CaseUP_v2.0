@@ -10,6 +10,11 @@ www.{$CADDY_DOMAIN} {
 {$CADDY_DOMAIN}, lib.{$CADDY_DOMAIN} {
 	encode zstd gzip
 
+	# Support ticket attachments: only Django gives them out, after an access check (support:attachment).
+	handle /media/private/* {
+		respond 404
+	}
+
 	# Avatars, backgrounds and other uploads: Django does not serve /media/ with DEBUG=False.
 	# User files are served as inert content: no sniffing, no scripts even for an uploaded SVG/HTML.
 	handle_path /media/* {

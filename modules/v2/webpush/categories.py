@@ -11,6 +11,7 @@ CATEGORIES = {
     "alerts": "Алерты цен",
     "investments": "Инвестиции: снятие трейд-бана",
     "farm": "Ферма: продажи, цены, бонусы",
+    "support": "Поддержка: ответы на обращения",
 }
 
 KIND_CATEGORY = {
@@ -28,6 +29,9 @@ KIND_CATEGORY = {
     "steam_price_alert": "alerts",
     "steam_investment_unlocked": "investments",
     "farm_alert": "farm",
+    "support_reply": "support",
+    "support_status": "support",
+    "support_staff": "support",
 }
 
 # Pushes are short-lived: a reminder that arrives a day late is noise.
