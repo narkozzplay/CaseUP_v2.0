@@ -1,0 +1,117 @@
+{% load site_formatters %}
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Донаты</h1>
+            <p class="ops-hero__text">Сбор на развитие проекта: цель, тексты, оформление виджета и где его показывать. Пользователи жертвуют с баланса сайта; если денег мало, их ведёт на пополнение.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Статус</dt><dd class="{% if goal.is_enabled %}metric-positive{% else %}metric-negative{% endif %}">{% if goal.is_enabled %}идёт сбор{% else %}выключен{% endif %}</dd></div>
+            <div><dt>Собрано</dt><dd>{{ summary.state.percent }}%</dd></div>
+            <div><dt>Страница</dt><dd><a href="{% url 'donations:page' %}" target="_blank" rel="noopener" data-dashboard-nav="false">/donate/</a></dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <div class="ops-kpis">
+        <div class="ops-kpi"><span class="ops-kpi__icon">{% include "components/icon.html" with name="donations" %}</span><div class="ops-kpi__body"><span class="ops-kpi__label">Текущий сбор</span><strong class="ops-kpi__value">{% money summary.state.collected %}</strong><span class="ops-kpi__meta">из {% money goal.goal_amount %} · с сайта {% money summary.state.donated %}</span></div></div>
+        <div class="ops-kpi"><span class="ops-kpi__icon">{% include "components/icon.html" with name="users_catalog" %}</span><div class="ops-kpi__body"><span class="ops-kpi__label">Донатов в этом сборе</span><strong class="ops-kpi__value">{{ summary.campaign_count }}</strong><span class="ops-kpi__meta">{{ summary.state.donors }} человек · с {{ goal.started_at|date:"d.m.Y" }}</span></div></div>
+        <div class="ops-kpi"><span class="ops-kpi__icon">{% include "components/icon.html" with name="cc_wallet" %}</span><div class="ops-kpi__body"><span class="ops-kpi__label">За всё время</span><strong class="ops-kpi__value">{% money summary.all_time_total %}</strong><span class="ops-kpi__meta">{{ summary.all_time_count }} донатов · {{ summary.all_time_donors }} человек</span></div></div>
+    </div>
+
+    <div class="donation-admin">
+        <form method="post" class="ops-panel" data-donation-form novalidate>
+            {% csrf_token %}
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Сбор</h2><span class="ops-panel__hint">изменения пишутся в журнал</span></div>
+            {% if form.non_field_errors %}<div class="tfa-alert" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+            <div class="cc-form-grid">
+                <label class="cc-field-check cc-span-2">{{ form.is_enabled }}<span>Сбор включён (виджет и страница видны пользователям)</span></label>
+                <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.title %}</div>
+                <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.description hint="Обычный текст, переносы строк сохраняются." %}</div>
+                {% include "control_center/partials/_promo_field.html" with f=form.goal_amount %}
+                {% include "control_center/partials/_promo_field.html" with f=form.collected_offset hint="Переводы мимо сайта: добавляются к собранному." %}
+                {% include "control_center/partials/_promo_field.html" with f=form.deadline hint="Пусто — без срока." %}
+                {% include "control_center/partials/_promo_field.html" with f=form.preset_amounts hint="Через запятую, до шести сумм." %}
+                {% include "control_center/partials/_promo_field.html" with f=form.min_amount %}
+                {% include "control_center/partials/_promo_field.html" with f=form.max_amount %}
+                {% include "control_center/partials/_promo_field.html" with f=form.button_text %}
+                {% include "control_center/partials/_promo_field.html" with f=form.thank_you_text %}
+                <label class="cc-field-check cc-span-2">{{ form.allow_messages }}<span>Разрешить комментарий к донату</span></label>
+            </div>
+
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Дизайн</h2></div>
+            <div class="cc-form-grid">
+                {% include "control_center/partials/_promo_field.html" with f=form.variant %}
+                {% include "control_center/partials/_promo_field.html" with f=form.background %}
+                {% include "control_center/partials/_promo_field.html" with f=form.accent_color %}
+                {% include "control_center/partials/_promo_field.html" with f=form.accent_color_end hint="Для градиента полосы и фона." %}
+                {% include "control_center/partials/_promo_field.html" with f=form.icon hint="Эмодзи или символ, пусто — без значка." %}
+                <div class="cc-field promo-checks">
+                    <label class="cc-field-check">{{ form.show_percent }}<span>Процент</span></label>
+                    <label class="cc-field-check">{{ form.show_goal }}<span>Сумма цели</span></label>
+                    <label class="cc-field-check">{{ form.show_donors_count }}<span>Число донатеров</span></label>
+                    <label class="cc-field-check">{{ form.show_recent_donors }}<span>Последние донаты на странице</span></label>
+                </div>
+            </div>
+
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Где показывать</h2></div>
+            <div class="cc-form-grid">
+                <div class="cc-field promo-checks cc-span-2">
+                    <label class="cc-field-check">{{ form.show_on_home }}<span>Главная страница сайта</span></label>
+                    <label class="cc-field-check">{{ form.show_on_dashboard }}<span>Страница Dashboard</span></label>
+                    <label class="cc-field-check">{{ form.show_in_sidebar }}<span>Боковое меню кабинета (компактно)</span></label>
+                    <label class="cc-field-check">{{ form.show_in_menu }}<span>Пункт «Поддержать проект» в меню</span></label>
+                </div>
+            </div>
+            <div class="ref-body"><div><button type="submit" class="btn btn-primary btn-sm">Сохранить</button></div></div>
+        </form>
+
+        <aside class="ops-panel donation-admin__preview">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Предпросмотр</h2><span class="ops-panel__hint">цвета, вид и тексты меняются сразу</span></div>
+            <div class="ref-body" data-donation-preview-root>
+                {% with state=summary.state placement="preview" %}{% include "donations/_widget_body.html" %}{% endwith %}
+            </div>
+            <form method="post" class="ref-body cc-form--danger">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="new_campaign">
+                <p class="ref-text">Новый сбор обнуляет прогресс и «собрано вне сайта». История донатов остаётся.</p>
+                <div><button type="submit" class="btn btn-ghost btn-sm">Начать новый сбор</button></div>
+            </form>
+        </aside>
+    </div>
+
+    <div class="ref-rewards">
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Топ донатеров сбора</h2></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Пользователь</th><th class="cc-num">Донатов</th><th class="cc-num">Сумма</th></tr></thead>
+                    <tbody>
+                        {% for row in summary.top %}
+                            <tr><td><a href="{% url 'control_center:user_detail' row.user_id %}" data-dashboard-nav="true">{{ row.user__username }}</a></td><td class="cc-num">{{ row.count }}</td><td class="cc-num">{% money row.total %}</td></tr>
+                        {% empty %}
+                            <tr><td colspan="3" class="text-muted">В этом сборе донатов ещё нет.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Последние донаты</h2></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Когда</th><th>Пользователь</th><th class="cc-num">Сумма</th><th>Комментарий</th></tr></thead>
+                    <tbody>
+                        {% for item in summary.recent %}
+                            <tr><td class="cc-mono">{{ item.created_at|date:"d.m H:i" }}</td><td>{% include "control_center/partials/_user_cell.html" with u=item.user %}{% if item.is_anonymous %}<span class="cc-sub">аноним для всех</span>{% endif %}</td><td class="cc-num">{% money item.amount %}</td><td>{{ item.message|default:"—" }}</td></tr>
+                        {% empty %}
+                            <tr><td colspan="4" class="text-muted">Донатов ещё не было.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </div>
+</section>

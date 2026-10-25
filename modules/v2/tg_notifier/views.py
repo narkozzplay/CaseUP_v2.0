@@ -20,7 +20,7 @@ from modules.v2.subscriptions.feature_codes import TG_NOTIFIER_USER
 from modules.v2.subscriptions.responses import render_feature_locked_response
 from modules.v2.subscriptions.services import get_feature_access_state
 
-from .channel_digest import CATEGORY_LABELS, build_digest_text, post_digest
+from .channel_digest import CATEGORY_LABELS, TEXT_PLACEHOLDERS, build_preview_text, post_digest
 from .forms import ChannelDigestSectionFormSet, TelegramChannelDigestForm, TelegramNotifierSettingsForm, TelegramTestSendForm
 from .models import ChannelDigestPost, ChannelDigestSection, TelegramNotifierConfig
 from .updates import get_poll_status, handle_update
@@ -342,7 +342,7 @@ def autopost_page(request):
             section_formset.save()
             if action == "preview":
                 try:
-                    preview = build_digest_text(config) or ""
+                    preview = build_preview_text(config) or ""
                 except TelegramNotifierError as exc:
                     messages.error(request, f"Предпросмотр не удался: {exc}")
                 else:
@@ -368,6 +368,7 @@ def autopost_page(request):
         "schedule_form": schedule_form,
         "section_formset": section_formset,
         "category_labels": CATEGORY_LABELS,
+        "text_placeholders": TEXT_PLACEHOLDERS.items(),
         "preview": preview,
         "posts": ChannelDigestPost.objects.all()[:20],
         "bot_ready": config.is_enabled and bool(resolve_bot_token(config)),
@@ -380,6 +381,37 @@ def autopost_page(request):
         page_title=build_page_title("Автопостинг в канал"),
         active_menu_key="tg_settings",
     )
+
+
+def price_movers_page(request):
+    """Public "Топ цен за сутки": the same sections as the channel digest, the page the post picture is made of."""
+    from django.core.cache import cache
+    from django.shortcuts import render
+
+    from .channel_digest import card_context, collect_digest
+
+    config = get_telegram_notifier_config()
+    context = None
+    try:
+        context = cache.get(PRICE_MOVERS_CACHE_KEY)
+    except Exception:  # noqa: BLE001 - without the cache the page is built fresh
+        pass
+    if context is None:
+        context = card_context(collect_digest(config=config), config=config)
+        try:
+            cache.set(PRICE_MOVERS_CACHE_KEY, context, settings.STEAM_CATALOG_GUEST_CACHE_SECONDS)
+        except Exception:  # noqa: BLE001
+            pass
+    context = {
+        **context,
+        "seo_title": f"Топ цен CS2 за сутки — что подорожало и подешевело | {context['site_name']}",
+        "seo_description": "Кейсы, ножи и скины CS2, которые сильнее всего подорожали и подешевели в Steam за последние 24 часа. Цены, проценты и графики.",
+        "seo_canonical": request.build_absolute_uri(request.path),
+    }
+    return render(request, "tg_notifier/movers.html", context)
+
+
+PRICE_MOVERS_CACHE_KEY = "tg_notifier:price-movers"
 
 
 @login_required

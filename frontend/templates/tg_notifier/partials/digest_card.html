@@ -1,0 +1,68 @@
+{% comment %}
+Top of the day as a card: on the public "Топ цен за сутки" page and, standalone, as the picture attached to the
+channel post (digest_card_page.html, screenshotted by digest_image.py). Styles are inline so both look the same.
+{% endcomment %}
+<style>
+    .dg-card { --dg-bg: #0d0f13; --dg-panel: #151920; --dg-line: #252b35; --dg-text: #eef1f5; --dg-muted: #8b94a3; --dg-accent: #f5a623; --dg-up: #3ddc84; --dg-down: #ff5c5c;
+        box-sizing: border-box; width: 100%; max-width: 1080px; margin: 0 auto; padding: 28px; background: var(--dg-bg); color: var(--dg-text);
+        font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif; border-top: 4px solid var(--dg-accent); }
+    .dg-card *, .dg-card *::before, .dg-card *::after { box-sizing: border-box; }
+    .dg-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 20px; }
+    .dg-brand { color: var(--dg-accent); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; font-size: 14px; }
+    .dg-title { margin: 4px 0 0; font-size: 30px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; }
+    .dg-date { color: var(--dg-muted); font-size: 16px; white-space: nowrap; }
+    .dg-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .dg-block { background: var(--dg-panel); border: 1px solid var(--dg-line); padding: 14px 16px; }
+    .dg-block__title { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 17px; font-weight: 700; text-transform: uppercase; }
+    .dg-block__title::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--dg-up); }
+    .dg-block--down .dg-block__title::before { background: var(--dg-down); }
+    .dg-rows { list-style: none; margin: 0; padding: 0; }
+    .dg-row { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--dg-line); }
+    .dg-row:first-child { border-top: 0; }
+    .dg-row__icon { width: 56px; height: 42px; object-fit: contain; }
+    .dg-row__name { font-size: 15px; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: var(--dg-text); text-decoration: none; }
+    .dg-row__prices { display: block; margin-top: 3px; color: var(--dg-muted); font-size: 13px; }
+    .dg-row__prices b { color: var(--dg-text); }
+    .dg-row__change { font-weight: 800; font-size: 18px; color: var(--dg-up); white-space: nowrap; }
+    .dg-block--down .dg-row__change { color: var(--dg-down); }
+    .dg-foot { display: flex; justify-content: space-between; gap: 16px; margin-top: 18px; color: var(--dg-muted); font-size: 13px; }
+    .dg-foot b { color: var(--dg-accent); }
+    .dg-empty { color: var(--dg-muted); padding: 24px 0; }
+    @media (max-width: 720px) { .dg-grid { grid-template-columns: 1fr; } .dg-card { padding: 16px; } .dg-title { font-size: 22px; } }
+</style>
+<div class="dg-card">
+    <div class="dg-head">
+        <div>
+            <div class="dg-brand">{{ site_name }}</div>
+            <h2 class="dg-title">{{ title|default:"Цены CS2 за сутки" }}</h2>
+        </div>
+        <div class="dg-date">{{ generated_at|date:"d.m.Y H:i" }} МСК</div>
+    </div>
+    {% if blocks %}
+        <div class="dg-grid">
+            {% for block in blocks %}
+                <section class="dg-block{% if block.section.direction == 'down' %} dg-block--down{% endif %}">
+                    <h3 class="dg-block__title">{{ block.section.title }}</h3>
+                    <ol class="dg-rows">
+                        {% for move in block.moves %}
+                            <li class="dg-row">
+                                {% with icon=move.item.icon_cdn %}{% if icon %}<img class="dg-row__icon" src="{{ icon }}" alt="" onerror="this.style.visibility='hidden'">{% else %}<span class="dg-row__icon"></span>{% endif %}{% endwith %}
+                                <span>
+                                    <a class="dg-row__name" href="{{ move.item.get_absolute_url }}">{{ move.item.market_hash_name }}</a>
+                                    <span class="dg-row__prices">{{ move.baseline_text }} → <b>{{ move.current_text }}</b></span>
+                                </span>
+                                <span class="dg-row__change">{{ move.change_text }}</span>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                </section>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="dg-empty">За сутки нет заметных изменений среди предметов со свежими ценами.</p>
+    {% endif %}
+    <div class="dg-foot">
+        <span>Steam Community Market · цены проверены за последние {{ fresh_hours }} ч.</span>
+        <b>{{ site_host }}</b>
+    </div>
+</div>

@@ -1,4 +1,4 @@
-{% load l10n %}
+{% load l10n donations %}
 <section class="section section--compact ops" data-ops-dashboard>
     {% with currency=site_settings.site_currency_symbol|default:"₽" %}
     <header class="ops-hero">
@@ -34,6 +34,7 @@
             </div>
         </dl>
     </header>
+    {% donation_widget "dashboard" %}
 
     <div class="ops-kpis">
         <article class="ops-kpi">

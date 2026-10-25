@@ -1,4 +1,4 @@
-{% load static %}{% url 'frontend:dashboard_preview' as dashboard_url %}
+{% load static donations %}{% url 'frontend:dashboard_preview' as dashboard_url %}
 
 <aside class="dashboard-sidebar" data-dashboard-sidebar>
     <div class="dashboard-sidebar__inner">
@@ -63,6 +63,8 @@
                 </details>
             {% endfor %}
         </div>
+
+        {% donation_widget "sidebar" %}
 
         {% ad_slot "sidebar_bottom" %}
 

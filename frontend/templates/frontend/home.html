@@ -1,5 +1,5 @@
 {% extends "layouts/base_public.html" %}
-{% load caseup_brand %}
+{% load caseup_brand donations %}
 
 {% block title %}{{ site_settings.site_name|default:"CaseUP" }} — {% if LANGUAGE_CODE == "ru" %}цены скинов CS2{% else %}CS2 skin prices{% endif %}{% endblock %}
 
@@ -8,6 +8,7 @@
 {% block content %}
 {% if active_theme and active_theme.key == "midnight" and feature_flags.midnight_theme %}
     {% include "themes/midnight/pages/home_content.html" %}
+    {% donation_widget "home" %}
 {% else %}
     {% brand_asset "hero" as hero_url %}
     <section class="hero{% if hero_url %} hero--image{% endif %}"{% if hero_url %} style="--hero-image: url('{{ hero_url }}')"{% endif %}>
@@ -99,6 +100,7 @@
             </aside>
         </div>
     </section>
+    {% donation_widget "home" %}
 
     <section class="section">
         <div class="container">

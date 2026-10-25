@@ -1581,6 +1581,48 @@ def daily_bonus(request):
     return _render(request, partial="control_center/partials/daily_bonus_content.html", context=context, title="Бонус дня · Control Center", tab="daily_bonus")
 
 
+# --------------------------------------------------------------------------- donations
+
+
+@login_required
+def donations(request):
+    from modules.v2.donations.forms import DonationGoalForm
+    from modules.v2.donations.models import DonationGoal
+    from modules.v2.donations.services import admin_summary, start_new_campaign
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    goal = DonationGoal.load()
+    form = DonationGoalForm(instance=goal)
+    if request.method == "POST":
+        if request.POST.get("action") == "new_campaign":
+            start_new_campaign(goal)
+            log_admin_action(actor=request.user, action=AuditAction.DONATION_UPDATE, summary="Начат новый сбор", payload={"started_at": goal.started_at.isoformat()}, request=request)
+            messages.success(request, "Начат новый сбор: прогресс обнулён, история донатов сохранена.")
+            return redirect("control_center:donations")
+        form = DonationGoalForm(request.POST, instance=goal)
+        if form.is_valid():
+            changed = list(form.changed_data)
+            if changed:
+                form.save()
+                labels = [str(form.fields[name].label) for name in changed]
+                log_admin_action(actor=request.user, action=AuditAction.DONATION_UPDATE, summary=("Сбор: " + ", ".join(labels))[:255], payload={"changed": changed}, request=request)
+                messages.success(request, "Настройки сбора сохранены.")
+            else:
+                messages.info(request, "Изменений нет.")
+            return redirect("control_center:donations")
+        messages.error(request, "Проверьте поля формы.")
+
+    context = {
+        "role_access": role_access,
+        "goal": goal,
+        "form": form,
+        "summary": admin_summary(goal),
+    }
+    return _render(request, partial="control_center/partials/donations_content.html", context=context, title="Донаты · Control Center", tab="donations")
+
+
 # --------------------------------------------------------------------------- market
 
 

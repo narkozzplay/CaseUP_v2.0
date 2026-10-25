@@ -266,3 +266,53 @@
         init(document);
     }
 })();
+
+/* ---------- Donations: live preview of the widget while the form is edited ---------- */
+(function () {
+    'use strict';
+
+    var CLASS_PREFIX = { variant: 'donation--', background: 'donation--bg-' };
+    var CHOICES = { variant: ['card', 'banner', 'compact'], background: ['theme', 'tint', 'gradient'] };
+
+    function setText(widget, key, value) {
+        var node = widget.querySelector('[data-donation-preview="' + key + '"]');
+        if (node) {
+            node.textContent = value;
+        }
+    }
+
+    function toggle(widget, selector, visible) {
+        var node = widget.querySelector(selector);
+        if (node) {
+            node.hidden = !visible;
+        }
+    }
+
+    document.addEventListener('input', update);
+    document.addEventListener('change', update);
+
+    function update(event) {
+        var field = event.target.closest('[data-donation-field]');
+        var form = field && field.closest('[data-donation-form]');
+        var root = form && form.closest('[data-control-center]');
+        var widget = root && root.querySelector('[data-donation-preview-root] [data-donation-widget]');
+        if (!widget) {
+            return;
+        }
+        var name = field.dataset.donationField;
+        var value = field.type === 'checkbox' ? field.checked : field.value;
+        if (CHOICES[name]) {
+            CHOICES[name].forEach(function (choice) {
+                widget.classList.toggle(CLASS_PREFIX[name] + choice, choice === value);
+            });
+        } else if (name === 'accent_color' || name === 'accent_color_end') {
+            widget.style.setProperty(name === 'accent_color' ? '--donation-accent' : '--donation-accent-end', value);
+        } else if (name === 'title' || name === 'description' || name === 'button_text' || name === 'icon') {
+            setText(widget, name, value);
+        } else if (name === 'show_percent') {
+            toggle(widget, '.donation__percent', value);
+        } else if (name === 'show_donors_count') {
+            toggle(widget, '.donation__donors', value);
+        }
+    }
+})();

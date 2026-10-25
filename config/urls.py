@@ -10,6 +10,7 @@ from django.views.decorators.cache import cache_page
 
 from frontend.seo import SITEMAPS, robots_txt
 from modules.v2.referrals.views import referral_link
+from modules.v2.tg_notifier import views as tg_notifier_views
 from modules.v2.webpush import views as webpush_views
 
 
@@ -47,6 +48,7 @@ urlpatterns = [
 urlpatterns += i18n_patterns(
     path("admin/", admin.site.urls),
     path("auth/", include("modules.v2.accounts.urls")),
+    path("steam-catalog/top/", tg_notifier_views.price_movers_page, name="price_movers"),
     path("steam-catalog/", include("modules.v2.steam_catalog.urls")),
     path("farm/", include("modules.v2.farm.urls")),
     path("tradehub/", include("modules.v2.tradehub.urls")),
@@ -68,6 +70,7 @@ urlpatterns += i18n_patterns(
     path("referrals/", include("modules.v2.referrals.urls")),
     path("promo/", include("modules.v2.promo.urls")),
     path("bonus/", include("modules.v2.daily_bonus.urls")),
+    path("donate/", include("modules.v2.donations.urls")),
     path("market/", include("modules.v2.market.urls")),
     path("push/", include("modules.v2.webpush.urls")),
     path("customization/", include("modules.v2.profile_customization.urls")),

@@ -1,0 +1,59 @@
+<section class="section section--compact donation-page">
+    {% if not donation_state %}
+        <div class="donation-off">
+            <h1 class="donation-off__title">{% if LANGUAGE_CODE == "en" %}No fundraiser right now{% else %}Сейчас сбор не ведётся{% endif %}</h1>
+            <p class="text-muted">{% if LANGUAGE_CODE == "en" %}Thank you for wanting to help. Check back later.{% else %}Спасибо, что хотите помочь проекту. Загляните позже.{% endif %}</p>
+        </div>
+    {% else %}
+        {% with state=donation_state placement="page" %}{% include "donations/_widget_body.html" %}{% endwith %}
+
+        <div class="donation-page__grid">
+            <article class="donation-form-card">
+                <h2 class="donation-form-card__title">{% if LANGUAGE_CODE == "en" %}Make a donation{% else %}Сделать донат{% endif %}</h2>
+                {% if request.user.is_authenticated %}
+                    <p class="donation-form-card__balance">{% if LANGUAGE_CODE == "en" %}Your balance{% else %}Ваш баланс{% endif %}: <b>{% money donation_balance %}</b> · <a href="{% url 'payments:topup' %}?next={% url 'donations:page' %}">{% if LANGUAGE_CODE == "en" %}top up{% else %}пополнить{% endif %}</a></p>
+                    <form method="post" action="{% url 'donations:give' %}" class="donation-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="token" value="{{ donation_token }}">
+                        {# Enter in the amount field submits this first (unnamed) button, not the first preset. #}
+                        <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true"></button>
+                        {% if donation_goal.presets %}
+                            <div class="donation-form__presets">
+                                {% for preset in donation_goal.presets %}
+                                    <button type="submit" name="preset" value="{{ preset|floatformat:'0' }}" class="donation__chip donation__chip--button">{{ preset|floatformat:"0" }} ₽</button>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <label class="donation-form__field">
+                            <span>{% if LANGUAGE_CODE == "en" %}Or your amount, ₽{% else %}Или своя сумма, ₽{% endif %}</span>
+                            <input class="form-control" type="number" name="amount" min="{{ donation_goal.min_amount|floatformat:'0' }}" max="{{ donation_goal.max_amount|floatformat:'0' }}" step="1" inputmode="decimal" value="{{ donation_amount }}" placeholder="{{ donation_goal.min_amount|floatformat:'0' }}">
+                        </label>
+                        {% if donation_goal.allow_messages %}
+                            <label class="donation-form__field">
+                                <span>{% if LANGUAGE_CODE == "en" %}Message (optional){% else %}Комментарий (необязательно){% endif %}</span>
+                                <input class="form-control" type="text" name="message" maxlength="200">
+                            </label>
+                        {% endif %}
+                        <label class="cc-field-check"><input type="checkbox" name="is_anonymous" value="1"><span>{% if LANGUAGE_CODE == "en" %}Donate anonymously{% else %}Анонимно, без имени в списке{% endif %}</span></label>
+                        <button type="submit" class="btn btn-primary">{{ donation_goal.button_text }}</button>
+                        <p class="text-muted donation-form__hint">{% if LANGUAGE_CODE == "en" %}The amount is taken from your site balance. Donations are not refundable.{% else %}Сумма списывается с баланса сайта. Донат не возвращается.{% endif %}</p>
+                    </form>
+                {% else %}
+                    <p class="text-muted">{% if LANGUAGE_CODE == "en" %}Sign in to donate from your balance.{% else %}Войдите, чтобы сделать донат с баланса.{% endif %}</p>
+                    <a href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}" class="btn btn-primary" data-dashboard-nav="false">{% if LANGUAGE_CODE == "en" %}Sign in with Steam{% else %}Войти через Steam{% endif %}</a>
+                {% endif %}
+            </article>
+
+            {% if my_donations %}
+                <article class="donation-form-card">
+                    <h2 class="donation-form-card__title">{% if LANGUAGE_CODE == "en" %}Your donations{% else %}Ваши донаты{% endif %}</h2>
+                    <ul class="donation__recent">
+                        {% for item in my_donations %}
+                            <li><span class="cc-mono">{{ item.created_at|date:"d.m.Y" }}</span><span class="donation__recent-amount">{% money item.amount %}</span>{% if item.message %}<q>{{ item.message }}</q>{% endif %}</li>
+                        {% endfor %}
+                    </ul>
+                </article>
+            {% endif %}
+        </div>
+    {% endif %}
+</section>
