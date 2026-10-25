@@ -7,4 +7,5 @@ app_name = "tg_notifier"
 urlpatterns = [
     path("", views.settings_page, name="settings"),
     path("center/", views.notification_center_page, name="center"),
+    path("autopost/", views.autopost_page, name="autopost"),
 ]

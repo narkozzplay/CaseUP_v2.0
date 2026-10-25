@@ -65,11 +65,8 @@ class TelegramNotifierConfig(models.Model):
     channel_digest_enabled = models.BooleanField(default=False)
     channel_chat_id = models.CharField(max_length=128, blank=True, default="@caseup_pro_anons")
     channel_digest_times = models.CharField(max_length=64, blank=True, default="20:00")
-    channel_digest_top_n = models.PositiveSmallIntegerField(default=5)
-    channel_digest_min_price_rub = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("10.00"))
     channel_digest_fresh_hours = models.PositiveSmallIntegerField(default=12)
     channel_digest_last_sent_at = models.DateTimeField(null=True, blank=True)
-    channel_digest_last_error = models.TextField(blank=True, default="")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -136,3 +133,55 @@ class TelegramLinkToken(models.Model):
     @property
     def is_active(self) -> bool:
         return self.used_at is None and self.expires_at > timezone.now()
+
+class ChannelDigestSection(models.Model):
+    """One block of the channel digest: e.g. "Ножи: рост" — the top N knives by price growth over the day."""
+
+    class Direction(models.TextChoices):
+        UP = "up", "Рост"
+        DOWN = "down", "Спад"
+
+    title = models.CharField(max_length=80)
+    # "all", "type:<SteamItem.item_type>" or "group:<catalog weapon group>"; see channel_digest.CATEGORY_CHOICES.
+    category = models.CharField(max_length=32, default="all")
+    direction = models.CharField(max_length=8, choices=Direction.choices, default=Direction.UP)
+    top_n = models.PositiveSmallIntegerField(default=5)
+    min_price_rub = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("10.00"))
+    position = models.PositiveSmallIntegerField(default=0)
+    is_enabled = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["position", "id"]
+        verbose_name = "Channel digest section"
+        verbose_name_plural = "Channel digest sections"
+
+    def __str__(self) -> str:
+        return self.title
+
+
+class ChannelDigestPost(models.Model):
+    """Journal of digest runs: what went to the channel, or why nothing did."""
+
+    class Trigger(models.TextChoices):
+        SCHEDULE = "schedule", "По расписанию"
+        MANUAL = "manual", "Вручную"
+
+    class Status(models.TextChoices):
+        SENT = "sent", "Опубликован"
+        EMPTY = "empty", "Нечего постить"
+        ERROR = "error", "Ошибка"
+
+    trigger = models.CharField(max_length=16, choices=Trigger.choices)
+    status = models.CharField(max_length=16, choices=Status.choices)
+    chat_id = models.CharField(max_length=128, blank=True, default="")
+    text = models.TextField(blank=True, default="")
+    error = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        verbose_name = "Channel digest post"
+        verbose_name_plural = "Channel digest posts"
+
+    def __str__(self) -> str:
+        return f"ChannelDigestPost({self.created_at:%Y-%m-%d %H:%M}, {self.status})"

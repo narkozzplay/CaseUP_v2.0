@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django import forms
 
-from .models import DEFAULT_INVESTMENT_MESSAGE_TEMPLATE, TelegramNotifierConfig
+from .models import DEFAULT_INVESTMENT_MESSAGE_TEMPLATE, ChannelDigestSection, TelegramNotifierConfig
 
 
 class TelegramNotifierSettingsForm(forms.ModelForm):
@@ -145,16 +145,12 @@ class TelegramChannelDigestForm(forms.ModelForm):
             "channel_digest_enabled",
             "channel_chat_id",
             "channel_digest_times",
-            "channel_digest_top_n",
-            "channel_digest_min_price_rub",
             "channel_digest_fresh_hours",
         ]
         widgets = {
             "channel_digest_enabled": forms.CheckboxInput(attrs={"class": "toggle-control__input"}),
             "channel_chat_id": forms.TextInput(attrs={"class": "form-control", "placeholder": "@caseup_pro_anons или -1001234567890"}),
             "channel_digest_times": forms.TextInput(attrs={"class": "form-control", "placeholder": "20:00 или 10:00, 20:00"}),
-            "channel_digest_top_n": forms.NumberInput(attrs={"class": "form-control", "min": 1, "max": 10}),
-            "channel_digest_min_price_rub": forms.NumberInput(attrs={"class": "form-control", "min": 0, "step": "0.01"}),
             "channel_digest_fresh_hours": forms.NumberInput(attrs={"class": "form-control", "min": 1, "max": 72}),
         }
 
@@ -175,12 +171,6 @@ class TelegramChannelDigestForm(forms.ModelForm):
             raise forms.ValidationError("Время в формате ЧЧ:ММ через запятую, например «10:00, 20:00».")
         return ", ".join(slot.strftime("%H:%M") for slot in times)
 
-    def clean_channel_digest_top_n(self):
-        value = self.cleaned_data.get("channel_digest_top_n") or 0
-        if not 1 <= value <= 10:
-            raise forms.ValidationError("От 1 до 10 предметов.")
-        return value
-
     def clean_channel_digest_fresh_hours(self):
         value = self.cleaned_data.get("channel_digest_fresh_hours") or 0
         if not 1 <= value <= 72:
@@ -195,3 +185,41 @@ class TelegramChannelDigestForm(forms.ModelForm):
             if not cleaned.get("channel_digest_times"):
                 self.add_error("channel_digest_times", "Укажите хотя бы одно время.")
         return cleaned
+
+
+class ChannelDigestSectionForm(forms.ModelForm):
+    class Meta:
+        model = ChannelDigestSection
+        fields = ["is_enabled", "title", "category", "direction", "top_n", "min_price_rub", "position"]
+        widgets = {
+            "is_enabled": forms.CheckboxInput(),
+            "title": forms.TextInput(attrs={"class": "form-control", "placeholder": "Например: Ножи — рост"}),
+            "direction": forms.Select(attrs={"class": "form-control"}),
+            "top_n": forms.NumberInput(attrs={"class": "form-control", "min": 1, "max": 10}),
+            "min_price_rub": forms.NumberInput(attrs={"class": "form-control", "min": 0, "step": "0.01"}),
+            "position": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        from .channel_digest import CATEGORY_CHOICES
+
+        super().__init__(*args, **kwargs)
+        self.fields["category"] = forms.ChoiceField(
+            choices=CATEGORY_CHOICES,
+            widget=forms.Select(attrs={"class": "form-control"}),
+            initial="all",
+        )
+
+    def clean_top_n(self):
+        value = self.cleaned_data.get("top_n") or 0
+        if not 1 <= value <= 10:
+            raise forms.ValidationError("От 1 до 10.")
+        return value
+
+
+ChannelDigestSectionFormSet = forms.modelformset_factory(
+    ChannelDigestSection,
+    form=ChannelDigestSectionForm,
+    extra=1,
+    can_delete=True,
+)

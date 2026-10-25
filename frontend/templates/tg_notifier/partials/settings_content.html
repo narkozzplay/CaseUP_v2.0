@@ -180,71 +180,16 @@
         </form>
     </div>
     {# ---------- channel digest ---------- #}
-    <form method="post" class="ops-panel tgn-channel" data-dashboard-shell-form>
-        {% csrf_token %}
-        {# Enter in a field submits without a button value: saving is the safe default. #}
-        <input type="hidden" name="action" value="save_channel">
-        <div class="ops-panel__head"><h2 class="ops-panel__title">Автопостинг в канал</h2><span class="ops-panel__hint">сводка: что подорожало и подешевело за сутки</span></div>
+    <article class="ops-panel tgn-channel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Автопостинг в канал</h2><span class="ops-panel__hint">сводки цен по рубрикам</span></div>
         <div class="ref-body form-stack">
-            <p class="text-muted tgn-hint">Бот публикует топ подорожавших и подешевевших предметов со ссылками на их страницы в каталоге. Берутся только предметы, чья цена проверялась недавно. Бота нужно добавить в канал администратором с правом публикации сообщений.</p>
-            <label class="toggle-control" for="{{ channel_form.channel_digest_enabled.id_for_label }}">
-                {{ channel_form.channel_digest_enabled }}
-                <span class="toggle-control__track" aria-hidden="true"></span>
-                <span class="toggle-control__text">Постить по расписанию</span>
-            </label>
-
-            <div class="tgn-row">
-                <div class="form-field">
-                    <label for="{{ channel_form.channel_chat_id.id_for_label }}">Канал</label>
-                    {{ channel_form.channel_chat_id }}
-                    <p class="text-muted tgn-hint">@username публичного канала или его ID.</p>
-                    {{ channel_form.channel_chat_id.errors }}
-                </div>
-                <div class="form-field">
-                    <label for="{{ channel_form.channel_digest_times.id_for_label }}">Время (МСК)</label>
-                    {{ channel_form.channel_digest_times }}
-                    <p class="text-muted tgn-hint">Несколько — через запятую.</p>
-                    {{ channel_form.channel_digest_times.errors }}
-                </div>
-            </div>
-
-            <div class="tgn-row tgn-row--3">
-                <div class="form-field">
-                    <label for="{{ channel_form.channel_digest_top_n.id_for_label }}">Предметов в каждом топе</label>
-                    {{ channel_form.channel_digest_top_n }}
-                    {{ channel_form.channel_digest_top_n.errors }}
-                </div>
-                <div class="form-field">
-                    <label for="{{ channel_form.channel_digest_min_price_rub.id_for_label }}">Цена от, ₽</label>
-                    {{ channel_form.channel_digest_min_price_rub }}
-                    {{ channel_form.channel_digest_min_price_rub.errors }}
-                </div>
-                <div class="form-field">
-                    <label for="{{ channel_form.channel_digest_fresh_hours.id_for_label }}">Цена свежее, ч</label>
-                    {{ channel_form.channel_digest_fresh_hours }}
-                    {{ channel_form.channel_digest_fresh_hours.errors }}
-                </div>
-            </div>
-
-            {% if config.channel_digest_last_sent_at or config.channel_digest_last_error %}
-                <dl class="tgn-facts">
-                    {% if config.channel_digest_last_sent_at %}<div><dt>Последний запуск</dt><dd>{{ config.channel_digest_last_sent_at|date:"d.m.Y H:i" }}</dd></div>{% endif %}
-                    {% if config.channel_digest_last_error %}<div><dt>Последняя ошибка</dt><dd class="metric-negative">{{ config.channel_digest_last_error }}</dd></div>{% endif %}
-                </dl>
-            {% endif %}
-
-            {% if channel_preview %}
-                <div class="form-field">
-                    <label>Как выглядит пост</label>
-                    <div class="tgn-preview">{{ channel_preview|safe }}</div>
-                </div>
-            {% endif %}
-
-            <div class="tgn-actions">
-                <button type="submit" name="action" value="save_channel" class="btn btn-primary">Сохранить</button>
-                <button type="submit" name="action" value="preview_channel" class="btn btn-secondary">Предпросмотр</button>
-                <button type="submit" name="action" value="post_channel_now" class="btn btn-secondary">Опубликовать сейчас</button>
-            </div>
+            <dl class="tgn-facts">
+                <div><dt>Статус</dt><dd class="{% if config.channel_digest_enabled %}metric-positive{% else %}metric-negative{% endif %}">{% if config.channel_digest_enabled %}постит по расписанию{% else %}выключен{% endif %}</dd></div>
+                <div><dt>Канал</dt><dd>{{ config.channel_chat_id|default:"не указан" }}</dd></div>
+                <div><dt>Время (МСК)</dt><dd>{{ config.channel_digest_times|default:"—" }}</dd></div>
+                <div><dt>Рубрик включено</dt><dd>{{ channel_sections }}</dd></div>
+            </dl>
+            <div><a class="btn btn-primary" href="{% url 'tg_notifier:autopost' %}">Настроить автопостинг</a></div>
         </div>
-    </form>
+    </article>
 </section>

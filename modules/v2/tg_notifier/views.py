@@ -20,9 +20,9 @@ from modules.v2.subscriptions.feature_codes import TG_NOTIFIER_USER
 from modules.v2.subscriptions.responses import render_feature_locked_response
 from modules.v2.subscriptions.services import get_feature_access_state
 
-from .channel_digest import build_digest_text, post_digest
-from .forms import TelegramChannelDigestForm, TelegramNotifierSettingsForm, TelegramTestSendForm
-from .models import TelegramNotifierConfig
+from .channel_digest import CATEGORY_LABELS, build_digest_text, post_digest
+from .forms import ChannelDigestSectionFormSet, TelegramChannelDigestForm, TelegramNotifierSettingsForm, TelegramTestSendForm
+from .models import ChannelDigestPost, ChannelDigestSection, TelegramNotifierConfig
 from .updates import get_poll_status, handle_update
 from .services import (
     relay_settings,
@@ -113,7 +113,7 @@ def _poll_state(config) -> dict | None:
 
 
 def _build_settings_context(
-    *, role_access, settings_form, test_form, config, webhook_info=None, bot_check=None, channel_form=None, channel_preview=None
+    *, role_access, settings_form, test_form, config, webhook_info=None, bot_check=None
 ):
     from modules.v2.profiles.models import UserProfile
 
@@ -131,8 +131,7 @@ def _build_settings_context(
         "poll_state": _poll_state(config),
         "bot_check": bot_check,
         "has_bot_token": bool(resolve_bot_token(config)),
-        "channel_form": channel_form or TelegramChannelDigestForm(instance=config),
-        "channel_preview": channel_preview,
+        "channel_sections": ChannelDigestSection.objects.filter(is_enabled=True).count(),
         "linked_users": UserProfile.objects.exclude(telegram_chat_id__isnull=True).exclude(telegram_chat_id="").count(),
     }
 
@@ -146,41 +145,11 @@ def settings_page(request):
     config = get_telegram_notifier_config()
     webhook_info = None
     bot_check = None
-    channel_form = None
-    channel_preview = None
 
     if request.method == "POST":
         action = request.POST.get("action")
 
-        if action in {"save_channel", "preview_channel", "post_channel_now"}:
-            settings_form = TelegramNotifierSettingsForm(instance=config)
-            test_form = TelegramTestSendForm(initial={"chat_id": config.default_chat_id, "text": build_test_message()})
-            # Preview and publish use what is on the screen, so the form is saved first for every button.
-            channel_form = TelegramChannelDigestForm(request.POST, instance=config)
-            if not channel_form.is_valid():
-                pass
-            elif action == "save_channel":
-                channel_form.save()
-                channel_form = None
-                messages.success(request, "Настройки автопостинга сохранены.")
-            elif action == "preview_channel":
-                config = channel_form.save()
-                channel_form = None
-                try:
-                    channel_preview = build_digest_text(config) or "За сутки нет заметных изменений среди предметов со свежими ценами — пост не выйдет."
-                except TelegramNotifierError as exc:
-                    messages.error(request, f"Предпросмотр не удался: {exc}")
-            else:
-                config = channel_form.save()
-                channel_form = None
-                try:
-                    channel_preview = post_digest(config)
-                except TelegramNotifierError as exc:
-                    messages.error(request, f"Пост в канал не отправлен: {exc}")
-                else:
-                    messages.success(request, f"Сводка опубликована в {config.channel_chat_id}.")
-
-        elif action == "save_settings":
+        if action == "save_settings":
             settings_form = TelegramNotifierSettingsForm(request.POST, instance=config)
             test_form = TelegramTestSendForm(
                 initial={
@@ -339,8 +308,6 @@ def settings_page(request):
         config=config,
         webhook_info=webhook_info,
         bot_check=bot_check,
-        channel_form=channel_form,
-        channel_preview=channel_preview,
     )
     return render_dashboard_page(
         request,
@@ -348,6 +315,69 @@ def settings_page(request):
         partial_template="tg_notifier/partials/settings_content.html",
         context=context,
         page_title=build_page_title("TG Notifier"),
+        active_menu_key="tg_settings",
+    )
+
+
+@login_required
+def autopost_page(request):
+    """Channel digest: schedule, sections (category, rise/fall, top N), preview, publish now and the post journal."""
+    role_access = get_user_role(request.user)
+    if not role_access.is_admin_plus:
+        return HttpResponseForbidden("Автопостинг доступен только admin+.")
+
+    config = get_telegram_notifier_config()
+    sections = ChannelDigestSection.objects.all()
+    preview = None
+    schedule_form = TelegramChannelDigestForm(instance=config)
+    section_formset = ChannelDigestSectionFormSet(queryset=sections, prefix="sections")
+
+    if request.method == "POST":
+        action = request.POST.get("action") or "save"
+        # Every button works with what is on the screen, so the forms are saved first.
+        schedule_form = TelegramChannelDigestForm(request.POST, instance=config)
+        section_formset = ChannelDigestSectionFormSet(request.POST, queryset=sections, prefix="sections")
+        if schedule_form.is_valid() and section_formset.is_valid():
+            config = schedule_form.save()
+            section_formset.save()
+            if action == "preview":
+                try:
+                    preview = build_digest_text(config) or ""
+                except TelegramNotifierError as exc:
+                    messages.error(request, f"Предпросмотр не удался: {exc}")
+                else:
+                    if not preview:
+                        messages.info(request, "За сутки нет заметных изменений среди предметов со свежими ценами — пост не выйдет.")
+            elif action == "post_now":
+                try:
+                    preview = post_digest(config)
+                except TelegramNotifierError as exc:
+                    messages.error(request, f"Пост в канал не отправлен: {exc}")
+                else:
+                    messages.success(request, f"Сводка опубликована в {config.channel_chat_id}.")
+            else:
+                messages.success(request, "Настройки автопостинга сохранены.")
+            schedule_form = TelegramChannelDigestForm(instance=config)
+            section_formset = ChannelDigestSectionFormSet(queryset=ChannelDigestSection.objects.all(), prefix="sections")
+        else:
+            messages.error(request, "Исправьте ошибки в форме.")
+
+    context = {
+        "role_access": role_access,
+        "config": config,
+        "schedule_form": schedule_form,
+        "section_formset": section_formset,
+        "category_labels": CATEGORY_LABELS,
+        "preview": preview,
+        "posts": ChannelDigestPost.objects.all()[:20],
+        "bot_ready": config.is_enabled and bool(resolve_bot_token(config)),
+    }
+    return render_dashboard_page(
+        request,
+        full_template="tg_notifier/autopost.html",
+        partial_template="tg_notifier/partials/autopost_content.html",
+        context=context,
+        page_title=build_page_title("Автопостинг в канал"),
         active_menu_key="tg_settings",
     )
 
