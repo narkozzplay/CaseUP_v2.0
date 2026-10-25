@@ -6,6 +6,7 @@ from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -188,6 +189,41 @@ class PollingTests(TestCase):
         self.config.refresh_from_db()
         self.assertEqual(self.config.polling_offset, 500)
         self.assertFalse(updates.get_poll_status()["error"])
+
+    def test_dropped_connection_is_a_notifier_error_and_poll_status_tracks_the_streak(self):
+        import http.client
+
+        from . import services, updates
+
+        with patch.object(services.urllib.request, "urlopen", side_effect=http.client.RemoteDisconnected("Remote end closed connection without response")):
+            with self.assertRaises(services.TelegramNotifierError):
+                updates.poll_once()
+        first = updates.get_poll_status()
+        self.assertIn("RemoteDisconnected", first["error"])
+        self.assertIsNotNone(first["failing_since"])
+
+        with patch.object(updates, "_telegram_api_request", side_effect=services.TelegramNotifierError("Telegram API HTTP 502")):
+            with self.assertRaises(services.TelegramNotifierError):
+                updates.poll_once()
+        self.assertEqual(updates.get_poll_status()["failing_since"], first["failing_since"])
+
+        with patch.object(updates, "_telegram_api_request", return_value={"ok": True, "result": []}):
+            updates.poll_once()
+        status = updates.get_poll_status()
+        self.assertIsNone(status["failing_since"])
+        ok_since = status["ok_since"]
+        self.assertIsNotNone(ok_since)
+
+        with patch.object(updates, "_telegram_api_request", return_value={"ok": True, "result": []}):
+            updates.poll_once()
+        self.assertEqual(updates.get_poll_status()["ok_since"], ok_since)
+
+        # A long gap without polls (poller was down) starts a new clean run.
+        stale = dict(updates.get_poll_status(), at=timezone.now() - timedelta(minutes=30))
+        cache.set(updates.POLL_STATUS_KEY, stale)
+        with patch.object(updates, "_telegram_api_request", return_value={"ok": True, "result": []}):
+            updates.poll_once()
+        self.assertGreater(updates.get_poll_status()["ok_since"], ok_since)
 
     def test_stale_message_is_acknowledged_without_reply(self):
         from . import updates

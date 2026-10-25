@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
@@ -135,7 +136,45 @@ class CeleryTasksTests(TestCase):
         results = run_due_rules(triggered_by="beat")
 
         self.assertEqual(len(results), 1)
-        run_rule_mock.assert_called_once_with(due_rule.id, triggered_by="beat")
+        run_rule_mock.assert_called_once()
+        self.assertEqual(run_rule_mock.call_args.args, (due_rule.id,))
+        self.assertEqual(run_rule_mock.call_args.kwargs["triggered_by"], "beat")
+        self.assertIsNotNone(run_rule_mock.call_args.kwargs["deadline"])
+
+    @patch("modules.v2.celery_tasks.services.run_price_auto_update_rule")
+    def test_run_due_rules_shares_time_and_survives_a_failing_rule(self, run_rule_mock):
+        now = timezone.now()
+        for category in (SteamItem.ItemType.CASE, SteamItem.ItemType.SKIN, SteamItem.ItemType.STICKER):
+            PriceAutoUpdateRule.objects.create(category=category, interval_minutes=60, is_enabled=True, next_run_at=now - timedelta(minutes=1))
+        deadlines = []
+
+        def run(rule_id, *, triggered_by, deadline):
+            deadlines.append(deadline)
+            if len(deadlines) == 1:
+                raise RuntimeError("steam down")
+            return rule_id
+
+        run_rule_mock.side_effect = run
+        start = time.monotonic()
+        results = run_due_rules(triggered_by="beat", deadline=start + 900)
+
+        self.assertEqual(len(results), 2)
+        self.assertEqual(run_rule_mock.call_count, 3)
+        # The first rule gets about a third of the time, not all of it.
+        self.assertLess(deadlines[0] - start, 310)
+        self.assertTrue(all(deadline <= start + 900 for deadline in deadlines))
+
+    @patch("modules.v2.celery_tasks.services.refresh_batch")
+    def test_interrupted_rule_keeps_a_readable_error(self, refresh_mock):
+        from celery.exceptions import SoftTimeLimitExceeded
+
+        rule = PriceAutoUpdateRule.objects.create(category=SteamItem.ItemType.SKIN, interval_minutes=60, is_enabled=True)
+        refresh_mock.side_effect = SoftTimeLimitExceeded()
+        with self.assertRaises(SoftTimeLimitExceeded):
+            run_price_auto_update_rule(rule.id, triggered_by="beat")
+        rule.refresh_from_db()
+        self.assertEqual(rule.last_status, PriceAutoUpdateRule.Status.ERROR)
+        self.assertTrue(rule.last_error)
 
     def test_control_center_forbidden_for_regular_user(self):
         user = self._make_regular_user()

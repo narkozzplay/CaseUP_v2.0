@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import time
 import urllib.error
 from datetime import timedelta
 from decimal import Decimal
@@ -151,3 +152,21 @@ class BulkImportTests(TestCase):
         user = get_user_model().objects.create_user(username="catalog_user", password="x")
         client.force_login(user)
         self.assertEqual(client.post(reverse("steam_catalog:reference_import_all")).status_code, 403)
+
+    @mock.patch(PRICE_FETCH, return_value=Decimal("1.00"))
+    def test_batch_stops_at_the_deadline_instead_of_hitting_the_task_time_limit(self, fetch_mock):
+        item = make_item("Late | Item")
+        result = price_queue.refresh_batch(category=SteamItem.ItemType.SKIN, limit=5, deadline=time.monotonic() + 1)
+        self.assertTrue(result.out_of_time)
+        self.assertFalse(result.rate_limited)
+        self.assertEqual(result.errors, [])
+        fetch_mock.assert_not_called()
+        item.refresh_from_db()
+        self.assertIsNone(item.price_checked_at)  # stays the stalest, so the next run takes it first
+
+    @override_settings(STEAM_PRICE_REQUEST_INTERVAL=3, STEAM_PRICE_BATCH_MAX=60)
+    def test_batch_limit_fits_the_time_left(self):
+        self.assertEqual(price_queue.batch_limit(60), 60)
+        # 120 s left: 100 s after the reserve, 80 % of it at one request per 3 s.
+        self.assertEqual(price_queue.batch_limit(60, budget_seconds=120), 26)
+        self.assertEqual(price_queue.batch_limit(60, budget_seconds=5), 1)

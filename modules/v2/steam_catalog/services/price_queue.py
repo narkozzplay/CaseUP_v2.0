@@ -11,6 +11,9 @@ Requests go out through «routes»: the server itself and any relays listed in `
 (a small PHP script on other hosting, i.e. another IP). Every route has its own request slot (a cache
 key shared by all workers), so each IP sends at most one request per ``STEAM_PRICE_REQUEST_INTERVAL``
 seconds, and its own pause after an HTTP 429 from Steam (``STEAM_PRICE_BACKOFF_MINUTES``).
+
+A run is bounded by a ``deadline`` (``time.monotonic()``): the Celery task has a soft time limit, and a batch
+that does not fit is simply finished by the next run instead of being killed mid-request.
 """
 from __future__ import annotations
 
@@ -31,6 +34,8 @@ from modules.v2.steam_catalog.models import SteamItem, SteamItemPriceHistory, Us
 
 DIRECT = "direct"
 RELAY_ERROR_PAUSE_MINUTES = 30
+# Kept free before the deadline: one Steam request (timeout 15 s) plus saving the result.
+DEADLINE_RESERVE_SECONDS = 20
 
 
 @dataclass
@@ -41,6 +46,7 @@ class QueueBatchResult:
     changed_ids: list[int] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     rate_limited: bool = False
+    out_of_time: bool = False
 
 
 def _setting(name: str, default):
@@ -80,10 +86,15 @@ def backoff_until():
     return min(pauses)
 
 
-def _acquire_route() -> str | None:
-    """Wait for a free request slot on any route that is not paused; None when all are paused."""
+def _out_of_time(deadline: float | None) -> bool:
+    return deadline is not None and time.monotonic() >= deadline - DEADLINE_RESERVE_SECONDS
+
+
+def _acquire_route(deadline: float | None = None) -> str | None:
+    """Wait for a free request slot on any route that is not paused; None when all are paused or the
+    deadline is too close for one more request."""
     interval = float(_setting("STEAM_PRICE_REQUEST_INTERVAL", 3.0))
-    while True:
+    while not _out_of_time(deadline):
         available = [route for route in routes() if route_paused_until(route) is None]
         if not available:
             return None
@@ -94,6 +105,7 @@ def _acquire_route() -> str | None:
             if cache.add(_slot_key(route), 1, timeout=max(1, int(round(interval)))):
                 return route
         time.sleep(0.3)
+    return None
 
 
 def _fetch_via_relay(relay_url: str, market_hash_name: str, timeout: float = 15.0):
@@ -156,14 +168,18 @@ def pick_batch(*, category: str, limit: int, now=None) -> list[SteamItem]:
     return picked
 
 
-def batch_limit(interval_minutes: int) -> int:
-    """How many items fit into one run: ~80% of the run interval at the combined pace of all routes, capped."""
+def batch_limit(interval_minutes: int, budget_seconds: float | None = None) -> int:
+    """How many items fit into one run: ~80% of the run interval (or of ``budget_seconds``, the time the task
+    has left, when that is shorter) at the combined pace of all routes, capped."""
     pace = max(float(_setting("STEAM_PRICE_REQUEST_INTERVAL", 3.0)), 0.5) / len(routes())
-    fits = int(interval_minutes * 60 * 0.8 / pace)
+    seconds = interval_minutes * 60
+    if budget_seconds is not None:
+        seconds = min(seconds, max(budget_seconds - DEADLINE_RESERVE_SECONDS, 0))
+    fits = int(seconds * 0.8 / pace)
     return max(1, min(fits, int(_setting("STEAM_PRICE_BATCH_MAX", 60)) * len(routes())))
 
 
-def refresh_batch(*, category: str, limit: int, source: str = "queue") -> QueueBatchResult:
+def refresh_batch(*, category: str, limit: int, source: str = "queue", deadline: float | None = None) -> QueueBatchResult:
     result = QueueBatchResult()
     until = backoff_until()
     if until:
@@ -172,9 +188,13 @@ def refresh_batch(*, category: str, limit: int, source: str = "queue") -> QueueB
         return result
 
     for item in pick_batch(category=category, limit=limit):
-        route = _acquire_route()
+        route = _acquire_route(deadline)
         if route is None:
-            result.rate_limited = True
+            # The rest of the batch stays stale and is picked first by the next run.
+            if _out_of_time(deadline):
+                result.out_of_time = True
+            else:
+                result.rate_limited = True
             break
         try:
             price = fetch_price(route, item.market_hash_name)
