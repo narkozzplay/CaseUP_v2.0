@@ -48,7 +48,7 @@
             <dl class="item-hero__facts">
                 <div><dt>Диапазон семейства</dt><dd>{% if family_min_price and family_max_price %}{% if family_min_price == family_max_price %}{% money family_min_price %}{% else %}{% money family_min_price %} — {% money family_max_price %}{% endif %}{% else %}—{% endif %}</dd></div>
                 <div><dt>Вариантов</dt><dd>{{ family_items|length }}</dd></div>
-                <div><dt>Stock</dt><dd>{{ family_total_stock }}</dd></div>
+                {% if catalog_can_edit %}<div><dt>Stock</dt><dd>{{ family_total_stock }}</dd></div>{% endif %}
                 <div><dt>Обновлено</dt><dd>{% if latest_price_entry %}{{ latest_price_entry.created_at|date:"d.m H:i" }}{% else %}—{% endif %}</dd></div>
                 <div><dt>Авто-апдейт</dt><dd class="{% if auto_update_enabled %}text-up{% else %}text-muted{% endif %}">{% if auto_update_enabled %}ON · {{ auto_update_rule.schedule_display }}{% else %}OFF{% endif %}</dd></div>
             </dl>
@@ -84,7 +84,7 @@
                     <a href="{{ variant.get_absolute_url }}" class="variant-tile{% if variant.id == item.id %} is-active{% endif %}{% if variant.is_stattrak %} variant-tile--stattrak{% endif %}"{% if variant.id == item.id %} aria-current="page"{% endif %}>
                         <span class="variant-tile__name">{% if variant.is_stattrak %}ST · {% endif %}{{ variant.exterior|default:variant.market_hash_name }}</span>
                         <strong class="variant-tile__price">{% if variant.price_rub %}{% money variant.price_rub %}{% else %}—{% endif %}</strong>
-                        <span class="variant-tile__stock">Stock: {{ variant.stock }}</span>
+                        {% if catalog_can_edit %}<span class="variant-tile__stock">Stock: {{ variant.stock }}</span>{% endif %}
                     </a>
                 {% endfor %}
             </div>

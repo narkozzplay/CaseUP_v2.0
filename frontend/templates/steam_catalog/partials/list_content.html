@@ -172,7 +172,7 @@
                             <div class="catalog-card__meta">
                                 {% if card.variants_count > 1 %}<span>{{ card.variants_count }} вар.</span>{% endif %}
                                 {% if card.item.rarity %}<span class="catalog-card__rarity">{{ card.item.rarity }}</span>{% endif %}
-                                {% if card.total_stock %}<span class="catalog-card__stock">Stock: {{ card.total_stock }}</span>{% endif %}
+                                {% if catalog_can_edit and card.total_stock %}<span class="catalog-card__stock">Stock: {{ card.total_stock }}</span>{% endif %}
                             </div>
                         </div>
                     </div>

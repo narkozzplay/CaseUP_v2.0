@@ -53,6 +53,14 @@ class GuestCatalogTests(TestCase):
         self.assertContains(detail, "Войти через Steam")
         self.assertNotContains(detail, "Склад")
 
+    def test_warehouse_stock_is_hidden_outside_staff(self):
+        SteamItem.objects.filter(pk=self.item.pk).update(stock=7)
+        self.assertNotContains(self.client.get(reverse("steam_catalog:list")), "Stock: 7")
+        self.assertNotContains(self.client.get(self.item.get_absolute_url()), "<dt>Stock</dt>")
+        self.client.force_login(User.objects.create_user(username="boss", password="x", is_staff=True))
+        self.assertContains(self.client.get(reverse("steam_catalog:list")), "Stock: 7")
+        self.assertContains(self.client.get(self.item.get_absolute_url()), "<dt>Stock</dt><dd>7</dd>")
+
     def test_item_address_has_the_name_and_old_addresses_redirect(self):
         self.assertEqual(self.item.slug, "ak-47-redline-field-tested")
         self.assertEqual(self.item.get_absolute_url(), f"/steam-catalog/{self.item.pk}-ak-47-redline-field-tested/")
