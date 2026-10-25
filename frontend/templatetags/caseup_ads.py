@@ -9,4 +9,4 @@ register = template.Library()
 def ad_slot(context, key: str):
     request = context.get("request")
     user = getattr(request, "user", None)
-    return {"slot": get_ad_slot(user, key)}
+    return {"slot": get_ad_slot(user, key, request=request)}

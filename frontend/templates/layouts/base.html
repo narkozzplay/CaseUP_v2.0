@@ -29,6 +29,7 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
     {% block page %}{% endblock %}
+    {% if ads_ask_consent %}{% include "ads/consent_bar.html" %}{% endif %}
     {% block extra_js %}{% endblock %}
     {% for runtime_module_js_file in runtime_module_js_files %}
         <script src="{% static runtime_module_js_file %}" defer data-user-runtime-module-js="{{ runtime_module_js_file }}"></script>

@@ -7,7 +7,7 @@ from modules.v2.subscriptions.models import SubscriptionPlan
 from modules.v2.subscriptions.services import assign_user_subscription_plan
 
 from .models import AdPlacement, AdSettings
-from .services import get_ad_slot, user_sees_ads
+from .services import CONSENT_COOKIE, get_ad_slot, user_sees_ads
 
 User = get_user_model()
 
@@ -52,8 +52,10 @@ class AdVisibilityTests(TestCase):
         AdSettings.objects.filter(singleton_key=1).update(show_to_staff=True)
         self.assertTrue(user_sees_ads(admin))
 
-    def _render(self, user):
+    def _render(self, user, *, consent=False):
         request = RequestFactory().get("/")
+        if consent:
+            request.COOKIES[CONSENT_COOKIE] = "1"
         request.user = user
         return Template('{% ad_slot "catalog_top" %}').render(Context({"request": request}))
 
@@ -66,9 +68,29 @@ class AdVisibilityTests(TestCase):
     def test_yandex_provider_renders_rtb_block(self):
         AdSettings.objects.filter(singleton_key=1).update(provider=AdSettings.Provider.YANDEX)
         AdPlacement.objects.filter(key="catalog_top").update(block_id="R-A-1234567-1")
-        html = self._render(self.user)
+        html = self._render(self.user, consent=True)
         self.assertIn('data-ad-block="R-A-1234567-1"', html)
         self.assertNotIn("Рынок CaseUP", html)
+
+    def test_ad_network_waits_for_cookie_consent(self):
+        AdSettings.objects.filter(singleton_key=1).update(provider=AdSettings.Provider.YANDEX)
+        AdPlacement.objects.filter(key="catalog_top").update(block_id="R-A-1234567-1")
+        self.assertNotIn("ad-slot", self._render(self.user))
+
+    def test_consent_bar_and_network_script_follow_consent(self):
+        AdSettings.objects.filter(singleton_key=1).update(provider=AdSettings.Provider.YANDEX)
+        self.client.force_login(self.user)
+        page = self.client.get("/subscriptions/")
+        self.assertContains(page, "data-ad-consent")
+        self.assertNotContains(page, "yandex.ru/ads/system/context.js")
+        self.client.cookies[CONSENT_COOKIE] = "1"
+        page = self.client.get("/subscriptions/")
+        self.assertNotContains(page, "data-ad-consent")
+        self.assertContains(page, "yandex.ru/ads/system/context.js")
+
+    def test_house_banners_need_no_consent_bar(self):
+        self.client.force_login(self.user)
+        self.assertNotContains(self.client.get("/subscriptions/"), "data-ad-consent")
 
     def test_yandex_provider_without_block_id_renders_nothing(self):
         AdSettings.objects.filter(singleton_key=1).update(provider=AdSettings.Provider.YANDEX)

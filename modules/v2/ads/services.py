@@ -7,6 +7,10 @@ from modules.v2.system.request_cache import request_memoize
 
 from .models import AdPlacement, AdSettings
 
+# Set by the consent bar; third-party ad networks load only after the visitor agrees to their cookies.
+CONSENT_COOKIE = "caseup_ad_consent"
+NETWORK_PROVIDERS = (AdSettings.Provider.YANDEX, AdSettings.Provider.GOOGLE)
+
 
 @dataclass(frozen=True)
 class AdSlot:
@@ -62,8 +66,18 @@ def user_sees_ads(user) -> bool:
     return not _has_paid_no_ads(user)
 
 
-def get_ad_slot(user, key: str) -> AdSlot | None:
+def uses_ad_network() -> bool:
+    return get_ad_settings().provider in NETWORK_PROVIDERS
+
+
+def has_ad_consent(request) -> bool:
+    return getattr(request, "COOKIES", {}).get(CONSENT_COOKIE) == "1"
+
+
+def get_ad_slot(user, key: str, *, request=None) -> AdSlot | None:
     if not user_sees_ads(user):
+        return None
+    if uses_ad_network() and not has_ad_consent(request):
         return None
     placement = _enabled_placements().get(key)
     if placement is None:
@@ -88,7 +102,7 @@ def get_ad_slot(user, key: str) -> AdSlot | None:
     )
 
 
-def get_feed_every_n(user) -> int:
-    if get_ad_slot(user, "catalog_feed") is None:
+def get_feed_every_n(user, *, request=None) -> int:
+    if get_ad_slot(user, "catalog_feed", request=request) is None:
         return 0
     return int(get_ad_settings().feed_every_n or 0)

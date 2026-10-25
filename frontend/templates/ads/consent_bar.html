@@ -1,0 +1,10 @@
+<div class="ad-consent" data-ad-consent role="dialog" aria-label="Рекламные cookie">
+    <p class="ad-consent__text">
+        Сайт бесплатный благодаря рекламе. Рекламная сеть использует свои cookie. Подробнее в <a href="{% url 'frontend:cookies' %}">Политике cookie</a>.
+        Без рекламы — <a href="{% url 'subscriptions:plans' %}">тариф за 99 ₽</a>.
+    </p>
+    <div class="ad-consent__actions">
+        <button type="button" class="btn btn-primary btn-sm" data-ad-consent-accept>Согласен</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-ad-consent-decline>Не сейчас</button>
+    </div>
+</div>

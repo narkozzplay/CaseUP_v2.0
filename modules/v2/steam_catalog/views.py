@@ -572,7 +572,7 @@ def catalog_list(request):
             "catalog_grid_columns": configured_columns,
             "catalog_can_edit": can_edit,
             "catalog_view_access_state": get_feature_access_state(request.user, STEAM_CATALOG_VIEW),
-            "ads_feed_every_n": get_feed_every_n(request.user),
+            "ads_feed_every_n": get_feed_every_n(request.user, request=request),
         },
         page_title=build_page_title("Steam Catalog"),
         active_menu_key="steam_catalog",
