@@ -41,6 +41,8 @@ def _is_allowed_dev_host(host: str) -> bool:
 
 
 DEBUG = True
+# Local visits stay out of the production Metrika counter unless a counter is set explicitly.
+YANDEX_METRIKA_ID = os.getenv("YANDEX_METRIKA_ID", "").strip()
 SECRET_KEY = (os.getenv("DJANGO_SECRET_KEY") or "dev-secret-key-not-for-production").strip()
 ALLOWED_HOSTS = get_env_list(
     "DJANGO_ALLOWED_HOSTS",

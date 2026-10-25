@@ -19,6 +19,8 @@ CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS = 300
 
 # Admin tests log in with force_login; the 2FA tests turn the requirement back on themselves.
 TWO_FACTOR_REQUIRED_FOR_ADMINS = False
+# Analytics tests turn the counter on with override_settings.
+YANDEX_METRIKA_ID = ""
 
 # Tests never depend on a running Redis and keep their output quiet (assertLogs still works).
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}

@@ -152,6 +152,7 @@ TEMPLATES = [
                 "modules.v2.system.context_processors.system_settings",
                 "modules.v2.subscriptions.context_processors.subscription_context",
                 "modules.v2.ads.context_processors.ads_context",
+                "frontend.analytics.analytics_context",
             ],
             "builtins": [
                 "frontend.templatetags.site_formatters",
@@ -412,6 +413,9 @@ REFERRAL_QUALIFY_TOPUP_RUB = os.getenv("REFERRAL_QUALIFY_TOPUP_RUB", "100")
 REFERRAL_DISCOUNT_MAX_PERCENT = int(os.getenv("REFERRAL_DISCOUNT_MAX_PERCENT", "50"))
 REFERRAL_TURNOVER_MAX_PERCENT = int(os.getenv("REFERRAL_TURNOVER_MAX_PERCENT", "10"))
 REFERRAL_COOKIE_DAYS = int(os.getenv("REFERRAL_COOKIE_DAYS", "30"))
+
+# Yandex Metrika counter (case-up.ru); empty switches it off. Loads only after the cookie consent bar.
+YANDEX_METRIKA_ID = os.getenv("YANDEX_METRIKA_ID", "56442064").strip()
 # Test-mode YooKassa payments do not qualify referrals unless this is on (useful on a test stand).
 REFERRAL_COUNT_TEST_PAYMENTS = os.getenv("REFERRAL_COUNT_TEST_PAYMENTS", "0").strip().lower() in {"1", "true", "yes", "on"}
 

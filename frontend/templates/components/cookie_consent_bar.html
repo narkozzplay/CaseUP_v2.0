@@ -1,0 +1,16 @@
+{% load static %}{% if ads_ask_consent or analytics_ask_consent %}
+<div class="ad-consent" data-cookie-consent data-consent-cookies="{% if analytics_ask_consent %}caseup_analytics_consent {% endif %}{% if ads_ask_consent %}caseup_ad_consent{% endif %}" role="dialog" aria-label="Cookie">
+    <p class="ad-consent__text">
+        {% if analytics_ask_consent and ads_ask_consent %}Сайт бесплатный благодаря рекламе, а Яндекс Метрика помогает понять, что в нём улучшить. Рекламная сеть и Метрика используют свои cookie.
+        {% elif analytics_ask_consent %}Яндекс Метрика помогает нам понять, какие страницы полезны и где сайт неудобен. Она использует свои cookie.
+        {% else %}Сайт бесплатный благодаря рекламе. Рекламная сеть использует свои cookie.{% endif %}
+        Подробнее в <a href="{% url 'frontend:cookies' %}">Политике cookie</a>.
+        {% if ads_ask_consent %}Без рекламы — <a href="{% url 'subscriptions:plans' %}">тариф за 99 ₽</a>.{% endif %}
+    </p>
+    <div class="ad-consent__actions">
+        <button type="button" class="btn btn-primary btn-sm" data-cookie-consent-accept>Согласен</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-cookie-consent-decline>Не сейчас</button>
+    </div>
+</div>
+<script src="{% static 'js/cookie_consent.js' %}" defer></script>
+{% endif %}
