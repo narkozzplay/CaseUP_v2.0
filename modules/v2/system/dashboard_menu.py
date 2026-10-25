@@ -150,6 +150,16 @@ def _resolve_item_label(item: DashboardMenuItem, request) -> str:
     return item.label_en or item.label_ru or item.key
 
 
+def _donations_in_menu() -> bool:
+    from modules.v2.donations.services import current_goal
+
+    try:
+        goal = current_goal()
+    except (OperationalError, ProgrammingError):
+        return False
+    return bool(goal.is_enabled and goal.show_in_menu)
+
+
 def _visibility_map(request, *, feature_flags: dict[str, bool] | None = None) -> dict[str, bool]:
     user = getattr(request, "user", None)
     role_access = get_user_role(user)
@@ -174,6 +184,7 @@ def _visibility_map(request, *, feature_flags: dict[str, bool] | None = None) ->
         DashboardMenuItem.Visibility.ADMIN_PLUS: bool(getattr(user, "is_authenticated", False) and role_access.is_admin_plus),
         DashboardMenuItem.Visibility.SUBSCRIPTIONS_ENABLED: bool(feature_flags.get("subscriptions", False)),
         DashboardMenuItem.Visibility.STORE_ENABLED: bool(feature_flags.get("store", False)),
+        DashboardMenuItem.Visibility.DONATIONS_ENABLED: _donations_in_menu(),
     }
 
 

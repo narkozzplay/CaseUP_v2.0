@@ -15,6 +15,7 @@ class AuditAction(models.TextChoices):
     PROMO_CREATE = "promo_create", "Promo code created"
     PROMO_UPDATE = "promo_update", "Promo code updated"
     DAILY_BONUS_UPDATE = "daily_bonus_update", "Daily bonus settings updated"
+    DONATION_UPDATE = "donation_update", "Donation goal updated"
     MARKET_DISPUTE = "market_dispute", "Market dispute resolved"
     MULTI_ACCOUNT_DECISION = "multi_account_decision", "Multi-account decision"
     IP_BAN = "ip_ban", "IP banned"
@@ -40,6 +41,7 @@ AUDIT_ACTION_LABELS_RU = {
     AuditAction.PROMO_CREATE: "Создан промокод",
     AuditAction.PROMO_UPDATE: "Изменён промокод",
     AuditAction.DAILY_BONUS_UPDATE: "Изменён бонус дня",
+    AuditAction.DONATION_UPDATE: "Изменён сбор донатов",
     AuditAction.MARKET_DISPUTE: "Решён спор на рынке",
     AuditAction.MULTI_ACCOUNT_DECISION: "Решение по мульти-аккаунтам",
     AuditAction.IP_BAN: "Бан IP",

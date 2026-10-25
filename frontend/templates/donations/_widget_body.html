@@ -1,0 +1,42 @@
+{% with goal=state.goal %}
+<section class="donation donation--{{ goal.variant }} donation--bg-{{ goal.background }} donation--at-{{ placement }}{% if state.reached %} is-reached{% endif %}" style="--donation-accent: {{ goal.accent_color }}; --donation-accent-end: {{ goal.accent_color_end }};" data-donation-widget aria-label="{{ goal.title }}">
+    <div class="donation__head">
+        {% if goal.icon %}<span class="donation__icon" aria-hidden="true" data-donation-preview="icon">{{ goal.icon }}</span>{% endif %}
+        <div class="donation__titles">
+            <span class="donation__eyebrow">{% if LANGUAGE_CODE == "en" %}Support the project{% else %}Помощь проекту{% endif %}</span>
+            <h2 class="donation__title" data-donation-preview="title">{{ goal.title }}</h2>
+        </div>
+        {% if goal.show_percent %}<strong class="donation__percent">{{ state.percent }}%</strong>{% endif %}
+    </div>
+
+    {% if goal.description and goal.variant != "compact" and placement != "sidebar" %}<p class="donation__text" data-donation-preview="description">{{ goal.description|linebreaksbr }}</p>{% endif %}
+
+    <div class="donation__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ state.bar_percent }}">
+        <span class="donation__fill" style="width: {{ state.bar_percent }}%"></span>
+    </div>
+
+    <div class="donation__meta">
+        <span class="donation__collected"><b>{% money state.collected %}</b>{% if goal.show_goal %} {% if LANGUAGE_CODE == "en" %}of{% else %}из{% endif %} {% money goal.goal_amount %}{% endif %}</span>
+        {% if goal.show_donors_count and state.donors %}<span class="donation__donors">{% if LANGUAGE_CODE == "en" %}Supporters{% else %}Поддержали{% endif %}: {{ state.donors }}</span>{% endif %}
+        {% if state.days_left is not None %}<span class="donation__deadline">{% if state.days_left %}{% if LANGUAGE_CODE == "en" %}{{ state.days_left }} days left{% else %}ещё {{ state.days_left }} дн.{% endif %}{% else %}{% if LANGUAGE_CODE == "en" %}last day{% else %}последний день{% endif %}{% endif %}</span>{% endif %}
+        {% if state.reached %}<span class="donation__done">{% if LANGUAGE_CODE == "en" %}Goal reached!{% else %}Цель достигнута!{% endif %}</span>{% endif %}
+    </div>
+
+    {% if placement != "page" %}
+        <div class="donation__actions">
+            {% if goal.variant != "compact" and placement != "sidebar" %}
+                {% for preset in goal.presets %}<a class="donation__chip" href="{% url 'donations:page' %}?amount={{ preset|floatformat:'0' }}" data-dashboard-nav="true">{{ preset|floatformat:"0" }} ₽</a>{% endfor %}
+            {% endif %}
+            <a class="btn btn-primary btn-sm donation__cta" href="{% url 'donations:page' %}" data-dashboard-nav="true" data-donation-preview="button_text">{{ goal.button_text }}</a>
+        </div>
+    {% endif %}
+
+    {% if placement == "page" and state.recent %}
+        <ul class="donation__recent">
+            {% for row in state.recent %}
+                <li><b>{{ row.name }}</b><span class="donation__recent-amount">{% money row.amount %}</span>{% if row.message %}<q>{{ row.message }}</q>{% endif %}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</section>
+{% endwith %}

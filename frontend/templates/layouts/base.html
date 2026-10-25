@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="{% static 'css/ui.css' %}">
     <link rel="stylesheet" href="{% static 'css/access_denied.css' %}">
     <link rel="stylesheet" href="{% static 'css/ads.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modules/donations.css' %}">
     {% if active_theme_css_file %}<link rel="stylesheet" href="{% static active_theme_css_file %}" id="active-theme-css" data-theme-key="{{ active_theme.key|default:'' }}">{% endif %}
     {% block extra_head %}{% endblock %}
     {% include "ads/loader.html" %}

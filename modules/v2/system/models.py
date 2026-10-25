@@ -477,6 +477,7 @@ class DashboardMenuItem(models.Model):
         ADMIN_PLUS = "admin_plus", "Admin+"
         SUBSCRIPTIONS_ENABLED = "subscriptions_enabled", "Subscriptions enabled"
         STORE_ENABLED = "store_enabled", "Store enabled"
+        DONATIONS_ENABLED = "donations_enabled", "Donations enabled"
 
     key = models.CharField(max_length=64, unique=True)
     label_ru = models.CharField(max_length=120)
@@ -628,6 +629,15 @@ class DashboardMenuItem(models.Model):
                 "group": cls.Group.OVERVIEW,
                 "visibility_condition": cls.Visibility.AUTHENTICATED,
                 "sort_order": 54,
+            },
+            {
+                "key": "donations",
+                "label_ru": "Поддержать проект",
+                "label_en": "Support the project",
+                "url_name": "donations:page",
+                "group": cls.Group.OVERVIEW,
+                "visibility_condition": cls.Visibility.DONATIONS_ENABLED,
+                "sort_order": 55,
             },
             {
                 "key": "users_catalog",

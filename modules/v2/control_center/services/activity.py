@@ -53,6 +53,7 @@ EVENT_LABELS = {
     "balance.bundle_purchase": "Списание: набор",
     "balance.referral_bonus": "Бонус за рефералов",
     "balance.daily_bonus": "Ежедневный бонус",
+    "balance.donation": "Донат проекту",
     "market.trade_link": "Рынок: трейд-ссылка",
     "market.inventory": "Рынок: инвентарь",
     "market.listed": "Рынок: лот выставлен",
