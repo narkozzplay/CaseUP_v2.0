@@ -86,8 +86,8 @@ class ChannelDigestTests(TestCase):
         TelegramNotifierConfig.objects.filter(pk=self.config.pk).update(channel_digest_top_n=10)
         self.config.refresh_from_db()
         for index in range(10):
-            self._item(f"Sticker {index} " + "x" * 300, before=Decimal("100"), after=Decimal(110 + index))
-            self._item(f"Capsule {index} " + "y" * 300, before=Decimal("100"), after=Decimal(90 - index))
+            self._item(f"Sticker {index} " + "x" * 230, before=Decimal("100"), after=Decimal(110 + index))
+            self._item(f"Capsule {index} " + "y" * 230, before=Decimal("100"), after=Decimal(90 - index))
 
         text = build_digest_text(self.config, now=NOW)
 
