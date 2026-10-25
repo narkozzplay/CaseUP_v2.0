@@ -66,6 +66,8 @@ class TelegramNotifierConfig(models.Model):
     channel_chat_id = models.CharField(max_length=128, blank=True, default="@caseup_pro_anons")
     channel_digest_times = models.CharField(max_length=64, blank=True, default="20:00")
     channel_digest_fresh_hours = models.PositiveSmallIntegerField(default=12)
+    # Attach a picture of the top (a screenshot of the digest card) and put the text into its caption.
+    channel_digest_with_image = models.BooleanField(default=True)
     channel_digest_last_sent_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

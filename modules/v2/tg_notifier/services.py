@@ -3,6 +3,7 @@ from __future__ import annotations
 import http.client
 import json
 import re
+import secrets
 import time
 import urllib.request
 from dataclasses import dataclass
@@ -134,13 +135,23 @@ def _route(endpoint: str) -> tuple[str, dict[str, str]]:
     return f"{relay_url}{separator}method={match['method']}", {"X-Relay-Token": relay_token, "X-Bot-Token": match["token"]}
 
 
-def _telegram_api_request(*, endpoint: str, payload: dict[str, Any], timeout: int = 15) -> dict[str, Any]:
-    raw_payload = json.dumps(payload).encode("utf-8")
+def _telegram_api_request(
+    *,
+    endpoint: str,
+    payload: dict[str, Any],
+    timeout: int = 15,
+    files: dict[str, tuple[str, bytes, str]] | None = None,
+) -> dict[str, Any]:
+    """POSTs a Bot API call: JSON, or multipart/form-data when files ({field: (filename, content, type)}) are given."""
+    if files:
+        raw_payload, content_type = _multipart(payload, files)
+    else:
+        raw_payload, content_type = json.dumps(payload).encode("utf-8"), "application/json; charset=utf-8"
     url, extra_headers = _route(endpoint)
     request = urllib.request.Request(
         url,
         data=raw_payload,
-        headers={"Content-Type": "application/json; charset=utf-8", **extra_headers},
+        headers={"Content-Type": content_type, **extra_headers},
         method="POST",
     )
 
@@ -168,6 +179,24 @@ def _telegram_api_request(*, endpoint: str, payload: dict[str, Any], timeout: in
         raise TelegramNotifierError(f"Telegram API error: {data}")
 
     return data
+
+
+def _multipart(fields: dict[str, Any], files: dict[str, tuple[str, bytes, str]]) -> tuple[bytes, str]:
+    boundary = f"caseup{secrets.token_hex(12)}"
+    chunks = []
+    for name, value in fields.items():
+        chunks.append(
+            f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode("utf-8")
+        )
+    for name, (filename, content, file_type) in files.items():
+        chunks.append(
+            f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"; filename="{filename}"\r\n'
+            f"Content-Type: {file_type}\r\n\r\n".encode("utf-8")
+        )
+        chunks.append(content)
+        chunks.append(b"\r\n")
+    chunks.append(f"--{boundary}--\r\n".encode("utf-8"))
+    return b"".join(chunks), f"multipart/form-data; boundary={boundary}"
 
 
 def send_message(
@@ -198,17 +227,51 @@ def send_message(
     if parse_mode:
         payload["parse_mode"] = parse_mode
 
-    endpoint = _build_telegram_endpoint(bot_token, "sendMessage")
+    response_payload = _request_with_retries(
+        endpoint=_build_telegram_endpoint(bot_token, "sendMessage"), payload=payload, timeout=timeout
+    )
+    return TelegramSendResult(chat_id=resolved_chat_id, payload=response_payload)
+
+
+def send_photo(
+    *,
+    photo: bytes,
+    chat_id: str,
+    caption: str = "",
+    parse_mode: str | None = None,
+    filename: str = "digest.jpg",
+    content_type: str = "image/jpeg",
+    timeout: int = 30,
+) -> TelegramSendResult:
+    config = get_telegram_notifier_config()
+    if not is_enabled(config):
+        raise TelegramNotifierError("TG notifier выключен в настройках.")
+    bot_token = resolve_bot_token(config)
+    if not bot_token:
+        raise TelegramNotifierError("Bot token не настроен.")
+
+    payload = {"chat_id": chat_id, "caption": caption}
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
+    response_payload = _request_with_retries(
+        endpoint=_build_telegram_endpoint(bot_token, "sendPhoto"),
+        payload=payload,
+        timeout=timeout,
+        files={"photo": (filename, photo, content_type)},
+    )
+    return TelegramSendResult(chat_id=chat_id, payload=response_payload)
+
+
+def _request_with_retries(**kwargs) -> dict[str, Any]:
     for attempt in range(SEND_ATTEMPTS):
         try:
-            response_payload = _telegram_api_request(endpoint=endpoint, payload=payload, timeout=timeout)
-            break
+            return _telegram_api_request(**kwargs)
         except TelegramNotifierError as exc:
             # Only failures where the message did not reach Telegram are repeated, so nothing is posted twice.
             if attempt == SEND_ATTEMPTS - 1 or not _never_reached_telegram(exc):
                 raise
             time.sleep(SEND_RETRY_PAUSE_SECONDS * (attempt + 1))
-    return TelegramSendResult(chat_id=resolved_chat_id, payload=response_payload)
+    raise AssertionError("unreachable")
 
 
 SEND_ATTEMPTS = 3

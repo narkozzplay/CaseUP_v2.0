@@ -4,6 +4,7 @@
  *
  * Outbound: the CaseUP server POSTs a Bot API call here (?method=sendMessage, headers X-Relay-Token and
  * X-Bot-Token), the script forwards it to api.telegram.org and returns Telegram's answer as is.
+ * Photos go the same way as multipart/form-data.
  * Inbound: Telegram delivers bot updates here (?inbound=<webhook secret>), the script passes them on to the
  * site's webhook with the same secret header. Only api.telegram.org and SITE_URL are ever contacted.
  *
@@ -25,7 +26,8 @@ function deny(int $code, string $error): void
     exit;
 }
 
-function forward(string $url, string $body, array $headers): void
+/** @param string|array $body a raw JSON body, or form fields (CURLFile values become uploads) */
+function forward(string $url, $body, array $headers): void
 {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -80,4 +82,17 @@ $bot = (string) ($_SERVER['HTTP_X_BOT_TOKEN'] ?? '');
 if (!preg_match('/^[A-Za-z]{1,40}$/', $method) || !preg_match('/^\d{5,16}:[A-Za-z0-9_-]{30,64}$/', $bot)) {
     deny(400, 'bad_request');
 }
-forward('https://api.telegram.org/bot' . $bot . '/' . $method, $body, ['Content-Type: application/json']);
+$target = 'https://api.telegram.org/bot' . $bot . '/' . $method;
+// Photos (sendPhoto) come as multipart/form-data: PHP has already parsed them into $_POST and $_FILES
+// (php://input is empty then), so the form is rebuilt for curl, files included.
+if (stripos((string) ($_SERVER['CONTENT_TYPE'] ?? ''), 'multipart/form-data') === 0) {
+    $form = $_POST;
+    foreach ($_FILES as $field => $file) {
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || $file['size'] > 10 * 1024 * 1024) {
+            deny(400, 'bad_upload');
+        }
+        $form[$field] = new CURLFile($file['tmp_name'], (string) $file['type'], (string) $file['name']);
+    }
+    forward($target, $form, []);
+}
+forward($target, $body, ['Content-Type: application/json']);

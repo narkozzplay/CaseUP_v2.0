@@ -17,6 +17,13 @@ RUN apt-get update \
 COPY requirements.txt /app/requirements.txt
 RUN pip install -r /app/requirements.txt
 
+# Headless Chromium for the picture of the Telegram channel digest (tg_notifier/digest_image.py),
+# with its system libraries. Kept in a shared folder so the unprivileged app user can start it.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN playwright install --with-deps --only-shell chromium \
+    && rm -rf /var/lib/apt/lists/* \
+    && chmod -R a+rX /ms-playwright
+
 COPY . /app
 
 RUN chmod +x /app/entrypoint.sh

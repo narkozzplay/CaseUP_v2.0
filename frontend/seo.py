@@ -12,6 +12,7 @@ from django.views.decorators.http import require_GET
 PUBLIC_PAGES = (
     ("frontend:home", "daily", 1.0),
     ("steam_catalog:list", "daily", 0.9),
+    ("price_movers", "daily", 0.8),
     ("subscriptions:plans", "weekly", 0.8),
     ("game_servers:list", "daily", 0.7),
     ("frontend:agreement", "monthly", 0.3),

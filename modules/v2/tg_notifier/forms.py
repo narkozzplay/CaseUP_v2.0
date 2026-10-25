@@ -146,12 +146,14 @@ class TelegramChannelDigestForm(forms.ModelForm):
             "channel_chat_id",
             "channel_digest_times",
             "channel_digest_fresh_hours",
+            "channel_digest_with_image",
         ]
         widgets = {
             "channel_digest_enabled": forms.CheckboxInput(attrs={"class": "toggle-control__input"}),
             "channel_chat_id": forms.TextInput(attrs={"class": "form-control", "placeholder": "@caseup_pro_anons или -1001234567890"}),
             "channel_digest_times": forms.TextInput(attrs={"class": "form-control", "placeholder": "20:00 или 10:00, 20:00"}),
             "channel_digest_fresh_hours": forms.NumberInput(attrs={"class": "form-control", "min": 1, "max": 72}),
+            "channel_digest_with_image": forms.CheckboxInput(attrs={"class": "toggle-control__input"}),
         }
 
     def clean_channel_chat_id(self):
