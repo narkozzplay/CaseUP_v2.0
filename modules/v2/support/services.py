@@ -184,6 +184,7 @@ def add_reply(*, ticket: SupportTicket, author, body: str, files=None, internal:
         ticket.save(update_fields=fields)
 
     if staff_side:
+        _resolve_new_ticket_notifications(ticket)
         _notify_user_reply(ticket, message)
     else:
         _notify_assignee(ticket, message)
@@ -224,6 +225,7 @@ def set_status(*, ticket: SupportTicket, actor, status: str) -> SupportTicket:
         ticket.user_unread = True
         ticket.save(update_fields=["status", "closed_at", "assignee", "user_unread", "updated_at"])
         _system_line(ticket, actor, f"Статус: {Status(status).label}.")
+    _resolve_new_ticket_notifications(ticket)
     if status in (Status.RESOLVED, Status.CLOSED):
         _notify_user_status(ticket)
     return ticket

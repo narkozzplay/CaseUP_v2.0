@@ -255,6 +255,14 @@ class StaffAlertTests(SupportTestCase):
         services.take_ticket(ticket=ticket, moderator=self.mod)
         self.assertFalse(Notification.objects.filter(kind=KIND_NEW, is_read=False).exists())
 
+    def test_new_ticket_alert_clears_on_reply_or_status_too(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            replied = self.open_ticket(subject="Ответим")
+            closed = self.open_ticket(subject="Закроем")
+        services.add_reply(ticket=replied, author=self.mod, body="Ответ")
+        services.set_status(ticket=closed, actor=self.mod, status=Status.CLOSED)
+        self.assertFalse(Notification.objects.filter(kind=KIND_NEW, is_read=False).exists())
+
     def test_moderator_ticket_does_not_notify_its_author(self):
         with self.captureOnCommitCallbacks(execute=True):
             services.create_ticket(user=self.mod, subject="Вопрос", category="other", body="Текст")
