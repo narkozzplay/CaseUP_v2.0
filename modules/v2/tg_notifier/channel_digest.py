@@ -210,11 +210,16 @@ def build_digest_text(config: TelegramNotifierConfig | None = None, *, now: date
         return None
     text = render_digest(digest, config=config)
     # Many sections with long sticker names can outgrow one message: drop tail rows of the longest block until it fits.
+    # Down to one row per block, the last blocks go away whole.
     while visible_length(text) > TELEGRAM_TEXT_LIMIT:
-        longest = max(digest.blocks, key=lambda block: len(block.moves))
-        if len(longest.moves) <= 1:
+        filled = [block for block in digest.blocks if block.moves]
+        if len(filled) <= 1 and len(filled[0].moves) <= 1:
             break
-        longest.moves = longest.moves[:-1]
+        longest = max(filled, key=lambda block: len(block.moves))
+        if len(longest.moves) > 1:
+            longest.moves = longest.moves[:-1]
+        else:
+            filled[-1].moves = []
         text = render_digest(digest, config=config)
     return text
 

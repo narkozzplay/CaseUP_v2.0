@@ -133,6 +133,17 @@ class ChannelDigestTests(TestCase):
         self.assertIn("Рост", text)
         self.assertIn("Спад", text)
 
+    def test_many_single_row_sections_are_dropped_from_the_end(self):
+        for index in range(25):
+            self._section(f"Рубрика {index}", position=index)
+        self._item("Sticker " + "x" * 230, before=Decimal("100"), after=Decimal("150"))
+
+        text = build_digest_text(self.config, now=NOW)
+
+        self.assertLessEqual(visible_length(text), TELEGRAM_TEXT_LIMIT)
+        self.assertIn("Рубрика 0", text)
+        self.assertNotIn("Рубрика 24", text)
+
     def test_due_slot_once_per_time_and_not_too_late(self):
         self.config.channel_digest_times = "10:00, 20:00"
         self.assertEqual(due_slot(self.config, now=NOW), datetime(2026, 10, 25, 20, 0, tzinfo=MSK))
