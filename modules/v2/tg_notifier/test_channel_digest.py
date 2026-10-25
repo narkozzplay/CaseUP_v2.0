@@ -10,7 +10,7 @@ from django.urls import reverse
 from modules.v2.profiles.models import UserProfile, UserRole
 from modules.v2.steam_catalog.models import SteamItem, SteamItemPriceHistory
 
-from .channel_digest import build_digest_text, collect_price_moves, due_slot, post_due_digest
+from .channel_digest import TELEGRAM_TEXT_LIMIT, build_digest_text, visible_length, collect_price_moves, due_slot, post_due_digest
 from .forms import TelegramChannelDigestForm
 from .models import TelegramNotifierConfig
 from .services import TelegramNotifierError
@@ -81,6 +81,19 @@ class ChannelDigestTests(TestCase):
         self.assertIn("1 000 ₽ → <b>1 200 ₽</b> (+20.0%)", text)
         self.assertIn("#CaseUP #CounterStrike2", text)
         self.assertNotIn("Подешевели", text)
+
+    def test_long_digest_is_trimmed_to_one_message(self):
+        TelegramNotifierConfig.objects.filter(pk=self.config.pk).update(channel_digest_top_n=10)
+        self.config.refresh_from_db()
+        for index in range(10):
+            self._item(f"Sticker {index} " + "x" * 300, before=Decimal("100"), after=Decimal(110 + index))
+            self._item(f"Capsule {index} " + "y" * 300, before=Decimal("100"), after=Decimal(90 - index))
+
+        text = build_digest_text(self.config, now=NOW)
+
+        self.assertLessEqual(visible_length(text), TELEGRAM_TEXT_LIMIT)
+        self.assertIn("Подорожали", text)
+        self.assertIn("Подешевели", text)
 
     def test_due_slot_once_per_time_and_not_too_late(self):
         self.config.channel_digest_times = "10:00, 20:00"

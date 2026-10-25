@@ -6,7 +6,8 @@ and an old price would show a month of movement as one day. Links lead to the pu
 from __future__ import annotations
 
 import html
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, replace
 from datetime import datetime, time, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from urllib.parse import urlencode
@@ -27,6 +28,8 @@ MIN_CHANGE_PERCENT = Decimal("1")
 # A slot missed by more than this (worker down, digest switched on late in the evening) is skipped.
 SLOT_GRACE = timedelta(hours=2)
 HASHTAGS = "#CaseUP #CounterStrike2"
+# Telegram counts the text after markup is parsed: tags and link addresses are free.
+TELEGRAM_TEXT_LIMIT = 4096
 UTM = {"utm_source": "telegram", "utm_medium": "channel", "utm_campaign": "price_digest"}
 
 
@@ -162,7 +165,17 @@ def build_digest_text(config: TelegramNotifierConfig | None = None, *, now: date
     digest = collect_price_moves(config=config, now=now)
     if digest.is_empty:
         return None
-    return render_digest(digest, config=config)
+    text = render_digest(digest, config=config)
+    # Ten long sticker names in each list can outgrow one message: drop the tail rows until it fits.
+    while visible_length(text) > TELEGRAM_TEXT_LIMIT and (len(digest.risers) > 1 or len(digest.fallers) > 1):
+        longer = "risers" if len(digest.risers) >= len(digest.fallers) else "fallers"
+        digest = replace(digest, **{longer: getattr(digest, longer)[:-1]})
+        text = render_digest(digest, config=config)
+    return text
+
+
+def visible_length(text: str) -> int:
+    return len(html.unescape(re.sub(r"<[^>]+>", "", text)))
 
 
 def due_slot(config: TelegramNotifierConfig, *, now: datetime | None = None) -> datetime | None:
