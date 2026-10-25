@@ -1,0 +1,7 @@
+{% extends "layouts/base_dashboard.html" %}
+
+{% block title %}{{ dashboard_page_title|default:"Поддержать проект" }}{% endblock %}
+
+{% block content %}
+    {% include dashboard_page_partial_template %}
+{% endblock %}

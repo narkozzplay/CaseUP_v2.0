@@ -28,12 +28,13 @@ logger = logging.getLogger(__name__)
 
 
 RETURN_SESSION_KEY = "payments_return_to"
+RETURN_PREFIXES = ("/market/", "/donate/")
 
 
 def _safe_return_to(value: str) -> str:
-    """Only our own market pages may be returned to after a top-up (no open redirect)."""
+    """Only our own market and donation pages may be returned to after a top-up (no open redirect)."""
     value = (value or "").strip()
-    return value if value.startswith("/market/") and "//" not in value and "\\" not in value else ""
+    return value if value.startswith(RETURN_PREFIXES) and "//" not in value and "\\" not in value else ""
 
 
 def _pending_topup_promo(user):
