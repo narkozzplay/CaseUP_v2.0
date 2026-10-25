@@ -17,3 +17,7 @@ class DonationAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+    def has_delete_permission(self, request, obj=None):
+        # A donation is backed by a ledger debit; deleting the row would only hide money from the totals.
+        return False
