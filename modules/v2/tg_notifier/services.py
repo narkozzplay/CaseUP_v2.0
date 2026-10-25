@@ -3,6 +3,7 @@ from __future__ import annotations
 import http.client
 import json
 import re
+import time
 import urllib.request
 from dataclasses import dataclass
 from decimal import Decimal
@@ -197,12 +198,27 @@ def send_message(
     if parse_mode:
         payload["parse_mode"] = parse_mode
 
-    response_payload = _telegram_api_request(
-        endpoint=_build_telegram_endpoint(bot_token, "sendMessage"),
-        payload=payload,
-        timeout=timeout,
-    )
+    endpoint = _build_telegram_endpoint(bot_token, "sendMessage")
+    for attempt in range(SEND_ATTEMPTS):
+        try:
+            response_payload = _telegram_api_request(endpoint=endpoint, payload=payload, timeout=timeout)
+            break
+        except TelegramNotifierError as exc:
+            # Only failures where the message did not reach Telegram are repeated, so nothing is posted twice.
+            if attempt == SEND_ATTEMPTS - 1 or not _never_reached_telegram(exc):
+                raise
+            time.sleep(SEND_RETRY_PAUSE_SECONDS * (attempt + 1))
     return TelegramSendResult(chat_id=resolved_chat_id, payload=response_payload)
+
+
+SEND_ATTEMPTS = 3
+SEND_RETRY_PAUSE_SECONDS = 2
+
+
+def _never_reached_telegram(exc: TelegramNotifierError) -> bool:
+    """The relay could not connect to Telegram (its connect timeout is short), or we could not connect to the relay."""
+    text = str(exc)
+    return "upstream_unreachable" in text or "Connection refused" in text
 
 
 def build_item_absolute_url(purchase: SteamPurchase) -> str:

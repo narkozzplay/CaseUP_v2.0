@@ -446,6 +446,12 @@
 .tgn-channel { margin-top: 16px; }
 .tgn-row--3 { grid-template-columns: repeat(3, 1fr); }
 .tgn-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.tgn-sections td { vertical-align: top; }
+.tgn-sections .form-control { min-width: 0; }
+.tgn-sections td:nth-child(2) .form-control { min-width: 160px; }
+.tgn-sections td:nth-child(5) .form-control, .tgn-sections td:nth-child(7) .form-control { width: 70px; }
+.tgn-sections td:nth-child(6) .form-control { width: 100px; }
+.tgn-sections__new td { background: rgba(255, 255, 255, 0.02); }
 .tgn-preview { margin: 0; padding: 12px 14px; border: 1px solid var(--border); background: rgba(9, 11, 15, 0.55); white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.88rem; line-height: 1.5; }
 @media (max-width: 900px) {
     .tgn-grid, .tgn-row, .tgn-row--3 { grid-template-columns: 1fr; }

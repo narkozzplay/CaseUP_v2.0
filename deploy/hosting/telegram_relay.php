@@ -40,9 +40,12 @@ function forward(string $url, string $body, array $headers): void
     ]);
     $answer = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $connected = (float) curl_getinfo($ch, CURLINFO_CONNECT_TIME) > 0;
     curl_close($ch);
     if ($answer === false || $code === 0) {
-        deny(502, 'upstream_unreachable');
+        // "unreachable" means the request never left: the site may safely send it again. After a connection
+        // Telegram may already have the message, so a timeout there is reported separately.
+        deny(502, $connected ? 'upstream_timeout' : 'upstream_unreachable');
     }
     http_response_code($code);
     echo $answer;

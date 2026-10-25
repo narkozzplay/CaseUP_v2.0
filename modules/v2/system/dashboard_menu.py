@@ -99,7 +99,7 @@ ACTIVE_VIEW_ALIASES = {
     },
     "system_settings": {"system_config:settings"},
     "celery_tasks": {"celery_tasks:control_center", "celery_tasks:toggle_rule", "celery_tasks:run_rule_now"},
-    "tg_settings": {"tg_notifier:settings"},
+    "tg_settings": {"tg_notifier:settings", "tg_notifier:autopost"},
     "subscription_pricing": {"subscriptions:pricing_dashboard"},
     "farm_settings": {"farm:settings"},
     "web_constructor": {"web_constructor:builder", "web_constructor:builder_editor", "web_constructor:dashboard", "web_constructor:create", "web_constructor:detail", "web_constructor:editor", "web_constructor:versions"},

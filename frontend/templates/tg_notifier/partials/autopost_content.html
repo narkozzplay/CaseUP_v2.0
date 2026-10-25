@@ -1,0 +1,122 @@
+<section class="section section--compact ops cc tgn">
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow"><a href="{% url 'tg_notifier:settings' %}">Telegram-бот</a></span>
+            <h1 class="cc-pagehead__title">Автопостинг в канал</h1>
+            <p class="ops-hero__text">Бот публикует в канал сводку цен за сутки. Сводка собирается из рубрик ниже: каждая рубрика — топ предметов одной категории по росту или спаду цены. Берутся только предметы, чья цена проверялась недавно.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Расписание</dt><dd class="{% if config.channel_digest_enabled %}metric-positive{% else %}metric-negative{% endif %}">{% if config.channel_digest_enabled %}{{ config.channel_digest_times }}{% else %}выключено{% endif %}</dd></div>
+            <div><dt>Последний пост</dt><dd>{{ config.channel_digest_last_sent_at|date:"d.m H:i"|default:"—" }}</dd></div>
+        </dl>
+    </header>
+
+    {% if not bot_ready %}
+        <div class="flash flash--warning">Бот выключен или без токена — посты не уйдут. Включите его на странице <a href="{% url 'tg_notifier:settings' %}">Telegram-бота</a>.</div>
+    {% endif %}
+
+    <form method="post" data-dashboard-shell-form>
+        {% csrf_token %}
+        {# Enter in a field submits without a button value: saving is the safe default. #}
+        <input type="hidden" name="action" value="save">
+
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Расписание</h2></div>
+            <div class="ref-body form-stack">
+                {{ schedule_form.non_field_errors }}
+                <label class="toggle-control" for="{{ schedule_form.channel_digest_enabled.id_for_label }}">
+                    {{ schedule_form.channel_digest_enabled }}
+                    <span class="toggle-control__track" aria-hidden="true"></span>
+                    <span class="toggle-control__text">Постить по расписанию</span>
+                </label>
+                <div class="tgn-row tgn-row--3">
+                    <div class="form-field">
+                        <label for="{{ schedule_form.channel_chat_id.id_for_label }}">Канал</label>
+                        {{ schedule_form.channel_chat_id }}
+                        <p class="text-muted tgn-hint">@username или ID. Бот должен быть админом канала.</p>
+                        {{ schedule_form.channel_chat_id.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ schedule_form.channel_digest_times.id_for_label }}">Время (МСК)</label>
+                        {{ schedule_form.channel_digest_times }}
+                        <p class="text-muted tgn-hint">Несколько — через запятую.</p>
+                        {{ schedule_form.channel_digest_times.errors }}
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ schedule_form.channel_digest_fresh_hours.id_for_label }}">Цена свежее, ч</label>
+                        {{ schedule_form.channel_digest_fresh_hours }}
+                        <p class="text-muted tgn-hint">Старше — предмет не попадёт в сводку.</p>
+                        {{ schedule_form.channel_digest_fresh_hours.errors }}
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <article class="ops-panel tgn-channel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Рубрики</h2><span class="ops-panel__hint">в посте идут по порядку; пустые рубрики пропускаются</span></div>
+            {{ section_formset.management_form }}
+            {{ section_formset.non_form_errors }}
+            <div class="table-wrap">
+                <table class="table cc-table tgn-sections">
+                    <thead>
+                        <tr><th>Вкл.</th><th>Заголовок</th><th>Категория</th><th>Что показывать</th><th>Топ</th><th>Цена от, ₽</th><th>Порядок</th><th>Удалить</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for form in section_formset %}
+                            <tr{% if not form.instance.pk %} class="tgn-sections__new"{% endif %}>
+                                <td>{{ form.id }}{{ form.is_enabled }}</td>
+                                <td>{{ form.title }}{{ form.title.errors }}{% if not form.instance.pk %}<span class="text-muted tgn-hint">новая рубрика</span>{% endif %}</td>
+                                <td>{{ form.category }}{{ form.category.errors }}</td>
+                                <td>{{ form.direction }}</td>
+                                <td>{{ form.top_n }}{{ form.top_n.errors }}</td>
+                                <td>{{ form.min_price_rub }}{{ form.min_price_rub.errors }}</td>
+                                <td>{{ form.position }}</td>
+                                <td>{% if form.instance.pk %}{{ form.DELETE }}{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+
+        <div class="tgn-actions tgn-channel">
+            <button type="submit" name="action" value="save" class="btn btn-primary">Сохранить</button>
+            <button type="submit" name="action" value="preview" class="btn btn-secondary">Предпросмотр</button>
+            <button type="submit" name="action" value="post_now" class="btn btn-secondary">Опубликовать сейчас</button>
+        </div>
+    </form>
+
+    {% if preview %}
+        <article class="ops-panel tgn-channel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Как выглядит пост</h2></div>
+            <div class="ref-body"><div class="tgn-preview">{{ preview|safe }}</div></div>
+        </article>
+    {% endif %}
+
+    <article class="ops-panel tgn-channel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">История</h2><span class="ops-panel__hint">последние 20 запусков</span></div>
+        {% if posts %}
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Когда</th><th>Запуск</th><th>Результат</th><th>Канал</th><th>Подробности</th></tr></thead>
+                    <tbody>
+                        {% for post in posts %}
+                            <tr>
+                                <td class="cc-mono">{{ post.created_at|date:"d.m H:i" }}</td>
+                                <td>{{ post.get_trigger_display }}</td>
+                                <td class="{% if post.status == 'sent' %}metric-positive{% elif post.status == 'error' %}metric-negative{% endif %}">{{ post.get_status_display }}</td>
+                                <td>{{ post.chat_id|default:"—" }}</td>
+                                <td>
+                                    {% if post.error %}<span>{{ post.error }}</span>{% endif %}
+                                    {% if post.text %}<details><summary>Текст поста</summary><div class="tgn-preview">{{ post.text|safe }}</div></details>{% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="ref-body"><p class="text-muted">Постов ещё не было.</p></div>
+        {% endif %}
+    </article>
+</section>
