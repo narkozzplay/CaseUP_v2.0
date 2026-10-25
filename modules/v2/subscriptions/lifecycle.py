@@ -33,11 +33,17 @@ def expire_subscriptions(*, now=None) -> int:
         .select_related("user", "plan")
         .filter(status=UserSubscription.Status.ACTIVE, expires_at__isnull=False, expires_at__lte=now)
     )
+    closed = 0
     for subscription in expired:
-        UserSubscription.objects.filter(pk=subscription.pk, status=UserSubscription.Status.ACTIVE).update(
-            status=UserSubscription.Status.EXPIRED,
-            updated_at=now,
-        )
+        # Re-check the end date in the update itself: a renewal that committed meanwhile moved it forward.
+        updated = UserSubscription.objects.filter(
+            pk=subscription.pk,
+            status=UserSubscription.Status.ACTIVE,
+            expires_at__lte=now,
+        ).update(status=UserSubscription.Status.EXPIRED, updated_at=now)
+        if not updated:
+            continue
+        closed += 1
         _notify(
             subscription.user,
             KIND_SUBSCRIPTION_EXPIRED,
@@ -45,7 +51,7 @@ def expire_subscriptions(*, now=None) -> int:
             title=f"Подписка «{subscription.plan.name}» закончилась",
             body="Продлите тариф, чтобы вернуть доступ к платным функциям.",
         )
-    return len(expired)
+    return closed
 
 
 def remind_expiring_subscriptions(*, now=None) -> int:

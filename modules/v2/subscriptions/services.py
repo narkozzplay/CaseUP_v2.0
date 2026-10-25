@@ -793,10 +793,12 @@ def purchase_subscription_with_balance(*, user, plan: SubscriptionPlan, months: 
 
     if quote.is_renewal and quote.current_subscription is not None:
         subscription = UserSubscription.objects.select_for_update().get(pk=quote.current_subscription.pk)
+        # The hourly expiry task may have closed it between the quote and this lock; the renewal reopens it.
+        subscription.status = UserSubscription.Status.ACTIVE
         subscription.expires_at = expires_at
         subscription.expiry_reminder_sent_at = None
         subscription.notes = "\n".join(part for part in (subscription.notes, purchase_note) if part)
-        subscription.save(update_fields=["expires_at", "expiry_reminder_sent_at", "notes", "updated_at"])
+        subscription.save(update_fields=["status", "expires_at", "expiry_reminder_sent_at", "notes", "updated_at"])
         return subscription
 
     return assign_user_subscription_plan(

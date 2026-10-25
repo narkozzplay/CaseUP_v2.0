@@ -508,3 +508,12 @@ class SubscriptionLifecycleTests(TestCase):
         self.assertEqual(expire_subscriptions(now=now + timedelta(days=2)), 1)
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, UserSubscription.Status.EXPIRED)
+
+    def test_expiry_skips_subscription_renewed_meanwhile(self):
+        now = timezone.now()
+        subscription = assign_user_subscription_plan(user=self.user, plan=self.plan, expires_at=now + timedelta(days=1))
+        UserSubscription.objects.filter(pk=subscription.pk).update(expires_at=now + timedelta(days=40))
+        # The task picked the row as due at "now + 2 days" but the renewal already moved the end date.
+        self.assertEqual(expire_subscriptions(now=now + timedelta(days=2)), 0)
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.status, UserSubscription.Status.ACTIVE)
