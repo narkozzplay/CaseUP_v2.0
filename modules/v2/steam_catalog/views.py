@@ -982,9 +982,11 @@ def user_alert_rule_create(request):
 def user_alert_rule_edit(request, rule_id: int):
     rule = get_object_or_404(UserPriceAlertRule, pk=rule_id, user=request.user)
     if request.method == "POST":
-        form = UserPriceAlertRuleForm(request.POST, instance=rule, user=request.user)
         with transaction.atomic():
             lock_alert_quota(request.user)
+            # Re-read the rule under the lock so the form sees its current status.
+            rule = get_object_or_404(UserPriceAlertRule.objects.select_for_update(), pk=rule_id, user=request.user)
+            form = UserPriceAlertRuleForm(request.POST, instance=rule, user=request.user)
             saved = form.is_valid() and bool(form.save())
         if saved:
             messages.success(request, "Правило уведомлений обновлено.")
