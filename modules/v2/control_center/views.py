@@ -1588,6 +1588,8 @@ def daily_bonus(request):
 def donations(request):
     from modules.v2.donations.forms import DonationGoalForm
     from modules.v2.donations.models import DonationGoal
+    from modules.v2.donations import sponsors
+    from modules.v2.donations.models import Sponsorship
     from modules.v2.donations.services import admin_summary, start_new_campaign
 
     role_access = _admin_access(request)
@@ -1596,6 +1598,18 @@ def donations(request):
     goal = DonationGoal.load()
     form = DonationGoalForm(instance=goal)
     if request.method == "POST":
+        if request.POST.get("action") == "sponsor":
+            sponsorship = get_object_or_404(Sponsorship.objects.select_related("user"), pk=int(request.POST.get("sponsorship_id") or 0) if str(request.POST.get("sponsorship_id") or "").isdigit() else 0)
+            decision = request.POST.get("decision") or ""
+            try:
+                sponsors.decide(sponsorship, action=decision, actor=request.user)
+            except sponsors.SponsorError as exc:
+                messages.error(request, str(exc))
+            else:
+                verb = {"grant": "выдана", "decline": "отклонена", "revoke": "снята"}.get(decision, decision)
+                log_admin_action(actor=request.user, action=AuditAction.DONATION_UPDATE, target_user=sponsorship.user, summary=f"Роль «Спонсор» {verb} ({sponsorship.get_kind_display().lower()})", payload={"sponsorship": sponsorship.pk, "decision": decision}, request=request)
+                messages.success(request, f"Роль «Спонсор» {verb}: {sponsorship.user.username}.")
+            return redirect(reverse("control_center:donations") + "#sponsors")
         if request.POST.get("action") == "new_campaign":
             start_new_campaign(goal)
             log_admin_action(actor=request.user, action=AuditAction.DONATION_UPDATE, summary="Начат новый сбор", payload={"started_at": goal.started_at.isoformat()}, request=request)
@@ -1619,6 +1633,11 @@ def donations(request):
         "goal": goal,
         "form": form,
         "summary": admin_summary(goal),
+        "sponsor_candidates": Sponsorship.objects.filter(status=Sponsorship.Status.CANDIDATE).select_related("user", "user__profile_v2").order_by("created_at"),
+        "sponsor_active": sponsors.active_sponsorships().select_related("user", "user__profile_v2", "decided_by"),
+        "sponsor_month": sponsors.month_label(sponsors.month_start(timezone.localdate())),
+        "sponsor_top": sponsors.monthly_top(sponsors.month_start(timezone.localdate()), goal),
+        "sponsor_history": sponsors.history(),
     }
     return _render(request, partial="control_center/partials/donations_content.html", context=context, title="Донаты · Control Center", tab="donations")
 

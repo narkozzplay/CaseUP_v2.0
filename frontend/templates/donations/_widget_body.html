@@ -34,7 +34,7 @@
     {% if placement == "page" and state.recent %}
         <ul class="donation__recent">
             {% for row in state.recent %}
-                <li><b>{{ row.name }}</b><span class="donation__recent-amount">{% money row.amount %}</span>{% if row.message %}<q>{{ row.message }}</q>{% endif %}</li>
+                <li><b>{{ row.name }}</b>{% if row.is_sponsor %}<span class="sponsor-tag">❤ {% if LANGUAGE_CODE == "en" %}Sponsor{% else %}Спонсор{% endif %}</span>{% endif %}<span class="donation__recent-amount">{% money row.amount %}</span>{% if row.message %}<q>{{ row.message }}</q>{% endif %}</li>
             {% endfor %}
         </ul>
     {% endif %}

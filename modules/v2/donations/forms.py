@@ -40,6 +40,11 @@ class DonationGoalForm(forms.ModelForm):
             "show_on_dashboard",
             "show_in_sidebar",
             "show_in_menu",
+            "sponsors_enabled",
+            "sponsor_top_size",
+            "sponsor_monthly_min",
+            "sponsor_lifetime_min",
+            "sponsor_notify_donor",
         )
         widgets = {
             "description": forms.Textarea(attrs={"rows": 3}),
@@ -74,6 +79,24 @@ class DonationGoalForm(forms.ModelForm):
         value = self.cleaned_data["min_amount"]
         if value is None or value < 1:
             raise forms.ValidationError("Минимальный донат — от 1 ₽.")
+        return value
+
+    def clean_sponsor_top_size(self):
+        value = self.cleaned_data["sponsor_top_size"]
+        if value is None or not 1 <= value <= 20:
+            raise forms.ValidationError("Топ — от 1 до 20 донатеров.")
+        return value
+
+    def clean_sponsor_monthly_min(self):
+        value = self.cleaned_data["sponsor_monthly_min"]
+        if value is None or value < 0:
+            raise forms.ValidationError("Порог не может быть отрицательным.")
+        return value
+
+    def clean_sponsor_lifetime_min(self):
+        value = self.cleaned_data["sponsor_lifetime_min"]
+        if value is None or value < 0:
+            raise forms.ValidationError("Порог не может быть отрицательным.")
         return value
 
     def clean_preset_amounts(self):
