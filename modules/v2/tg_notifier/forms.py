@@ -137,3 +137,61 @@ class TelegramTestSendForm(forms.Form):
         if not value:
             raise forms.ValidationError("Текст тестового сообщения не может быть пустым.")
         return value
+
+class TelegramChannelDigestForm(forms.ModelForm):
+    class Meta:
+        model = TelegramNotifierConfig
+        fields = [
+            "channel_digest_enabled",
+            "channel_chat_id",
+            "channel_digest_times",
+            "channel_digest_top_n",
+            "channel_digest_min_price_rub",
+            "channel_digest_fresh_hours",
+        ]
+        widgets = {
+            "channel_digest_enabled": forms.CheckboxInput(attrs={"class": "toggle-control__input"}),
+            "channel_chat_id": forms.TextInput(attrs={"class": "form-control", "placeholder": "@caseup_pro_anons или -1001234567890"}),
+            "channel_digest_times": forms.TextInput(attrs={"class": "form-control", "placeholder": "20:00 или 10:00, 20:00"}),
+            "channel_digest_top_n": forms.NumberInput(attrs={"class": "form-control", "min": 1, "max": 10}),
+            "channel_digest_min_price_rub": forms.NumberInput(attrs={"class": "form-control", "min": 0, "step": "0.01"}),
+            "channel_digest_fresh_hours": forms.NumberInput(attrs={"class": "form-control", "min": 1, "max": 72}),
+        }
+
+    def clean_channel_chat_id(self):
+        value = (self.cleaned_data.get("channel_chat_id") or "").strip()
+        if value and not (value.startswith("@") or value.lstrip("-").isdigit()):
+            # A bare username or a t.me link is what people usually paste.
+            value = "@" + value.rsplit("/", 1)[-1].lstrip("@")
+        return value
+
+    def clean_channel_digest_times(self):
+        from .channel_digest import parse_times
+
+        value = self.cleaned_data.get("channel_digest_times") or ""
+        try:
+            times = parse_times(value)
+        except ValueError:
+            raise forms.ValidationError("Время в формате ЧЧ:ММ через запятую, например «10:00, 20:00».")
+        return ", ".join(slot.strftime("%H:%M") for slot in times)
+
+    def clean_channel_digest_top_n(self):
+        value = self.cleaned_data.get("channel_digest_top_n") or 0
+        if not 1 <= value <= 10:
+            raise forms.ValidationError("От 1 до 10 предметов.")
+        return value
+
+    def clean_channel_digest_fresh_hours(self):
+        value = self.cleaned_data.get("channel_digest_fresh_hours") or 0
+        if not 1 <= value <= 72:
+            raise forms.ValidationError("От 1 до 72 часов.")
+        return value
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("channel_digest_enabled"):
+            if not cleaned.get("channel_chat_id"):
+                self.add_error("channel_chat_id", "Укажите канал, куда постить.")
+            if not cleaned.get("channel_digest_times"):
+                self.add_error("channel_digest_times", "Укажите хотя бы одно время.")
+        return cleaned

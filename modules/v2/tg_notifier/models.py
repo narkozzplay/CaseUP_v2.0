@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import timedelta
+from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
@@ -59,6 +60,16 @@ class TelegramNotifierConfig(models.Model):
     updates_mode = models.CharField(max_length=16, choices=UpdatesMode.choices, default=UpdatesMode.POLLING)
     # Last update_id handled by the poller; the next getUpdates asks for newer ones only.
     polling_offset = models.BigIntegerField(default=0)
+
+    # Daily price digest posted to the public channel (channel_digest.py, Celery beat).
+    channel_digest_enabled = models.BooleanField(default=False)
+    channel_chat_id = models.CharField(max_length=128, blank=True, default="@caseup_pro_anons")
+    channel_digest_times = models.CharField(max_length=64, blank=True, default="20:00")
+    channel_digest_top_n = models.PositiveSmallIntegerField(default=5)
+    channel_digest_min_price_rub = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("10.00"))
+    channel_digest_fresh_hours = models.PositiveSmallIntegerField(default=12)
+    channel_digest_last_sent_at = models.DateTimeField(null=True, blank=True)
+    channel_digest_last_error = models.TextField(blank=True, default="")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
