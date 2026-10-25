@@ -158,8 +158,36 @@ class ChannelDigestTests(TestCase):
         UserProfile.objects.filter(user=user).update(role=UserRole.ADMIN)
         self.client.login(username="admin_digest", password="StrongPass123")
 
-        response = self.client.post(reverse("tg_notifier:settings"), {"action": "preview_channel"})
+        response = self.client.post(reverse("tg_notifier:settings"), {"action": "preview_channel", **self._form_data()})
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Автопостинг в канал")
         self.assertContains(response, "нет заметных изменений")
+
+    @patch("modules.v2.tg_notifier.channel_digest.send_message")
+    def test_publish_now_uses_the_channel_on_screen(self, send_mock):
+        user = get_user_model().objects.create_user(username="admin_publish", password="StrongPass123")
+        UserProfile.objects.filter(user=user).update(role=UserRole.ADMIN)
+        self.client.login(username="admin_publish", password="StrongPass123")
+        self._item("AK-47 | Redline (Field-Tested)", before=Decimal("1000"), after=Decimal("1200"), checked_hours_ago=0, changed_hours_ago=0)
+
+        with patch("modules.v2.tg_notifier.channel_digest.timezone.now", return_value=NOW):
+            self.client.post(
+                reverse("tg_notifier:settings"),
+                {"action": "post_channel_now", **self._form_data(channel_chat_id="@new_channel")},
+            )
+
+        self.assertEqual(send_mock.call_args.kwargs["chat_id"], "@new_channel")
+        self.config.refresh_from_db()
+        self.assertEqual(self.config.channel_chat_id, "@new_channel")
+
+    def _form_data(self, **overrides):
+        return {
+            "channel_digest_enabled": "on",
+            "channel_chat_id": "@caseup_pro_anons",
+            "channel_digest_times": "20:00",
+            "channel_digest_top_n": 5,
+            "channel_digest_min_price_rub": "10",
+            "channel_digest_fresh_hours": 12,
+            **overrides,
+        }

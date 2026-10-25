@@ -155,18 +155,24 @@ def settings_page(request):
         if action in {"save_channel", "preview_channel", "post_channel_now"}:
             settings_form = TelegramNotifierSettingsForm(instance=config)
             test_form = TelegramTestSendForm(initial={"chat_id": config.default_chat_id, "text": build_test_message()})
-            if action == "save_channel":
-                channel_form = TelegramChannelDigestForm(request.POST, instance=config)
-                if channel_form.is_valid():
-                    channel_form.save()
-                    channel_form = None
-                    messages.success(request, "Настройки автопостинга сохранены.")
+            # Preview and publish use what is on the screen, so the form is saved first for every button.
+            channel_form = TelegramChannelDigestForm(request.POST, instance=config)
+            if not channel_form.is_valid():
+                pass
+            elif action == "save_channel":
+                channel_form.save()
+                channel_form = None
+                messages.success(request, "Настройки автопостинга сохранены.")
             elif action == "preview_channel":
+                config = channel_form.save()
+                channel_form = None
                 try:
                     channel_preview = build_digest_text(config) or "За сутки нет заметных изменений среди предметов со свежими ценами — пост не выйдет."
                 except TelegramNotifierError as exc:
                     messages.error(request, f"Предпросмотр не удался: {exc}")
             else:
+                config = channel_form.save()
+                channel_form = None
                 try:
                     channel_preview = post_digest(config)
                 except TelegramNotifierError as exc:
