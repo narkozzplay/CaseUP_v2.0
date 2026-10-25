@@ -24,10 +24,16 @@
             </div>
             <div class="item-hero__title-row">
                 <h1 class="item-hero__title">{{ item.group_name }}</h1>
+                {% if request.user.is_authenticated %}
                 <form method="post" action="{% url 'steam_catalog:favorite' item.id %}" class="catalog-fav catalog-fav--inline" data-catalog-fav>
                     {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
                     <button type="submit" class="catalog-fav__btn{% if is_favorite %} is-active{% endif %}" aria-pressed="{% if is_favorite %}true{% else %}false{% endif %}" title="{% if is_favorite %}Убрать из избранного{% else %}В избранное{% endif %}">★</button>
                 </form>
+                {% else %}
+                <div class="catalog-fav catalog-fav--inline">
+                    <a href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}" class="catalog-fav__btn" title="Войдите через Steam, чтобы добавить в избранное" rel="nofollow" data-dashboard-nav="false">★</a>
+                </div>
+                {% endif %}
             </div>
             {% if item.market_hash_name != item.group_name %}<p class="item-hero__variant">{{ item.market_hash_name }}</p>{% endif %}
 
@@ -42,7 +48,7 @@
             <dl class="item-hero__facts">
                 <div><dt>Диапазон семейства</dt><dd>{% if family_min_price and family_max_price %}{% if family_min_price == family_max_price %}{% money family_min_price %}{% else %}{% money family_min_price %} — {% money family_max_price %}{% endif %}{% else %}—{% endif %}</dd></div>
                 <div><dt>Вариантов</dt><dd>{{ family_items|length }}</dd></div>
-                <div><dt>Stock</dt><dd>{{ family_total_stock }}</dd></div>
+                {% if catalog_can_edit %}<div><dt>Stock</dt><dd>{{ family_total_stock }}</dd></div>{% endif %}
                 <div><dt>Обновлено</dt><dd>{% if latest_price_entry %}{{ latest_price_entry.created_at|date:"d.m H:i" }}{% else %}—{% endif %}</dd></div>
                 <div><dt>Авто-апдейт</dt><dd class="{% if auto_update_enabled %}text-up{% else %}text-muted{% endif %}">{% if auto_update_enabled %}ON · {{ auto_update_rule.schedule_display }}{% else %}OFF{% endif %}</dd></div>
             </dl>
@@ -54,7 +60,11 @@
                         <button type="submit" class="btn btn-primary">Обновить цену</button>
                     </form>
                 {% endif %}
-                <a href="{% url 'steam_catalog:alert_rule_create' %}?item={{ item.id }}" class="btn btn-secondary">Поставить алерт</a>
+                {% if request.user.is_authenticated %}
+                    <a href="{% url 'steam_catalog:alert_rule_create' %}?item={{ item.id }}" class="btn btn-secondary">Поставить алерт</a>
+                {% else %}
+                    <a href="{% url 'accounts:login' %}?next={% filter urlencode:'' %}{% url 'steam_catalog:alert_rule_create' %}?item={{ item.id }}{% endfilter %}" class="btn btn-secondary" rel="nofollow" data-dashboard-nav="false">Поставить алерт</a>
+                {% endif %}
                 {% if steam_market_url %}<a href="{{ steam_market_url }}" class="btn btn-ghost" target="_blank" rel="noopener" data-dashboard-nav="false">Steam Market ↗</a>{% endif %}
             </div>
             {% if catalog_can_edit %}
@@ -71,10 +81,10 @@
             </div>
             <div class="variant-picker__grid">
                 {% for variant in family_items %}
-                    <a href="{% url 'steam_catalog:detail' variant.id %}" class="variant-tile{% if variant.id == item.id %} is-active{% endif %}{% if variant.is_stattrak %} variant-tile--stattrak{% endif %}"{% if variant.id == item.id %} aria-current="page"{% endif %}>
+                    <a href="{{ variant.get_absolute_url }}" class="variant-tile{% if variant.id == item.id %} is-active{% endif %}{% if variant.is_stattrak %} variant-tile--stattrak{% endif %}"{% if variant.id == item.id %} aria-current="page"{% endif %}>
                         <span class="variant-tile__name">{% if variant.is_stattrak %}ST · {% endif %}{{ variant.exterior|default:variant.market_hash_name }}</span>
                         <strong class="variant-tile__price">{% if variant.price_rub %}{% money variant.price_rub %}{% else %}—{% endif %}</strong>
-                        <span class="variant-tile__stock">Stock: {{ variant.stock }}</span>
+                        {% if catalog_can_edit %}<span class="variant-tile__stock">Stock: {{ variant.stock }}</span>{% endif %}
                     </a>
                 {% endfor %}
             </div>
@@ -235,6 +245,17 @@
 
     {% ad_slot "item_below_chart" %}
 
+    {% if not request.user.is_authenticated %}
+        <article class="card guest-cta">
+            <div class="card-body">
+                <h2 class="section-title">Следите за ценой {{ item.market_hash_name }}</h2>
+                <p class="text-muted">Войдите через Steam — это бесплатно: избранное, 3 алерта на изменение цены с уведомлением на сайте и в браузере. Цена в каталоге обновляется автоматически, график показывает историю за день, неделю, месяц и год.</p>
+                <a href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}" class="btn btn-primary" rel="nofollow" data-dashboard-nav="false">Войти через Steam</a>
+            </div>
+        </article>
+    {% endif %}
+
+    {% if catalog_can_edit %}
     <div class="item-columns">
         <article class="card">
             <div class="card-body">
@@ -261,12 +282,6 @@
                         {% endif %}
                         <button type="submit" class="btn btn-secondary btn-block">Сохранить RU-name</button>
                     </form>
-                {% else %}
-                    <div class="feature-lock-card feature-lock-card--compact">
-                        <div class="feature-lock-card__badge">View mode</div>
-                        <h3 class="feature-lock-card__title">Редактирование закрыто</h3>
-                        <p class="feature-lock-card__text">Эта карточка открыта в режиме просмотра. Ручное обновление цены, RU-name и складские операции доступны только staff/admin.</p>
-                    </div>
                 {% endif %}
             </div>
         </article>
@@ -292,12 +307,6 @@
                         </div>
                         <button type="submit" class="btn btn-primary btn-block">Сохранить движение</button>
                     </form>
-                {% else %}
-                    <div class="feature-lock-card feature-lock-card--compact">
-                        <div class="feature-lock-card__badge">Staff only</div>
-                        <h3 class="feature-lock-card__title">Складские операции скрыты</h3>
-                        <p class="feature-lock-card__text">Подписка открывает просмотр каталога и аналитику, но не складские изменения.</p>
-                    </div>
                 {% endif %}
             </div>
         </article>
@@ -338,4 +347,5 @@
             {% endif %}
         </div>
     </article>
+    {% endif %}
 </section>

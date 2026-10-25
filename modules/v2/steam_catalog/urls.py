@@ -11,6 +11,8 @@ urlpatterns = [
     path("reference/", views.catalog_reference, name="reference"),
     path("reference/import-all/", views.catalog_reference_import_all, name="reference_import_all"),
     path("reference/<int:reference_id>/add/", views.catalog_reference_add, name="reference_add"),
+    path("<int:item_id>-<slug:slug>/", views.catalog_detail, name="item"),
+    # Old address without the name: answers with a permanent redirect to the one above.
     path("<int:item_id>/", views.catalog_detail, name="detail"),
     path("<int:item_id>/favorite/", views.toggle_favorite, name="favorite"),
     path("<int:item_id>/name-ru/", views.update_name_ru, name="update_name_ru"),

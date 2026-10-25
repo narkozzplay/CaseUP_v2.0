@@ -1,9 +1,9 @@
 <section class="section section--compact">
     <div class="section-heading">
-        <span class="eyebrow">{% if catalog_can_edit %}Staff tools{% else %}Subscription view{% endif %}</span>
-        <h1>Steam Catalog</h1>
+        <span class="eyebrow">{% if catalog_can_edit %}Staff tools{% else %}Steam Market{% endif %}</span>
+        <h1>{% if catalog_can_edit %}Steam Catalog{% else %}Цены скинов CS2 в Steam{% endif %}</h1>
         <p class="text-muted">
-            {% if catalog_can_edit %}Цены, варианты износа и склад по каждому предмету. Нажми на карточку, чтобы открыть график и историю цены.{% else %}Каталог открыт в режиме просмотра: цены и варианты износа по каждому предмету. Нажми на карточку, чтобы открыть график цены и поставить алерт.{% endif %}
+            {% if catalog_can_edit %}Цены, варианты износа и склад по каждому предмету. Нажми на карточку, чтобы открыть график и историю цены.{% else %}Актуальные цены скинов, кейсов, наклеек и брелоков CS2 на торговой площадке Steam: все варианты износа по каждому предмету. Нажми на карточку, чтобы открыть график цены и поставить алерт.{% endif %}
         </p>
     </div>
 
@@ -94,7 +94,7 @@
 
         <nav class="chip-tabs" aria-label="Тип предмета">
             <a href="?{{ type_tab_query }}" class="chip-tab {% if not filters.type and not filters.favorites %}is-active{% endif %}" data-dashboard-nav="true">Все</a>
-            <a href="?{{ fav_tab_query }}" class="chip-tab chip-tab--fav {% if filters.favorites %}is-active{% endif %}" data-dashboard-nav="true">★ Избранное{% if favorites_count %} <span class="chip-tab__num">{{ favorites_count }}</span>{% endif %}</a>
+            <a href="{% if request.user.is_authenticated %}?{{ fav_tab_query }}{% else %}{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}{% endif %}"{% if not request.user.is_authenticated %} rel="nofollow" data-dashboard-nav="false"{% endif %} class="chip-tab chip-tab--fav {% if filters.favorites %}is-active{% endif %}" data-dashboard-nav="true">★ Избранное{% if favorites_count %} <span class="chip-tab__num">{{ favorites_count }}</span>{% endif %}</a>
             {% for value, label in options.types %}
                 <a href="?{{ type_tab_query }}{% if type_tab_query %}&{% endif %}type={{ value }}" class="chip-tab {% if filters.type == value and not filters.favorites %}is-active{% endif %}" data-dashboard-nav="true">{{ label }}</a>
             {% endfor %}
@@ -120,12 +120,18 @@
         {% for card in cards %}
             {% if ads_feed_every_n and forloop.counter0 and forloop.counter0|divisibleby:ads_feed_every_n %}{% ad_slot "catalog_feed" %}{% endif %}
             <article class="card catalog-card catalog-card--compact rarity--{{ card.item.rarity_key|default:'none' }}">
-                <a href="{% url 'steam_catalog:detail' card.item.id %}" class="catalog-card__link" aria-label="{{ card.item.group_name }}"></a>
+                <a href="{{ card.item.get_absolute_url }}" class="catalog-card__link" aria-label="{{ card.item.group_name }}"></a>
 
+                {% if request.user.is_authenticated %}
                 <form method="post" action="{% url 'steam_catalog:favorite' card.item.id %}" class="catalog-fav" data-catalog-fav>
                     {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
                     <button type="submit" class="catalog-fav__btn{% if card.is_favorite %} is-active{% endif %}" aria-pressed="{% if card.is_favorite %}true{% else %}false{% endif %}" title="{% if card.is_favorite %}Убрать из избранного{% else %}В избранное{% endif %}">★</button>
                 </form>
+                {% else %}
+                <div class="catalog-fav">
+                    <a href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}" class="catalog-fav__btn" title="Войдите через Steam, чтобы добавить в избранное" rel="nofollow" data-dashboard-nav="false">★</a>
+                </div>
+                {% endif %}
 
                 <div class="card-body">
                     <div class="catalog-card__media catalog-card__media--compact">
@@ -166,7 +172,7 @@
                             <div class="catalog-card__meta">
                                 {% if card.variants_count > 1 %}<span>{{ card.variants_count }} вар.</span>{% endif %}
                                 {% if card.item.rarity %}<span class="catalog-card__rarity">{{ card.item.rarity }}</span>{% endif %}
-                                {% if card.total_stock %}<span class="catalog-card__stock">Stock: {{ card.total_stock }}</span>{% endif %}
+                                {% if catalog_can_edit and card.total_stock %}<span class="catalog-card__stock">Stock: {{ card.total_stock }}</span>{% endif %}
                             </div>
                         </div>
                     </div>

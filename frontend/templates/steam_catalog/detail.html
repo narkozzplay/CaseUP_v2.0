@@ -2,7 +2,7 @@
 {% load static %}
 {% load l10n %}
 
-{% block title %}{{ item.group_name }} | Steam Catalog{% endblock %}
+{% block title %}{{ seo_title|default:item.group_name }}{% endblock %}
 
 
 {% block dashboard_extra_head %}

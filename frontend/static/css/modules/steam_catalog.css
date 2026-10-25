@@ -1608,6 +1608,9 @@
 .catalog-fav__btn.is-active { color: #f5c542; border-color: rgba(245, 197, 66, 0.7); background: rgba(245, 197, 66, 0.14); }
 .catalog-fav--inline { position: static; }
 .catalog-fav--inline .catalog-fav__btn { width: 34px; height: 34px; font-size: 19px; }
+a.catalog-fav__btn { text-decoration: none; }
+.guest-cta { margin-top: 16px; }
+.guest-cta .btn { margin-top: 8px; }
 .item-hero__title-row { display: flex; align-items: center; gap: 12px; }
 
 @media (max-width: 640px) {

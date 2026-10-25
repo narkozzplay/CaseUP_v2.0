@@ -426,7 +426,7 @@ class FrontendDashboardTests(TestCase):
         update_module_states({"steam_catalog": True, "subscriptions": False, "store": True})
 
         self.client.login(username="steam_theme_order_user", password="StrongPass123")
-        response = self.client.get(reverse("steam_catalog:detail", args=[item.id]))
+        response = self.client.get(item.get_absolute_url())
 
         self.assertEqual(response.status_code, 200)
         content = response.content.decode("utf-8")

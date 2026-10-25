@@ -97,10 +97,10 @@ class CatalogFavoriteTests(TestCase):
         self.client.post(reverse("steam_catalog:favorite", args=[self.redline.pk]))
         other_wear = SteamItem.objects.get(market_hash_name="AK-47 | Redline (Battle-Scarred)")
         self.assertTrue(browse.is_favorite(self.user, other_wear))
-        detail = self.client.get(reverse("steam_catalog:detail", args=[other_wear.pk]))
+        detail = self.client.get(other_wear.get_absolute_url())
         self.assertContains(detail, 'aria-pressed="true"')
         response = self.client.post(reverse("steam_catalog:favorite", args=[other_wear.pk]), {"next": "https://evil.example/"})
-        self.assertEqual(response["Location"], reverse("steam_catalog:detail", args=[other_wear.pk]))
+        self.assertEqual(response["Location"], other_wear.get_absolute_url())
         self.assertFalse(SteamItemFavorite.objects.exists())
 
     def test_locked_catalog_cannot_star(self):

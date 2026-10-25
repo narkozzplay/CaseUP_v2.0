@@ -5,7 +5,8 @@ from django.contrib import admin
 from django.http import HttpResponse, JsonResponse
 from django.urls import include, path
 
-from django.contrib.sitemaps.views import sitemap
+from django.contrib.sitemaps import views as sitemap_views
+from django.views.decorators.cache import cache_page
 
 from frontend.seo import SITEMAPS, robots_txt
 from modules.v2.referrals.views import referral_link
@@ -39,7 +40,8 @@ urlpatterns = [
     path("robots.txt", robots_txt, name="robots_txt"),
     path("sw.js", webpush_views.service_worker, name="service_worker"),
     path("manifest.webmanifest", webpush_views.manifest, name="web_manifest"),
-    path("sitemap.xml", sitemap, {"sitemaps": SITEMAPS}, name="sitemap"),
+    path("sitemap.xml", cache_page(60 * 60)(sitemap_views.index), {"sitemaps": SITEMAPS, "sitemap_url_name": "sitemap"}, name="sitemap_index"),
+    path("sitemap-<section>.xml", cache_page(60 * 60 * 6)(sitemap_views.sitemap), {"sitemaps": SITEMAPS}, name="sitemap"),
 ]
 
 urlpatterns += i18n_patterns(

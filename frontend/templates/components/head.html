@@ -1,18 +1,9 @@
-{% load static caseup_brand %}{% brand_asset "favicon" as favicon_url %}{% brand_asset "og_cover" as og_cover_url %}
+{% load static caseup_brand %}{% brand_asset "favicon" as favicon_url %}
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="{{ site_settings.site_name|default:'CaseUP' }}: {% if LANGUAGE_CODE == 'ru' %}цены скинов CS2, алерты, инвестиции, фарм и статистика Steam и FACEIT{% else %}CS2 skin prices, alerts, investments, farming and Steam &amp; FACEIT stats{% endif %}">
+{% include "components/seo_meta.html" %}
 <meta name="theme-color" content="#0b0e13">
 <meta name="color-scheme" content="dark">
-<meta property="og:site_name" content="{{ site_settings.site_name|default:'CaseUP' }}">
-<meta property="og:type" content="website">
-<meta property="og:title" content="{{ site_settings.site_name|default:'CaseUP' }}{% if LANGUAGE_CODE == 'ru' %} — панель трейдера CS2{% else %} — CS2 trader panel{% endif %}">
-<meta property="og:description" content="{% if LANGUAGE_CODE == 'ru' %}Цены скинов CS2, алерты, инвестиции, кейсы, фарм и статистика Steam и FACEIT в одной панели.{% else %}CS2 skin prices, alerts, investments, cases, farming and Steam &amp; FACEIT stats in one panel.{% endif %}">
-<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
-<meta property="og:locale" content="{% if LANGUAGE_CODE == 'ru' %}ru_RU{% else %}en_US{% endif %}">
-<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
-{% if og_cover_url %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ og_cover_url }}">
-<meta name="twitter:card" content="summary_large_image">{% endif %}
 {% if favicon_url %}
 <link rel="icon" href="{{ favicon_url }}">
 <link rel="apple-touch-icon" href="{{ favicon_url }}">
