@@ -1,0 +1,121 @@
+.ad-slot {
+    position: relative;
+    margin: 16px 0;
+    padding: 8px;
+    border: 1px dashed var(--border, rgba(255, 255, 255, 0.12));
+    border-radius: 12px;
+    text-align: center;
+    min-height: 90px;
+}
+
+.ad-slot__label {
+    position: absolute;
+    top: 4px;
+    left: 10px;
+    font-size: 11px;
+    color: var(--text-muted, #9aa4b2);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ad-slot__body {
+    min-height: 70px;
+    margin-top: 12px;
+    overflow: hidden;
+}
+
+.ad-slot__remove {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--text-muted, #9aa4b2);
+}
+
+.ad-slot--catalog_feed {
+    grid-column: 1 / -1;
+}
+
+.ad-slot--sidebar_bottom {
+    margin: 12px;
+    min-height: 0;
+}
+
+.ad-house {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 14px;
+    padding: 8px;
+    color: inherit;
+    text-decoration: none;
+    text-align: left;
+}
+
+.ad-house__image {
+    max-width: 100%;
+    max-height: 120px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.ad-house__copy {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.ad-house__text {
+    color: var(--text-muted, #9aa4b2);
+    font-size: 14px;
+}
+
+.ad-slot--sidebar_bottom .ad-house {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+}
+
+@media (max-width: 640px) {
+    .ad-house {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+}
+
+.ad-consent {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+    z-index: 1000;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 12px 16px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+    border-radius: 12px;
+    background: var(--surface, #12161d);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.ad-consent[hidden] {
+    display: none;
+}
+
+.ad-consent__text {
+    flex: 1 1 320px;
+    margin: 0;
+    font-size: 14px;
+}
+
+.ad-consent__actions {
+    display: flex;
+    gap: 8px;
+}

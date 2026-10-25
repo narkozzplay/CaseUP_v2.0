@@ -111,11 +111,14 @@
         {% endif %}
     </div>
 
+    {% ad_slot "catalog_top" %}
+
     <div
         class="cards-grid cards-grid--catalog cards-grid--catalog-compact"
         style="--catalog-columns: {{ catalog_grid_columns|default:7 }};"
     >
         {% for card in cards %}
+            {% if ads_feed_every_n and forloop.counter0 and forloop.counter0|divisibleby:ads_feed_every_n %}{% ad_slot "catalog_feed" %}{% endif %}
             <article class="card catalog-card catalog-card--compact rarity--{{ card.item.rarity_key|default:'none' }}">
                 <a href="{% url 'steam_catalog:detail' card.item.id %}" class="catalog-card__link" aria-label="{{ card.item.group_name }}"></a>
 

@@ -127,7 +127,7 @@ class TopupBonusTests(PromoTestCase):
 class SubscriptionDiscountTests(PromoTestCase):
     def setUp(self):
         super().setUp()
-        self.plan = SubscriptionPlan.objects.get(family=SubscriptionPlan.Family.SITE, level=1)
+        self.plan = SubscriptionPlan.objects.get(code="site_no_ads")
         SubscriptionPlan.objects.filter(pk=self.plan.pk).update(price_rub=Decimal("1000.00"), is_active=True)
         self.plan.refresh_from_db()
         PromoCode.objects.create(code="SUB30", kind=PromoCode.Kind.SUBSCRIPTION_DISCOUNT, percent=30)

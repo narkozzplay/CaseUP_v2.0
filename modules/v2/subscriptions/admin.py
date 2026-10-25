@@ -5,8 +5,8 @@ from .models import SubscriptionFeature, SubscriptionFeaturePricingRule, Subscri
 
 @admin.register(SubscriptionFeature)
 class SubscriptionFeatureAdmin(admin.ModelAdmin):
-    list_display = ("code", "name", "module_key", "is_active", "sort_order")
-    list_filter = ("is_active", "module_key")
+    list_display = ("code", "name", "module_key", "free_tier", "is_active", "sort_order")
+    list_filter = ("is_active", "free_tier", "module_key")
     search_fields = ("code", "name", "description")
     ordering = ("sort_order", "name", "id")
 
@@ -33,7 +33,7 @@ class SubscriptionPricingConfigAdmin(admin.ModelAdmin):
 
 @admin.register(UserSubscription)
 class UserSubscriptionAdmin(admin.ModelAdmin):
-    list_display = ("user", "plan", "status", "starts_at", "expires_at", "is_currently_active")
+    list_display = ("user", "plan", "status", "starts_at", "expires_at", "is_currently_active", "expiry_reminder_sent_at")
     list_filter = ("status", "plan", "plan__family")
     search_fields = ("user__username", "plan__name", "notes")
     ordering = ("-starts_at", "-id")

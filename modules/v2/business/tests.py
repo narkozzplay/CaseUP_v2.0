@@ -55,8 +55,8 @@ class RecordingTests(TestCase):
         from modules.v2.subscriptions.models import SubscriptionPlan
         from modules.v2.subscriptions.services import assign_user_subscription_plan, purchase_subscription_with_balance
 
-        level_1 = SubscriptionPlan.objects.get(level=1)
-        level_2 = SubscriptionPlan.objects.get(level=2)
+        level_1 = SubscriptionPlan.objects.get(code="site_no_ads")
+        level_2 = SubscriptionPlan.objects.get(code="site_plus")
         assign_user_subscription_plan(user=self.user, plan=level_1)
         purchase_subscription_with_balance(user=self.user, plan=level_2)
 
@@ -68,7 +68,7 @@ class RecordingTests(TestCase):
         from modules.v2.subscriptions.models import SubscriptionPlan
         from modules.v2.subscriptions.services import purchase_subscription_with_balance
 
-        plan = SubscriptionPlan.objects.get(level=2)
+        plan = SubscriptionPlan.objects.get(code="site_plus")
         purchase_subscription_with_balance(user=self.user, plan=plan)
         self.assertEqual(amounts(source=RevenueSource.SUBSCRIPTION), [plan.price_rub])
         self.assertFalse(RevenueEntry.objects.filter(category=RevenueCategory.COMMISSION).exists())
@@ -104,8 +104,8 @@ class RecordingTests(TestCase):
         from modules.v2.subscriptions.models import SubscriptionPlan
         from modules.v2.subscriptions.services import assign_user_subscription_plan, purchase_subscription_with_balance
 
-        assign_user_subscription_plan(user=self.user, plan=SubscriptionPlan.objects.get(level=1))
-        purchase_subscription_with_balance(user=self.user, plan=SubscriptionPlan.objects.get(level=2))
+        assign_user_subscription_plan(user=self.user, plan=SubscriptionPlan.objects.get(code="site_no_ads"))
+        purchase_subscription_with_balance(user=self.user, plan=SubscriptionPlan.objects.get(code="site_plus"))
         adjust_balance(user=self.user, delta=Decimal("-40.00"), reason=LedgerReason.BUNDLE_PURCHASE, amount_snapshot=Decimal("40.00"))
         before = sorted(RevenueEntry.objects.values_list("source", "amount"))
         RevenueEntry.objects.all().delete()

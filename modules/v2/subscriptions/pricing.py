@@ -70,12 +70,14 @@ def evaluate_plan_pricing(plan: SubscriptionPlan) -> PlanPricingEvaluation:
     feature_codes = _feature_code_set(plan)
     factors: list[PricingFactor] = []
 
+    # The step counts the plan's position in its line, so level numbers can have gaps.
+    steps = Decimal(max(_get_family_position(plan) - 1, 0))
     if plan.family == SubscriptionPlan.Family.FARMER:
         base_value = _q_money(pricing_config.farmer_base_price_rub)
-        step_value = _q_money(pricing_config.farmer_level_step_rub * Decimal(max(_get_family_position(plan) - 1, 0)))
+        step_value = _q_money(pricing_config.farmer_level_step_rub * steps)
     else:
         base_value = _q_money(pricing_config.site_base_price_rub)
-        step_value = _q_money(pricing_config.site_level_step_rub * Decimal(max(plan.level - 1, 0)))
+        step_value = _q_money(pricing_config.site_level_step_rub * steps)
 
     factors.append(PricingFactor("base", "Базовая ценность линейки", base_value, "Стартовая цена для выбранного семейства тарифов."))
     if step_value > ZERO:

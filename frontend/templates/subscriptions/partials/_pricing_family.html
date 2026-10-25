@@ -47,6 +47,13 @@
                             </div>
                         </fieldset>
                         <fieldset class="pricing-group">
+                            <legend>Лимиты</legend>
+                            <div class="pricing-fields">
+                                {% include "subscriptions/partials/_pricing_field.html" with field=form.price_alerts_limit %}
+                            </div>
+                            <label class="cc-field-check pricing-toggle">{{ form.price_alerts_unlimited }}<span>Алерты без лимита</span></label>
+                        </fieldset>
+                        <fieldset class="pricing-group">
                             <legend>Служебное</legend>
                             <div class="pricing-fields">
                                 {% include "subscriptions/partials/_pricing_field.html" with field=form.code label="Код" hint="Латиницей, не меняйте у работающего тарифа." %}

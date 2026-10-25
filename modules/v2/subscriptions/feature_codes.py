@@ -4,6 +4,9 @@ TG_NOTIFIER_USER = "tg_notifier_user"
 STEAM_TRADING_ADVANCED_ANALYTICS = "steam_trading_advanced_analytics"
 PREMIUM_FUTURE_ACCESS = "premium_future_access"
 SITE_STORE_FULL_ACCESS = "site_store_full_access"
+PROFILE_CUSTOMIZATION = "profile_customization"
+# Shared by both plan families: any paid plan turns ads off.
+NO_ADS = "no_ads"
 
 FARM_ANALYTICS_DEEP = "farm_analytics_deep"
 FARM_TG_ALERTS = "farm_tg_alerts"
@@ -19,6 +22,8 @@ ALL_FEATURE_CODES = (
     STEAM_TRADING_ADVANCED_ANALYTICS,
     PREMIUM_FUTURE_ACCESS,
     SITE_STORE_FULL_ACCESS,
+    PROFILE_CUSTOMIZATION,
+    NO_ADS,
     FARM_ANALYTICS_DEEP,
     FARM_TG_ALERTS,
     FARM_CASEUP_REDUCED_COMMISSION,

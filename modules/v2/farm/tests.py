@@ -460,7 +460,7 @@ class FarmAnalyticsExpansionTests(TestCase):
         )
         self.farmer_start = SubscriptionPlan.objects.get(code="farmer_start")
         self.farmer_pro = SubscriptionPlan.objects.get(code="farmer_pro")
-        self.farmer_ultra = SubscriptionPlan.objects.get(code="farmer_ultra")
+        self.farmer_ultra = SubscriptionPlan.objects.get(code="farmer_pro")
         assign_user_subscription_plan(user=self.user, plan=self.farmer_ultra, family="farmer")
 
     def _create_session(self):

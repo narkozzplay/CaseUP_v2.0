@@ -628,7 +628,7 @@ class UserRuntimeThemeResolutionTests(TestCase):
     def test_purchased_theme_overrides_scope_css_for_owner(self):
         plan = SubscriptionPlan.objects.filter(
             family=SubscriptionPlan.Family.SITE,
-            level=1,
+            code="site_no_ads",
             is_active=True,
         ).first()
         self.assertIsNotNone(plan)
@@ -683,7 +683,7 @@ class DashboardMenuBuilderTests(TestCase):
     
         site_plan = SubscriptionPlan.objects.filter(
             family=SubscriptionPlan.Family.SITE,
-            level=1,
+            code="site_no_ads",
             is_active=True,
         ).first()
         self.assertIsNotNone(site_plan)

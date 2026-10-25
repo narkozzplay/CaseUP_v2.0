@@ -3,6 +3,7 @@ from __future__ import annotations
 from django import forms
 from django.forms import modelformset_factory
 
+from .limits import PRICE_ALERTS
 from .models import SubscriptionFeaturePricingRule, SubscriptionPlan, SubscriptionPricingConfig
 
 
@@ -18,6 +19,9 @@ class SubscriptionPricingConfigForm(forms.ModelForm):
             "reduced_commission_capture_ratio_percent",
             "global_price_floor_rub",
             "reasonable_delta_percent",
+            "period_discount_3m_percent",
+            "period_discount_6m_percent",
+            "period_discount_12m_percent",
         ]
         widgets = {
             field_name: forms.NumberInput(attrs={"class": "form-control", "step": "0.01"})
@@ -32,6 +36,9 @@ class SubscriptionPricingConfigForm(forms.ModelForm):
             "reduced_commission_capture_ratio_percent": "Доля выгоды в цене, %",
             "global_price_floor_rub": "Минимальная цена, ₽",
             "reasonable_delta_percent": "Допустимое отклонение, %",
+            "period_discount_3m_percent": "Скидка за 3 месяца, %",
+            "period_discount_6m_percent": "Скидка за 6 месяцев, %",
+            "period_discount_12m_percent": "Скидка за 12 месяцев, %",
         }
         help_texts = {
             "site_base_price_rub": "С неё начинается рекомендованная цена первого тарифа сайта.",
@@ -42,6 +49,9 @@ class SubscriptionPricingConfigForm(forms.ModelForm):
             "reduced_commission_capture_ratio_percent": "Какую часть сэкономленной комиссии закладывать в цену тарифа.",
             "global_price_floor_rub": "Рекомендованная цена любого тарифа не опускается ниже этой суммы.",
             "reasonable_delta_percent": "Если цена отличается от рекомендованной не больше чем на столько, она «в норме».",
+            "period_discount_3m_percent": "Цена 3 месяцев = 3 × цена тарифа минус эта скидка.",
+            "period_discount_6m_percent": "Цена 6 месяцев = 6 × цена тарифа минус эта скидка.",
+            "period_discount_12m_percent": "Цена года = 12 × цена тарифа минус эта скидка.",
         }
 
 
@@ -51,6 +61,19 @@ class SubscriptionPlanConfigForm(forms.ModelForm):
         widget=forms.Textarea(attrs={"class": "form-control", "rows": 4}),
         label="UI features",
         help_text="Одна строка = один пункт в карточке тарифа.",
+    )
+
+    price_alerts_limit = forms.IntegerField(
+        required=False,
+        min_value=0,
+        widget=forms.NumberInput(attrs={"class": "form-control", "step": "1"}),
+        label="Ценовых алертов",
+        help_text="Пусто — как в бесплатном доступе. Отметь «без лимита», чтобы снять ограничение.",
+    )
+    price_alerts_unlimited = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "toggle-control__input"}),
+        label="Алерты без лимита",
     )
 
     class Meta:
@@ -89,6 +112,12 @@ class SubscriptionPlanConfigForm(forms.ModelForm):
         self.family = family
         super().__init__(*args, **kwargs)
         self.fields["ui_features_text"].initial = "\n".join(self.instance.ui_feature_list)
+        limits = self.instance.limits or {}
+        if PRICE_ALERTS in limits:
+            if limits[PRICE_ALERTS] is None:
+                self.fields["price_alerts_unlimited"].initial = True
+            else:
+                self.fields["price_alerts_limit"].initial = limits[PRICE_ALERTS]
 
     def clean_ui_features_text(self):
         value = self.cleaned_data.get("ui_features_text", "")
@@ -99,6 +128,14 @@ class SubscriptionPlanConfigForm(forms.ModelForm):
         if self.family:
             instance.family = self.family
         instance.ui_features = self.cleaned_data.get("ui_features_text", [])
+        limits = dict(instance.limits or {})
+        if self.cleaned_data.get("price_alerts_unlimited"):
+            limits[PRICE_ALERTS] = None
+        elif self.cleaned_data.get("price_alerts_limit") is not None:
+            limits[PRICE_ALERTS] = self.cleaned_data["price_alerts_limit"]
+        else:
+            limits.pop(PRICE_ALERTS, None)
+        instance.limits = limits
         if commit:
             instance.save()
         return instance

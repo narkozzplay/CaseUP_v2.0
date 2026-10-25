@@ -1,0 +1,10 @@
+{% load static %}{% if ads_visible %}
+{% if not ads_network_allowed %}
+{% elif ads_provider == "yandex" %}
+<script>window.yaContextCb = window.yaContextCb || [];</script>
+<script src="https://yandex.ru/ads/system/context.js" async></script>
+{% elif ads_provider == "google" and ads_adsense_client_id %}
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ ads_adsense_client_id|urlencode }}" crossorigin="anonymous"></script>
+{% endif %}
+<script src="{% static 'js/ads.js' %}" defer></script>
+{% endif %}

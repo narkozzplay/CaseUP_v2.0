@@ -153,8 +153,8 @@ class SubscriptionDiscountTests(ReferralTestCase):
     def setUp(self):
         super().setUp()
         family = SubscriptionPlan.Family.SITE
-        self.basic = SubscriptionPlan.objects.get(family=family, level=1)
-        self.pro = SubscriptionPlan.objects.get(family=family, level=2)
+        self.basic = SubscriptionPlan.objects.get(family=family, code="site_no_ads")
+        self.pro = SubscriptionPlan.objects.get(family=family, code="site_plus")
         SubscriptionPlan.objects.filter(pk=self.basic.pk).update(price_rub=Decimal("500.00"), is_active=True)
         SubscriptionPlan.objects.filter(pk=self.pro.pk).update(price_rub=Decimal("900.00"), is_active=True)
         self.basic.refresh_from_db()
