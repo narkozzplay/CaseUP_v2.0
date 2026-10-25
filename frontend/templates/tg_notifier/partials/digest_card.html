@@ -34,7 +34,7 @@ channel post (digest_card_page.html, screenshotted by digest_image.py). Styles a
     <div class="dg-head">
         <div>
             <div class="dg-brand">{{ site_name }}</div>
-            <h2 class="dg-title">Цены CS2 за сутки</h2>
+            <h2 class="dg-title">{{ title|default:"Цены CS2 за сутки" }}</h2>
         </div>
         <div class="dg-date">{{ generated_at|date:"d.m.Y H:i" }} МСК</div>
     </div>

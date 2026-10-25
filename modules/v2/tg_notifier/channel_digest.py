@@ -36,7 +36,13 @@ MAX_BASELINE_AGE = timedelta(days=7)
 MIN_CHANGE_PERCENT = Decimal("1")
 # A slot missed by more than this (worker down, digest switched on late in the evening) is skipped.
 SLOT_GRACE = timedelta(hours=2)
-HASHTAGS = "#CaseUP #CounterStrike2"
+# What the post wording on the autopost page may contain; anything else in braces is left as typed.
+TEXT_PLACEHOLDERS = {
+    "date": "дата поста, 25.10.2026",
+    "time": "время поста, 21:00",
+    "site": "название сайта",
+    "hours": "сколько часов считается свежей цена",
+}
 # Telegram counts the text after markup is parsed: tags and link addresses are free.
 TELEGRAM_TEXT_LIMIT = 4096
 TELEGRAM_CAPTION_LIMIT = 1024
@@ -187,8 +193,6 @@ def _link(base_url: str, path: str, params: dict[str, str] | None = None) -> str
 
 def render_digest(digest: PriceDigest, *, config: TelegramNotifierConfig, compact: bool = False) -> str:
     """The post text. Compact (the caption under the picture) keeps one short line per item: the picture has the prices."""
-    from modules.v2.system.services import get_site_name
-
     base_url = ensure_public_base_url(config)
     catalog_path = reverse("steam_catalog:list")
 
@@ -214,19 +218,46 @@ def render_digest(digest: PriceDigest, *, config: TelegramNotifierConfig, compac
                 )
         return "\n".join(rows)
 
-    parts = [f"📊 <b>Цены CS2 за сутки</b> · {timezone.localtime(digest.generated_at):%d.%m.%Y}"]
+    values = text_values(digest, config=config)
+    title = config.channel_digest_title or TelegramNotifierConfig._meta.get_field("channel_digest_title").default
+    parts = [f"<b>{fill_text(title, values)}</b>"]
+    if intro := fill_text(config.channel_digest_intro, values):
+        parts.append(intro)
     parts.extend(block_text(block) for block in digest.blocks if block.moves)
+    if outro := fill_text(config.channel_digest_outro, values):
+        parts.append(outro)
+    link_text = fill_text(config.channel_digest_link_text, values)
     if compact:
-        top_url = html.escape(_link(base_url, reverse("price_movers")), quote=True)
-        parts.append(f'🔎 <a href="{top_url}">Цены и графики — {html.escape(get_site_name())}</a>')
+        if link_text:
+            top_url = html.escape(_link(base_url, reverse("price_movers")), quote=True)
+            parts.append(f'<a href="{top_url}">{link_text}</a>')
     else:
-        catalog_url = html.escape(_link(base_url, catalog_path), quote=True)
-        parts.append(
-            f"Цены Steam Community Market, проверены за последние {config.channel_digest_fresh_hours} ч.\n"
-            f'🔎 <a href="{catalog_url}">Все цены и графики — {html.escape(get_site_name())}</a>'
-        )
-    parts.append(HASHTAGS)
+        footer = f"Цены Steam Community Market, проверены за последние {config.channel_digest_fresh_hours} ч."
+        if link_text:
+            catalog_url = html.escape(_link(base_url, catalog_path), quote=True)
+            footer += f'\n<a href="{catalog_url}">{link_text}</a>'
+        parts.append(footer)
+    if hashtags := fill_text(config.channel_digest_hashtags, values):
+        parts.append(hashtags)
     return "\n\n".join(parts)
+
+
+def text_values(digest: PriceDigest, *, config: TelegramNotifierConfig) -> dict[str, str]:
+    from modules.v2.system.services import get_site_name
+
+    local = timezone.localtime(digest.generated_at)
+    return {
+        "date": f"{local:%d.%m.%Y}",
+        "time": f"{local:%H:%M}",
+        "site": get_site_name(),
+        "hours": str(config.channel_digest_fresh_hours),
+    }
+
+
+def fill_text(template: str, values: dict[str, str]) -> str:
+    """The admin's wording with placeholders filled in, escaped for Telegram HTML. Unknown {names} stay as typed."""
+    text = re.sub(r"\{(\w+)\}", lambda match: values.get(match.group(1), match.group(0)), (template or "").strip())
+    return html.escape(text, quote=False)
 
 
 def visible_length(text: str) -> int:
@@ -287,6 +318,7 @@ def card_context(digest: PriceDigest, *, config: TelegramNotifierConfig) -> dict
         "blocks": [block for block in digest.blocks if block.moves],
         "generated_at": digest.generated_at,
         "fresh_hours": config.channel_digest_fresh_hours,
+        "title": config.channel_digest_card_title or TelegramNotifierConfig._meta.get_field("channel_digest_card_title").default,
         "site_name": get_site_name(),
         "site_host": urlparse(base_url).netloc or base_url,
         "channel_username": channel[1:] if channel.startswith("@") else "",

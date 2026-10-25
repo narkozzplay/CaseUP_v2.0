@@ -124,6 +124,33 @@ class ChannelDigestTests(DigestFixtures):
         self.assertIn("#CaseUP #CounterStrike2", text)
         self.assertNotIn("Кейсы: спад", text)
 
+    def test_custom_wording_with_placeholders(self):
+        self._section("Рост")
+        self._item("AK-47 | Redline (Field-Tested)", before=Decimal("1000"), after=Decimal("1200"))
+        self.config.channel_digest_title = "Цены CS2 · {date} {time}"
+        self.config.channel_digest_intro = "Что изменилось за {hours} ч. <без тегов> {unknown}"
+        self.config.channel_digest_outro = "Подписывайтесь!"
+        self.config.channel_digest_link_text = "Все цены на {site}"
+        self.config.channel_digest_hashtags = ""
+
+        text = build_digest_text(self.config, now=NOW)
+
+        self.assertTrue(text.startswith("<b>Цены CS2 · 25.10.2026 20:03</b>\n\nЧто изменилось за 12 ч. &lt;без тегов&gt; {unknown}\n\n"))
+        self.assertIn("Подписывайтесь!\n\nЦены Steam Community Market", text)
+        self.assertRegex(text, r'<a href="https://case-up.ru/steam-catalog/\?utm_source=[^"]+">Все цены на .+</a>$')
+        self.assertNotIn("#CaseUP", text)
+
+    def test_empty_link_text_drops_the_link(self):
+        self._section("Рост")
+        self._item("AK-47 | Redline (Field-Tested)", before=Decimal("1000"), after=Decimal("1200"))
+        self.config.channel_digest_link_text = ""
+        self.config.channel_digest_title = ""
+
+        text = build_digest_text(self.config, now=NOW)
+
+        self.assertTrue(text.startswith("<b>📊 Цены CS2 за сутки · 25.10.2026</b>"))
+        self.assertNotIn('href="https://case-up.ru/steam-catalog/?utm', text)
+
     def test_long_digest_is_trimmed_to_one_message(self):
         self._section("Рост", top_n=10)
         self._section("Спад", direction=DOWN, top_n=10)
@@ -329,6 +356,32 @@ class DigestImageTests(DigestFixtures):
         self.assertContains(response, "Sticker | Long Name Number 9 (Holo) | Paris 2023")
         self.assertContains(response, "+19.0%")
         self.assertContains(response, "t.me/caseup_pro_anons")
+
+    def test_card_title_is_editable(self):
+        from .digest_image import render_card_html
+
+        self.config.channel_digest_card_title = "Топ за 3 часа"
+        with patch("modules.v2.tg_notifier.channel_digest.timezone.now", return_value=NOW):
+            page = render_card_html(collect_digest(config=self.config, now=NOW), config=self.config)
+
+        self.assertIn('<h2 class="dg-title">Топ за 3 часа</h2>', page)
+
+    def test_form_keeps_caption_wording_short(self):
+        data = {
+            "channel_digest_enabled": "on",
+            "channel_chat_id": "@caseup_pro_anons",
+            "channel_digest_times": "20:00",
+            "channel_digest_fresh_hours": 12,
+            "channel_digest_with_image": "on",
+            "channel_digest_intro": "а" * 400,
+            "channel_digest_outro": "б" * 300,
+        }
+        form = TelegramChannelDigestForm(data, instance=self.config)
+        self.assertFalse(form.is_valid())
+        self.assertIn("1024 символа", str(form.errors["channel_digest_intro"]))
+
+        data.pop("channel_digest_with_image")
+        self.assertTrue(TelegramChannelDigestForm(data, instance=self.config).is_valid())
 
 
 class SendRetryTests(TestCase):

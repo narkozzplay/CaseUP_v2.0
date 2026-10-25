@@ -20,7 +20,7 @@ from modules.v2.subscriptions.feature_codes import TG_NOTIFIER_USER
 from modules.v2.subscriptions.responses import render_feature_locked_response
 from modules.v2.subscriptions.services import get_feature_access_state
 
-from .channel_digest import CATEGORY_LABELS, build_preview_text, post_digest
+from .channel_digest import CATEGORY_LABELS, TEXT_PLACEHOLDERS, build_preview_text, post_digest
 from .forms import ChannelDigestSectionFormSet, TelegramChannelDigestForm, TelegramNotifierSettingsForm, TelegramTestSendForm
 from .models import ChannelDigestPost, ChannelDigestSection, TelegramNotifierConfig
 from .updates import get_poll_status, handle_update
@@ -368,6 +368,7 @@ def autopost_page(request):
         "schedule_form": schedule_form,
         "section_formset": section_formset,
         "category_labels": CATEGORY_LABELS,
+        "text_placeholders": TEXT_PLACEHOLDERS.items(),
         "preview": preview,
         "posts": ChannelDigestPost.objects.all()[:20],
         "bot_ready": config.is_enabled and bool(resolve_bot_token(config)),
