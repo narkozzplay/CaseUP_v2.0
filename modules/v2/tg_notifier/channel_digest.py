@@ -21,7 +21,14 @@ from modules.v2.steam_catalog.models import SteamItem, SteamItemPriceHistory
 from modules.v2.steam_catalog.services.browse import TYPE_LABELS, WEAPON_GROUPS, _weapon_group_q
 
 from .models import ChannelDigestPost, ChannelDigestSection, TelegramNotifierConfig
-from .services import TelegramNotifierError, ensure_public_base_url, get_telegram_notifier_config, send_message
+from .services import (
+    TelegramNotifierError,
+    ensure_public_base_url,
+    get_telegram_notifier_config,
+    resolve_public_base_url,
+    send_message,
+    send_photo,
+)
 
 WINDOW = timedelta(hours=24)
 # The price "a day ago" is the last history point before the window; older than this it says nothing about the day.
@@ -32,6 +39,7 @@ SLOT_GRACE = timedelta(hours=2)
 HASHTAGS = "#CaseUP #CounterStrike2"
 # Telegram counts the text after markup is parsed: tags and link addresses are free.
 TELEGRAM_TEXT_LIMIT = 4096
+TELEGRAM_CAPTION_LIMIT = 1024
 UTM = {"utm_source": "telegram", "utm_medium": "channel", "utm_campaign": "price_digest"}
 
 CATEGORY_CHOICES = [
@@ -53,6 +61,18 @@ class PriceMove:
     current_price: Decimal
     change_percent: Decimal
 
+    @property
+    def baseline_text(self) -> str:
+        return _price(self.baseline_price)
+
+    @property
+    def current_text(self) -> str:
+        return _price(self.current_price)
+
+    @property
+    def change_text(self) -> str:
+        return f"{'+' if self.change_percent > 0 else ''}{self.change_percent}%"
+
 
 @dataclass
 class DigestBlock:
@@ -68,6 +88,9 @@ class PriceDigest:
     @property
     def is_empty(self) -> bool:
         return not any(block.moves for block in self.blocks)
+
+    def copy(self) -> PriceDigest:
+        return PriceDigest([DigestBlock(block.section, list(block.moves)) for block in self.blocks], self.generated_at)
 
 
 def parse_times(value: str) -> list[time]:
@@ -162,7 +185,8 @@ def _link(base_url: str, path: str, params: dict[str, str] | None = None) -> str
     return f"{base_url}{path}?{urlencode({**(params or {}), **UTM})}"
 
 
-def render_digest(digest: PriceDigest, *, config: TelegramNotifierConfig) -> str:
+def render_digest(digest: PriceDigest, *, config: TelegramNotifierConfig, compact: bool = False) -> str:
+    """The post text. Compact (the caption under the picture) keeps one short line per item: the picture has the prices."""
     from modules.v2.system.services import get_site_name
 
     base_url = ensure_public_base_url(config)
@@ -181,19 +205,26 @@ def render_digest(digest: PriceDigest, *, config: TelegramNotifierConfig) -> str
             name = html.escape(move.item.market_hash_name)
             url = html.escape(_link(base_url, move.item.get_absolute_url()), quote=True)
             sign = "+" if move.change_percent > 0 else ""
-            rows.append(
-                f'{index}. <a href="{url}">{name}</a>\n'
-                f"    {_price(move.baseline_price)} → <b>{_price(move.current_price)}</b> ({sign}{move.change_percent}%)"
-            )
+            if compact:
+                rows.append(f'{index}. <a href="{url}">{name}</a> <b>{sign}{move.change_percent}%</b>')
+            else:
+                rows.append(
+                    f'{index}. <a href="{url}">{name}</a>\n'
+                    f"    {_price(move.baseline_price)} → <b>{_price(move.current_price)}</b> ({sign}{move.change_percent}%)"
+                )
         return "\n".join(rows)
 
     parts = [f"📊 <b>Цены CS2 за сутки</b> · {timezone.localtime(digest.generated_at):%d.%m.%Y}"]
     parts.extend(block_text(block) for block in digest.blocks if block.moves)
-    catalog_url = html.escape(_link(base_url, catalog_path), quote=True)
-    parts.append(
-        f"Цены Steam Community Market, проверены за последние {config.channel_digest_fresh_hours} ч.\n"
-        f'🔎 <a href="{catalog_url}">Все цены и графики — {html.escape(get_site_name())}</a>'
-    )
+    if compact:
+        top_url = html.escape(_link(base_url, reverse("price_movers")), quote=True)
+        parts.append(f'🔎 <a href="{top_url}">Цены и графики — {html.escape(get_site_name())}</a>')
+    else:
+        catalog_url = html.escape(_link(base_url, catalog_path), quote=True)
+        parts.append(
+            f"Цены Steam Community Market, проверены за последние {config.channel_digest_fresh_hours} ч.\n"
+            f'🔎 <a href="{catalog_url}">Все цены и графики — {html.escape(get_site_name())}</a>'
+        )
     parts.append(HASHTAGS)
     return "\n\n".join(parts)
 
@@ -202,16 +233,12 @@ def visible_length(text: str) -> int:
     return len(html.unescape(re.sub(r"<[^>]+>", "", text)))
 
 
-def build_digest_text(config: TelegramNotifierConfig | None = None, *, now: datetime | None = None) -> str | None:
-    """The post text, or None when no fresh item moved enough to write about."""
-    config = config or get_telegram_notifier_config()
-    digest = collect_digest(config=config, now=now)
-    if digest.is_empty:
-        return None
-    text = render_digest(digest, config=config)
-    # Many sections with long sticker names can outgrow one message: drop tail rows of the longest block until it fits.
+def fit_text(digest: PriceDigest, *, config: TelegramNotifierConfig, limit: int, compact: bool = False) -> str:
+    """Renders a copy of the digest, dropping tail rows of the longest block until the text fits the limit."""
+    digest = digest.copy()
+    text = render_digest(digest, config=config, compact=compact)
     # Down to one row per block, the last blocks go away whole.
-    while visible_length(text) > TELEGRAM_TEXT_LIMIT:
+    while visible_length(text) > limit:
         filled = [block for block in digest.blocks if block.moves]
         if len(filled) <= 1 and len(filled[0].moves) <= 1:
             break
@@ -220,8 +247,50 @@ def build_digest_text(config: TelegramNotifierConfig | None = None, *, now: date
             longest.moves = longest.moves[:-1]
         else:
             filled[-1].moves = []
-        text = render_digest(digest, config=config)
+        text = render_digest(digest, config=config, compact=compact)
     return text
+
+
+def build_digest(config: TelegramNotifierConfig | None = None, *, now: datetime | None = None) -> PriceDigest | None:
+    """Today's digest, or None when no fresh item moved enough to write about."""
+    config = config or get_telegram_notifier_config()
+    digest = collect_digest(config=config, now=now)
+    return None if digest.is_empty else digest
+
+
+def build_digest_text(config: TelegramNotifierConfig | None = None, *, now: datetime | None = None) -> str | None:
+    """The post text, or None when no fresh item moved enough to write about."""
+    config = config or get_telegram_notifier_config()
+    digest = build_digest(config, now=now)
+    return None if digest is None else fit_text(digest, config=config, limit=TELEGRAM_TEXT_LIMIT)
+
+
+def build_preview_text(config: TelegramNotifierConfig) -> str | None:
+    """What goes out as text: the caption under the picture, or the whole message without one."""
+    digest = build_digest(config)
+    if digest is None:
+        return None
+    if config.channel_digest_with_image:
+        return fit_text(digest, config=config, limit=TELEGRAM_CAPTION_LIMIT, compact=True)
+    return fit_text(digest, config=config, limit=TELEGRAM_TEXT_LIMIT)
+
+
+def card_context(digest: PriceDigest, *, config: TelegramNotifierConfig) -> dict:
+    """Context of tg_notifier/partials/digest_card.html (the picture and the public top page)."""
+    from urllib.parse import urlparse
+
+    from modules.v2.system.services import get_site_name
+
+    base_url = (config.public_base_url or "").strip() or resolve_public_base_url(config)
+    channel = (config.channel_chat_id or "").strip()
+    return {
+        "blocks": [block for block in digest.blocks if block.moves],
+        "generated_at": digest.generated_at,
+        "fresh_hours": config.channel_digest_fresh_hours,
+        "site_name": get_site_name(),
+        "site_host": urlparse(base_url).netloc or base_url,
+        "channel_username": channel[1:] if channel.startswith("@") else "",
+    }
 
 
 def due_slot(config: TelegramNotifierConfig, *, now: datetime | None = None) -> datetime | None:
@@ -254,22 +323,45 @@ def post_digest(
     now: datetime | None = None,
     trigger: str = ChannelDigestPost.Trigger.MANUAL,
 ) -> str:
-    """Sends the digest to the channel right away and writes the attempt to the journal. Returns the posted text."""
+    """Sends the digest to the channel right away and writes the attempt to the journal. Returns the posted text.
+
+    With the picture switched on the post is a photo of the top with a compact caption. When the picture cannot be
+    made or sent, the full text goes out as a plain message instead, so the post is never lost.
+    """
     config = config or get_telegram_notifier_config()
     chat_id = (config.channel_chat_id or "").strip()
     text = ""
+    note = ""
     try:
         if not chat_id:
             raise TelegramNotifierError("Канал не указан.")
-        text = build_digest_text(config, now=now) or ""
-        if not text:
+        digest = build_digest(config, now=now)
+        if digest is None:
             raise NothingToPost("За сутки нет заметных изменений среди предметов со свежими ценами.")
-        send_message(text=text, chat_id=chat_id, parse_mode="HTML")
+        sent = False
+        if config.channel_digest_with_image:
+            from .digest_image import DigestImageError, render_digest_image
+
+            text = fit_text(digest, config=config, limit=TELEGRAM_CAPTION_LIMIT, compact=True)
+            try:
+                photo = render_digest_image(digest, config=config)
+                send_photo(photo=photo, chat_id=chat_id, caption=text, parse_mode="HTML")
+                sent = True
+            except (DigestImageError, TelegramNotifierError) as exc:
+                if "timeout" in str(exc).lower() and not isinstance(exc, DigestImageError):
+                    raise  # Telegram may have the photo already: a text copy would post the digest twice.
+                note = f"Без картинки: {exc}"
+        if not sent:
+            text = fit_text(digest, config=config, limit=TELEGRAM_TEXT_LIMIT)
+            send_message(text=text, chat_id=chat_id, parse_mode="HTML")
     except TelegramNotifierError as exc:
         status = ChannelDigestPost.Status.EMPTY if isinstance(exc, NothingToPost) else ChannelDigestPost.Status.ERROR
-        ChannelDigestPost.objects.create(trigger=trigger, status=status, chat_id=chat_id, text=text, error=str(exc))
+        error = "\n".join(part for part in (note, str(exc)) if part)
+        ChannelDigestPost.objects.create(trigger=trigger, status=status, chat_id=chat_id, text=text, error=error)
         raise
-    ChannelDigestPost.objects.create(trigger=trigger, status=ChannelDigestPost.Status.SENT, chat_id=chat_id, text=text)
+    ChannelDigestPost.objects.create(
+        trigger=trigger, status=ChannelDigestPost.Status.SENT, chat_id=chat_id, text=text, error=note
+    )
     return text
 
 

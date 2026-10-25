@@ -1,0 +1,12 @@
+{% extends "steam_catalog/base_guest.html" %}
+
+{% block title %}{{ seo_title }}{% endblock %}
+
+{% block content %}
+    <section class="section section--compact">
+        <h1 class="cc-pagehead__title">Топ цен CS2 за сутки</h1>
+        <p class="text-muted">Какие кейсы, ножи и скины сильнее всего подорожали и подешевели на торговой площадке Steam за последние 24 часа. Нажмите на предмет, чтобы открыть график и историю цены. {% if channel_username %}Сводка каждый день выходит в нашем <a href="https://t.me/{{ channel_username }}" rel="noopener" target="_blank">Telegram-канале</a>.{% endif %}</p>
+        {% include "tg_notifier/partials/digest_card.html" %}
+        <p><a class="btn btn-primary" href="{% url 'steam_catalog:list' %}">Все цены и графики</a></p>
+    </section>
+{% endblock %}

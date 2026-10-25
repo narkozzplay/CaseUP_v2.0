@@ -10,17 +10,18 @@ from django.urls import reverse
 from modules.v2.profiles.models import UserProfile, UserRole
 from modules.v2.steam_catalog.models import SteamItem, SteamItemPriceHistory
 
-from .channel_digest import TELEGRAM_TEXT_LIMIT, build_digest_text, collect_digest, due_slot, post_due_digest, visible_length
+from .channel_digest import TELEGRAM_CAPTION_LIMIT, TELEGRAM_TEXT_LIMIT, build_digest_text, post_digest, collect_digest, due_slot, post_due_digest, visible_length
 from .forms import TelegramChannelDigestForm
 from .models import ChannelDigestPost, ChannelDigestSection, TelegramNotifierConfig
-from .services import TelegramNotifierError, send_message
+from .digest_image import DigestImageError
+from .services import TelegramNotifierError, _multipart, send_message
 
 MSK = ZoneInfo("Europe/Moscow")
 NOW = datetime(2026, 10, 25, 20, 3, tzinfo=MSK)
 UP, DOWN = ChannelDigestSection.Direction.UP, ChannelDigestSection.Direction.DOWN
 
 
-class ChannelDigestTests(TestCase):
+class DigestFixtures(TestCase):
     def setUp(self):
         self.config = TelegramNotifierConfig.objects.create(
             singleton_key=1,
@@ -29,6 +30,7 @@ class ChannelDigestTests(TestCase):
             public_base_url="https://case-up.ru",
             channel_digest_enabled=True,
             channel_chat_id="@caseup_pro_anons",
+            channel_digest_with_image=False,
         )
         # The migration seeds the default sections; each test sets up its own.
         ChannelDigestSection.objects.all().delete()
@@ -52,6 +54,8 @@ class ChannelDigestTests(TestCase):
         SteamItemPriceHistory.objects.filter(pk=new.pk).update(created_at=NOW - timedelta(hours=changed_hours_ago))
         return item
 
+
+class ChannelDigestTests(DigestFixtures):
     def _names(self, block):
         return [move.item.market_hash_name for move in block.moves]
 
@@ -271,6 +275,62 @@ class ChannelDigestTests(TestCase):
         self.assertEqual(self.client.get(reverse("tg_notifier:autopost")).status_code, 403)
 
 
+class DigestImageTests(DigestFixtures):
+    def setUp(self):
+        super().setUp()
+        TelegramNotifierConfig.objects.filter(pk=self.config.pk).update(channel_digest_with_image=True)
+        self.config.refresh_from_db()
+        self._section("Рост", top_n=10)
+        self._section("Спад", direction=DOWN, top_n=10)
+        for index in range(10):
+            self._item(f"Sticker | Long Name Number {index} (Holo) | Paris 2023", before=Decimal("100"), after=Decimal(110 + index))
+            self._item(f"Capsule | Long Name Number {index} | Antwerp 2022", before=Decimal("100"), after=Decimal(90 - index))
+
+    @patch("modules.v2.tg_notifier.channel_digest.send_message")
+    @patch("modules.v2.tg_notifier.channel_digest.send_photo")
+    @patch("modules.v2.tg_notifier.digest_image.render_digest_image", return_value=b"jpeg")
+    def test_photo_with_caption_within_limit(self, _render, photo_mock, text_mock):
+        post_digest(self.config, now=NOW)
+
+        caption = photo_mock.call_args.kwargs["caption"]
+        self.assertEqual(photo_mock.call_args.kwargs["photo"], b"jpeg")
+        self.assertLessEqual(visible_length(caption), TELEGRAM_CAPTION_LIMIT)
+        self.assertIn("/steam-catalog/top/", caption)
+        self.assertIn("Спад", caption)
+        text_mock.assert_not_called()
+        self.assertEqual(ChannelDigestPost.objects.get().status, "sent")
+
+    @patch("modules.v2.tg_notifier.channel_digest.send_message")
+    @patch("modules.v2.tg_notifier.channel_digest.send_photo")
+    @patch("modules.v2.tg_notifier.digest_image.render_digest_image", side_effect=DigestImageError("Playwright не установлен"))
+    def test_text_goes_out_when_picture_fails(self, _render, photo_mock, text_mock):
+        post_digest(self.config, now=NOW)
+
+        photo_mock.assert_not_called()
+        self.assertIn("1. ", text_mock.call_args.kwargs["text"])
+        post = ChannelDigestPost.objects.get()
+        self.assertEqual(post.status, "sent")
+        self.assertIn("Playwright", post.error)
+
+    @patch("modules.v2.tg_notifier.channel_digest.send_message")
+    @patch("modules.v2.tg_notifier.channel_digest.send_photo", side_effect=TelegramNotifierError("Telegram API timeout."))
+    @patch("modules.v2.tg_notifier.digest_image.render_digest_image", return_value=b"jpeg")
+    def test_photo_timeout_does_not_post_a_text_copy(self, _render, _photo, text_mock):
+        with self.assertRaises(TelegramNotifierError):
+            post_digest(self.config, now=NOW)
+        text_mock.assert_not_called()
+
+    def test_public_top_page(self):
+        with patch("modules.v2.tg_notifier.channel_digest.timezone.now", return_value=NOW):
+            response = self.client.get(reverse("price_movers"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Топ цен CS2 за сутки")
+        self.assertContains(response, "Sticker | Long Name Number 9 (Holo) | Paris 2023")
+        self.assertContains(response, "+19.0%")
+        self.assertContains(response, "t.me/caseup_pro_anons")
+
+
 class SendRetryTests(TestCase):
     def setUp(self):
         TelegramNotifierConfig.objects.create(singleton_key=1, is_enabled=True, bot_token="123456:ABCDEF")
@@ -291,3 +351,13 @@ class SendRetryTests(TestCase):
         with self.assertRaises(TelegramNotifierError):
             send_message(text="hi", chat_id="@caseup_pro_anons")
         self.assertEqual(request_mock.call_count, 1)
+
+
+class MultipartTests(TestCase):
+    def test_fields_and_file(self):
+        body, content_type = _multipart({"chat_id": "@c", "caption": "Цены"}, {"photo": ("d.jpg", b"\xff\xd8", "image/jpeg")})
+        boundary = content_type.split("boundary=")[1]
+        self.assertTrue(content_type.startswith("multipart/form-data"))
+        self.assertIn(b'name="caption"\r\n\r\n' + "Цены".encode(), body)
+        self.assertIn(b'name="photo"; filename="d.jpg"\r\nContent-Type: image/jpeg\r\n\r\n\xff\xd8\r\n', body)
+        self.assertTrue(body.endswith(f"--{boundary}--\r\n".encode()))

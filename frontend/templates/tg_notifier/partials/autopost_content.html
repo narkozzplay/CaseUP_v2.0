@@ -29,6 +29,11 @@
                     <span class="toggle-control__track" aria-hidden="true"></span>
                     <span class="toggle-control__text">Постить по расписанию</span>
                 </label>
+                <label class="toggle-control" for="{{ schedule_form.channel_digest_with_image.id_for_label }}">
+                    {{ schedule_form.channel_digest_with_image }}
+                    <span class="toggle-control__track" aria-hidden="true"></span>
+                    <span class="toggle-control__text">Прикреплять картинку с топом (<a href="{% url 'price_movers' %}" target="_blank" rel="noopener">как она выглядит</a>)</span>
+                </label>
                 <div class="tgn-row tgn-row--3">
                     <div class="form-field">
                         <label for="{{ schedule_form.channel_chat_id.id_for_label }}">Канал</label>
@@ -88,7 +93,7 @@
 
     {% if preview %}
         <article class="ops-panel tgn-channel">
-            <div class="ops-panel__head"><h2 class="ops-panel__title">Как выглядит пост</h2></div>
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Как выглядит пост</h2>{% if config.channel_digest_with_image %}<span class="ops-panel__hint">подпись под картинкой; картинка — это <a href="{% url 'price_movers' %}" target="_blank" rel="noopener">страница топа</a></span>{% endif %}</div>
             <div class="ref-body"><div class="tgn-preview">{{ preview|safe }}</div></div>
         </article>
     {% endif %}
