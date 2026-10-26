@@ -160,6 +160,18 @@ class TierTests(TestCase):
         item.refresh_from_db()
         self.assertFalse(item.price_missing)
 
+    @mock.patch(PRICE_FETCH, return_value=Decimal("7.00"))
+    def test_manual_refresh_clears_the_empty_marker(self, _fetch):
+        from .services import refresh_item_prices
+
+        item = make_item("Manual | Item", checked_hours_ago=24 * 3)
+        SteamItem.objects.filter(pk=item.pk).update(price_missing=True)
+        item.refresh_from_db()
+        refresh_item_prices(item)
+        item.refresh_from_db()
+        self.assertEqual((item.price_rub, item.price_missing), (Decimal("7.00"), False))
+        self.assertGreater(item.price_checked_at, timezone.now() - timedelta(minutes=1))
+
     def test_views_of_people_make_the_item_warm_and_robots_do_not(self):
         item = make_item("Seen | Item")
         robot = mock.Mock(META={"HTTP_USER_AGENT": "Mozilla/5.0 (compatible; YandexBot/3.0; +http://yandex.com/bots)"})

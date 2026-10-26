@@ -24,9 +24,6 @@ logger = logging.getLogger(__name__)
 
 # Left unused at the end of a task: finishing the rule, alert detection and logs after the last request.
 TASK_TIME_RESERVE_SECONDS = 60
-# A rule due a little after a beat tick runs on that tick: its next run is counted from when the previous one
-# finished, so without this a 5-minute rule would always miss the 5-minute tick and run every 10 minutes.
-DUE_GRACE_SECONDS = 90
 
 
 @dataclass(frozen=True)
@@ -88,12 +85,18 @@ def clear_rule_schedule(rule: PriceAutoUpdateRule) -> None:
     rule.save(update_fields=["next_run_at", "last_status", "updated_at"])
 
 
+def _due_grace() -> timedelta:
+    """A rule that comes due before the next beat tick runs on this one. Its next run is counted from when the
+    previous one finished, so otherwise a 5-minute rule would keep missing the 5-minute tick and run every 10."""
+    return timedelta(seconds=float(getattr(settings, "CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS", 300) or 300))
+
+
 def get_due_rules(*, now=None):
     now = now or timezone.now()
     return (
         PriceAutoUpdateRule.objects
         .filter(is_enabled=True)
-        .filter(Q(next_run_at__isnull=True) | Q(next_run_at__lte=now + timedelta(seconds=DUE_GRACE_SECONDS)))
+        .filter(Q(next_run_at__isnull=True) | Q(next_run_at__lte=now + _due_grace()))
         .order_by("next_run_at", "category")
     )
 

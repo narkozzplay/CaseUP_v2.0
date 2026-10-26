@@ -353,5 +353,6 @@ class PriceSchedulerPaceTests(TestCase):
         from .services import get_due_rules
 
         PriceAutoUpdateRule.objects.update(is_enabled=True, next_run_at=timezone.now() + timedelta(hours=1))
-        PriceAutoUpdateRule.objects.filter(category=SteamItem.ItemType.SKIN).update(next_run_at=timezone.now() + timedelta(seconds=20))
+        # A long run finished late, so the rule comes due four minutes after this tick, still before the next one.
+        PriceAutoUpdateRule.objects.filter(category=SteamItem.ItemType.SKIN).update(next_run_at=timezone.now() + timedelta(seconds=240))
         self.assertEqual(list(get_due_rules().values_list("category", flat=True)), [SteamItem.ItemType.SKIN])
