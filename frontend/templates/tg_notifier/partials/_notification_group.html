@@ -1,0 +1,20 @@
+<article class="nc-type">
+    <div class="nc-type__head">
+        <span class="nc-type__icon">{% include "components/icon.html" with name=row.group.icon %}</span>
+        <div class="nc-type__title">
+            {% if row.url %}<a href="{{ row.url }}">{{ row.group.title }}</a>{% else %}<strong>{{ row.group.title }}</strong>{% endif %}
+            <span>{% if row.last_at %}Последнее: {{ row.last_at|date:"d.m.Y H:i" }}{% elif row.group.kinds %}Пока не было{% else %}По каждому новому сообщению{% endif %}</span>
+        </div>
+    </div>
+    <p class="nc-type__text">{{ row.group.description }}</p>
+    <div class="nc-type__foot">
+        <div class="nc-type__channels">
+            {% for channel in row.channels %}
+                <span class="nc-chip nc-chip--{{ channel.key }}{% if channel.key == 'push' and not row.push_enabled %} is-off{% endif %}"{% if channel.key == 'push' and not row.push_enabled %} title="Пуши этой категории выключены в настройках"{% endif %}>{{ channel.label }}</span>
+            {% endfor %}
+        </div>
+        {% if row.push_switchable and not row.push_enabled %}
+            <a href="{% url 'profiles:profile_settings' %}#settings-push" class="nc-type__hint">Пуш выключен</a>
+        {% endif %}
+    </div>
+</article>

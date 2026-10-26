@@ -604,9 +604,34 @@ class TgNotifierTests(TestCase):
     
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Центр уведомлений")
-        self.assertContains(response, "Разблокировка Steam-покупок")
-        self.assertContains(response, "Price movement alerts")
-        self.assertContains(response, "Подключен")
+        self.assertContains(response, "Подключён")
+        self.assertContains(response, "@narkozzplay")
+        # Current notification kinds, without technical details for a regular user.
+        for title in ("Личные сообщения", "Друзья", "Баланс и бонусы", "Безопасность", "Бонус дня"):
+            self.assertContains(response, title)
+        for technical in ("PriceDropAlertRule", "Чат по умолчанию", "-100555", "Мультиаккаунты", "Автопостинг"):
+            self.assertNotContains(response, technical)
+
+    def test_notification_center_shows_technical_block_to_admins(self):
+        admin = self._make_user("tg_center_admin", UserRole.ADMIN)
+        self._grant_plan(admin, 3)
+        update_module_states({"tg_notifier": True})
+        TelegramNotifierConfig.objects.update_or_create(
+            singleton_key=1,
+            defaults={"is_enabled": True, "bot_token": "123456:ABCDEF", "bot_username": "caseup_bot", "default_chat_id": "-100555"},
+        )
+        PriceDropAlertRule.objects.create(item_type=SteamItem.ItemType.CASE, is_enabled=True)
+
+        self.client.login(username="tg_center_admin", password="StrongPass123")
+        response = self.client.get(reverse("tg_notifier:center"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Только для администраторов")
+        self.assertContains(response, "-100555")
+        self.assertContains(response, "Мультиаккаунты")
+        self.assertContains(response, "Автопостинг в канал")
+        self.assertContains(response, "Системные правила цен")
+
     def test_notification_center_locked_without_level_3_subscription(self):
         self._make_user("tg_center_locked", UserRole.USER)
         update_module_states({"tg_notifier": True})

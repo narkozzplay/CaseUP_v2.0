@@ -14,7 +14,8 @@ from modules.v2.profiles.models import UserProfile
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
-from modules.v2.steam_catalog.models import PriceDropAlertEvent, PriceDropAlertRule, UserPriceAlertEvent, UserPriceAlertRule
+from modules.v2.steam_catalog.models import PriceDropAlertEvent, PriceDropAlertRule, UserPriceAlertRule
+from modules.v2.webpush.categories import CATEGORIES as PUSH_CATEGORIES
 from modules.v2.system.services import get_module_state_map
 from modules.v2.subscriptions.feature_codes import TG_NOTIFIER_USER
 from modules.v2.subscriptions.responses import render_feature_locked_response
@@ -53,27 +54,6 @@ TEMPLATE_VARIABLES = [
     ("profit_pct", "Процент прибыли"),
     ("profit_after_fee", "Прибыль после комиссии"),
     ("hold_status_label", "готовы к продаже / в холде"),
-]
-
-NOTIFICATION_TYPES = [
-    {
-        "code": "steam_trading_unlock",
-        "title": "Разблокировка Steam-покупок",
-        "description": "Когда предмет выходит из трейд-бана, приходит уведомление о готовности к продаже.",
-        "delivery": "В привязанный Telegram пользователя.",
-    },
-    {
-        "code": "steam_trading_manual",
-        "title": "Ручная отправка из Steam Investments",
-        "description": "Кнопка TG в инвестициях отправляет карточку по конкретной покупке без Celery.",
-        "delivery": "В привязанный Telegram пользователя.",
-    },
-    {
-        "code": "steam_catalog_price_drop",
-        "title": "Price movement alerts",
-        "description": "Срабатывают по активным правилам PriceDropAlertRule при росте/падении цены.",
-        "delivery": "Во все привязанные Telegram-чаты. Если их нет — в default chat id.",
-    },
 ]
 
 
@@ -424,49 +404,68 @@ def notification_center_page(request):
             description="Пользовательские функции TG Notifier открываются начиная с подписки Level 3.",
         )
 
+    from modules.v2.notifications.services import build_notification_rows, get_notifications
+    from modules.v2.webpush.models import PushSettings, PushSubscription
+
+    from .center import STAFF_GROUPS, USER_GROUPS, build_group_rows, site_summary
+
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     config = get_telegram_notifier_config()
     module_state_map = get_module_state_map()
     role_access = get_user_role(request.user)
+    is_admin = role_access.is_admin_plus
 
-    active_rules = list(
-        PriceDropAlertRule.objects
-        .filter(is_enabled=True)
-        .order_by("item_type", "id")
+    disabled_push = set(
+        PushSettings.objects.filter(user=request.user).values_list("disabled_categories", flat=True).first() or []
     )
+    push_devices = PushSubscription.objects.filter(user=request.user).count()
+    tg_module_enabled = bool(module_state_map.get("tg_notifier", False))
+
     user_rules = list(
         UserPriceAlertRule.objects.filter(user=request.user)
-        .order_by("-updated_at", "-id")[:10]
-    )
-
-    recent_price_alert_events = list(
-        PriceDropAlertEvent.objects
-        .select_related("item", "rule")
-        .order_by("-created_at", "-id")[:15]
-    )
-    recent_user_price_alert_events = list(
-        UserPriceAlertEvent.objects.filter(user=request.user)
-        .select_related("item", "rule")
-        .order_by("-created_at", "-id")[:15]
+        .select_related("item")
+        .order_by("-updated_at", "-id")[:4]
     )
 
     context = {
         "role_access": role_access,
+        "is_admin": is_admin,
         "profile": profile,
         "config": config,
-        "tg_module_enabled": bool(module_state_map.get("tg_notifier", False)),
-        "notification_types": NOTIFICATION_TYPES,
-        "active_rules": active_rules,
-        "recent_price_alert_events": recent_price_alert_events,
+        "tg_module_enabled": tg_module_enabled,
+        "telegram_available": tg_module_enabled and config.is_enabled,
+        "site_summary": site_summary(request.user),
+        "push_devices": push_devices,
+        "push_categories_total": len(PUSH_CATEGORIES),
+        "push_categories_enabled": len([key for key in PUSH_CATEGORIES if key not in disabled_push]),
+        "notification_groups": build_group_rows(
+            request.user, USER_GROUPS, module_states=module_state_map, disabled_push=disabled_push
+        ),
         "user_rules": user_rules,
-        "recent_user_price_alert_events": recent_user_price_alert_events,
+        "user_rules_total": UserPriceAlertRule.objects.filter(user=request.user).count(),
+        "recent_notification_rows": build_notification_rows(
+            get_notifications(request.user, limit=6), getattr(request, "LANGUAGE_CODE", "ru")
+        ),
     }
+    if is_admin:
+        context.update(
+            {
+                "staff_groups": build_group_rows(
+                    request.user, STAFF_GROUPS, module_states=module_state_map, disabled_push=disabled_push
+                ),
+                "active_rules": list(PriceDropAlertRule.objects.filter(is_enabled=True).order_by("item_type", "id")),
+                "recent_price_alert_events": list(
+                    PriceDropAlertEvent.objects.select_related("item", "rule").order_by("-created_at", "-id")[:10]
+                ),
+                "last_digest_post": ChannelDigestPost.objects.order_by("-created_at", "-id").first(),
+            }
+        )
     return render_dashboard_page(
         request,
         full_template="tg_notifier/notification_center.html",
         partial_template="tg_notifier/partials/notification_center_content.html",
         context=context,
-        page_title=build_page_title("Notification Center"),
+        page_title=build_page_title("Центр уведомлений"),
         active_menu_key="notification_center",
     )
 
