@@ -8,6 +8,7 @@ from modules.v2.system.services import build_page_title
 
 from .models import ReferralCode
 from .services import COOKIE_NAME, SESSION_KEY, build_summary, cookie_days, find_code, get_or_create_code
+from .welcome import summary_for
 
 
 def referral_link(request, code: str):
@@ -37,7 +38,12 @@ def referrals_dashboard(request):
         "referral_code": code,
         "referral_url": request.build_absolute_uri(reverse("referral_link", args=[code.code])),
         **build_summary(request.user),
+        **summary_for(request.user),
     }
+    by_referral = context.pop("welcome_by_referral")
+    for item in context["referrals"]:
+        row = by_referral.get(item.pk)
+        item.welcome_status, item.welcome_days, item.welcome_reason = (row[1], row[2], row[3]) if row else ("", 0, "")
     return render_dashboard_page(
         request,
         full_template="referrals/referrals.html",

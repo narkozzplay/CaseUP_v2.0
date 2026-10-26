@@ -77,6 +77,7 @@ EVENT_LABELS = {
     "referral.bound": "Регистрация по приглашению",
     "referral.qualified": "Реферал пополнил баланс",
     "referral.flagged": "Реферал на проверке",
+    "referral.welcome_bonus": "Бонус за приглашение (+дни подписки)",
     "promo.activated": "Активация промокода",
     "balance.promo_bonus": "Бонус по промокоду",
     "balance.subscription_purchase": "Списание: подписка",

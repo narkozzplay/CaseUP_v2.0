@@ -3,7 +3,7 @@
         <div>
             <span class="eyebrow">Control Center</span>
             <h1 class="cc-pagehead__title">Рефералы</h1>
-            <p class="ops-hero__text">Кто кого пригласил. Рефералы, входившие с одного IP с пригласившим, попадают «на проверку» и не дают бонусов, пока вы их не засчитаете.</p>
+            <p class="ops-hero__text">Кто кого пригласил. Рефералы, входившие с одного IP с пригласившим, попадают «на проверку» и не дают бонусов (включая дни подписки), пока вы их не засчитаете.</p>
         </div>
         <dl class="ops-hero__meta">
             <div><dt>Всего</dt><dd>{{ totals.total }}</dd></div>
@@ -14,6 +14,24 @@
     </header>
 
     {% include "control_center/partials/_tabs.html" %}
+
+    <form method="post" action="{% url 'control_center:referral_settings' %}" class="ops-panel">
+        {% csrf_token %}
+        <div class="ops-panel__head">
+            <h2 class="ops-panel__title">Бонус «+дни подписки» обеим сторонам</h2>
+            <span class="ops-panel__hint">начислено {{ welcome_totals.granted }} · за 30 дн. {{ welcome_totals.granted_month }} (+{{ welcome_totals.days_month|default:0 }} дн.){% if welcome_totals.held %} · ждут проверки {{ welcome_totals.held }}{% endif %}</span>
+        </div>
+        <div class="ref-body">
+            <p class="ref-text">Пригласивший и приглашённый получают дни подписки после первого входа друга через Steam — один раз на Steam-аккаунт. Действующий тариф того же уровня или выше продлевается, более низкий повышается с зачётом остатка. Если аккаунты делили IP или сидят в одной группе мульти-аккаунтов, бонус ждёт вашего решения по рефералу ниже; при абузе — не начисляется.</p>
+            <label class="cc-field-check"><input type="checkbox" name="welcome_bonus_enabled" value="1"{% if welcome_config.welcome_bonus_enabled %} checked{% endif %}><span>Бонус включён</span></label>
+            <label class="cc-field"><span>Сколько дней дарить (1–90)</span><input class="form-control dbonus-amount" type="number" name="welcome_bonus_days" min="1" max="90" value="{{ welcome_config.welcome_bonus_days }}"></label>
+            <label class="cc-field form-field"><span>Тариф</span>
+                <select name="welcome_bonus_plan"><option value="">Плюс (по умолчанию)</option>{% for plan in welcome_plans %}<option value="{{ plan.pk }}"{% if welcome_config.welcome_bonus_plan_id == plan.pk %} selected{% endif %}>{{ plan.name }}</option>{% endfor %}</select>
+            </label>
+            <label class="cc-field"><span>Сколько бонусов пригласивший может получить за 30 дней (0 — без лимита)</span><input class="form-control dbonus-amount" type="number" name="referrer_monthly_limit" min="0" max="1000" value="{{ welcome_config.referrer_monthly_limit }}"></label>
+            <div><button type="submit" class="btn btn-primary btn-sm">Сохранить</button></div>
+        </div>
+    </form>
 
     <form method="get" class="cc-toolbar">
         <label class="cc-field cc-field--grow"><span>Поиск</span><input type="search" name="q" value="{{ filters.q }}" class="form-control" placeholder="Логин, ник, ID пользователя или код"></label>
@@ -40,6 +58,7 @@
                                 {% else %}<span class="cc-chip cc-chip--info">ждёт пополнения</span>{% endif %}
                                 {% if item.qualified_at %}<span class="cc-sub">пополнил {{ item.qualified_at|date:"d.m.Y" }}</span>{% endif %}
                                 {% if item.flag_reason %}<span class="cc-sub">{{ item.flag_reason }}</span>{% endif %}
+                                {% with b=item.welcome.referee %}{% if b %}<span class="cc-sub">+{{ b.days }} дн.: {{ b.get_status_display|lower }}{% if b.reason %} — {{ b.reason }}{% endif %}{% with r=item.welcome.referrer %}{% if r and r.status != b.status %}; пригласившему: {{ r.get_status_display|lower }}{% if r.reason %} — {{ r.reason }}{% endif %}{% endif %}{% endwith %}</span>{% endif %}{% endwith %}
                                 {% if item.reviewed_by %}<span class="cc-sub">решение: {{ item.reviewed_by.username }}, {{ item.reviewed_at|date:"d.m H:i" }}{% if item.review_note %} — {{ item.review_note }}{% endif %}</span>{% endif %}
                                 <div class="cc-row-actions">
                                     {% if item.review != "ok" %}

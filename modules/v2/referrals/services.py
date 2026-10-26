@@ -179,10 +179,15 @@ def bind_to_referrer(*, user, referrer, code: str = "", ip_address: str | None =
         _log(user, "referral.bound", f"Пришёл по {source} {referrer.username}", obj=referral)
         if referral.review == Referral.Review.FLAGGED:
             _log(referrer, "referral.flagged", f"Реферал {user.username} на проверке: {referral.flag_reason}", obj=referral)
-        return referral
     except Exception:  # noqa: BLE001 - a sign-up must never fail because of the referral program
         logger.exception("Could not bind user %s to referrer %s", getattr(user, "pk", None), getattr(referrer, "pk", None))
         return None
+
+    from .welcome import on_steam_login
+
+    # Bound after a Steam sign-in (the pipeline, a blogger promo code): the welcome bonus is due now.
+    on_steam_login(user=user, ip_address=ip_address)
+    return referral
 
 
 # --------------------------------------------------------------------------- qualification
@@ -284,6 +289,13 @@ def review_referral(*, actor, referral: Referral, decision: str, note: str = "",
     )
     if referral.counts and not was_counted:
         _notify_counted(referral)
+
+    from .welcome import deny_held, release_held
+
+    if decision == Referral.Review.OK:
+        release_held(referral)
+    else:
+        deny_held([referral.pk], "Реферал отклонён администратором")
     return referral
 
 
@@ -322,7 +334,14 @@ def reconcile(*, now=None, sales_window: timedelta = timedelta(days=3)) -> dict[
     )
     for entry in sales.iterator():
         awarded += bool(award_turnover_bonus(entry))
-    return {"qualified": qualified, "bonuses": awarded}
+    from .models import ReferralWelcomeBonus
+    from .welcome import release_held
+
+    # Welcome bonuses left on hold although their referral counts (a crash while granting).
+    released = 0
+    for referral in Referral.objects.filter(review=Referral.Review.OK, welcome_bonuses__status=ReferralWelcomeBonus.Status.HELD).distinct():
+        released += release_held(referral)
+    return {"qualified": qualified, "bonuses": awarded, "welcome_released": released}
 
 
 # --------------------------------------------------------------------------- summary for the page

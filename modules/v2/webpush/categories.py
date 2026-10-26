@@ -20,6 +20,7 @@ KIND_CATEGORY = {
     "balance_topup_succeeded": "balance",
     "promo_bonus": "balance",
     "referral_counted": "balance",
+    "referral_welcome_bonus": "balance",
     "account_new_login": "security",
     "account_2fa_locked": "security",
     "antifraud_multi_account": "security",
