@@ -302,6 +302,8 @@ class BannerVideoTests(TestCase):
         self.assertIn("ad-house__poster", html)
 
     def test_banner_without_video_stays_a_picture(self):
+        self.banner.video.delete(save=True)
+        drop_banner_cache()
         self.assertNotIn("<video", self._render())
 
     def test_video_needs_a_picture_and_a_known_format(self):
@@ -314,3 +316,13 @@ class BannerVideoTests(TestCase):
         with self.assertRaises(ValidationError) as ctx:
             banner.full_clean()
         self.assertIn("video", ctx.exception.message_dict)
+
+
+class PromoVideoTests(TestCase):
+    def test_seeded_promos_get_their_loops(self):
+        for url, name in (("/donate/", "donate"), ("https://t.me/caseup_pro_anons", "telegram"), ("/subscriptions/", "no_ads")):
+            banner = HouseBanner.objects.get(url=url)
+            self.assertIn(f"promo_{name}_loop", banner.video.name)
+            self.assertEqual(banner.video_type, "video/mp4")
+            banner.video.delete(save=False)
+            banner.image.delete(save=False)
