@@ -81,16 +81,16 @@ class AdVisibilityTests(TestCase):
         AdSettings.objects.filter(singleton_key=1).update(provider=AdSettings.Provider.YANDEX)
         self.client.force_login(self.user)
         page = self.client.get("/subscriptions/")
-        self.assertContains(page, "data-ad-consent")
+        self.assertContains(page, "data-cookie-consent")
         self.assertNotContains(page, "yandex.ru/ads/system/context.js")
         self.client.cookies[CONSENT_COOKIE] = "1"
         page = self.client.get("/subscriptions/")
-        self.assertNotContains(page, "data-ad-consent")
+        self.assertNotContains(page, "data-cookie-consent")
         self.assertContains(page, "yandex.ru/ads/system/context.js")
 
     def test_house_banners_need_no_consent_bar(self):
         self.client.force_login(self.user)
-        self.assertNotContains(self.client.get("/subscriptions/"), "data-ad-consent")
+        self.assertNotContains(self.client.get("/subscriptions/"), "data-cookie-consent")
 
     def test_yandex_provider_without_block_id_renders_nothing(self):
         AdSettings.objects.filter(singleton_key=1).update(provider=AdSettings.Provider.YANDEX)

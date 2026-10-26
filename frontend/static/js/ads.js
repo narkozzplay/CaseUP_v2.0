@@ -39,32 +39,10 @@
         });
     }
 
-    function bindConsent() {
-        var bar = document.querySelector('[data-ad-consent]');
-        if (!bar) return;
-        try {
-            if (window.sessionStorage.getItem('caseup_ad_consent_declined') === '1') {
-                bar.hidden = true;
-                return;
-            }
-        } catch (error) {
-            // Storage may be blocked; the bar just stays visible.
-        }
-        bar.querySelector('[data-ad-consent-accept]').addEventListener('click', function () {
-            document.cookie = 'caseup_ad_consent=1; max-age=31536000; path=/; SameSite=Lax';
-            window.location.reload();
-        });
-        bar.querySelector('[data-ad-consent-decline]').addEventListener('click', function () {
-            try { window.sessionStorage.setItem('caseup_ad_consent_declined', '1'); } catch (error) { /* ignore */ }
-            bar.hidden = true;
-        });
-    }
-
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function () { renderAll(document); bindConsent(); });
+        document.addEventListener('DOMContentLoaded', function () { renderAll(document); });
     } else {
         renderAll(document);
-        bindConsent();
     }
     document.addEventListener('dashboard:content-replaced', function (event) {
         renderAll((event.detail && event.detail.frame) || document);
