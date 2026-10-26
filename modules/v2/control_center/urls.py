@@ -23,6 +23,7 @@ urlpatterns = [
     path("activity/export.csv", views.activity_log_export, name="activity_export"),
     path("referrals/", views.referrals, name="referrals"),
     path("referrals/<int:referral_id>/review/", views.referral_review, name="referral_review"),
+    path("referrals/settings/", views.referral_settings, name="referral_settings"),
     path("promo/", views.promo_codes, name="promo"),
     path("daily-bonus/", views.daily_bonus, name="daily_bonus"),
     path("donations/", views.donations, name="donations"),

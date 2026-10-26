@@ -2531,6 +2531,43 @@
 .ref-row__meta { color: var(--text-muted); font-size: 0.8rem; }
 .ref-row__bonus { text-align: right; color: var(--success); font-variant-numeric: tabular-nums; font-size: 0.86rem; }
 
+.ref-row__bonus { display: grid; justify-items: end; gap: 2px; }
+.ref-row__muted { color: var(--text-muted); }
+
+.ref-gift {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    padding: 18px;
+    border-color: var(--accent);
+}
+
+.ref-gift__badge {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    min-width: 96px;
+    padding: 12px 10px;
+    border: 1px solid var(--accent);
+    background: rgba(255, 255, 255, 0.03);
+    text-align: center;
+}
+
+.ref-gift__badge strong { font-size: 1.9rem; line-height: 1; color: var(--accent); }
+.ref-gift__badge span { margin-top: 4px; color: var(--text-soft); font-size: 0.8rem; }
+.ref-gift__body { display: grid; gap: 10px; min-width: 0; }
+.ref-gift__title { margin: 0; font-size: 1.05rem; }
+
+.ref-gift__steps {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding-left: 20px;
+    color: var(--text-soft);
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
 .ref-rules {
     display: grid;
     gap: 8px;
@@ -2555,6 +2592,7 @@
     .ref-row__bonus { grid-column: 2; grid-row: 2; }
     .ref-link { flex-wrap: wrap; }
     .ref-link .btn { flex: 1 1 100%; }
+    .ref-gift { flex-direction: column; padding: 14px 12px; }
 }
 
 /* Profile → Промокоды */

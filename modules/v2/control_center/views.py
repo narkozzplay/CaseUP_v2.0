@@ -1135,8 +1135,21 @@ def referrals(request):
         user.ref_discount = discount_percent_for(user.counted)
         user.ref_turnover = turnover_percent_for(user.counted)
 
+    from modules.v2.referrals.models import ReferralProgramSettings, ReferralWelcomeBonus
+    from modules.v2.referrals.welcome import admin_totals
+    from modules.v2.subscriptions.models import SubscriptionPlan
+
+    welcome = {}
+    for row in ReferralWelcomeBonus.objects.filter(referral_id__in=[item.pk for item in page_obj]):
+        welcome.setdefault(row.referral_id, {})[row.role] = row
+    for item in page_obj:
+        item.welcome = welcome.get(item.pk, {})
+
     context = {
         "role_access": role_access,
+        "welcome_config": ReferralProgramSettings.load(),
+        "welcome_totals": admin_totals(),
+        "welcome_plans": SubscriptionPlan.objects.filter(is_active=True, family=SubscriptionPlan.Family.SITE).order_by("level"),
         "page_obj": page_obj,
         "filters": {"status": status, "q": q},
         "status_options": REFERRAL_STATUS_FILTERS,
@@ -1164,6 +1177,26 @@ def referral_review(request, referral_id: int):
     except ReferralReviewError as exc:
         messages.error(request, str(exc))
     return redirect(_safe_next(request, reverse("control_center:referrals")))
+
+
+@login_required
+@require_POST
+def referral_settings(request):
+    from modules.v2.referrals.welcome import SettingsError, save_settings
+
+    if _admin_access(request) is None:
+        return _forbidden()
+    try:
+        changes = save_settings(form=request.POST)
+    except SettingsError as exc:
+        messages.error(request, str(exc))
+    else:
+        if changes:
+            log_admin_action(actor=request.user, action=AuditAction.SETTINGS_UPDATE, summary=("Рефералы: " + "; ".join(changes))[:255], payload={"section": "referrals", "changes": changes}, request=request)
+            messages.success(request, "Настройки реферального бонуса сохранены.")
+        else:
+            messages.info(request, "Изменений нет.")
+    return redirect("control_center:referrals")
 
 
 # --------------------------------------------------------------------------- promo codes

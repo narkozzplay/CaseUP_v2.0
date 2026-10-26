@@ -21,7 +21,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
-from django.db.models import Count, F
+from django.db.models import Count, F, Q
 from django.utils import timezone
 
 from .models import IpBan, MultiAccountCase, MultiAccountMember, UserIp, normalize_network
@@ -242,10 +242,15 @@ def _block_internal_referrals(case: MultiAccountCase) -> None:
     try:
         from modules.v2.referrals.models import Referral
 
+        from modules.v2.referrals.welcome import deny_held
+
         ids = list(case.memberships.values_list("user_id", flat=True))
         Referral.objects.filter(referrer_id__in=ids, referee_id__in=ids).update(
             review=Referral.Review.BLOCKED, flag_reason=f"Мульти-аккаунт (группа #{case.pk})", reviewed_at=timezone.now()
         )
+        # Pending welcome bonuses of any referral touching the group are cancelled too.
+        touching = Referral.objects.filter(Q(referrer_id__in=ids) | Q(referee_id__in=ids)).values_list("pk", flat=True)
+        deny_held(list(touching), f"Мульти-аккаунт (группа #{case.pk})")
     except Exception:  # noqa: BLE001
         logger.exception("Could not block referrals of case %s", case.pk)
 

@@ -809,3 +809,65 @@ def purchase_subscription_with_balance(*, user, plan: SubscriptionPlan, months: 
         expires_at=expires_at,
         notes=purchase_note,
     )
+
+
+@dataclass(frozen=True)
+class BonusDaysGrant:
+    subscription: UserSubscription | None
+    # "new" — a fresh subscription; "extended" — the current one (same or higher level) got the days;
+    # "upgraded" — a lower plan was replaced, its remaining value converted into days of ``plan``;
+    # "unlimited" — the current subscription never expires, nothing to add.
+    mode: str
+    days: int
+    converted_days: int = 0
+    expires_at: datetime | None = None
+
+
+@transaction.atomic
+def grant_bonus_days(*, user, plan: SubscriptionPlan, days: int, note: str = "") -> BonusDaysGrant:
+    """Give ``days`` of ``plan`` for free (referral bonus, compensation...).
+
+    An active plan of the same or a higher level is extended from its current end date. A lower plan
+    is replaced by ``plan``, and its unused value is credited the same way as on an upgrade: converted
+    into days of ``plan`` at its monthly price and added on top of the bonus.
+    """
+    days = int(days)
+    if days <= 0:
+        raise SubscriptionInvariantError("Bonus days must be positive.")
+    _lock_subscription_owner(user)
+    now = timezone.now()
+    family = plan.family
+    _expire_stale_active_subscriptions(user=user, family=family, now=now)
+    active = _get_locked_active_subscriptions(user=user, family=family)
+    if len(active) > 1:
+        raise SubscriptionInvariantError("Multiple active subscriptions detected for the same user and family.")
+    current = active[0] if active else None
+    note = (note or "").strip()
+
+    if current is not None and current.expires_at is None:
+        return BonusDaysGrant(subscription=current, mode="unlimited", days=days)
+
+    if current is not None and current.plan.level >= plan.level:
+        base = current.expires_at if current.expires_at > now else now
+        current.expires_at = base + timedelta(days=days)
+        current.expiry_reminder_sent_at = None
+        current.notes = "\n".join(part for part in (current.notes, note) if part)
+        current.save(update_fields=["expires_at", "expiry_reminder_sent_at", "notes", "updated_at"])
+        return BonusDaysGrant(subscription=current, mode="extended", days=days, expires_at=current.expires_at)
+
+    converted_seconds = 0.0
+    if current is not None and plan.price_rub and plan.price_rub > 0:
+        credit = _remaining_credit(current, now)
+        converted_seconds = float(credit / plan.price_rub) * plan.billing_period_days * 86400
+    expires_at = now + timedelta(days=days, seconds=int(converted_seconds))
+    converted_days = int(converted_seconds // 86400)
+    if current is not None:
+        note = "\n".join(part for part in (note, f"Остаток тарифа {current.plan.code} зачтён: +{converted_days} дн.") if part)
+    subscription = assign_user_subscription_plan(user=user, plan=plan, family=family, starts_at=now, expires_at=expires_at, notes=note)
+    return BonusDaysGrant(
+        subscription=subscription,
+        mode="upgraded" if current is not None else "new",
+        days=days,
+        converted_days=converted_days,
+        expires_at=expires_at,
+    )
