@@ -93,13 +93,17 @@ def _has_budget(route: str) -> bool:
     return not budget or spent_this_hour(route) < budget
 
 
-def _spend(route: str) -> None:
+def _reserve(route: str) -> bool:
+    """Atomically takes one request of the route's hourly budget; False when the budget is already used up."""
     key = _spent_key(route)
     cache.add(key, 0, timeout=2 * 60 * 60)
     try:
-        cache.incr(key)
+        spent = cache.incr(key)
     except ValueError:  # the key expired between add and incr
         cache.set(key, 1, timeout=2 * 60 * 60)
+        spent = 1
+    budget = hourly_budget()
+    return not budget or spent <= budget
 
 
 def budget_exhausted() -> bool:
@@ -140,8 +144,9 @@ def _acquire_route(deadline: float | None = None) -> str | None:
         for route in available:
             # cache.add is atomic in Redis: one process gets the slot per interval and IP.
             if interval <= 0 or cache.add(_slot_key(route), 1, timeout=max(1, int(round(interval)))):
-                _spend(route)
-                return route
+                # Concurrent workers may both have seen budget left: the atomic counter decides.
+                if _reserve(route):
+                    return route
         time.sleep(0.3)
     return None
 

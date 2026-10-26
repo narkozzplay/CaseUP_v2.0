@@ -208,6 +208,13 @@ class BudgetTests(TestCase):
         self.assertEqual(fetch_mock.call_count, 2)
         self.assertEqual(price_queue.coverage()["routes"][0]["spent"], 2)
 
+    @override_settings(STEAM_PRICE_HOURLY_BUDGET=1, STEAM_PRICE_REQUEST_INTERVAL=0)
+    def test_the_counter_not_the_pre_check_decides(self):
+        # Another worker saw budget left at the same moment: only one of the two may send the request.
+        with mock.patch.object(price_queue, "_has_budget", return_value=True), mock.patch("time.sleep"):
+            self.assertEqual(price_queue._acquire_route(), price_queue.DIRECT)
+            self.assertIsNone(price_queue._acquire_route(deadline=time.monotonic() + price_queue.DEADLINE_RESERVE_SECONDS + 0.5))
+
     @override_settings(STEAM_PRICE_HOURLY_BUDGET=0, STEAM_PRICE_REQUEST_INTERVAL=0)
     @mock.patch(PRICE_FETCH, return_value=Decimal("3.00"))
     def test_zero_budget_means_no_hourly_limit(self, fetch_mock):
