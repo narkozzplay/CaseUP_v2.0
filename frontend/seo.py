@@ -22,7 +22,7 @@ PUBLIC_PAGES = (
 )
 
 PRIVATE_PREFIXES = (
-    "/admin/", "/auth/", "/control-center/", "/oauth/", "/r/", "/promo/", "/referrals/", "/payments/",
+    "/admin/", "/auth/", "/control-center/", "/oauth/", "/r/", "/ads/", "/promo/", "/referrals/", "/payments/",
     "/notifications/", "/social/", "/customization/", "/telegram/", "/i18n/", "/profile/", "/en/",
 )
 

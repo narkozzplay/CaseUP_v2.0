@@ -1,0 +1,70 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <a href="{% url 'control_center:ads' %}" class="back-link" data-dashboard-nav="true">← Реклама</a>
+            <span class="eyebrow">Control Center · Реклама</span>
+            <h1 class="cc-pagehead__title">{% if banner %}{{ banner.name }}{% else %}Новый баннер{% endif %}</h1>
+        </div>
+        {% if banner %}
+            <dl class="ops-hero__meta">
+                <div><dt>Показы</dt><dd>{{ banner.impressions }}</dd></div>
+                <div><dt>Клики</dt><dd>{{ banner.clicks }}</dd></div>
+                <div><dt>CTR</dt><dd>{{ banner.ctr }}%</dd></div>
+            </dl>
+        {% endif %}
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <form method="post" enctype="multipart/form-data" class="ops-panel" novalidate>
+        {% csrf_token %}
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Баннер</h2><span class="ops-panel__hint">изменения пишутся в журнал</span></div>
+        {% if form.non_field_errors %}<div class="tfa-alert" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+        <div class="cc-form-grid">
+            {% include "control_center/partials/_promo_field.html" with f=form.name %}
+            {% include "control_center/partials/_promo_field.html" with f=form.url %}
+            {% include "control_center/partials/_promo_field.html" with f=form.title %}
+            {% include "control_center/partials/_promo_field.html" with f=form.button hint="Пусто — без кнопки." %}
+            <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.text %}</div>
+            <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.image hint="Необязательно. Широкая картинка до 120 px в высоту смотрится лучше всего." %}</div>
+        </div>
+
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Где и кому</h2></div>
+        <div class="cc-form-grid">
+            <div class="cc-field promo-checks{% if form.placements.errors %} is-invalid{% endif %}">
+                <span>{{ form.placements.label }}</span>
+                {% for choice in form.placements %}<label class="cc-field-check">{{ choice.tag }}<span>{{ choice.choice_label }}</span></label>{% endfor %}
+                <small class="cc-field__hint">{{ form.placements.help_text }}</small>
+            </div>
+            <div class="cc-field promo-checks">
+                <span>Показ</span>
+                <label class="cc-field-check">{{ form.is_enabled }}<span>Включён</span></label>
+                <label class="cc-field-check">{{ form.show_to_ad_free }}<span>{{ form.show_to_ad_free.label }}</span></label>
+                <small class="cc-field__hint">{{ form.show_to_ad_free.help_text }}</small>
+            </div>
+            {% include "control_center/partials/_promo_field.html" with f=form.audience %}
+            {% include "control_center/partials/_promo_field.html" with f=form.weight %}
+            {% include "control_center/partials/_promo_field.html" with f=form.starts_at hint="Пусто — сразу." %}
+            {% include "control_center/partials/_promo_field.html" with f=form.ends_at hint="Пусто — бессрочно." %}
+        </div>
+        <div class="cc-form-actions">
+            <button type="submit" class="btn btn-primary btn-sm">{% if banner %}Сохранить{% else %}Создать баннер{% endif %}</button>
+        </div>
+    </form>
+
+    {% if banner %}
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Как выглядит</h2><span class="ops-panel__hint">после сохранения</span></div>
+            <div class="ref-body">
+                <aside class="ad-slot ad-slot--preview" aria-label="Предпросмотр">
+                    <span class="ad-slot__label">Реклама</span>
+                    <span class="ad-house{% if banner.image %} ad-house--image{% endif %}">
+                        {% if banner.image %}<img class="ad-house__image" src="{{ banner.image.url }}" alt="{{ banner.title }}">{% endif %}
+                        {% if banner.title or banner.text %}<span class="ad-house__copy">{% if banner.title %}<strong class="ad-house__title">{{ banner.title }}</strong>{% endif %}{% if banner.text %}<span class="ad-house__text">{{ banner.text }}</span>{% endif %}</span>{% endif %}
+                        {% if banner.button %}<span class="btn btn-primary btn-sm ad-house__button">{{ banner.button }}</span>{% endif %}
+                    </span>
+                </aside>
+            </div>
+        </article>
+    {% endif %}
+</section>

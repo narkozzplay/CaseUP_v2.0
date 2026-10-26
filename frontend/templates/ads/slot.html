@@ -1,17 +1,17 @@
 {% if slot %}
-<aside class="ad-slot ad-slot--{{ slot.key }}" aria-label="Реклама">
-    <span class="ad-slot__label">Реклама</span>
-    {% if slot.provider == "house" %}
-        {% with banner=slot.placement %}
-            <a class="ad-house{% if banner.house_image %} ad-house--image{% endif %}" {% if banner.house_url %}href="{{ banner.house_url }}"{% if banner.house_url|slice:":4" == "http" %} target="_blank" rel="noopener sponsored" data-dashboard-nav="false"{% endif %}{% endif %}>
-                {% if banner.house_image %}<img class="ad-house__image" src="{{ banner.house_image.url }}" alt="{{ banner.house_title }}" loading="lazy">{% endif %}
-                {% if banner.house_title or banner.house_text %}
+<aside class="ad-slot ad-slot--{{ slot.key }}{% if not slot.is_ad %} ad-slot--own{% endif %}" aria-label="{% if slot.is_ad %}Реклама{% else %}Новости CaseUP{% endif %}">
+    <span class="ad-slot__label">{% if slot.is_ad %}Реклама{% else %}CaseUP{% endif %}</span>
+    {% if slot.banner %}
+        {% with banner=slot.banner %}
+            <a class="ad-house{% if banner.image %} ad-house--image{% endif %}" href="{% url 'ads:go' banner.pk %}" data-dashboard-nav="false"{% if banner.is_external %} target="_blank" rel="noopener nofollow"{% else %} rel="nofollow"{% endif %} data-house-banner="{{ banner.pk }}">
+                {% if banner.image %}<img class="ad-house__image" src="{{ banner.image.url }}" alt="{{ banner.title }}" loading="lazy">{% endif %}
+                {% if banner.title or banner.text %}
                     <span class="ad-house__copy">
-                        {% if banner.house_title %}<strong class="ad-house__title">{{ banner.house_title }}</strong>{% endif %}
-                        {% if banner.house_text %}<span class="ad-house__text">{{ banner.house_text }}</span>{% endif %}
+                        {% if banner.title %}<strong class="ad-house__title">{{ banner.title }}</strong>{% endif %}
+                        {% if banner.text %}<span class="ad-house__text">{{ banner.text }}</span>{% endif %}
                     </span>
                 {% endif %}
-                {% if banner.house_button %}<span class="btn btn-primary btn-sm ad-house__button">{{ banner.house_button }}</span>{% endif %}
+                {% if banner.button %}<span class="btn btn-primary btn-sm ad-house__button">{{ banner.button }}</span>{% endif %}
             </a>
         {% endwith %}
     {% elif slot.provider == "custom" %}

@@ -1675,6 +1675,113 @@ def donations(request):
     return _render(request, partial="control_center/partials/donations_content.html", context=context, title="Донаты · Control Center", tab="donations")
 
 
+# --------------------------------------------------------------------------- ads
+
+
+@login_required
+def ads(request):
+    from modules.v2.ads.forms import AdSettingsForm
+    from modules.v2.ads.models import AdPlacement, HouseBanner
+    from modules.v2.ads.services import get_ad_settings
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    ad_settings = get_ad_settings()
+    form = AdSettingsForm(instance=ad_settings)
+    if request.method == "POST":
+        action = request.POST.get("action") or ""
+        if action == "settings":
+            form = AdSettingsForm(request.POST, instance=ad_settings)
+            if form.is_valid():
+                changed = list(form.changed_data)
+                if changed:
+                    form.save()
+                    labels = [str(form.fields[name].label) for name in changed]
+                    log_admin_action(actor=request.user, action=AuditAction.ADS_UPDATE, summary=("Реклама: " + ", ".join(labels))[:255], payload={"changed": changed}, request=request)
+                    messages.success(request, "Настройки рекламы сохранены.")
+                else:
+                    messages.info(request, "Изменений нет.")
+                return redirect("control_center:ads")
+            messages.error(request, "Проверьте поля формы.")
+        elif action == "placements":
+            enabled = set(request.POST.getlist("placement_enabled"))
+            switched = []
+            for placement in AdPlacement.objects.all():
+                is_enabled = str(placement.pk) in enabled
+                if placement.is_enabled != is_enabled:
+                    placement.is_enabled = is_enabled
+                    placement.save(update_fields=["is_enabled", "updated_at"])
+                    switched.append(f"{placement.name} — {'вкл' if is_enabled else 'выкл'}")
+            if switched:
+                log_admin_action(actor=request.user, action=AuditAction.ADS_UPDATE, summary=("Места: " + "; ".join(switched))[:255], payload={"enabled": sorted(enabled)}, request=request)
+                messages.success(request, "Рекламные места сохранены.")
+            else:
+                messages.info(request, "Изменений нет.")
+            return redirect(reverse("control_center:ads") + "#placements")
+        elif action in ("banner_toggle", "banner_delete", "banner_reset"):
+            raw_id = str(request.POST.get("banner_id") or "")
+            banner = get_object_or_404(HouseBanner, pk=int(raw_id) if raw_id.isdigit() else 0)
+            if action == "banner_toggle":
+                banner.is_enabled = not banner.is_enabled
+                banner.save(update_fields=["is_enabled", "updated_at"])
+                summary = f"Баннер «{banner.name}» {'включён' if banner.is_enabled else 'выключен'}"
+            elif action == "banner_reset":
+                HouseBanner.objects.filter(pk=banner.pk).update(impressions=0, clicks=0)
+                summary = f"Баннер «{banner.name}»: статистика обнулена"
+            else:
+                summary = f"Баннер «{banner.name}» удалён"
+                banner.delete()
+            log_admin_action(actor=request.user, action=AuditAction.ADS_UPDATE, summary=summary[:255], payload={"banner": raw_id, "action": action}, request=request)
+            messages.success(request, summary + ".")
+            return redirect(reverse("control_center:ads") + "#banners")
+
+    banners = list(HouseBanner.objects.prefetch_related("placements"))
+    totals = {
+        "active": sum(1 for banner in banners if banner.is_enabled),
+        "impressions": sum(banner.impressions for banner in banners),
+        "clicks": sum(banner.clicks for banner in banners),
+    }
+    totals["ctr"] = round(totals["clicks"] * 100 / totals["impressions"], 2) if totals["impressions"] else 0
+    context = {
+        "role_access": role_access,
+        "ad_settings": ad_settings,
+        "form": form,
+        "placements": AdPlacement.objects.annotate(banners_count=Count("house_banners")).order_by("sort_order", "id"),
+        "banners": banners,
+        "totals": totals,
+        "now": timezone.now(),
+    }
+    return _render(request, partial="control_center/partials/ads_content.html", context=context, title="Реклама · Control Center", tab="ads")
+
+
+@login_required
+def ads_banner_edit(request, banner_id: int | None = None):
+    from modules.v2.ads.forms import HouseBannerForm
+    from modules.v2.ads.models import HouseBanner
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    banner = get_object_or_404(HouseBanner, pk=banner_id) if banner_id else None
+    form = HouseBannerForm(request.POST or None, request.FILES or None, instance=banner)
+    if request.method == "POST" and form.is_valid():
+        is_new = banner is None
+        saved = form.save()
+        log_admin_action(
+            actor=request.user,
+            action=AuditAction.ADS_UPDATE,
+            summary=(f"Баннер «{saved.name}» {'создан' if is_new else 'изменён'}")[:255],
+            payload={"banner": saved.pk, "changed": sorted(form.changed_data)},
+            request=request,
+        )
+        messages.success(request, f"Баннер «{saved.name}» {'создан' if is_new else 'сохранён'}.")
+        return redirect("control_center:ads_banner_edit", banner_id=saved.pk)
+    context = {"role_access": role_access, "form": form, "banner": banner}
+    title = f"{banner.name} · Реклама" if banner else "Новый баннер"
+    return _render(request, partial="control_center/partials/ads_banner_edit_content.html", context=context, title=title, tab="ads")
+
+
 # --------------------------------------------------------------------------- market
 
 
