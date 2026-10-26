@@ -246,7 +246,10 @@ def refresh_item_prices(
 
     fetched_prices: list[tuple[int, Decimal]] = []
 
+    from .price_queue import count_manual_request
+
     for target in targets:
+        count_manual_request()
         try:
             price_rub = _services_pkg().fetch_price_rub_from_steam(
                 market_hash_name=target.market_hash_name,

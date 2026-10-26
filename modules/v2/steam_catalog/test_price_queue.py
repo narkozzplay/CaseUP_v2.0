@@ -171,6 +171,7 @@ class TierTests(TestCase):
         item.refresh_from_db()
         self.assertEqual((item.price_rub, item.price_missing), (Decimal("7.00"), False))
         self.assertGreater(item.price_checked_at, timezone.now() - timedelta(minutes=1))
+        self.assertEqual(price_queue.spent_this_hour(price_queue.DIRECT), 1)  # counted against the hourly budget
 
     def test_view_tracking_never_breaks_the_page(self):
         item = make_item("Cacheless | Item")

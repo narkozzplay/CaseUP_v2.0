@@ -86,7 +86,7 @@ def clear_rule_schedule(rule: PriceAutoUpdateRule) -> None:
 
 
 def _due_grace() -> timedelta:
-    """A rule that comes due before the next beat tick runs on this one. Its next run is counted from when the
+    """An interval rule that comes due before the next beat tick runs on this one. Its next run is counted from when the
     previous one finished, so otherwise a 5-minute rule would keep missing the 5-minute tick and run every 10."""
     return timedelta(seconds=float(getattr(settings, "CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS", 300) or 300))
 
@@ -96,7 +96,12 @@ def get_due_rules(*, now=None):
     return (
         PriceAutoUpdateRule.objects
         .filter(is_enabled=True)
-        .filter(Q(next_run_at__isnull=True) | Q(next_run_at__lte=now + _due_grace()))
+        .filter(
+            Q(next_run_at__isnull=True)
+            | Q(next_run_at__lte=now)
+            # Only interval rules may start early; an hourly rule keeps its exact minute.
+            | Q(schedule_mode=PriceAutoUpdateRule.ScheduleMode.INTERVAL, next_run_at__lte=now + _due_grace())
+        )
         .order_by("next_run_at", "category")
     )
 

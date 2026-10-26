@@ -109,6 +109,12 @@ def _reserve(route: str) -> bool:
     return not budget or spent <= budget
 
 
+def count_manual_request() -> None:
+    """A staff «refresh price» goes out from the server too: it is counted so the queue leaves room for it,
+    but never refused."""
+    _reserve(DIRECT)
+
+
 def budget_exhausted() -> bool:
     """Every route that is not paused has used up its requests for this hour."""
     active = [route for route in routes() if route_paused_until(route) is None]
