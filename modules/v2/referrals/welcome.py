@@ -100,7 +100,7 @@ def award(referral: Referral, *, steam_id: str, ip_address: str | None = None) -
     for row, row_status in zip(rows, (status, referrer_status)):
         if row_status == GRANTED:
             _grant(row)
-        elif row_status == HELD:
+        else:
             _notify(row)
     _log(referral, rows)
     return rows
@@ -108,16 +108,19 @@ def award(referral: Referral, *, steam_id: str, ip_address: str | None = None) -
 
 def release_held(referral: Referral) -> int:
     """The admin counted a referral on review: grant what was held (the inviter's monthly limit still applies)."""
-    config = ReferralProgramSettings.load()
+    from modules.v2.antifraud.models import MultiAccountCase, MultiAccountMember
+
     released = 0
+    abusive = MultiAccountMember.objects.filter(
+        user_id__in=(referral.referrer_id, referral.referee_id), case__status=MultiAccountCase.Status.ABUSE
+    ).exists()
     for row in ReferralWelcomeBonus.objects.select_related("user", "plan", "referral__referrer", "referral__referee").filter(referral=referral, status=HELD):
-        if row.user is None or not row.user.is_active:
+        if abusive:
+            _deny(row, "Аккаунт в группе мульти-аккаунтов (абуз)")
+        elif row.user is None or not row.user.is_active:
             _deny(row, "Аккаунт недоступен")
-            continue
-        if row.role == REFERRER and _over_monthly_limit(row.user, config):
-            _deny(row, f"Лимит: не больше {config.referrer_monthly_limit} бонусов за 30 дней")
-            continue
-        released += bool(_grant(row))
+        else:
+            released += bool(_grant(row))
     return released
 
 
@@ -197,15 +200,26 @@ def _grant(row: ReferralWelcomeBonus) -> bool:
     other = row.referral.referee if row.role == REFERRER else row.referral.referrer
     note = f"Реферальный бонус +{row.days} дн. ({'пригласил' if row.role == REFERRER else 'приглашён'}: {other.username})"
     with transaction.atomic():
+        # The owner lock serialises this with the user's other grants, so the limit check below
+        # cannot be passed by two parallel sign-ins of invited friends at once.
+        type(row.user).objects.select_for_update().only("pk").get(pk=row.user_id)
         locked = ReferralWelcomeBonus.objects.select_for_update().get(pk=row.pk)
-        if locked.status == GRANTED:
+        if locked.status != HELD:
             return False
-        result = grant_bonus_days(user=row.user, plan=plan, days=row.days, note=note)
-        row.status, row.reason = GRANTED, ""
-        row.plan, row.mode, row.converted_days = plan, result.mode, result.converted_days
-        row.expires_at = result.expires_at
-        row.granted_at = timezone.now()
-        row.save(update_fields=["status", "reason", "plan", "mode", "converted_days", "expires_at", "granted_at"])
+        config = ReferralProgramSettings.load()
+        if row.role == REFERRER and _over_monthly_limit(row.user, config):
+            limit_hit = True
+        else:
+            limit_hit = False
+            result = grant_bonus_days(user=row.user, plan=plan, days=row.days, note=note)
+            row.status, row.reason = GRANTED, ""
+            row.plan, row.mode, row.converted_days = plan, result.mode, result.converted_days
+            row.expires_at = result.expires_at
+            row.granted_at = timezone.now()
+            row.save(update_fields=["status", "reason", "plan", "mode", "converted_days", "expires_at", "granted_at"])
+    if limit_hit:
+        _deny(row, f"Лимит: не больше {config.referrer_monthly_limit} бонусов за 30 дней")
+        return False
     _notify(row)
     return True
 

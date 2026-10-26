@@ -180,6 +180,41 @@ class AbuseTests(WelcomeBonusTestCase):
         self.assertEqual([row.status for row in rows], [GRANTED, GRANTED, DENIED])
         self.assertEqual(self.bonus(friends[2]).status, GRANTED)  # the invited friend still gets theirs
         self.assert_days_left(self.referrer, 14)
+        self.assertTrue(Notification.objects.filter(recipient=self.referrer, kind=KIND_REFERRAL_WELCOME_BONUS, payload__status="denied").exists())
+
+    def test_limit_is_rechecked_when_a_held_bonus_is_released(self):
+        config = ReferralProgramSettings.load()
+        config.referrer_monthly_limit = 1
+        config.save()
+        seen_on(self.referrer, "95.24.10.8")
+        suspect = self.steam_invite("suspect", ip="95.24.10.8")
+        self.steam_invite("friend", ip="198.51.100.9")
+        referral = Referral.objects.get(referee=suspect)
+        services.review_referral(actor=make_user("ref_admin"), referral=referral, decision=Referral.Review.OK)
+        self.assertEqual(ReferralWelcomeBonus.objects.get(referral=referral, role="referrer").status, DENIED)
+        self.assertEqual(self.bonus(suspect).status, GRANTED)
+
+    def test_abuse_of_one_side_cancels_a_held_bonus(self):
+        from modules.v2.antifraud.services import _block_internal_referrals
+
+        seen_on(self.referrer, "95.24.10.9")
+        suspect = self.steam_invite("suspect", ip="95.24.10.9")
+        case = MultiAccountCase.objects.create()
+        MultiAccountMember.objects.create(case=case, user=suspect)
+        MultiAccountMember.objects.create(case=case, user=make_user("twin"))
+        _block_internal_referrals(case)  # what mark_abuse does; the inviter is not in the group
+        self.assertEqual(self.bonus(suspect).status, DENIED)
+        self.assertEqual(self.bonus(self.referrer, "referrer").status, DENIED)
+
+    def test_release_rechecks_abuse(self):
+        seen_on(self.referrer, "95.24.10.10")
+        suspect = self.steam_invite("suspect", ip="95.24.10.10")
+        case = MultiAccountCase.objects.create(status=MultiAccountCase.Status.ABUSE)
+        MultiAccountMember.objects.create(case=case, user=suspect)
+        referral = Referral.objects.get(referee=suspect)
+        services.review_referral(actor=make_user("ref_admin"), referral=referral, decision=Referral.Review.OK)
+        self.assertEqual(self.bonus(suspect).status, DENIED)
+        self.assertIsNone(get_active_subscription(self.referrer))
 
 
 class PagesTests(WelcomeBonusTestCase):
