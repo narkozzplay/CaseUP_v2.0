@@ -24,7 +24,7 @@ class YandexMetrikaTests(TestCase):
 
     def test_admin_areas_are_excluded(self):
         factory = RequestFactory()
-        for path in ("/admin/", "/control-center/"):
+        for path in ("/admin/", "/control-center/", "/en/control-center/", "/en/admin/"):
             request = factory.get(path)
             request.COOKIES[CONSENT_COOKIE] = "1"
             self.assertEqual(analytics_context(request), {"metrika_id": "", "analytics_ask_consent": False})

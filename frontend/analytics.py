@@ -13,13 +13,22 @@ def metrika_id() -> str:
     return value if value.isdigit() else ""
 
 
+def _without_language_prefix(path: str) -> str:
+    # i18n_patterns serve non-default languages under /<code>/ (e.g. /en/control-center/).
+    for code, _name in getattr(settings, "LANGUAGES", ()):
+        prefix = f"/{code}/"
+        if path.startswith(prefix):
+            return path[len(prefix) - 1:]
+    return path
+
+
 def has_analytics_consent(request) -> bool:
     return getattr(request, "COOKIES", {}).get(CONSENT_COOKIE) == "1"
 
 
 def analytics_context(request):
     counter = metrika_id()
-    path = getattr(request, "path", "") or ""
+    path = _without_language_prefix(getattr(request, "path", "") or "")
     if not counter or path.startswith(EXCLUDED_PATH_PREFIXES):
         return {"metrika_id": "", "analytics_ask_consent": False}
     consent = has_analytics_consent(request)
