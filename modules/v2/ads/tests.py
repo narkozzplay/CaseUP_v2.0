@@ -196,6 +196,11 @@ class HouseBannerTests(TestCase):
         banner.refresh_from_db()
         self.assertEqual((banner.impressions, banner.clicks), (1, 1))
 
+    def test_internal_banner_keeps_visitor_language(self):
+        banner = HouseBanner.objects.get(url="/donate/")
+        self.assertEqual(self.client.get(f"/en/ads/go/{banner.pk}/")["Location"], "/en/donate/")
+        self.assertEqual(self.client.get(f"/ads/go/{banner.pk}/")["Location"], "/donate/")
+
     def test_external_banner_opens_in_new_tab(self):
         HouseBanner.objects.exclude(url="https://t.me/caseup_pro_anons").update(is_enabled=False)
         drop_banner_cache()
