@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.core.exceptions import ValidationError
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -88,6 +88,9 @@ class AdPlacement(models.Model):
         return super().save(*args, **kwargs)
 
 
+MAX_VIDEO_BYTES = 3 * 1024 * 1024
+
+
 class HouseBanner(models.Model):
     """CaseUP's own promo (donations, the Telegram channel, the ad-free plan). Several banners rotate in one place."""
 
@@ -100,6 +103,14 @@ class HouseBanner(models.Model):
     title = models.CharField("Заголовок", max_length=120, blank=True, default="")
     text = models.CharField("Текст", max_length=255, blank=True, default="")
     image = models.ImageField("Картинка", upload_to="ads/", null=True, blank=True)
+    video = models.FileField(
+        "Видео",
+        upload_to="ads/video/",
+        null=True,
+        blank=True,
+        validators=[FileExtensionValidator(["mp4", "webm"])],
+        help_text="Необязательно. Короткая петля MP4/WebM до 3 МБ, играет без звука по кругу; картинка остаётся заставкой.",
+    )
     url = models.CharField(
         "Ссылка",
         max_length=500,
@@ -142,6 +153,10 @@ class HouseBanner(models.Model):
         return self.name
 
     @property
+    def video_type(self) -> str:
+        return "video/webm" if self.video and self.video.name.lower().endswith(".webm") else "video/mp4"
+
+    @property
     def is_external(self) -> bool:
         return self.url.startswith("http")
 
@@ -157,6 +172,10 @@ class HouseBanner(models.Model):
             raise ValidationError({"url": "Ссылка должна начинаться с / или https://."})
         if not (self.image or (self.title or "").strip()):
             raise ValidationError({"title": "Нужен заголовок или картинка."})
+        if self.video and not self.image:
+            raise ValidationError({"image": "К видео нужна картинка: она показывается, пока видео грузится или если движение отключено."})
+        if self.video and getattr(self.video, "size", 0) > MAX_VIDEO_BYTES:
+            raise ValidationError({"video": "Видео больше 3 МБ — сожмите его."})
         if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
             raise ValidationError({"ends_at": "Окончание должно быть позже начала."})
 

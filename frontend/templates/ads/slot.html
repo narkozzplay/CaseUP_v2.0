@@ -4,7 +4,7 @@
     {% if slot.banner %}
         {% with banner=slot.banner %}
             <a class="ad-house{% if banner.image %} ad-house--image{% endif %}" href="{% url 'ads:go' banner.pk %}" data-dashboard-nav="false"{% if banner.is_external %} target="_blank" rel="noopener nofollow"{% else %} rel="nofollow"{% endif %} data-house-banner="{{ banner.pk }}">
-                {% if banner.image %}<img class="ad-house__image" src="{{ banner.image.url }}" alt="{{ banner.title }}" loading="lazy">{% endif %}
+                {% include "ads/_banner_media.html" %}
                 {% if banner.title or banner.text %}
                     <span class="ad-house__copy">
                         {% if banner.title %}<strong class="ad-house__title">{{ banner.title }}</strong>{% endif %}

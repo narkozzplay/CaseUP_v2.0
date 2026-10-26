@@ -26,7 +26,7 @@ class HouseBannerForm(forms.ModelForm):
     class Meta:
         model = HouseBanner
         fields = (
-            "name", "title", "text", "image", "url", "button",
+            "name", "title", "text", "image", "video", "url", "button",
             "placements", "audience", "show_to_ad_free", "weight", "starts_at", "ends_at", "is_enabled",
         )
         widgets = {
