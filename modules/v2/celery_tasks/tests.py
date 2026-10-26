@@ -340,9 +340,10 @@ class PriceSchedulerPaceTests(TestCase):
 
         from .tasks import PRICE_RUN_LOCK_KEY, run_due_price_auto_updates_task
 
-        cache.set(PRICE_RUN_LOCK_KEY, 1, 60)
+        cache.set(PRICE_RUN_LOCK_KEY, "other-run", 60)
         self.assertEqual(run_due_price_auto_updates_task(), [])
         run_mock.assert_not_called()
+        self.assertEqual(cache.get(PRICE_RUN_LOCK_KEY), "other-run")  # someone else's lock is left alone
         cache.delete(PRICE_RUN_LOCK_KEY)
         run_due_price_auto_updates_task()
         run_mock.assert_called_once()

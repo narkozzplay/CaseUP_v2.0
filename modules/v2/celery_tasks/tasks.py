@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+import uuid
 
 from celery import shared_task
 from django.conf import settings
@@ -49,13 +50,17 @@ def run_price_auto_update_rule_task(rule_id: int, triggered_by: str = "manual") 
 def run_due_price_auto_updates_task() -> list[dict]:
     # A run still busy (slow alert detection, a stuck worker) is not joined by a second one: they would share the
     # same Steam slots anyway and only mark each other's rules as «previous run is still active».
-    lock_seconds = int(getattr(settings, "CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS", 300) or 300)
-    if not cache.add(PRICE_RUN_LOCK_KEY, 1, timeout=lock_seconds):
+    # The lease outlives the task's hard time limit, so it cannot expire under a run that is still going; only its
+    # owner releases it.
+    lock_seconds = int(getattr(settings, "CELERY_TASK_TIME_LIMIT", 1200) or 1200) + 60
+    token = uuid.uuid4().hex
+    if not cache.add(PRICE_RUN_LOCK_KEY, token, timeout=lock_seconds):
         return []
     try:
         summaries = run_due_rules(triggered_by="beat")
     finally:
-        cache.delete(PRICE_RUN_LOCK_KEY)
+        if cache.get(PRICE_RUN_LOCK_KEY) == token:
+            cache.delete(PRICE_RUN_LOCK_KEY)
     return [
         {
             "rule_id": summary.rule_id,
