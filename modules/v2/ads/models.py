@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -57,17 +58,6 @@ class AdPlacement(models.Model):
     name = models.CharField("Место", max_length=120)
     description = models.CharField("Где показывается", max_length=255, blank=True, default="")
     is_enabled = models.BooleanField("Включено", default=True)
-    house_title = models.CharField("Заголовок баннера", max_length=120, blank=True, default="")
-    house_text = models.CharField("Текст баннера", max_length=255, blank=True, default="")
-    house_image = models.ImageField("Картинка баннера", upload_to="ads/", null=True, blank=True)
-    house_url = models.CharField(
-        "Ссылка",
-        max_length=500,
-        blank=True,
-        default="",
-        help_text="Куда ведёт баннер: адрес на сайте (/market/) или полный https://…",
-    )
-    house_button = models.CharField("Текст кнопки", max_length=40, blank=True, default="")
     block_id = models.CharField(
         "ID блока",
         max_length=128,
@@ -92,17 +82,84 @@ class AdPlacement(models.Model):
     def __str__(self) -> str:
         return self.name
 
-    @property
-    def has_house_banner(self) -> bool:
-        return bool(self.house_image or self.house_title.strip())
-
-    def clean(self):
-        url = (self.house_url or "").strip()
-        if url and not (url.startswith("/") or url.startswith("https://") or url.startswith("http://")):
-            raise ValidationError({"house_url": "Ссылка должна начинаться с / или https://."})
-
     def save(self, *args, **kwargs):
         self.key = (self.key or "").strip()
-        self.house_url = (self.house_url or "").strip()
         self.block_id = (self.block_id or "").strip()
+        return super().save(*args, **kwargs)
+
+
+class HouseBanner(models.Model):
+    """CaseUP's own promo (donations, the Telegram channel, the ad-free plan). Several banners rotate in one place."""
+
+    class Audience(models.TextChoices):
+        ALL = "all", "Всем"
+        GUESTS = "guests", "Только гостям"
+        USERS = "users", "Только вошедшим"
+
+    name = models.CharField("Название", max_length=120, help_text="Видно только в админке.")
+    title = models.CharField("Заголовок", max_length=120, blank=True, default="")
+    text = models.CharField("Текст", max_length=255, blank=True, default="")
+    image = models.ImageField("Картинка", upload_to="ads/", null=True, blank=True)
+    url = models.CharField(
+        "Ссылка",
+        max_length=500,
+        help_text="Адрес на сайте (/donate/) или полный https://…",
+    )
+    button = models.CharField("Текст кнопки", max_length=40, blank=True, default="")
+    placements = models.ManyToManyField(
+        AdPlacement,
+        blank=True,
+        related_name="house_banners",
+        verbose_name="Места",
+        help_text="Пусто — во всех местах.",
+    )
+    audience = models.CharField("Кому", max_length=8, choices=Audience.choices, default=Audience.ALL)
+    show_to_ad_free = models.BooleanField(
+        "Показывать и тем, кто отключил рекламу",
+        default=False,
+        help_text="Для подписчиков блок выводится с подписью «CaseUP» вместо «Реклама» и без ссылки «Убрать рекламу».",
+    )
+    weight = models.PositiveSmallIntegerField(
+        "Вес",
+        default=10,
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
+        help_text="Чем больше, тем чаще баннер выпадает среди остальных в том же месте.",
+    )
+    starts_at = models.DateTimeField("Показывать с", null=True, blank=True)
+    ends_at = models.DateTimeField("Показывать до", null=True, blank=True)
+    is_enabled = models.BooleanField("Включён", default=True)
+    impressions = models.PositiveIntegerField("Показы", default=0, editable=False)
+    clicks = models.PositiveIntegerField("Клики", default=0, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Свой баннер"
+        verbose_name_plural = "Свои баннеры"
+        ordering = ("-is_enabled", "-weight", "id")
+
+    def __str__(self) -> str:
+        return self.name
+
+    @property
+    def is_external(self) -> bool:
+        return self.url.startswith("http")
+
+    @property
+    def ctr(self) -> float:
+        return round(self.clicks * 100 / self.impressions, 2) if self.impressions else 0.0
+
+    def clean(self):
+        self.url = (self.url or "").strip()
+        if self.url and not (self.url.startswith("/") or self.url.startswith("https://") or self.url.startswith("http://")):
+            raise ValidationError({"url": "Ссылка должна начинаться с / или https://."})
+        if self.url.startswith("//"):
+            raise ValidationError({"url": "Ссылка должна начинаться с / или https://."})
+        if not (self.image or (self.title or "").strip()):
+            raise ValidationError({"title": "Нужен заголовок или картинка."})
+        if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
+            raise ValidationError({"ends_at": "Окончание должно быть позже начала."})
+
+    def save(self, *args, **kwargs):
+        self.url = (self.url or "").strip()
         return super().save(*args, **kwargs)

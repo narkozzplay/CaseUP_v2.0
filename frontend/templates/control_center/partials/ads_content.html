@@ -1,0 +1,101 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Реклама</h1>
+            <p class="ops-hero__text">Рекламные места сайта и свои баннеры: донат, Telegram-канал, тариф «Без рекламы». Баннеры показываются, когда рекламная сеть выключена, ждёт согласия на cookie или в месте нет ID блока. Если в одном месте несколько баннеров, они чередуются по весу.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Статус</dt><dd class="{% if ad_settings.is_enabled %}metric-positive{% else %}metric-negative{% endif %}">{% if ad_settings.is_enabled %}показывается{% else %}выключена{% endif %}</dd></div>
+            <div><dt>Сеть</dt><dd>{{ ad_settings.get_provider_display }}</dd></div>
+            <div><dt>Баннеров</dt><dd>{{ totals.active }} из {{ banners|length }}</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <div class="ops-kpis">
+        <div class="ops-kpi"><span class="ops-kpi__icon">{% include "components/icon.html" with name="dashboard_preview" %}</span><div class="ops-kpi__body"><span class="ops-kpi__label">Показы своих баннеров</span><strong class="ops-kpi__value">{{ totals.impressions }}</strong><span class="ops-kpi__meta">без показов администрации</span></div></div>
+        <div class="ops-kpi"><span class="ops-kpi__icon">{% include "components/icon.html" with name="link" %}</span><div class="ops-kpi__body"><span class="ops-kpi__label">Клики</span><strong class="ops-kpi__value">{{ totals.clicks }}</strong><span class="ops-kpi__meta">переходы по баннерам</span></div></div>
+        <div class="ops-kpi"><span class="ops-kpi__icon">{% include "components/icon.html" with name="cc_business" %}</span><div class="ops-kpi__body"><span class="ops-kpi__label">CTR</span><strong class="ops-kpi__value">{{ totals.ctr }}%</strong><span class="ops-kpi__meta">клики / показы</span></div></div>
+    </div>
+
+    <article class="ops-panel" id="banners">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Свои баннеры</h2><a href="{% url 'control_center:ads_banner_create' %}" class="btn btn-primary btn-sm">Новый баннер</a></div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead><tr><th>Баннер</th><th>Места</th><th>Кому</th><th class="cc-num">Вес</th><th class="cc-num">Показы</th><th class="cc-num">Клики</th><th class="cc-num">CTR</th><th>Статус</th><th></th></tr></thead>
+                <tbody>
+                    {% for banner in banners %}
+                        <tr>
+                            <td><a href="{% url 'control_center:ads_banner_edit' banner.pk %}"><b>{{ banner.name }}</b></a><span class="cc-sub">{{ banner.title|default:"(только картинка)" }}</span><span class="cc-sub cc-mono">{{ banner.url }}</span></td>
+                            <td>{% for placement in banner.placements.all %}{{ placement.name }}{% if not forloop.last %}<br>{% endif %}{% empty %}все места{% endfor %}</td>
+                            <td>{{ banner.get_audience_display }}{% if banner.show_to_ad_free %}<span class="cc-sub">и подписчикам без рекламы</span>{% endif %}</td>
+                            <td class="cc-num">{{ banner.weight }}</td>
+                            <td class="cc-num">{{ banner.impressions }}</td>
+                            <td class="cc-num">{{ banner.clicks }}</td>
+                            <td class="cc-num">{{ banner.ctr }}%</td>
+                            <td>
+                                {% if not banner.is_enabled %}<span class="cc-chip cc-chip--fail">выключен</span>
+                                {% elif banner.ends_at and banner.ends_at <= now %}<span class="cc-chip cc-chip--fail">закончился</span>
+                                {% elif banner.starts_at and banner.starts_at > now %}<span class="cc-chip cc-chip--info">с {{ banner.starts_at|date:"d.m H:i" }}</span>
+                                {% else %}<span class="cc-chip cc-chip--ok">показывается</span>{% endif %}
+                                {% if banner.ends_at and banner.ends_at > now %}<span class="cc-sub">до {{ banner.ends_at|date:"d.m.Y H:i" }}</span>{% endif %}
+                            </td>
+                            <td class="cc-actions">
+                                <form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="banner_id" value="{{ banner.pk }}">
+                                    <button type="submit" name="action" value="banner_toggle" class="btn btn-ghost btn-sm">{% if banner.is_enabled %}Выключить{% else %}Включить{% endif %}</button>
+                                    <button type="submit" name="action" value="banner_reset" class="btn btn-ghost btn-sm" onclick="return confirm('Обнулить показы и клики баннера?');">Обнулить</button>
+                                    <button type="submit" name="action" value="banner_delete" class="btn btn-ghost btn-sm" onclick="return confirm('Удалить баннер «{{ banner.name|escapejs }}»?');">Удалить</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="9" class="text-muted">Своих баннеров нет — рекламные места пустуют.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <div class="ref-rewards">
+        <form method="post" class="ops-panel" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="action" value="settings">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Настройки</h2><span class="ops-panel__hint">изменения пишутся в журнал</span></div>
+            {% if form.non_field_errors %}<div class="tfa-alert" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+            <div class="cc-form-grid">
+                <label class="cc-field-check cc-span-2">{{ form.is_enabled }}<span>Показывать рекламу и свои баннеры</span></label>
+                {% include "control_center/partials/_promo_field.html" with f=form.provider hint="«Свои баннеры» — только баннеры ниже. У РСЯ и AdSense баннеры подменяют пустые блоки." %}
+                {% include "control_center/partials/_promo_field.html" with f=form.feed_every_n %}
+                <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.adsense_client_id %}</div>
+                <label class="cc-field-check cc-span-2">{{ form.show_remove_link }}<span>Ссылка «Убрать рекламу за 99 ₽» под блоком</span></label>
+                <label class="cc-field-check cc-span-2">{{ form.show_to_staff }}<span>Показывать администрации (для проверки)</span></label>
+            </div>
+            <div class="cc-form-actions"><button type="submit" class="btn btn-primary btn-sm">Сохранить</button></div>
+        </form>
+
+        <form method="post" class="ops-panel" id="placements">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="placements">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Рекламные места</h2><a href="{% url 'admin:ads_adplacement_changelist' %}" class="ops-panel__hint" target="_blank" rel="noopener" data-dashboard-nav="false">ID блоков РСЯ — в Django</a></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Вкл.</th><th>Место</th><th class="cc-num">Своих баннеров</th><th>ID блока</th></tr></thead>
+                    <tbody>
+                        {% for placement in placements %}
+                            <tr>
+                                <td><input type="checkbox" name="placement_enabled" value="{{ placement.pk }}"{% if placement.is_enabled %} checked{% endif %} aria-label="{{ placement.name }}"></td>
+                                <td><b>{{ placement.name }}</b><span class="cc-sub">{{ placement.description }}</span></td>
+                                <td class="cc-num">{{ placement.banners_count }}</td>
+                                <td class="cc-mono">{{ placement.block_id|default:"—" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="ref-body"><p class="ref-text">Баннер без выбранных мест показывается во всех местах; в «Своих баннерах» число учитывает только явно привязанные.</p></div>
+            <div class="cc-form-actions"><button type="submit" class="btn btn-primary btn-sm">Сохранить места</button></div>
+        </form>
+    </div>
+</section>
