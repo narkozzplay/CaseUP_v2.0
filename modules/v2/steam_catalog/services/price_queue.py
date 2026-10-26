@@ -197,13 +197,11 @@ def _warm_filter(now) -> Q:
     return Q(last_viewed_at__gte=viewed_since) | Q(Exists(moved))
 
 
-def _stale(cutoff, empty_cutoff=None) -> Q:
-    """Never checked, or checked before ``cutoff``; items without a Steam price only before ``empty_cutoff``."""
-    if empty_cutoff is None:
-        return Q(price_checked_at__isnull=True) | Q(price_checked_at__lt=cutoff)
-    priced = Q(price_rub__isnull=False, price_checked_at__lt=cutoff)
-    empty = Q(price_rub__isnull=True, price_checked_at__lt=empty_cutoff)
-    return Q(price_checked_at__isnull=True) | priced | empty
+def _stale(cutoff, empty_cutoff) -> Q:
+    """Never checked, or checked before ``cutoff``; items Steam had no price for only before ``empty_cutoff``."""
+    listed = Q(price_missing=False, price_checked_at__lt=cutoff)
+    missing = Q(price_missing=True, price_checked_at__lt=empty_cutoff)
+    return Q(price_checked_at__isnull=True) | listed | missing
 
 
 def pick_batch(*, category: str, limit: int, now=None) -> list[SteamItem]:
@@ -219,7 +217,7 @@ def pick_batch(*, category: str, limit: int, now=None) -> list[SteamItem]:
     warm_filter = _warm_filter(now)
 
     tiers = (
-        base.filter(hot_filter).filter(_stale(hot_cutoff)),
+        base.filter(hot_filter).filter(_stale(hot_cutoff, empty_cutoff)),
         base.exclude(hot_filter).filter(warm_filter).filter(_stale(warm_cutoff, empty_cutoff)),
         base.exclude(hot_filter).exclude(warm_filter).filter(_stale(cold_cutoff, empty_cutoff)),
     )
@@ -275,6 +273,7 @@ def refresh_batch(*, category: str, limit: int, source: str = "queue", deadline:
             break
         try:
             price = fetch_price(route, item.market_hash_name)
+            answered = True
         except urllib.error.HTTPError as exc:
             if exc.code == 429:
                 minutes = int(_setting("STEAM_PRICE_BACKOFF_MINUTES", 15))
@@ -285,17 +284,20 @@ def refresh_batch(*, category: str, limit: int, source: str = "queue", deadline:
                 _pause_route(route, RELAY_ERROR_PAUSE_MINUTES)
                 result.errors.append(f"Хостинг-ретранслятор ответил HTTP {exc.code}, пауза {RELAY_ERROR_PAUSE_MINUTES} мин. Проверьте скрипт и ключ.")
                 continue
-            price = None
+            price, answered = None, False
             result.errors.append(f"{item.market_hash_name}: HTTP {exc.code}")
         except Exception as exc:  # noqa: BLE001 - network hiccups must not stop the queue
             if route != DIRECT:
                 _pause_route(route, RELAY_ERROR_PAUSE_MINUTES)
                 result.errors.append(f"Хостинг-ретранслятор недоступен ({exc}), пауза {RELAY_ERROR_PAUSE_MINUTES} мин.")
                 continue
-            price = None
+            price, answered = None, False
             result.errors.append(f"{item.market_hash_name}: {exc}")
 
         fields = {"price_checked_at": timezone.now()}
+        if answered:
+            # Only a real answer without a price puts the item on the weekly cadence, not a failed request.
+            fields["price_missing"] = price is None
         if price is not None:
             result.checked += 1
             if item.price_rub != price:

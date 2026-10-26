@@ -128,11 +128,31 @@ class TierTests(TestCase):
         self.assertEqual([item.pk for item in batch], [starred.pk, other_wear.pk, moved.pk, viewed.pk, cold.pk])
 
     def test_items_without_a_price_wait_a_week(self):
-        empty = make_item("Empty | Recent", checked_hours_ago=48)
+        make_item("Empty | Recent", checked_hours_ago=48)
+        make_item("Empty | Hot", checked_hours_ago=3, stock=1)
         empty_old = make_item("Empty | Old", checked_hours_ago=24 * 8)
+        failed = make_item("Failed | Lookup", checked_hours_ago=30)  # the last request failed: daily cadence
+        SteamItem.objects.exclude(pk=failed.pk).update(price_missing=True)
         batch = price_queue.pick_batch(category=SteamItem.ItemType.SKIN, limit=10)
-        self.assertEqual([item.pk for item in batch], [empty_old.pk])
-        self.assertNotIn(empty.pk, [item.pk for item in batch])
+        self.assertEqual([item.pk for item in batch], [empty_old.pk, failed.pk])
+
+    @mock.patch(PRICE_FETCH)
+    def test_only_a_real_answer_marks_the_price_missing(self, fetch_mock):
+        item = make_item("Flaky | Item")
+        fetch_mock.side_effect = OSError("timeout")
+        price_queue.refresh_batch(category=SteamItem.ItemType.SKIN, limit=1)
+        item.refresh_from_db()
+        self.assertFalse(item.price_missing)
+        SteamItem.objects.filter(pk=item.pk).update(price_checked_at=None)
+        fetch_mock.side_effect, fetch_mock.return_value = None, None
+        price_queue.refresh_batch(category=SteamItem.ItemType.SKIN, limit=1)
+        item.refresh_from_db()
+        self.assertTrue(item.price_missing)
+        SteamItem.objects.filter(pk=item.pk).update(price_checked_at=None)
+        fetch_mock.return_value = Decimal("4.00")
+        price_queue.refresh_batch(category=SteamItem.ItemType.SKIN, limit=1)
+        item.refresh_from_db()
+        self.assertFalse(item.price_missing)
 
     def test_views_of_people_make_the_item_warm_and_robots_do_not(self):
         item = make_item("Seen | Item")
