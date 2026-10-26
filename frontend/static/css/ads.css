@@ -125,3 +125,18 @@
 .ad-slot--own {
     border-style: solid;
 }
+
+/* An animated banner shows its still picture instead when the visitor asked the system for less motion. */
+.ad-house__poster {
+    display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ad-house__video {
+        display: none;
+    }
+
+    .ad-house__poster {
+        display: block;
+    }
+}

@@ -36,7 +36,7 @@ class HouseBannerAdmin(admin.ModelAdmin):
     readonly_fields = ("impressions", "clicks", "created_at", "updated_at")
     fieldsets = (
         (None, {"fields": ("name", "is_enabled")}),
-        ("Баннер", {"fields": ("title", "text", "image", "url", "button")}),
+        ("Баннер", {"fields": ("title", "text", "image", "video", "url", "button")}),
         ("Где и кому", {"fields": ("placements", "audience", "show_to_ad_free", "weight", "starts_at", "ends_at")}),
         ("Статистика", {"fields": ("impressions", "clicks", "created_at", "updated_at")}),
     )

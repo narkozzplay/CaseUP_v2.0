@@ -27,6 +27,7 @@
             {% include "control_center/partials/_promo_field.html" with f=form.button hint="Пусто — без кнопки." %}
             <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.text %}</div>
             <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.image hint="Необязательно. Широкая картинка до 120 px в высоту смотрится лучше всего." %}</div>
+            <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.video %}</div>
         </div>
 
         <div class="ops-panel__head"><h2 class="ops-panel__title">Где и кому</h2></div>
@@ -59,7 +60,7 @@
                 <aside class="ad-slot ad-slot--preview" aria-label="Предпросмотр">
                     <span class="ad-slot__label">Реклама</span>
                     <span class="ad-house{% if banner.image %} ad-house--image{% endif %}">
-                        {% if banner.image %}<img class="ad-house__image" src="{{ banner.image.url }}" alt="{{ banner.title }}">{% endif %}
+                        {% include "ads/_banner_media.html" %}
                         {% if banner.title or banner.text %}<span class="ad-house__copy">{% if banner.title %}<strong class="ad-house__title">{{ banner.title }}</strong>{% endif %}{% if banner.text %}<span class="ad-house__text">{{ banner.text }}</span>{% endif %}</span>{% endif %}
                         {% if banner.button %}<span class="btn btn-primary btn-sm ad-house__button">{{ banner.button }}</span>{% endif %}
                     </span>

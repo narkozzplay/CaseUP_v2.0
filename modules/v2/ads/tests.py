@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.template import Context, Template
 from django.test import RequestFactory, TestCase
 from django.utils import timezone
@@ -268,3 +269,48 @@ class PromoImageTests(TestCase):
             banner = HouseBanner.objects.get(url=url)
             self.assertIn(f"promo_{name}", banner.image.name)
             banner.image.delete(save=False)
+
+
+class BannerVideoTests(TestCase):
+    def setUp(self):
+        drop_banner_cache()
+        self.user = User.objects.create_user(username="video_user", password="x")
+        HouseBanner.objects.exclude(url="/donate/").update(is_enabled=False)
+        drop_banner_cache()
+        self.banner = HouseBanner.objects.get(url="/donate/")
+
+    def tearDown(self):
+        self.banner.refresh_from_db()
+        if self.banner.video:
+            self.banner.video.delete(save=False)
+        if self.banner.image:
+            self.banner.image.delete(save=False)
+
+    def _render(self):
+        request = RequestFactory().get("/")
+        request.user = self.user
+        return Template('{% ad_slot "catalog_top" %}').render(Context({"request": request}))
+
+    def test_video_loops_muted_with_picture_as_poster(self):
+        self.banner.video.save("loop.mp4", ContentFile(b"\\x00\\x00\\x00\\x18ftypmp42"), save=True)
+        html = self._render()
+        self.assertIn("<video", html)
+        for attr in ("autoplay", "muted", "loop", "playsinline"):
+            self.assertIn(attr, html)
+        self.assertIn(f'poster="{self.banner.image.url}"', html)
+        self.assertIn('type="video/mp4"', html)
+        self.assertIn("ad-house__poster", html)
+
+    def test_banner_without_video_stays_a_picture(self):
+        self.assertNotIn("<video", self._render())
+
+    def test_video_needs_a_picture_and_a_known_format(self):
+        banner = HouseBanner(name="v", title="v", url="/donate/")
+        banner.video.name = "ads/video/loop.mp4"
+        with self.assertRaises(ValidationError) as ctx:
+            banner.full_clean()
+        self.assertIn("image", ctx.exception.message_dict)
+        banner.video.name = "ads/video/loop.gif"
+        with self.assertRaises(ValidationError) as ctx:
+            banner.full_clean()
+        self.assertIn("video", ctx.exception.message_dict)

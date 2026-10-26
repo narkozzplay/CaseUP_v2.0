@@ -1,0 +1,8 @@
+{% if banner.image %}
+    {% if banner.video %}
+        <video class="ad-house__image ad-house__video" autoplay muted loop playsinline preload="auto" poster="{{ banner.image.url }}" aria-label="{{ banner.title }}"><source src="{{ banner.video.url }}" type="{{ banner.video_type }}"></video>
+        <img class="ad-house__image ad-house__poster" src="{{ banner.image.url }}" alt="{{ banner.title }}" loading="lazy">
+    {% else %}
+        <img class="ad-house__image" src="{{ banner.image.url }}" alt="{{ banner.title }}" loading="lazy">
+    {% endif %}
+{% endif %}
