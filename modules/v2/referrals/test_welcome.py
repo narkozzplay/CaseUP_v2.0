@@ -157,6 +157,12 @@ class AbuseTests(WelcomeBonusTestCase):
         self.assertEqual(self.bonus(friend).status, DENIED)
         self.assertIsNone(get_active_subscription(self.referrer))
 
+    def test_old_shared_ip_is_ignored(self):
+        old = timezone.now() - timedelta(days=60)
+        UserIp.objects.create(user=self.referrer, ip="95.24.10.11", first_seen=old, last_seen=old)
+        friend = self.steam_invite("friend", ip="95.24.10.11")
+        self.assertEqual(self.bonus(friend).status, GRANTED)
+
     def test_crowded_ip_is_not_treated_as_shared(self):
         for index in range(9):
             UserIp.objects.create(user=make_user(f"mobile{index}"), ip="95.24.10.7")

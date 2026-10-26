@@ -149,7 +149,7 @@ def _verdict(referral: Referral, *, ip_address: str | None) -> tuple[str, str]:
 
 def _antifraud_reason(referral: Referral, *, ip_address: str | None) -> tuple[str, str] | None:
     from modules.v2.antifraud.models import MultiAccountCase, MultiAccountMember, UserIp
-    from modules.v2.antifraud.services import is_public_ip, shared_ip_limit
+    from modules.v2.antifraud.services import is_public_ip, shared_ip_limit, window_days
 
     pair = (referral.referrer_id, referral.referee_id)
     if MultiAccountMember.objects.filter(user_id__in=pair, case__status=MultiAccountCase.Status.ABUSE).exists():
@@ -158,13 +158,15 @@ def _antifraud_reason(referral: Referral, *, ip_address: str | None) -> tuple[st
     if referrer_cases and MultiAccountMember.objects.filter(user_id=referral.referee_id, case_id__in=referrer_cases).exists():
         return HELD, "Аккаунты в одной группе мульти-аккаунтов"
 
-    referee_ips = set(UserIp.objects.filter(user_id=referral.referee_id).values_list("ip", flat=True))
+    # The same window as the multi-account detection: an address used long ago proves nothing.
+    recent = UserIp.objects.filter(last_seen__gte=timezone.now() - timedelta(days=window_days()))
+    referee_ips = set(recent.filter(user_id=referral.referee_id).values_list("ip", flat=True))
     referee_ips.update(ip for ip in (ip_address, referral.ip_address) if is_public_ip(ip))
     if not referee_ips:
         return None
-    common = set(UserIp.objects.filter(user_id=referral.referrer_id, ip__in=referee_ips).values_list("ip", flat=True))
+    common = set(recent.filter(user_id=referral.referrer_id, ip__in=referee_ips).values_list("ip", flat=True))
     # An address used by many accounts is a mobile operator or an office NAT, not proof of a multi-account.
-    common = {ip for ip in common if UserIp.objects.filter(ip=ip).count() <= shared_ip_limit()}
+    common = {ip for ip in common if recent.filter(ip=ip).count() <= shared_ip_limit()}
     if common:
         return HELD, "Общий IP с пригласившим: " + ", ".join(sorted(common)[:3])
     return None
