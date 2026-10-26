@@ -16,7 +16,7 @@ from django.utils import timezone
 
 from modules.v2.profiles.models import UserProfile, UserRole
 
-from .models import CS2ReferenceItem, SteamItem, SteamItemPriceHistory
+from .models import CS2ReferenceItem, SteamItem, SteamItemFavorite, SteamItemPriceHistory
 from .services import bulk_import, price_queue
 
 PRICE_FETCH = "modules.v2.steam_catalog.services.fetch_price_rub_from_steam"
@@ -37,6 +37,7 @@ class QueueTests(TestCase):
         hot = make_item("Hot | Item", stock=2, checked_hours_ago=3)
         never = make_item("Never | Checked")
         old = make_item("Old | Item", checked_hours_ago=30)
+        SteamItem.objects.filter(pk=old.pk).update(price_rub=Decimal("2.00"))
         make_item("Fresh | Item", checked_hours_ago=1)
         make_item("Hot | Fresh", stock=1, checked_hours_ago=1)
         batch = price_queue.pick_batch(category=SteamItem.ItemType.SKIN, limit=10)
@@ -99,6 +100,83 @@ class QueueTests(TestCase):
         second.refresh_from_db()
         self.assertEqual(first.price_rub, Decimal("5.00"))
         self.assertIsNone(second.price_checked_at)  # left for the next run instead of being marked checked
+
+
+class TierTests(TestCase):
+    def setUp(self):
+        cache.clear()
+
+    def test_hot_then_warm_then_cold(self):
+        user = get_user_model().objects.create_user(username="fav_user", password="x")
+        cold = make_item("Cold | Item", checked_hours_ago=30)
+        SteamItem.objects.filter(pk=cold.pk).update(price_rub=Decimal("1.00"))
+        viewed = make_item("Viewed | Item", checked_hours_ago=7)
+        SteamItem.objects.filter(pk=viewed.pk).update(price_rub=Decimal("1.00"), last_viewed_at=timezone.now() - timedelta(days=1))
+        moved = make_item("Moved | Item", checked_hours_ago=8)
+        SteamItem.objects.filter(pk=moved.pk).update(price_rub=Decimal("1.00"))
+        SteamItemPriceHistory.objects.create(item=moved, price_rub=Decimal("1.00"))
+        starred = SteamItem.objects.create(market_hash_name="Star | Item (Field-Tested)", family_name="Star | Item", item_type=SteamItem.ItemType.SKIN)
+        SteamItem.objects.filter(pk=starred.pk).update(price_checked_at=timezone.now() - timedelta(hours=3))
+        other_wear = make_item("Star | Item (Minimal Wear)", checked_hours_ago=3)
+        SteamItem.objects.filter(pk=other_wear.pk).update(family_name="Star | Item")
+        SteamItemFavorite.objects.create(user=user, family_key="Star | Item", item=starred)
+        make_item("Warm | Fresh", checked_hours_ago=2)  # viewed, but checked recently: not due
+        SteamItem.objects.filter(market_hash_name="Warm | Fresh").update(last_viewed_at=timezone.now())
+        make_item("Cold | Fresh", checked_hours_ago=10)
+
+        batch = price_queue.pick_batch(category=SteamItem.ItemType.SKIN, limit=10)
+        self.assertEqual([item.pk for item in batch], [starred.pk, other_wear.pk, moved.pk, viewed.pk, cold.pk])
+
+    def test_items_without_a_price_wait_a_week(self):
+        empty = make_item("Empty | Recent", checked_hours_ago=48)
+        empty_old = make_item("Empty | Old", checked_hours_ago=24 * 8)
+        batch = price_queue.pick_batch(category=SteamItem.ItemType.SKIN, limit=10)
+        self.assertEqual([item.pk for item in batch], [empty_old.pk])
+        self.assertNotIn(empty.pk, [item.pk for item in batch])
+
+    def test_views_of_people_make_the_item_warm_and_robots_do_not(self):
+        item = make_item("Seen | Item")
+        robot = mock.Mock(META={"HTTP_USER_AGENT": "Mozilla/5.0 (compatible; YandexBot/3.0; +http://yandex.com/bots)"})
+        price_queue.note_item_view(robot, item)
+        item.refresh_from_db()
+        self.assertIsNone(item.last_viewed_at)
+        person = mock.Mock(META={"HTTP_USER_AGENT": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0 Safari/537.36"})
+        price_queue.note_item_view(person, item)
+        item.refresh_from_db()
+        self.assertIsNotNone(item.last_viewed_at)
+        first = item.last_viewed_at
+        price_queue.note_item_view(person, item)  # throttled: one write an hour
+        item.refresh_from_db()
+        self.assertEqual(item.last_viewed_at, first)
+
+
+class BudgetTests(TestCase):
+    def setUp(self):
+        cache.clear()
+
+    @override_settings(STEAM_PRICE_HOURLY_BUDGET=2, STEAM_PRICE_REQUEST_INTERVAL=0)
+    @mock.patch(PRICE_FETCH, return_value=Decimal("3.00"))
+    def test_hourly_budget_stops_the_batch(self, fetch_mock):
+        for index in range(4):
+            make_item(f"Budget | {index}")
+        result = price_queue.refresh_batch(category=SteamItem.ItemType.SKIN, limit=10)
+        self.assertEqual(fetch_mock.call_count, 2)
+        self.assertTrue(result.out_of_budget)
+        self.assertFalse(result.rate_limited)
+        self.assertEqual(price_queue.spent_this_hour(price_queue.DIRECT), 2)
+
+        again = price_queue.refresh_batch(category=SteamItem.ItemType.SKIN, limit=10)
+        self.assertTrue(again.out_of_budget)
+        self.assertEqual(fetch_mock.call_count, 2)
+        self.assertEqual(price_queue.coverage()["routes"][0]["spent"], 2)
+
+    @override_settings(STEAM_PRICE_HOURLY_BUDGET=0, STEAM_PRICE_REQUEST_INTERVAL=0)
+    @mock.patch(PRICE_FETCH, return_value=Decimal("3.00"))
+    def test_zero_budget_means_no_hourly_limit(self, fetch_mock):
+        for index in range(3):
+            make_item(f"Free | {index}")
+        result = price_queue.refresh_batch(category=SteamItem.ItemType.SKIN, limit=10)
+        self.assertEqual((fetch_mock.call_count, result.out_of_budget), (3, False))
 
 
 class BulkImportTests(TestCase):

@@ -48,6 +48,7 @@ from .forms import AddSteamItemForm, SteamItemNameRuForm, StockMovementCreateFor
 from .models import CS2ReferenceItem, SteamItem, UserPriceAlertEvent, UserPriceAlertRule
 from .services.bulk_import import read_status as read_bulk_import_status, write_status as write_bulk_import_status
 from .services import MarketSearchError, refresh_item_prices, search_market_items, upsert_from_market_input
+from .services import price_queue
 from .services.helpers import canonical_listing_url, rarity_ru_label_from_key
 from .services.reference import catalog_ids_for_reference, fill_catalog_from_reference
 from . import seo
@@ -842,6 +843,7 @@ def catalog_detail(request, item_id: int, slug: str | None = None):
         if request.GET:
             target = f"{target}?{request.GET.urlencode()}"
         return redirect(target, permanent=True)
+    price_queue.note_item_view(request, item)
 
     family_items = (
         SteamItem.objects

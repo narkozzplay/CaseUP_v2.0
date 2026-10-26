@@ -6,7 +6,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -316,3 +316,34 @@ class AutoPriceFormTests(TestCase):
         self.assertIn(SteamItem.ItemType.CASE, own)
         labels = dict(PriceAutoUpdateRuleForm().fields["category"].choices)
         self.assertEqual(labels[SteamItem.ItemType.SKIN], "Скины")
+
+
+class PriceSchedulerPaceTests(TestCase):
+    def test_every_category_has_a_rule(self):
+        self.assertEqual(
+            set(PriceAutoUpdateRule.objects.values_list("category", flat=True)),
+            {code for code, _label in SteamItem.ItemType.choices},
+        )
+
+    @override_settings(CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS=300, CELERY_TASK_SOFT_TIME_LIMIT=900)
+    @patch("modules.v2.celery_tasks.services.run_price_auto_update_rule")
+    def test_beat_run_ends_before_the_next_one(self, run_rule_mock):
+        PriceAutoUpdateRule.objects.update(next_run_at=None, is_enabled=False)
+        PriceAutoUpdateRule.objects.filter(category=SteamItem.ItemType.SKIN).update(is_enabled=True, next_run_at=timezone.now())
+        start = time.monotonic()
+        run_due_rules(triggered_by="beat")
+        self.assertLessEqual(run_rule_mock.call_args.kwargs["deadline"] - start, 300)
+
+    @patch("modules.v2.celery_tasks.tasks.run_due_rules", return_value=[])
+    def test_a_busy_run_is_not_joined_by_a_second_one(self, run_mock):
+        from django.core.cache import cache
+
+        from .tasks import PRICE_RUN_LOCK_KEY, run_due_price_auto_updates_task
+
+        cache.set(PRICE_RUN_LOCK_KEY, 1, 60)
+        self.assertEqual(run_due_price_auto_updates_task(), [])
+        run_mock.assert_not_called()
+        cache.delete(PRICE_RUN_LOCK_KEY)
+        run_due_price_auto_updates_task()
+        run_mock.assert_called_once()
+        self.assertIsNone(cache.get(PRICE_RUN_LOCK_KEY))

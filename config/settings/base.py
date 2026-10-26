@@ -336,8 +336,10 @@ GAME_SERVER_STATUS_CACHE_TTL_SECONDS = int(os.getenv("GAME_SERVER_STATUS_CACHE_T
 CELERY_TASK_TIME_LIMIT = int(os.getenv("CELERY_TASK_TIME_LIMIT", "1200"))
 CELERY_TASK_SOFT_TIME_LIMIT = int(os.getenv("CELERY_TASK_SOFT_TIME_LIMIT", "900"))
 CELERY_RULE_RUNNING_STALE_SECONDS = int(os.getenv("CELERY_RULE_RUNNING_STALE_SECONDS", "3600"))
-CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS = int(
-    os.getenv("CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS", "3600")
+# How often beat looks for due price rules. The rules have their own 5–60 min intervals, so a slower check only
+# makes them late: capped at 5 minutes (an old .env with 3600 used to turn every rule into an hourly one).
+CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS = min(
+    int(os.getenv("CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS", "300")), 300
 )
 
 STEAM_CATALOG_GRID_COLUMNS = int(os.getenv("STEAM_CATALOG_GRID_COLUMNS", "7"))
@@ -432,6 +434,14 @@ STEAM_PRICE_HOT_MINUTES = int(os.getenv("STEAM_PRICE_HOT_MINUTES", "120"))
 STEAM_PRICE_COLD_HOURS = int(os.getenv("STEAM_PRICE_COLD_HOURS", "24"))
 STEAM_PRICE_BATCH_MAX = int(os.getenv("STEAM_PRICE_BATCH_MAX", "60"))
 STEAM_PRICE_BACKOFF_MINUTES = int(os.getenv("STEAM_PRICE_BACKOFF_MINUTES", "15"))
+# At most this many Steam requests per hour per IP (route), kept below Steam's limit; 0 = only the pace above.
+STEAM_PRICE_HOURLY_BUDGET = int(os.getenv("STEAM_PRICE_HOURLY_BUDGET", "900"))
+# «Warm» items (page viewed within WARM_VIEW_DAYS or price moved within WARM_MOVED_HOURS) every WARM_HOURS.
+STEAM_PRICE_WARM_HOURS = int(os.getenv("STEAM_PRICE_WARM_HOURS", "6"))
+STEAM_PRICE_WARM_VIEW_DAYS = int(os.getenv("STEAM_PRICE_WARM_VIEW_DAYS", "7"))
+STEAM_PRICE_WARM_MOVED_HOURS = int(os.getenv("STEAM_PRICE_WARM_MOVED_HOURS", "48"))
+# Items Steam has no price for are asked again only after this many days.
+STEAM_PRICE_EMPTY_DAYS = int(os.getenv("STEAM_PRICE_EMPTY_DAYS", "7"))
 STEAM_PRICE_RELAY_URLS = get_env_list("STEAM_PRICE_RELAY_URLS", "")
 STEAM_PRICE_RELAY_TOKEN = os.getenv("STEAM_PRICE_RELAY_TOKEN", "").strip()
 

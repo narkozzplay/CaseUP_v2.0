@@ -4,7 +4,9 @@ import logging
 import time
 
 from celery import shared_task
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db import OperationalError, ProgrammingError
 from django.db.models import Q
 from django.utils import timezone
@@ -18,6 +20,8 @@ from .services import run_due_rules, run_price_auto_update_rule, task_deadline
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+
+PRICE_RUN_LOCK_KEY = "celery_tasks:price_auto_updates:running"
 
 # Max users to process per single task run (rate-limit safety)
 _CS2_BATCH_SIZE = 50
@@ -43,7 +47,15 @@ def run_price_auto_update_rule_task(rule_id: int, triggered_by: str = "manual") 
 
 @shared_task(name="celery_tasks.run_due_price_auto_updates")
 def run_due_price_auto_updates_task() -> list[dict]:
-    summaries = run_due_rules(triggered_by="beat")
+    # A run still busy (slow alert detection, a stuck worker) is not joined by a second one: they would share the
+    # same Steam slots anyway and only mark each other's rules as «previous run is still active».
+    lock_seconds = int(getattr(settings, "CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS", 300) or 300)
+    if not cache.add(PRICE_RUN_LOCK_KEY, 1, timeout=lock_seconds):
+        return []
+    try:
+        summaries = run_due_rules(triggered_by="beat")
+    finally:
+        cache.delete(PRICE_RUN_LOCK_KEY)
     return [
         {
             "rule_id": summary.rule_id,
