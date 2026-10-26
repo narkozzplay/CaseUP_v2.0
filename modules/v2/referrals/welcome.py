@@ -166,7 +166,8 @@ def _antifraud_reason(referral: Referral, *, ip_address: str | None) -> tuple[st
         return None
     common = set(recent.filter(user_id=referral.referrer_id, ip__in=referee_ips).values_list("ip", flat=True))
     # An address used by many accounts is a mobile operator or an office NAT, not proof of a multi-account.
-    common = {ip for ip in common if recent.filter(ip=ip).count() <= shared_ip_limit()}
+    # The invited account counts too, even on its first sign-in when its own row is not recorded yet.
+    common = {ip for ip in common if recent.filter(ip=ip).exclude(user_id=referral.referee_id).count() + 1 <= shared_ip_limit()}
     if common:
         return HELD, "Общий IP с пригласившим: " + ", ".join(sorted(common)[:3])
     return None

@@ -164,7 +164,8 @@ class AbuseTests(WelcomeBonusTestCase):
         self.assertEqual(self.bonus(friend).status, GRANTED)
 
     def test_crowded_ip_is_not_treated_as_shared(self):
-        for index in range(9):
+        # 7 others + the inviter = 8 recorded accounts; the friend signing in is the 9th, over the limit of 8.
+        for index in range(7):
             UserIp.objects.create(user=make_user(f"mobile{index}"), ip="95.24.10.7")
         UserIp.objects.create(user=self.referrer, ip="95.24.10.7")
         friend = self.steam_invite("mobile_friend", ip="95.24.10.7")
