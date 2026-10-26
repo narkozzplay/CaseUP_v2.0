@@ -111,8 +111,11 @@ def _reserve(route: str) -> bool:
 
 def count_manual_request() -> None:
     """A staff «refresh price» goes out from the server too: it is counted so the queue leaves room for it,
-    but never refused."""
-    _reserve(DIRECT)
+    but never refused, and a cache outage only skips the counting."""
+    try:
+        _reserve(DIRECT)
+    except Exception:  # noqa: BLE001
+        logger.warning("Manual price request not counted: cache unavailable", exc_info=True)
 
 
 def budget_exhausted() -> bool:
