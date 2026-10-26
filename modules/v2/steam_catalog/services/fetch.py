@@ -246,7 +246,10 @@ def refresh_item_prices(
 
     fetched_prices: list[tuple[int, Decimal]] = []
 
+    from .price_queue import count_manual_request
+
     for target in targets:
+        count_manual_request()
         try:
             price_rub = _services_pkg().fetch_price_rub_from_steam(
                 market_hash_name=target.market_hash_name,
@@ -270,8 +273,11 @@ def refresh_item_prices(
 
             if locked_item.price_rub != price_rub:
                 locked_item.price_rub = price_rub
-                locked_item.save(update_fields=["price_rub", "updated_at"])
                 updated_count += 1
+            # A fresh price counts as a price-queue check too: the item is listed again and not due for a while.
+            locked_item.price_missing = False
+            locked_item.price_checked_at = last_synced_at
+            locked_item.save(update_fields=["price_rub", "price_missing", "price_checked_at", "updated_at"])
 
             history_entry = record_price_snapshot(item=locked_item, price_rub=price_rub, source=source)
             if history_entry is not None:

@@ -52,6 +52,10 @@ class SteamItem(models.Model):
     created_from_scan = models.BooleanField(default=False)
     # Last time the price queue asked Steam about this item (with or without a price in the answer).
     price_checked_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    # Last time a person (not a search robot) opened the item page, at most once an hour: «warm» items in the price queue.
+    last_viewed_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    # Steam answered without a price on the last check: asked again only after STEAM_PRICE_EMPTY_DAYS.
+    price_missing = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

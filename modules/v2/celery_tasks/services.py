@@ -37,10 +37,18 @@ class RuleRunSummary:
     errors_count: int
 
 
-def task_deadline() -> float:
-    """``time.monotonic()`` moment by which price requests must stop so the Celery soft time limit is never hit."""
-    soft_limit = int(getattr(settings, "CELERY_TASK_SOFT_TIME_LIMIT", 900) or 900)
-    return time.monotonic() + max(soft_limit - TASK_TIME_RESERVE_SECONDS, 30)
+def task_deadline(max_seconds: float | None = None) -> float:
+    """``time.monotonic()`` moment by which price requests must stop so the Celery soft time limit is never hit.
+    ``max_seconds`` shortens it further, e.g. to the beat interval so the next scheduled run never overlaps."""
+    seconds = int(getattr(settings, "CELERY_TASK_SOFT_TIME_LIMIT", 900) or 900)
+    if max_seconds is not None:
+        seconds = min(seconds, max_seconds)
+    return time.monotonic() + max(seconds - TASK_TIME_RESERVE_SECONDS, 30)
+
+
+def scheduler_deadline() -> float:
+    """Beat runs finish before the next one starts, so the Steam requests are spread evenly over the hour."""
+    return task_deadline(max_seconds=float(getattr(settings, "CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS", 300) or 300))
 
 
 def _get_running_state_stale_after() -> timedelta:
@@ -77,12 +85,23 @@ def clear_rule_schedule(rule: PriceAutoUpdateRule) -> None:
     rule.save(update_fields=["next_run_at", "last_status", "updated_at"])
 
 
+def _due_grace() -> timedelta:
+    """An interval rule that comes due before the next beat tick runs on this one. Its next run is counted from when the
+    previous one finished, so otherwise a 5-minute rule would keep missing the 5-minute tick and run every 10."""
+    return timedelta(seconds=float(getattr(settings, "CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS", 300) or 300))
+
+
 def get_due_rules(*, now=None):
     now = now or timezone.now()
     return (
         PriceAutoUpdateRule.objects
         .filter(is_enabled=True)
-        .filter(Q(next_run_at__isnull=True) | Q(next_run_at__lte=now))
+        .filter(
+            Q(next_run_at__isnull=True)
+            | Q(next_run_at__lte=now)
+            # Only interval rules may start early; an hourly rule keeps its exact minute.
+            | Q(schedule_mode=PriceAutoUpdateRule.ScheduleMode.INTERVAL, next_run_at__lte=now + _due_grace())
+        )
         .order_by("next_run_at", "category")
     )
 
@@ -333,7 +352,7 @@ def run_due_rules(*, triggered_by: str = "beat", deadline: float | None = None) 
     """Runs the due rules one after another within one task. The remaining time is shared evenly between the
     rules still waiting, so a slow category cannot eat the time of the others, and one failing rule does not stop
     the rest."""
-    deadline = deadline if deadline is not None else task_deadline()
+    deadline = deadline if deadline is not None else scheduler_deadline()
     summaries: list[RuleRunSummary] = []
     rule_ids = list(get_due_rules().values_list("id", flat=True))
 

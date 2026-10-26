@@ -19,9 +19,15 @@
         <div class="ops-panel__head"><h2 class="ops-panel__title">Умная очередь цен</h2><span class="ops-panel__hint">{{ queue.percent }}% каталога обновлено за сутки</span></div>
         <div class="ref-body">
             <div class="ref-meter" title="{{ queue.fresh }} из {{ queue.total }}"><span style="width: {{ queue.percent }}%;"></span></div>
-            <p class="ref-text">Каждый запуск правила берёт небольшую порцию самых давно обновлённых предметов: сначала те, что реально используются ({{ queue.hot }} — склад, портфели, ферма, алерты), их цены обновляются каждые пару часов; остальные — по кругу, примерно раз в сутки. Ещё ни разу не проверено: {{ queue.never }} из {{ queue.total }}.</p>
-            <p class="ref-text">Каналы к Steam:
-                {% for route in queue.routes %}<span class="cc-chip {% if route.paused_until %}cc-chip--warn{% else %}cc-chip--ok{% endif %}">{{ route.label }}{% if route.paused_until %} · пауза до {{ route.paused_until|date:"H:i" }}{% endif %}</span> {% endfor %}
+            <p class="ref-text">Каждые 5 минут правила берут небольшую порцию самых давно обновлённых предметов по трём уровням:</p>
+            <ul class="ref-text">
+                <li>горячие — склад, портфели, ферма, сделки, алерты, избранное: раз в {{ queue.hot_minutes }} мин, свежих {{ queue.hot_tier.fresh }} из {{ queue.hot_tier.total }} ({{ queue.hot_tier.percent }}%);</li>
+                <li>тёплые — страницу открывали за неделю или цена недавно менялась: раз в {{ queue.warm_hours }} ч, свежих {{ queue.warm_tier.fresh }} из {{ queue.warm_tier.total }} ({{ queue.warm_tier.percent }}%);</li>
+                <li>остальные — по кругу, раз в {{ queue.cold_hours }} ч; предметы без цены в Steam — раз в неделю.</li>
+            </ul>
+            <p class="ref-text">Ещё ни разу не проверено: {{ queue.never }} из {{ queue.total }}.</p>
+            <p class="ref-text">Каналы к Steam{% if queue.budget %} (лимит {{ queue.budget }} запросов в час на канал){% endif %}:
+                {% for route in queue.routes %}<span class="cc-chip {% if route.paused_until %}cc-chip--warn{% else %}cc-chip--ok{% endif %}">{{ route.label }} · {{ route.spent }} за час{% if route.paused_until %} · пауза до {{ route.paused_until|date:"H:i" }}{% endif %}</span> {% endfor %}
             </p>
         </div>
     </article>
