@@ -24,6 +24,9 @@ logger = logging.getLogger(__name__)
 
 # Left unused at the end of a task: finishing the rule, alert detection and logs after the last request.
 TASK_TIME_RESERVE_SECONDS = 60
+# A rule due a little after a beat tick runs on that tick: its next run is counted from when the previous one
+# finished, so without this a 5-minute rule would always miss the 5-minute tick and run every 10 minutes.
+DUE_GRACE_SECONDS = 90
 
 
 @dataclass(frozen=True)
@@ -90,7 +93,7 @@ def get_due_rules(*, now=None):
     return (
         PriceAutoUpdateRule.objects
         .filter(is_enabled=True)
-        .filter(Q(next_run_at__isnull=True) | Q(next_run_at__lte=now))
+        .filter(Q(next_run_at__isnull=True) | Q(next_run_at__lte=now + timedelta(seconds=DUE_GRACE_SECONDS)))
         .order_by("next_run_at", "category")
     )
 

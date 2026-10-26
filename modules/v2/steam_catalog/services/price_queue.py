@@ -295,9 +295,9 @@ def refresh_batch(*, category: str, limit: int, source: str = "queue", deadline:
             result.errors.append(f"{item.market_hash_name}: {exc}")
 
         fields = {"price_checked_at": timezone.now()}
-        if answered:
-            # Only a real answer without a price puts the item on the weekly cadence, not a failed request.
-            fields["price_missing"] = price is None
+        # Only a real answer without a price puts the item on the weekly cadence; a failed request keeps it on the
+        # normal one, even when Steam had no price for it last time.
+        fields["price_missing"] = answered and price is None
         if price is not None:
             result.checked += 1
             if item.price_rub != price:

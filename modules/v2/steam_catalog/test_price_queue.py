@@ -149,6 +149,12 @@ class TierTests(TestCase):
         item.refresh_from_db()
         self.assertTrue(item.price_missing)
         SteamItem.objects.filter(pk=item.pk).update(price_checked_at=None)
+        fetch_mock.side_effect = OSError("timeout")  # a failure after an empty answer: back to the daily cadence
+        price_queue.refresh_batch(category=SteamItem.ItemType.SKIN, limit=1)
+        item.refresh_from_db()
+        self.assertFalse(item.price_missing)
+        SteamItem.objects.filter(pk=item.pk).update(price_checked_at=None)
+        fetch_mock.side_effect = None
         fetch_mock.return_value = Decimal("4.00")
         price_queue.refresh_batch(category=SteamItem.ItemType.SKIN, limit=1)
         item.refresh_from_db()

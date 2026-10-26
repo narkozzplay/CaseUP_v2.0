@@ -347,3 +347,10 @@ class PriceSchedulerPaceTests(TestCase):
         run_due_price_auto_updates_task()
         run_mock.assert_called_once()
         self.assertIsNone(cache.get(PRICE_RUN_LOCK_KEY))
+
+    def test_a_rule_due_just_after_the_tick_runs_on_it(self):
+        from .services import get_due_rules
+
+        PriceAutoUpdateRule.objects.update(is_enabled=True, next_run_at=timezone.now() + timedelta(hours=1))
+        PriceAutoUpdateRule.objects.filter(category=SteamItem.ItemType.SKIN).update(next_run_at=timezone.now() + timedelta(seconds=20))
+        self.assertEqual(list(get_due_rules().values_list("category", flat=True)), [SteamItem.ItemType.SKIN])
