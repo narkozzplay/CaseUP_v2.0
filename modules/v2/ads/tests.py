@@ -260,3 +260,11 @@ class AdsControlCenterTests(TestCase):
         keep = AdPlacement.objects.get(key="catalog_top")
         self.client.post("/control-center/ads/", {"action": "placements", "placement_enabled": [keep.pk]})
         self.assertEqual(list(AdPlacement.objects.filter(is_enabled=True).values_list("key", flat=True)), ["catalog_top"])
+
+
+class PromoImageTests(TestCase):
+    def test_seeded_promos_get_their_illustrations(self):
+        for url, name in (("/donate/", "donate"), ("https://t.me/caseup_pro_anons", "telegram"), ("/subscriptions/", "no_ads")):
+            banner = HouseBanner.objects.get(url=url)
+            self.assertIn(f"promo_{name}", banner.image.name)
+            banner.image.delete(save=False)

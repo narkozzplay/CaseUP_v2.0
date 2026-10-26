@@ -52,6 +52,8 @@
 }
 
 .ad-house__image {
+    /* Keeps the picture's own proportions when the banner stacks (side menu, phones) instead of cropping it. */
+    align-self: center;
     max-width: 100%;
     max-height: 120px;
     border-radius: 8px;
