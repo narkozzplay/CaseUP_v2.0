@@ -172,6 +172,14 @@ class TierTests(TestCase):
         self.assertEqual((item.price_rub, item.price_missing), (Decimal("7.00"), False))
         self.assertGreater(item.price_checked_at, timezone.now() - timedelta(minutes=1))
 
+    def test_view_tracking_never_breaks_the_page(self):
+        item = make_item("Cacheless | Item")
+        person = mock.Mock(META={"HTTP_USER_AGENT": "Mozilla/5.0 Chrome/130.0"})
+        with mock.patch.object(price_queue.cache, "add", side_effect=ConnectionError("redis down")):
+            price_queue.note_item_view(person, item)
+        item.refresh_from_db()
+        self.assertIsNone(item.last_viewed_at)
+
     def test_views_of_people_make_the_item_warm_and_robots_do_not(self):
         item = make_item("Seen | Item")
         robot = mock.Mock(META={"HTTP_USER_AGENT": "Mozilla/5.0 (compatible; YandexBot/3.0; +http://yandex.com/bots)"})

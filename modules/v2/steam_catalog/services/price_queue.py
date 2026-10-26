@@ -21,6 +21,7 @@ that does not fit is simply finished by the next run instead of being killed mid
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
 import urllib.error
@@ -35,6 +36,8 @@ from django.db.models import Exists, F, OuterRef, Q
 from django.utils import timezone
 
 from modules.v2.steam_catalog.models import SteamItem, SteamItemFavorite, SteamItemPriceHistory, UserPriceAlertRule
+
+logger = logging.getLogger(__name__)
 
 DIRECT = "direct"
 RELAY_ERROR_PAUSE_MINUTES = 30
@@ -239,7 +242,12 @@ def note_item_view(request, item: SteamItem) -> None:
     agent = request.META.get("HTTP_USER_AGENT", "")
     if not agent or ROBOT_AGENT.search(agent):
         return
-    if cache.add(f"steam_price_queue:viewed:{item.pk}", 1, timeout=VIEW_THROTTLE_SECONDS):
+    try:
+        first_this_hour = cache.add(f"steam_price_queue:viewed:{item.pk}", 1, timeout=VIEW_THROTTLE_SECONDS)
+    except Exception:  # noqa: BLE001 - tracking is optional, the page must still open without the cache
+        logger.warning("Item view tracking skipped: cache unavailable", exc_info=True)
+        return
+    if first_this_hour:
         SteamItem.objects.filter(pk=item.pk).update(last_viewed_at=timezone.now())
 
 
