@@ -133,7 +133,7 @@ class HouseBannerTests(TestCase):
 
     def test_promo_banners_are_seeded(self):
         urls = set(HouseBanner.objects.filter(is_enabled=True).values_list("url", flat=True))
-        self.assertEqual(urls, {"/donate/", "https://t.me/caseup_pro_anons", "/subscriptions/"})
+        self.assertEqual(urls, {"/donate/", "https://t.me/+Oo3Eb-Zc1n00Yzgy", "/subscriptions/"})
         html = self._render(self.user)
         self.assertIn("ad-house", html)
 
@@ -172,7 +172,7 @@ class HouseBannerTests(TestCase):
     def test_ad_free_subscriber_sees_only_marked_banners_without_ad_label(self):
         assign_user_subscription_plan(user=self.user, plan=SubscriptionPlan.objects.get(code="site_no_ads"))
         self.assertNotIn("ad-slot", self._render(self.user))
-        HouseBanner.objects.filter(url="https://t.me/caseup_pro_anons").update(show_to_ad_free=True)
+        HouseBanner.objects.filter(url="https://t.me/+Oo3Eb-Zc1n00Yzgy").update(show_to_ad_free=True)
         drop_banner_cache()
         html = self._render(self.user)
         self.assertIn("CaseUP в Telegram", html)
@@ -203,13 +203,13 @@ class HouseBannerTests(TestCase):
         self.assertEqual(self.client.get(f"/ads/go/{banner.pk}/")["Location"], "/donate/")
 
     def test_external_banner_opens_in_new_tab(self):
-        HouseBanner.objects.exclude(url="https://t.me/caseup_pro_anons").update(is_enabled=False)
+        HouseBanner.objects.exclude(url="https://t.me/+Oo3Eb-Zc1n00Yzgy").update(is_enabled=False)
         drop_banner_cache()
         html = self._render(self.user)
         self.assertIn('target="_blank"', html)
-        banner = HouseBanner.objects.get(url="https://t.me/caseup_pro_anons")
+        banner = HouseBanner.objects.get(url="https://t.me/+Oo3Eb-Zc1n00Yzgy")
         response = self.client.get(f"/ads/go/{banner.pk}/")
-        self.assertEqual(response["Location"], "https://t.me/caseup_pro_anons")
+        self.assertEqual(response["Location"], "https://t.me/+Oo3Eb-Zc1n00Yzgy")
 
     def test_url_must_be_local_or_https(self):
         banner = HouseBanner(name="x", title="x", url="javascript:alert(1)")
@@ -265,7 +265,7 @@ class AdsControlCenterTests(TestCase):
 
 class PromoImageTests(TestCase):
     def test_seeded_promos_get_their_illustrations(self):
-        for url, name in (("/donate/", "donate"), ("https://t.me/caseup_pro_anons", "telegram"), ("/subscriptions/", "no_ads")):
+        for url, name in (("/donate/", "donate"), ("https://t.me/+Oo3Eb-Zc1n00Yzgy", "telegram"), ("/subscriptions/", "no_ads")):
             banner = HouseBanner.objects.get(url=url)
             self.assertIn(f"promo_{name}", banner.image.name)
             banner.image.delete(save=False)
@@ -320,7 +320,7 @@ class BannerVideoTests(TestCase):
 
 class PromoVideoTests(TestCase):
     def test_seeded_promos_get_their_loops(self):
-        for url, name in (("/donate/", "donate"), ("https://t.me/caseup_pro_anons", "telegram"), ("/subscriptions/", "no_ads")):
+        for url, name in (("/donate/", "donate"), ("https://t.me/+Oo3Eb-Zc1n00Yzgy", "telegram"), ("/subscriptions/", "no_ads")):
             banner = HouseBanner.objects.get(url=url)
             self.assertIn(f"promo_{name}_loop", banner.video.name)
             self.assertEqual(banner.video_type, "video/mp4")
