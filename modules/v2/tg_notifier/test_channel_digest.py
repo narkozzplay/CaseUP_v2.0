@@ -76,6 +76,12 @@ class ChannelDigestTests(DigestFixtures):
         self.assertEqual(knives.moves[0].change_percent, Decimal("-10.0"))
         self.assertEqual(self._names(everything), ["AK-47 | Redline (Field-Tested)", "Revolution Case"])
 
+    def test_market_sweep_points_are_not_moves(self):
+        self._section("Рост", "all", UP)
+        item = self._item("Sweep | Item", before=Decimal("100"), after=Decimal("150"))
+        SteamItemPriceHistory.objects.filter(item=item).update(source="sweep")
+        self.assertTrue(collect_digest(config=self.config, now=NOW).is_empty)
+
     def test_top_size_and_price_floor_per_section(self):
         self._section("Рост", top_n=1, min_price_rub=Decimal("500"))
         self._item("Cheap", before=Decimal("100"), after=Decimal("300"))
@@ -90,7 +96,7 @@ class ChannelDigestTests(DigestFixtures):
         self._section("Выключена", is_enabled=False)
         self._item("AK-47 | Redline (Field-Tested)", before=Decimal("1000"), after=Decimal("1200"))
 
-        self.assertEqual(collect_digest(config=self.config, now=NOW).blocks, [])
+        self.assertTrue(collect_digest(config=self.config, now=NOW).is_empty)
         self.assertIsNone(build_digest_text(self.config, now=NOW))
 
     def test_skips_stale_cheap_and_ancient_baselines(self):

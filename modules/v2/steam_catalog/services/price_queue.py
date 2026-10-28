@@ -36,7 +36,13 @@ from django.core.cache import cache
 from django.db.models import Exists, F, OuterRef, Q
 from django.utils import timezone
 
-from modules.v2.steam_catalog.models import SteamItem, SteamItemFavorite, SteamItemPriceHistory, UserPriceAlertRule
+from modules.v2.steam_catalog.models import (
+    SWEEP_SOURCE,
+    SteamItem,
+    SteamItemFavorite,
+    SteamItemPriceHistory,
+    UserPriceAlertRule,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +51,6 @@ RELAY_ERROR_PAUSE_MINUTES = 30
 # Kept free before the deadline: one Steam request (timeout 15 s) plus saving the result.
 DEADLINE_RESERVE_SECONDS = 20
 VIEW_THROTTLE_SECONDS = 3600
-# History rows written by the market sweep (price_sweep.py): the lowest listing, not the median.
-SWEEP_SOURCE = "sweep"
 # After each HTTP 429 the route's pace is halved (up to MAX_SLOWDOWN times slower) for SLOWDOWN_HOURS since the last
 # 429, then it goes back to normal: Steam's real limit moves and a fixed pace either wastes it or keeps hitting it.
 MAX_SLOWDOWN = 8

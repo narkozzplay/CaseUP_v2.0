@@ -17,7 +17,7 @@ from django.db.models import OuterRef, Q, Subquery
 from django.urls import reverse
 from django.utils import timezone
 
-from modules.v2.steam_catalog.models import SteamItem, SteamItemPriceHistory
+from modules.v2.steam_catalog.models import SWEEP_SOURCE, SteamItem, SteamItemPriceHistory
 from modules.v2.steam_catalog.services.browse import TYPE_LABELS, WEAPON_GROUPS, _weapon_group_q
 
 from .models import ChannelDigestPost, ChannelDigestSection, TelegramNotifierConfig
@@ -133,11 +133,17 @@ def _section_moves(section: ChannelDigestSection, *, config: TelegramNotifierCon
     baseline = (
         SteamItemPriceHistory.objects
         .filter(item=OuterRef("pk"), created_at__lt=window_start, created_at__gte=window_start - MAX_BASELINE_AGE)
+        .exclude(source=SWEEP_SOURCE)
         .order_by("-created_at")
         .values("price_rub")[:1]
     )
     # History is written only when the price changes, so items without a point inside the window did not move.
-    moved_ids = SteamItemPriceHistory.objects.filter(created_at__gte=window_start, created_at__lte=now).values("item_id")
+    # The market sweep's lowest listing is not compared with the queue's median: its points are left out.
+    moved_ids = (
+        SteamItemPriceHistory.objects.filter(created_at__gte=window_start, created_at__lte=now)
+        .exclude(source=SWEEP_SOURCE)
+        .values("item_id")
+    )
     items = (
         SteamItem.objects
         .filter(category_q(section.category))

@@ -11,7 +11,7 @@ from django.utils import timezone
 from modules.v2.profiles.models import UserProfile
 from modules.v2.system.services import get_public_base_url
 
-from ..models import SteamItem, SteamItemPriceHistory, UserPriceAlertEvent, UserPriceAlertRule
+from ..models import SWEEP_SOURCE, SteamItem, SteamItemPriceHistory, UserPriceAlertEvent, UserPriceAlertRule
 
 
 HTML_PARSE_MODE = "HTML"
@@ -30,7 +30,9 @@ def _window_start(rule: UserPriceAlertRule, now):
 
 
 def _history_for_rule_item(rule: UserPriceAlertRule, item: SteamItem):
-    qs = SteamItemPriceHistory.objects.filter(item=item).order_by("created_at", "id")
+    # The market sweep's lowest listing and the queue's median are different prices: comparing them would fire
+    # alerts on the gap between the two, not on a real move.
+    qs = SteamItemPriceHistory.objects.filter(item=item).exclude(source=SWEEP_SOURCE).order_by("created_at", "id")
     start_at = _window_start(rule, timezone.now())
     if start_at is not None:
         qs = qs.filter(created_at__gte=start_at)

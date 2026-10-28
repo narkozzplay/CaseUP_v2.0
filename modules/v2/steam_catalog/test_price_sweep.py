@@ -85,6 +85,19 @@ class SweepTests(TestCase):
         SteamItemPriceHistory.objects.create(item=item, price_rub=Decimal("2.00"), source="queue")
         self.assertTrue(SteamItem.objects.filter(pk=item.pk).filter(price_queue._warm_filter(timezone.now())).exists())
 
+    def test_user_alerts_compare_only_queue_prices(self):
+        from django.contrib.auth import get_user_model
+
+        from .models import UserPriceAlertRule
+        from .services.user_alerts import _history_for_rule_item
+
+        item = make_item("Alert | Item")
+        user = get_user_model().objects.create_user(username="alerts", password="x")
+        rule = UserPriceAlertRule.objects.create(user=user, item=item)
+        median = SteamItemPriceHistory.objects.create(item=item, price_rub=Decimal("10.00"), source="queue")
+        SteamItemPriceHistory.objects.create(item=item, price_rub=Decimal("8.00"), source=price_queue.SWEEP_SOURCE)
+        self.assertEqual([row.pk for row in _history_for_rule_item(rule, item)], [median.pk])
+
     def test_429_pauses_the_server_and_keeps_the_page(self):
         error = urllib.error.HTTPError("https://steam", 429, "Too Many Requests", {}, io.BytesIO(b""))
         with mock.patch(FETCH_PAGE, side_effect=error):
