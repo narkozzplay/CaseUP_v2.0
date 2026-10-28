@@ -15,10 +15,6 @@
 {% endblock %}
 
 {% block content %}
-{% if active_theme and active_theme.key == "midnight" and feature_flags.midnight_theme %}
-    {% include "themes/midnight/pages/home_content.html" %}
-    {% donation_widget "home" %}
-{% else %}
     {% brand_asset "hero" as hero_url %}
     <section class="hero{% if hero_url %} hero--image{% endif %}"{% if hero_url %} style="--hero-image: url('{{ hero_url }}')"{% endif %}>
         <div class="hero__backdrop" aria-hidden="true"></div>
@@ -254,5 +250,4 @@
             </ol>
         </div>
     </section>
-{% endif %}
 {% endblock %}

@@ -25,18 +25,18 @@
 
 Пример:
 
-- `frontend/static/css/themes/midnight.css`
+- `frontend/static/css/themes/neon.css`
 
 Внутри обычно переопределяются CSS variables из `frontend/static/css/base.css` и, при необходимости, конкретные UI-блоки.
 
 ### 2. Создать theme-specific шаблоны
 
 Структура должна совпадать с `template_base_path`.
-Для темы `midnight` это: 
+Для темы `neon` это: 
 
-- `frontend/templates/themes/midnight/components/head.html`
-- `frontend/templates/themes/midnight/components/navbar_public.html`
-- `frontend/templates/themes/midnight/components/footer.html`
+- `frontend/templates/themes/neon/components/head.html`
+- `frontend/templates/themes/neon/components/navbar_public.html`
+- `frontend/templates/themes/neon/components/footer.html`
 
 Если какой-то файл отсутствует, будет использован стандартный fallback.
 
@@ -44,9 +44,9 @@
 
 Через admin или data migration:
 
-- `key = "midnight"`
-- `template_base_path = "themes/midnight"`
-- `css_file = "css/themes/midnight.css"`
+- `key = "neon"`
+- `template_base_path = "themes/neon"`
+- `css_file = "css/themes/neon.css"`
 
 Важно: `template_base_path` задаётся **без** `frontend/templates/`.
 

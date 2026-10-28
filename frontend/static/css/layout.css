@@ -53,23 +53,6 @@
     width: 0;
 }
 
-.dashboard-shell--midnight .right-social-region {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 40;
-    width: 320px;
-}
-
-.dashboard-shell--midnight .right-social-sidebar {
-    position: relative;
-}
-
-.dashboard-shell--midnight.is-social-sidebar-collapsed .right-social-region {
-    width: 0;
-}
-
 .social-space-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));

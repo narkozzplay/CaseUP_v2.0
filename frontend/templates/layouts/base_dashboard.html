@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="{% static 'css/modules/steam_catalog.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/steam_trading.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/subscriptions.css' %}">
-    <link rel="stylesheet" href="{% static 'css/modules/web_constructor.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/store.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/cs2_stats.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/case_simulator.css' %}">
@@ -23,41 +22,32 @@
     <link rel="stylesheet" href="{% static 'css/modules/farm_ops.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/support.css' %}">
     <link rel="stylesheet" href="{% static 'css/modules/majors.css' %}">
-    {% if active_theme and active_theme.key == "midnight" and feature_flags.midnight_theme %}
-        <link rel="stylesheet" href="{% static 'css/themes/midnight_dashboard.css' %}">
-    {% endif %}
     {% block dashboard_extra_head %}{% endblock %}
 {% endblock %}
 
 {% block body_class %}theme-dashboard{% endblock %}
 
 {% block page %}
-    <div class="dashboard-shell {% if active_theme and active_theme.key == 'midnight' and feature_flags.midnight_theme %}dashboard-shell--midnight{% endif %}" data-dashboard-shell>
-        {% if active_theme and active_theme.key == "midnight" and feature_flags.midnight_theme %}
-            {% include "themes/midnight/components/dashboard_topnav.html" %}
-        {% else %}
-            {% include "components/sidebar_dashboard.html" %}
-        {% endif %}
-        <section class="dashboard-content {% if active_theme and active_theme.key == 'midnight' and feature_flags.midnight_theme %}dashboard-content--midnight{% endif %}">
-            {% if not active_theme or active_theme.key != "midnight" or not feature_flags.midnight_theme %}
-                <div class="dashboard-topbar">
-                    <button type="button" class="dashboard-topbar__menu" data-dashboard-nav-toggle aria-expanded="false" aria-label="{% if LANGUAGE_CODE == 'ru' %}Меню{% else %}Menu{% endif %}"><span></span><span></span><span></span></button>
-                    <p class="dashboard-topbar__crumbs" data-dashboard-crumbs>
-                        {% for group in dashboard_menu_groups %}{% for item in group.items %}{% if item.is_active %}<span data-dashboard-crumb-group>{{ group.label }}</span><b data-dashboard-crumb-item>{{ item.label }}</b>{% endif %}{% endfor %}{% endfor %}
-                    </p>
-                    <div class="dashboard-topbar__actions">
-                        {% include "components/notifications_bell.html" %}
-                        {% include "components/support_button.html" %}
-                        {% if request.user.is_authenticated %}<button type="button" class="topbar-chats" data-right-social-sidebar-toggle aria-controls="right-social-sidebar" aria-expanded="true" title="{% if LANGUAGE_CODE == 'ru' %}Чаты{% else %}Chats{% endif %}">{% include "components/icon.html" with name="chats" %}<span class="topbar-chats__label">{% if LANGUAGE_CODE == "ru" %}Чаты{% else %}Chats{% endif %}</span>{% if social_unread_total %}<span class="chat-badge">{{ social_unread_total }}</span>{% endif %}</button>{% endif %}
-                        {% if request.user.is_authenticated %}<a href="{% url 'payments:topup' %}" class="wallet-chip" title="{% if LANGUAGE_CODE == 'ru' %}Пополнить баланс{% else %}Top up balance{% endif %}"><span class="wallet-chip__label">{% if LANGUAGE_CODE == "ru" %}Баланс{% else %}Balance{% endif %}</span><span data-sim-balance>{% money coins %}</span><span class="wallet-chip__plus" aria-hidden="true">+</span></a>{% endif %}
-                        {% if not request.user.is_authenticated %}<a href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}" class="btn btn-primary btn-sm" rel="nofollow" data-dashboard-nav="false">{% if LANGUAGE_CODE == "ru" %}Войти через Steam{% else %}Sign in with Steam{% endif %}</a>{% endif %}
-                        <a href="{% url 'frontend:home' %}" class="btn btn-ghost btn-sm" data-dashboard-nav="false">{% if LANGUAGE_CODE == "ru" %}На сайт{% else %}Website{% endif %}</a>
-                    </div>
+    <div class="dashboard-shell" data-dashboard-shell>
+        {% include "components/sidebar_dashboard.html" %}
+        <section class="dashboard-content">
+            <div class="dashboard-topbar">
+                <button type="button" class="dashboard-topbar__menu" data-dashboard-nav-toggle aria-expanded="false" aria-label="{% if LANGUAGE_CODE == 'ru' %}Меню{% else %}Menu{% endif %}"><span></span><span></span><span></span></button>
+                <p class="dashboard-topbar__crumbs" data-dashboard-crumbs>
+                    {% for group in dashboard_menu_groups %}{% for item in group.items %}{% if item.is_active %}<span data-dashboard-crumb-group>{{ group.label }}</span><b data-dashboard-crumb-item>{{ item.label }}</b>{% endif %}{% endfor %}{% endfor %}
+                </p>
+                <div class="dashboard-topbar__actions">
+                    {% include "components/notifications_bell.html" %}
+                    {% include "components/support_button.html" %}
+                    {% if request.user.is_authenticated %}<button type="button" class="topbar-chats" data-right-social-sidebar-toggle aria-controls="right-social-sidebar" aria-expanded="true" title="{% if LANGUAGE_CODE == 'ru' %}Чаты{% else %}Chats{% endif %}">{% include "components/icon.html" with name="chats" %}<span class="topbar-chats__label">{% if LANGUAGE_CODE == "ru" %}Чаты{% else %}Chats{% endif %}</span>{% if social_unread_total %}<span class="chat-badge">{{ social_unread_total }}</span>{% endif %}</button>{% endif %}
+                    {% if request.user.is_authenticated %}<a href="{% url 'payments:topup' %}" class="wallet-chip" title="{% if LANGUAGE_CODE == 'ru' %}Пополнить баланс{% else %}Top up balance{% endif %}"><span class="wallet-chip__label">{% if LANGUAGE_CODE == "ru" %}Баланс{% else %}Balance{% endif %}</span><span data-sim-balance>{% money coins %}</span><span class="wallet-chip__plus" aria-hidden="true">+</span></a>{% endif %}
+                    {% if not request.user.is_authenticated %}<a href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}" class="btn btn-primary btn-sm" rel="nofollow" data-dashboard-nav="false">{% if LANGUAGE_CODE == "ru" %}Войти через Steam{% else %}Sign in with Steam{% endif %}</a>{% endif %}
+                    <a href="{% url 'frontend:home' %}" class="btn btn-ghost btn-sm" data-dashboard-nav="false">{% if LANGUAGE_CODE == "ru" %}На сайт{% else %}Website{% endif %}</a>
                 </div>
-            {% endif %}
+            </div>
             <div class="container container--dashboard" id="dashboard-content-root" data-dashboard-content-root>
                 {% include "components/messages.html" %}
-                <div class="dashboard-content-frame {% if active_theme and active_theme.key == 'midnight' and feature_flags.midnight_theme %}dashboard-content-frame--midnight{% endif %}" data-dashboard-page-title="{{ dashboard_page_title|default:site_settings.site_name|default:'CaseUP' }}" data-dashboard-active-menu="{{ dashboard_active_menu_key|default:'' }}">
+                <div class="dashboard-content-frame" data-dashboard-page-title="{{ dashboard_page_title|default:site_settings.site_name|default:'CaseUP' }}" data-dashboard-active-menu="{{ dashboard_active_menu_key|default:'' }}">
                     {% block content %}{% endblock %}
                 </div>
             </div>
@@ -70,7 +60,6 @@
     {{ block.super }}
     <script src="{% static 'js/dashboard_shell.js' %}"></script>
     <script src="{% static 'js/notifications.js' %}"></script>
-    <script src="{% static 'js/web_constructor_editor.js' %}"></script>
     <script src="{% static 'js/store_rating_input.js' %}"></script>
     <script src="{% static 'js/market_search.js' %}"></script>
     <script src="{% static 'js/catalog_favorites.js' %}"></script>

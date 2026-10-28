@@ -147,7 +147,6 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod
 
 - `CADDY_DOMAIN`
 - `SITE_BASE_URL`
-- `CASEUP_LAB_BASE_URL`
 - `DJANGO_SECRET_KEY`
 - `DJANGO_ALLOWED_HOSTS`
 - `DJANGO_HEALTHCHECK_HOST`

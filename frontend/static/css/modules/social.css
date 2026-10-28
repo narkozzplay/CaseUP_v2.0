@@ -379,23 +379,6 @@
     display: none;
 }
 
-/* the midnight theme has no topbar, so it keeps a floating chats button */
-.dashboard-shell--midnight.is-social-sidebar-collapsed .right-social-sidebar__rail-toggle {
-    position: fixed;
-    right: 18px;
-    bottom: 18px;
-    z-index: 35;
-    display: grid;
-    place-items: center;
-    width: 48px;
-    height: 48px;
-    border: 1px solid rgba(245, 166, 35, 0.55);
-    background: rgba(11, 14, 19, 0.94);
-    color: var(--accent);
-    cursor: pointer;
-    box-shadow: var(--shadow-md);
-}
-
 .right-social-sidebar__rail-toggle .ui-icon {
     width: 22px;
     height: 22px;

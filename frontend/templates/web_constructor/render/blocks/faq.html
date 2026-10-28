@@ -1,9 +1,0 @@
-<div class="wc-section-head"><h2 class="wc-block-title">{{ block.data.title }}</h2></div>
-<div class="wc-faq-list">
-    {% for item in block.data.items %}
-        <details class="wc-faq-item">
-            <summary>{{ item.question }}</summary>
-            <div class="wc-faq-answer">{{ item.answer|linebreaksbr }}</div>
-        </details>
-    {% endfor %}
-</div>
