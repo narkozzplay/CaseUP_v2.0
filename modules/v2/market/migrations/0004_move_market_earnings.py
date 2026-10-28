@@ -1,7 +1,6 @@
 from decimal import Decimal
 
 from django.db import migrations
-from django.db.models import Sum
 
 ZERO = Decimal("0.00")
 COMMENT = "Разделение баланса: заработанное на рынке переведено на рыночный баланс"
@@ -9,19 +8,25 @@ COMMENT = "Разделение баланса: заработанное на р
 
 def forwards(apps, schema_editor):
     """Market sales used to land on the single balance. Move what each seller earned and has not spent
-    (earned minus paid out, but no more than the balance) to the new market balance."""
+    to the new market balance.
+
+    The seller's history is replayed in order. Sales add to the market share and payouts take from it;
+    after every entry the share is capped at the balance at that moment, so money spent on the site counts
+    as spent sale money and a later top-up never becomes withdrawable."""
     LedgerEntry = apps.get_model("profiles", "LedgerEntry")
     UserProfile = apps.get_model("profiles", "UserProfile")
 
     seller_ids = LedgerEntry.objects.filter(reason="market_sale").values_list("user_id", flat=True).distinct()
     for user_id in seller_ids:
-        totals = LedgerEntry.objects.filter(user_id=user_id)
-        earned = totals.filter(reason="market_sale").aggregate(total=Sum("delta"))["total"] or ZERO
-        paid_out = -(totals.filter(reason="market_payout").aggregate(total=Sum("delta"))["total"] or ZERO)
         profile = UserProfile.objects.select_for_update().filter(user_id=user_id).first()
         if profile is None:
             continue
-        amount = min(max(earned - paid_out, ZERO), profile.balance_coins).quantize(Decimal("0.01"))
+        share = ZERO
+        for reason, delta, balance_after in LedgerEntry.objects.filter(user_id=user_id).order_by("created_at", "id").values_list("reason", "delta", "balance_after"):
+            if reason in ("market_sale", "market_payout", "market_payout_cancel"):
+                share += delta
+            share = max(min(share, balance_after), ZERO)
+        amount = min(share, profile.balance_coins).quantize(Decimal("0.01"))
         if amount <= ZERO:
             continue
         profile.balance_coins -= amount

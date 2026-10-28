@@ -152,7 +152,9 @@ def request_payout(user, *, amount, method: str, requisites: str, recipient_name
     if len(name) < 3:
         raise PayoutError("Укажите имя получателя, как в банке.")
     requisites = _clean_requisites(method, requisites)
-    if PayoutRequest.objects.select_for_update().filter(user=user, status=PayoutRequest.Status.PENDING).exists():
+    # Lock the seller's profile first: a row lock on a missing pending request would not stop a parallel one.
+    UserProfile.objects.select_for_update().get_or_create(user=user)
+    if PayoutRequest.objects.filter(user=user, status=PayoutRequest.Status.PENDING).exists():
         raise PayoutError("Предыдущая заявка ещё не обработана. Дождитесь выплаты или отмените её.")
 
     payout = PayoutRequest.objects.create(code=_new_code(), user=user, amount=amount, method=method, requisites=requisites, recipient_name=name)
