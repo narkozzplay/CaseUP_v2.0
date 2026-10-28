@@ -53,9 +53,40 @@ class QueueTests(TestCase):
         self.assertFalse(SteamItem.objects.filter(pk__in=[first.pk, second.pk], price_checked_at__isnull=False).exists())
         self.assertIsNotNone(price_queue.backoff_until())
 
+        self.assertEqual(result.errors, [])  # a 429 is Steam pacing us, not a failure
+        self.assertIn("429", result.notes[0])
+        self.assertEqual(price_queue.slowdown(price_queue.DIRECT), 2)
+
         again = price_queue.refresh_batch(category=SteamItem.ItemType.SKIN, limit=10)
-        self.assertIn("Пауза", again.errors[0])
+        self.assertIn("Пауза", again.notes[0])
+        self.assertEqual(again.errors, [])
         self.assertEqual(fetch_mock.call_count, 1)
+
+    @override_settings(STEAM_PRICE_REQUEST_INTERVAL=3, STEAM_PRICE_HOURLY_BUDGET=900)
+    def test_each_429_halves_the_pace_up_to_a_limit(self):
+        for expected in (2, 4, 8, 8):
+            self.assertEqual(price_queue._slow_down(price_queue.DIRECT), expected)
+        self.assertEqual(price_queue._interval(price_queue.DIRECT), 24)
+        self.assertEqual(price_queue.hourly_budget(price_queue.DIRECT), 112)
+        self.assertEqual(price_queue.hourly_budget(), 900)
+        with self.settings(STEAM_PRICE_HOURLY_BUDGET=1):
+            self.assertEqual(price_queue.hourly_budget(price_queue.DIRECT), 1)  # a small cap never turns into «no cap»
+
+    @mock.patch(PRICE_FETCH)
+    def test_names_steam_does_not_know_are_answers_not_errors(self, fetch_mock):
+        item = make_item("Graffiti | Nobody Sells")
+        fetch_mock.side_effect = urllib.error.HTTPError("url", 500, "Server Error", {}, io.BytesIO(b'{"success":false}'))
+        result = price_queue.refresh_batch(category=SteamItem.ItemType.SKIN, limit=5)
+        self.assertEqual((result.errors, result.unknown), ([], 1))
+        item.refresh_from_db()
+        self.assertTrue(item.price_missing)
+
+        other = make_item("Real | Outage")
+        fetch_mock.side_effect = urllib.error.HTTPError("url", 500, "Server Error", {}, io.BytesIO(b"<html>oops</html>"))
+        result = price_queue.refresh_batch(category=SteamItem.ItemType.SKIN, limit=5)
+        self.assertEqual(len(result.errors), 1)
+        other.refresh_from_db()
+        self.assertFalse(other.price_missing)
 
     @mock.patch(PRICE_FETCH, return_value=None)
     def test_items_without_a_price_still_move_on(self, _fetch):
@@ -87,6 +118,17 @@ class QueueTests(TestCase):
         self.assertEqual(sorted(SteamItem.objects.values_list("price_rub", flat=True)), [Decimal("10.00"), Decimal("12.50")])
         self.assertEqual(SteamItemPriceHistory.objects.count(), 2)
         self.assertEqual(price_queue.batch_limit(5), 120)
+
+    @override_settings(STEAM_PRICE_RELAY_URLS=["https://relay.example/steam_price.php"], STEAM_PRICE_REQUEST_INTERVAL=0)
+    def test_relay_passing_on_an_unknown_name_is_not_paused(self):
+        make_item("Relay | Unknown")
+        unknown = urllib.error.HTTPError("u", 500, "Server Error", {}, io.BytesIO(b'{"success":false}'))
+        with mock.patch.object(price_queue, "routes", return_value=["https://relay.example/steam_price.php"]), mock.patch(
+            "urllib.request.urlopen", side_effect=unknown
+        ):
+            result = price_queue.refresh_batch(category=SteamItem.ItemType.SKIN, limit=5)
+        self.assertEqual((result.errors, result.unknown), ([], 1))
+        self.assertIsNone(price_queue.route_paused_until("https://relay.example/steam_price.php"))
 
     @override_settings(STEAM_PRICE_RELAY_URLS=["https://relay.example/steam_price.php"], STEAM_PRICE_REQUEST_INTERVAL=1)
     def test_broken_relay_is_paused_and_the_server_carries_on(self):

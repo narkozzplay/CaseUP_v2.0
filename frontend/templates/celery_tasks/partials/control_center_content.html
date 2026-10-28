@@ -27,7 +27,7 @@
             </ul>
             <p class="ref-text">Ещё ни разу не проверено: {{ queue.never }} из {{ queue.total }}.</p>
             <p class="ref-text">Каналы к Steam{% if queue.budget %} (лимит {{ queue.budget }} запросов в час на канал){% endif %}:
-                {% for route in queue.routes %}<span class="cc-chip {% if route.paused_until %}cc-chip--warn{% else %}cc-chip--ok{% endif %}">{{ route.label }} · {{ route.spent }} за час{% if route.paused_until %} · пауза до {{ route.paused_until|date:"H:i" }}{% endif %}</span> {% endfor %}
+                {% for route in queue.routes %}<span class="cc-chip {% if route.paused_until %}cc-chip--warn{% else %}cc-chip--ok{% endif %}">{{ route.label }} · {{ route.spent }} за час{% if route.slowdown > 1 %} · темп ÷{{ route.slowdown }} после 429{% endif %}{% if route.paused_until %} · пауза до {{ route.paused_until|date:"H:i" }}{% endif %}</span> {% endfor %}
             </p>
         </div>
     </article>

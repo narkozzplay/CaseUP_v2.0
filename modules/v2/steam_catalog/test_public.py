@@ -181,7 +181,9 @@ class GuestRateLimitTests(TestCase):
     def setUp(self):
         cache.clear()
 
-    def test_guest_gets_429_over_the_limit(self):
+    # The window is fixed per minute: freeze the clock so the requests cannot straddle a boundary.
+    @patch("modules.v2.antifraud.ratelimit.time.time", return_value=1_800_000_010.0)
+    def test_guest_gets_429_over_the_limit(self, _clock):
         client = Client(REMOTE_ADDR="203.0.113.7")
         for _ in range(3):
             self.assertEqual(client.get(reverse("steam_catalog:list")).status_code, 200)

@@ -24,6 +24,7 @@ STATUS_LABELS_RU = {
     "partial": "С ошибками",
     "error": "Ошибка",
 }
+WAITING_LABEL_RU = "Ожидание: пауза Steam или лимит"
 STATUS_TONES = {"idle": "info", "running": "info", "success": "ok", "partial": "warn", "error": "fail"}
 TRIGGER_LABELS_RU = {"beat": "по расписанию", "manual": "вручную"}
 
@@ -41,6 +42,9 @@ class RunPresentationMixin:
     @property
     def status_label(self) -> str:
         code = self._status_code()
+        # A run that only waited out a Steam pause or the hourly limit ends idle too: it did run.
+        if code == "idle" and (getattr(self, "last_run_at", None) or getattr(self, "started_at", None)):
+            return WAITING_LABEL_RU
         return STATUS_LABELS_RU.get(code, code)
 
     @property

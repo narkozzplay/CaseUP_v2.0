@@ -44,6 +44,10 @@ RELAY_ERROR_PAUSE_MINUTES = 30
 # Kept free before the deadline: one Steam request (timeout 15 s) plus saving the result.
 DEADLINE_RESERVE_SECONDS = 20
 VIEW_THROTTLE_SECONDS = 3600
+# After each HTTP 429 the route's pace is halved (up to MAX_SLOWDOWN times slower) for SLOWDOWN_HOURS since the last
+# 429, then it goes back to normal: Steam's real limit moves and a fixed pace either wastes it or keeps hitting it.
+MAX_SLOWDOWN = 8
+SLOWDOWN_HOURS = 6
 ROBOT_AGENT = re.compile(r"bot|crawl|spider|slurp|preview|curl|wget|python-requests|httpclient|headless", re.IGNORECASE)
 
 
@@ -54,6 +58,9 @@ class QueueBatchResult:
     history_written: int = 0
     changed_ids: list[int] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    # Expected situations worth showing in the run log but not failures: a Steam pause, Steam slowing us down.
+    notes: list[str] = field(default_factory=list)
+    unknown: int = 0  # items Steam does not know at all (HTTP 500 {"success": false})
     rate_limited: bool = False
     out_of_budget: bool = False
     out_of_time: bool = False
@@ -83,8 +90,29 @@ def _spent_key(route: str, now=None) -> str:
     return f"steam_price_queue:spent:{route}:{(now or timezone.now()):%Y%m%d%H}"
 
 
-def hourly_budget() -> int:
-    return max(int(_setting("STEAM_PRICE_HOURLY_BUDGET", 900) or 0), 0)
+def _slowdown_key(route: str) -> str:
+    return f"steam_price_queue:slowdown:{route}"
+
+
+def slowdown(route: str) -> int:
+    """How many times slower than normal the route goes after recent 429s (1 = normal pace)."""
+    return max(int(cache.get(_slowdown_key(route)) or 1), 1)
+
+
+def _slow_down(route: str) -> int:
+    factor = min(slowdown(route) * 2, MAX_SLOWDOWN)
+    cache.set(_slowdown_key(route), factor, timeout=SLOWDOWN_HOURS * 3600)
+    return factor
+
+
+def _interval(route: str) -> float:
+    return float(_setting("STEAM_PRICE_REQUEST_INTERVAL", 3.0)) * slowdown(route)
+
+
+def hourly_budget(route: str | None = None) -> int:
+    budget = max(int(_setting("STEAM_PRICE_HOURLY_BUDGET", 900) or 0), 0)
+    # Never down to 0: 0 means «no hourly limit».
+    return max(budget // slowdown(route), 1) if budget and route else budget
 
 
 def spent_this_hour(route: str) -> int:
@@ -92,7 +120,7 @@ def spent_this_hour(route: str) -> int:
 
 
 def _has_budget(route: str) -> bool:
-    budget = hourly_budget()
+    budget = hourly_budget(route)
     return not budget or spent_this_hour(route) < budget
 
 
@@ -105,7 +133,7 @@ def _reserve(route: str) -> bool:
     except ValueError:  # the key expired between add and incr
         cache.set(key, 1, timeout=2 * 60 * 60)
         spent = 1
-    budget = hourly_budget()
+    budget = hourly_budget(route)
     return not budget or spent <= budget
 
 
@@ -148,12 +176,12 @@ def _out_of_time(deadline: float | None) -> bool:
 def _acquire_route(deadline: float | None = None) -> str | None:
     """Wait for a free request slot on any route that is not paused and has requests left this hour; None when
     there is none or the deadline is too close for one more request. The returned route's request is counted."""
-    interval = float(_setting("STEAM_PRICE_REQUEST_INTERVAL", 3.0))
     while not _out_of_time(deadline):
         available = [route for route in routes() if route_paused_until(route) is None and _has_budget(route)]
         if not available:
             return None
         for route in available:
+            interval = _interval(route)
             # cache.add is atomic in Redis: one process gets the slot per interval and IP.
             if interval <= 0 or cache.add(_slot_key(route), 1, timeout=max(1, int(round(interval)))):
                 # Concurrent workers may both have seen budget left: the atomic counter decides.
@@ -260,10 +288,21 @@ def note_item_view(request, item: SteamItem) -> None:
         SteamItem.objects.filter(pk=item.pk).update(last_viewed_at=timezone.now())
 
 
+def _steam_does_not_know(exc: urllib.error.HTTPError) -> bool:
+    """priceoverview answers HTTP 500 with ``{"success": false}`` for a name it has no market page for."""
+    if exc.code not in (400, 404, 500):
+        return False
+    try:
+        payload = json.loads((exc.read() or b"{}").decode("utf-8", errors="ignore") or "{}")
+    except Exception:  # noqa: BLE001 - HTML error page and the like: a real failure
+        return False
+    return isinstance(payload, dict) and payload.get("success") is False
+
+
 def batch_limit(interval_minutes: int, budget_seconds: float | None = None) -> int:
     """How many items fit into one run: ~80% of the run interval (or of ``budget_seconds``, the time the task
     has left, when that is shorter) at the combined pace of all routes, capped."""
-    pace = max(float(_setting("STEAM_PRICE_REQUEST_INTERVAL", 3.0)), 0.5) / len(routes())
+    pace = 1 / sum(1 / max(_interval(route), 0.5) for route in routes())
     seconds = interval_minutes * 60
     if budget_seconds is not None:
         seconds = min(seconds, max(budget_seconds - DEADLINE_RESERVE_SECONDS, 0))
@@ -276,7 +315,7 @@ def refresh_batch(*, category: str, limit: int, source: str = "queue", deadline:
     until = backoff_until()
     if until:
         result.rate_limited = True
-        result.errors.append(f"Пауза: Steam ограничил запросы, продолжим после {timezone.localtime(until):%H:%M}.")
+        result.notes.append(f"Пауза: Steam ограничил запросы, продолжим после {timezone.localtime(until):%H:%M}.")
         return result
     if budget_exhausted():
         result.out_of_budget = True
@@ -300,14 +339,24 @@ def refresh_batch(*, category: str, limit: int, source: str = "queue", deadline:
             if exc.code == 429:
                 minutes = int(_setting("STEAM_PRICE_BACKOFF_MINUTES", 15))
                 _pause_route(route, minutes)
-                result.errors.append(f"Steam ограничил запросы ({route_label(route)}, 429), пауза {minutes} мин.")
+                factor = _slow_down(route)
+                result.rate_limited = True
+                result.notes.append(
+                    f"Steam ограничил запросы ({route_label(route)}, 429): пауза {minutes} мин, дальше темп в {factor} раз ниже."
+                )
                 continue  # the item stays unchecked and goes out through another route or the next run
-            if route != DIRECT:
+            if _steam_does_not_know(exc):
+                # A name Steam has no market page for (the relay passes Steam's answer through): an answer, not a
+                # failure, and no reason to pause the relay. Asked again after a week.
+                price, answered = None, True
+                result.unknown += 1
+            elif route != DIRECT:
                 _pause_route(route, RELAY_ERROR_PAUSE_MINUTES)
                 result.errors.append(f"Хостинг-ретранслятор ответил HTTP {exc.code}, пауза {RELAY_ERROR_PAUSE_MINUTES} мин. Проверьте скрипт и ключ.")
                 continue
-            price, answered = None, False
-            result.errors.append(f"{item.market_hash_name}: HTTP {exc.code}")
+            else:
+                price, answered = None, False
+                result.errors.append(f"{item.market_hash_name}: HTTP {exc.code}")
         except Exception as exc:  # noqa: BLE001 - network hiccups must not stop the queue
             if route != DIRECT:
                 _pause_route(route, RELAY_ERROR_PAUSE_MINUTES)
@@ -365,7 +414,12 @@ def coverage(*, now=None) -> dict:
         "cold_hours": int(_setting("STEAM_PRICE_COLD_HOURS", 24)),
         "budget": budget,
         "routes": [
-            {"label": route_label(route), "paused_until": route_paused_until(route), "spent": spent_this_hour(route)}
+            {
+                "label": route_label(route),
+                "paused_until": route_paused_until(route),
+                "spent": spent_this_hour(route),
+                "slowdown": slowdown(route),
+            }
             for route in routes()
         ],
     }

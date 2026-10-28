@@ -11,6 +11,7 @@ import django
 from django.conf import settings
 from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connections
+from django.db.models import Max
 from django.utils import timezone
 
 OK = "ok"
@@ -156,26 +157,98 @@ def check_celery_workers() -> HealthCheck:
     return HealthCheck("celery_workers", "Celery workers", OK, f"{len(replies)} онлайн", ", ".join(sorted(replies))[:120])
 
 
+# A single failed run is noise (one network hiccup); the alert is for a queue that mostly fails or stopped.
+PRICE_FAILED_RUNS_MIN = 12
+PRICE_FAILED_RUNS_PERCENT = 30
+PRICE_STALL_HOURS = 3
+
+
+def _top_price_error(logs) -> str:
+    """The most common first line of the failed runs' errors, item names cut off so equal causes add up."""
+    from collections import Counter
+
+    causes = Counter()
+    for summary in logs.exclude(error_summary="").values_list("error_summary", flat=True)[:500]:
+        line = summary.splitlines()[0]
+        causes[line.split(": ", 1)[-1] if "HTTP" in line else line] += 1
+    return causes.most_common(1)[0][0][:120] if causes else ""
+
+
+def _stalled_price_categories(now) -> list[str]:
+    """Enabled categories whose newest check is older than a full cold round: their own runs stopped.
+
+    The global newest check stays fresh while any other category is updated, so it cannot see this.
+    Items Steam has no price for are rechecked weekly and are left out.
+    """
+    from modules.v2.celery_tasks.models import CATEGORY_LABELS_RU, PriceAutoUpdateRule
+    from modules.v2.steam_catalog.models import SteamItem
+
+    categories = set(PriceAutoUpdateRule.objects.filter(is_enabled=True).values_list("category", flat=True))
+    if not categories:
+        return []
+    cold_hours = int(getattr(settings, "STEAM_PRICE_COLD_HOURS", 24))
+    cutoff = now - timedelta(hours=cold_hours + PRICE_STALL_HOURS)
+    newest = (
+        SteamItem.objects.filter(is_active=True, price_missing=False, item_type__in=categories)
+        .values("item_type")
+        .annotate(last=Max("price_checked_at"))
+    )
+    stalled = []
+    for row in newest.order_by("item_type"):
+        if row["last"] is None or row["last"] < cutoff:
+            since = f"с {timezone.localtime(row['last']):%d.%m %H:%M}" if row["last"] else "ни разу"
+            stalled.append(f"{CATEGORY_LABELS_RU.get(row['item_type'], row['item_type'])} ({since})")
+    return stalled
+
+
 def check_price_updates() -> HealthCheck:
     try:
         from modules.v2.celery_tasks.models import PriceAutoUpdateRule, PriceAutoUpdateRunLog
+        from modules.v2.steam_catalog.models import SteamItem
     except Exception:  # noqa: BLE001
         return HealthCheck("price_updates", "Авто-обновление цен", INFO, "Модуль недоступен")
     last = PriceAutoUpdateRunLog.objects.order_by("-started_at").first()
     if last is None:
         return HealthCheck("price_updates", "Авто-обновление цен", INFO, "Запусков ещё не было")
-    failed_day = PriceAutoUpdateRunLog.objects.filter(
-        started_at__gte=timezone.now() - timedelta(hours=24),
-        status=PriceAutoUpdateRule.Status.ERROR,
-    ).count()
-    age = timezone.now() - last.started_at
+    now = timezone.now()
+    day = PriceAutoUpdateRunLog.objects.filter(started_at__gte=now - timedelta(hours=24)).exclude(
+        status=PriceAutoUpdateRule.Status.RUNNING
+    )
+    runs = day.count()
+    # Partial runs count too: a queue where every run loses part of its items to errors is failing as well.
+    failed_logs = day.filter(status__in=(PriceAutoUpdateRule.Status.ERROR, PriceAutoUpdateRule.Status.PARTIAL))
+    failed = failed_logs.count()
+    value = timezone.localtime(last.started_at).strftime("%d.%m %H:%M")
+    hints = []
     status = OK
-    if failed_day:
+
+    if now - last.started_at > timedelta(days=1):
         status = WARN
-    if age > timedelta(days=1):
+        hints.append("Правила не запускались больше суток")
+    # Max() skips NULLs (never checked items); ordering by -price_checked_at puts them first on PostgreSQL.
+    # Items Steam has no price for are rechecked weekly by design, so they say nothing about a stall.
+    enabled = PriceAutoUpdateRule.objects.filter(is_enabled=True).values_list("category", flat=True)
+    listed = SteamItem.objects.filter(is_active=True, price_missing=False, item_type__in=enabled)
+    last_checked = listed.aggregate(last=Max("price_checked_at"))["last"]
+    if (
+        listed.exists()
+        and (last_checked is None or now - last_checked > timedelta(hours=PRICE_STALL_HOURS))
+    ):
         status = WARN
-    hint = f"Ошибок за 24 ч: {failed_day}" if failed_day else f"Статус: {last.status}"
-    return HealthCheck("price_updates", "Авто-обновление цен", status, timezone.localtime(last.started_at).strftime("%d.%m %H:%M"), hint)
+        since = f"с {timezone.localtime(last_checked):%d.%m %H:%M}" if last_checked else "ни разу"
+        hints.append(f"Цены не проверялись {since}")
+    else:
+        stalled = _stalled_price_categories(now)
+        if stalled:
+            status = WARN
+            hints.append("Не обновляются: " + ", ".join(stalled))
+    if failed >= PRICE_FAILED_RUNS_MIN and failed * 100 >= runs * PRICE_FAILED_RUNS_PERCENT:
+        status = WARN
+        cause = _top_price_error(failed_logs)
+        hints.append(f"Запусков с ошибками за 24 ч: {failed} из {runs}" + (f" · чаще всего: {cause}" if cause else ""))
+    elif failed:
+        hints.append(f"Запусков с ошибками за 24 ч: {failed} из {runs}")
+    return HealthCheck("price_updates", "Авто-обновление цен", status, value, " · ".join(hints) or f"Статус: {last.status}")
 
 
 def check_disk(*, include_media: bool = False) -> HealthCheck:

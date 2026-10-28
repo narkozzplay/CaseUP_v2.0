@@ -257,11 +257,14 @@ def run_price_auto_update_rule(rule_id: int, *, triggered_by: str = "beat", dead
             final_status = PriceAutoUpdateRule.Status.ERROR
         elif errors:
             final_status = PriceAutoUpdateRule.Status.PARTIAL
+        elif touched_items_count == 0 and (batch.rate_limited or batch.out_of_budget):
+            # Waiting out a Steam pause or the hourly limit is the queue working as intended, not a failure.
+            final_status = PriceAutoUpdateRule.Status.IDLE
         else:
             final_status = PriceAutoUpdateRule.Status.SUCCESS
 
         finished_at = timezone.now()
-        error_summary = "\n".join(errors[:20])
+        error_summary = "\n".join((errors + batch.notes)[:20])
 
         with transaction.atomic():
             locked_rule = PriceAutoUpdateRule.objects.select_for_update().get(pk=rule_id)
