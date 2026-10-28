@@ -136,6 +136,25 @@
                     {{ settings_form.updates_mode.errors }}
                 </div>
 
+                <fieldset class="tgn-admin-notices">
+                    <legend>Уведомления главному админу</legend>
+                    <label class="toggle-control" for="{{ settings_form.admin_signup_notices.id_for_label }}">
+                        {{ settings_form.admin_signup_notices }}
+                        <span class="toggle-control__track" aria-hidden="true"></span>
+                        <span class="toggle-control__text">Зарегистрировался новый пользователь</span>
+                    </label>
+                    <label class="toggle-control" for="{{ settings_form.admin_topup_notices.id_for_label }}">
+                        {{ settings_form.admin_topup_notices }}
+                        <span class="toggle-control__track" aria-hidden="true"></span>
+                        <span class="toggle-control__text">Пользователь пополнил баланс</span>
+                    </label>
+                    <p class="text-muted tgn-hint">
+                        Приходят лично в Telegram самым старшим админам, у кого он подключён.
+                        Сейчас получат:
+                        {% for admin in admin_notice_recipients %}<b>{% if admin.profile_v2.telegram_username %}@{{ admin.profile_v2.telegram_username }}{% else %}{{ admin.username }}{% endif %}</b>{% if not forloop.last %}, {% endif %}{% empty %}<b class="metric-negative">никто — подключите Telegram в профиле</b>{% endfor %}.
+                    </p>
+                </fieldset>
+
                 <details class="tgn-template">
                     <summary>Шаблон сообщения об инвестиции <span class="text-muted">— кнопка TG в «Инвестициях»</span></summary>
                     <div class="form-field">
@@ -154,7 +173,10 @@
                     </div>
                 </details>
 
-                <div><button type="submit" class="btn btn-primary">Сохранить</button></div>
+                <div class="tgn-actions">
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                    <button type="submit" name="action" value="admin_notice_sample" class="btn btn-secondary" formnovalidate>Прислать пример админу</button>
+                </div>
             </div>
         </form>
 

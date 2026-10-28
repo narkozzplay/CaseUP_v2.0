@@ -97,6 +97,8 @@ def _build_settings_context(
 ):
     from modules.v2.profiles.models import UserProfile
 
+    from .admin_events import head_admin_recipients
+
     return {
         "role_access": role_access,
         "settings_form": settings_form,
@@ -113,6 +115,7 @@ def _build_settings_context(
         "has_bot_token": bool(resolve_bot_token(config)),
         "channel_sections": ChannelDigestSection.objects.filter(is_enabled=True).count(),
         "linked_users": UserProfile.objects.exclude(telegram_chat_id__isnull=True).exclude(telegram_chat_id="").count(),
+        "admin_notice_recipients": head_admin_recipients(),
     }
 
 
@@ -249,6 +252,17 @@ def settings_page(request):
             token = resolve_bot_token(config)
             status, text = _check_telegram(token) if token else ("missing_key", "Токен бота не задан.")
             bot_check = {"ok": status == "up", "text": text}
+
+        elif action == "admin_notice_sample":
+            from .admin_events import build_signup_message, send_to_head_admins
+
+            settings_form = TelegramNotifierSettingsForm(instance=config)
+            test_form = TelegramTestSendForm(initial={"chat_id": config.default_chat_id, "text": build_test_message()})
+            sent = send_to_head_admins("🧪 Пример уведомления\n\n" + build_signup_message(request.user))
+            if sent:
+                messages.success(request, f"Пример отправлен получателям: {sent}.")
+            else:
+                messages.error(request, "Пример не отправлен: бот выключен или ни у одного главного админа не подключён Telegram.")
 
         elif action == "check_webhook":
             settings_form = TelegramNotifierSettingsForm(instance=config)

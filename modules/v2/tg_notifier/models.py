@@ -77,6 +77,10 @@ class TelegramNotifierConfig(models.Model):
     channel_digest_card_title = models.CharField(max_length=60, blank=True, default="Цены CS2 за сутки")
     channel_digest_last_sent_at = models.DateTimeField(null=True, blank=True)
 
+    # Personal Telegram notices to the head of the site (admin_events.py): the highest-ranked admins with Telegram linked.
+    admin_signup_notices = models.BooleanField(default=True)
+    admin_topup_notices = models.BooleanField(default=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
