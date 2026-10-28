@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.system.dashboard_shell import render_dashboard_page
@@ -36,6 +37,7 @@ from .services import (
     purchase_subscription_with_balance,
     sync_feature_rules_to_plans,
 )
+from .trial import TrialError, set_auto_renew, start_trial, trial_offer
 
 
 FARMER_FAMILY = SubscriptionPlan.Family.FARMER
@@ -226,6 +228,7 @@ def plans_page(request):
         "next_plan": next_plan,
         "role_access": get_user_role(getattr(request, "user", None)),
         "viewer_balance": viewer_balance,
+        "trial": trial_offer(getattr(request, "user", None)),
     }
     return render(request, "subscriptions/plans.html", context)
 
@@ -277,6 +280,37 @@ def purchase_plan_with_balance_view(request, plan_id: int):
 
     url = reverse(_purchase_redirect_name(plan.family))
     return redirect(f"{url}?months={months}" if months != 1 else url)
+
+
+@login_required
+def start_trial_view(request):
+    if request.method != "POST":
+        return redirect("subscriptions:plans")
+    try:
+        subscription = start_trial(request.user, accepted_auto_renew=request.POST.get("accept_auto_renew") == "1")
+    except TrialError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(
+            request,
+            f"Пробный период «{subscription.plan.name}» активен до {timezone.localtime(subscription.expires_at):%d.%m.%Y}. "
+            "За 3 дня до списания придёт напоминание.",
+        )
+    return redirect("subscriptions:plans")
+
+
+@login_required
+def auto_renew_view(request):
+    if request.method != "POST":
+        return redirect("subscriptions:plans")
+    enabled = request.POST.get("enabled") == "1"
+    if set_auto_renew(request.user, enabled=enabled) is None:
+        messages.error(request, "Нет подписки со сроком, для которой можно настроить автопродление.")
+    elif enabled:
+        messages.success(request, "Автопродление включено: перед окончанием срока цена месяца спишется с баланса.")
+    else:
+        messages.success(request, "Автопродление отключено. Подписка будет действовать до конца оплаченного срока.")
+    return redirect("subscriptions:plans")
 
 
 @login_required

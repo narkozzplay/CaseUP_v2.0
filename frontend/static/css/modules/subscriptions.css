@@ -738,3 +738,33 @@ select.form-control option {
     font-size: 13px;
     color: var(--success, #3ecf8e);
 }
+
+.pricing-auto-renew {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.pricing-trial-card {
+    margin-bottom: 20px;
+    border: 1px solid rgba(245,166,35, 0.35);
+}
+
+.pricing-trial-card h2 {
+    margin: 8px 0;
+}
+
+.pricing-trial-card__form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.pricing-trial-card__form .checkbox-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}

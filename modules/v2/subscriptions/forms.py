@@ -22,10 +22,19 @@ class SubscriptionPricingConfigForm(forms.ModelForm):
             "period_discount_3m_percent",
             "period_discount_6m_percent",
             "period_discount_12m_percent",
+            "trial_enabled",
+            "trial_plan",
+            "trial_price_rub",
+            "trial_days",
         ]
         widgets = {
-            field_name: forms.NumberInput(attrs={"class": "form-control", "step": "0.01"})
-            for field_name in fields
+            **{
+                field_name: forms.NumberInput(attrs={"class": "form-control", "step": "0.01"})
+                for field_name in fields
+            },
+            "trial_enabled": forms.CheckboxInput(attrs={"class": "toggle-control__input"}),
+            "trial_plan": forms.Select(attrs={"class": "form-control"}),
+            "trial_days": forms.NumberInput(attrs={"class": "form-control", "step": "1", "min": "1", "max": "30"}),
         }
         labels = {
             "site_base_price_rub": "Базовая цена, ₽",
@@ -39,6 +48,10 @@ class SubscriptionPricingConfigForm(forms.ModelForm):
             "period_discount_3m_percent": "Скидка за 3 месяца, %",
             "period_discount_6m_percent": "Скидка за 6 месяцев, %",
             "period_discount_12m_percent": "Скидка за 12 месяцев, %",
+            "trial_enabled": "Пробный период включён",
+            "trial_plan": "Тариф пробного периода",
+            "trial_price_rub": "Цена пробного периода, ₽",
+            "trial_days": "Длительность, дней",
         }
         help_texts = {
             "site_base_price_rub": "С неё начинается рекомендованная цена первого тарифа сайта.",
@@ -52,7 +65,16 @@ class SubscriptionPricingConfigForm(forms.ModelForm):
             "period_discount_3m_percent": "Цена 3 месяцев = 3 × цена тарифа минус эта скидка.",
             "period_discount_6m_percent": "Цена 6 месяцев = 6 × цена тарифа минус эта скидка.",
             "period_discount_12m_percent": "Цена года = 12 × цена тарифа минус эта скидка.",
+            "trial_enabled": "Новый подписчик может взять тариф на пробу и согласиться на автопродление.",
+            "trial_plan": "Пусто — тариф Плюс. После пробы каждый месяц списывается его цена.",
+            "trial_price_rub": "Списывается с игрового баланса при оформлении.",
+            "trial_days": "От 1 до 30 дней.",
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["trial_plan"].queryset = SubscriptionPlan.objects.filter(family=SubscriptionPlan.Family.SITE, is_active=True).order_by("sort_order", "level")
+        self.fields["trial_plan"].empty_label = "Плюс (по умолчанию)"
 
 
 class SubscriptionPlanConfigForm(forms.ModelForm):

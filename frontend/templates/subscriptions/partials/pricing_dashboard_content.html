@@ -72,6 +72,19 @@
                                 {% include "subscriptions/partials/_pricing_field.html" with field=f.period_discount_12m_percent %}
                             </div>
                         </article>
+                        <article class="ops-panel">
+                            <div class="ops-panel__head"><h2 class="ops-panel__title">Пробный период</h2></div>
+                            <div class="pricing-fields">
+                                <label class="cc-field pricing-field" for="{{ f.trial_enabled.id_for_label }}">
+                                    <span>{{ f.trial_enabled }} {{ f.trial_enabled.label }}</span>
+                                    <small class="form-help">{{ f.trial_enabled.help_text }}</small>
+                                    {{ f.trial_enabled.errors }}
+                                </label>
+                                {% include "subscriptions/partials/_pricing_field.html" with field=f.trial_plan %}
+                                {% include "subscriptions/partials/_pricing_field.html" with field=f.trial_price_rub %}
+                                {% include "subscriptions/partials/_pricing_field.html" with field=f.trial_days %}
+                            </div>
+                        </article>
                     {% endwith %}
                 </div>
                 <aside class="ops-grid__side">
