@@ -528,3 +528,114 @@ class TopupCommissionTests(TestCase):
         response = self.client.post(reverse("payments:dev_checkout", args=[payment.public_id]), {"outcome": "pay"})
         follow = self.client.get(response["Location"])
         self.assertRedirects(follow, reverse("payments:topup"), fetch_redirect_response=False)
+
+
+def _freekassa_notification(payment, *, amount=None, secret="word2", merchant="777"):
+    import hashlib
+
+    amount = amount or f"{payment.amount:.2f}"
+    order_id = str(payment.public_id)
+    sign = hashlib.md5(f"{merchant}:{amount}:{secret}:{order_id}".encode()).hexdigest()
+    return {"MERCHANT_ID": merchant, "AMOUNT": amount, "intid": "555", "MERCHANT_ORDER_ID": order_id, "CUR_ID": "36", "SIGN": sign}
+
+
+@override_settings(FREEKASSA_MERCHANT_ID="777", FREEKASSA_SECRET_1="word1", FREEKASSA_SECRET_2="word2")
+class FreeKassaFlowTests(TestCase):
+    def setUp(self):
+        _set_fee("0")
+        self.user = User.objects.create_user(username="fkpayer", password="pass12345", email="fk@example.com")
+        self.client.login(username="fkpayer", password="pass12345")
+
+    def _start(self):
+        response = self.client.post(reverse("payments:topup"), {"amount": "300", "accept_terms": "on"})
+        return response, Payment.objects.get(user=self.user)
+
+    def _notify(self, data):
+        return self.client.post(reverse("payments_public:webhook", args=["freekassa"]), data)
+
+    def test_redirects_to_signed_payment_link(self):
+        import hashlib
+        from urllib.parse import parse_qs, urlparse
+
+        response, payment = self._start()
+
+        self.assertEqual(payment.provider, "freekassa")
+        self.assertEqual(payment.external_id, str(payment.public_id))
+        url = urlparse(response["Location"])
+        self.assertEqual(f"{url.scheme}://{url.netloc}/", "https://pay.fk.money/")
+        query = {key: values[0] for key, values in parse_qs(url.query).items()}
+        expected = hashlib.md5(f"777:300.00:word1:RUB:{payment.public_id}".encode()).hexdigest()
+        self.assertEqual((query["m"], query["oa"], query["currency"], query["s"], query["em"]), ("777", "300.00", "RUB", expected, "fk@example.com"))
+
+    def test_signed_notification_credits_once_and_answers_yes(self):
+        _response, payment = self._start()
+
+        first = self._notify(_freekassa_notification(payment))
+        second = self._notify(_freekassa_notification(payment))
+
+        self.assertEqual((first.status_code, first.content), (200, b"YES"))
+        self.assertEqual(second.content, b"YES")
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.SUCCEEDED)
+        self.assertEqual(LedgerEntry.objects.filter(user=self.user).count(), 1)
+        self.user.profile_v2.refresh_from_db()
+        self.assertEqual(self.user.profile_v2.balance_coins, Decimal("300.00"))
+
+    def test_forged_signature_does_not_credit(self):
+        _response, payment = self._start()
+
+        response = self._notify(_freekassa_notification(payment, secret="guess"))
+
+        self.assertNotEqual(response.content, b"YES")
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.PENDING)
+        self.assertFalse(LedgerEntry.objects.filter(user=self.user).exists())
+
+    def test_wrong_amount_is_not_credited(self):
+        _response, payment = self._start()
+
+        self._notify(_freekassa_notification(payment, amount="3.00"))
+
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.FAILED)
+        self.assertFalse(LedgerEntry.objects.filter(user=self.user).exists())
+
+    def test_success_url_leads_to_the_payment_result(self):
+        _response, payment = self._start()
+        self._notify(_freekassa_notification(payment))
+
+        response = self.client.get(reverse("payments:freekassa_return"), {"MERCHANT_ORDER_ID": str(payment.public_id)}, follow=True)
+
+        self.assertContains(response, "Баланс пополнен на 300.00")
+
+    def test_return_url_ignores_foreign_or_broken_order_ids(self):
+        response = self.client.get(reverse("payments:freekassa_return"), {"MERCHANT_ORDER_ID": "not-a-uuid"})
+        self.assertRedirects(response, reverse("payments:topup"), fetch_redirect_response=False)
+
+    def test_unpaid_payment_is_closed_after_a_day(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        _response, payment = self._start()
+        Payment.objects.filter(pk=payment.pk).update(created_at=timezone.now() - timedelta(days=2))
+        payment.refresh_from_db()
+
+        self.assertEqual(sync_payment(payment).status, Payment.Status.CANCELED)
+
+    @override_settings(FREEKASSA_API_KEY="api-key")
+    @mock.patch("modules.v2.payments.providers.freekassa.requests.post")
+    def test_lost_notification_is_recovered_through_api(self, post_mock):
+        _response, payment = self._start()
+        post_mock.return_value = mock.Mock(status_code=200)
+        post_mock.return_value.json.return_value = {
+            "type": "success",
+            "orders": [{"merchant_order_id": str(payment.public_id), "fk_order_id": 555, "amount": 300, "currency": "RUB", "status": 1}],
+        }
+
+        payment = sync_payment(payment)
+
+        self.assertEqual(payment.status, Payment.Status.SUCCEEDED)
+        sent = post_mock.call_args.kwargs["json"]
+        self.assertEqual((sent["shopId"], sent["paymentId"]), (777, str(payment.public_id)))
+        self.assertTrue(sent["signature"])

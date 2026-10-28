@@ -36,7 +36,7 @@
     {% if not topup_provider %}
         <div class="topup-off">
             <strong>{% if LANGUAGE_CODE == "ru" %}Пополнение временно недоступно{% else %}Top-up is temporarily unavailable{% endif %}</strong>
-            <p>{% if LANGUAGE_CODE == "ru" %}Платёжный сервис ещё не подключён. Администратору нужно указать ключи ЮKassa в настройках окружения.{% else %}No payment provider is configured yet. An admin needs to set the YooKassa keys in the environment.{% endif %}</p>
+            <p>{% if LANGUAGE_CODE == "ru" %}Платёжный сервис ещё не подключён. Администратору нужно указать ключи FreeKassa или ЮKassa в настройках окружения.{% else %}No payment provider is configured yet. An admin needs to set the FreeKassa or YooKassa keys in the environment.{% endif %}</p>
         </div>
     {% else %}
         <div class="topup-grid">
@@ -92,6 +92,8 @@
                         <span class="topup-mode topup-mode--test">TEST</span>
                         {% if topup_provider.code == "yookassa" %}
                             <p>{% if LANGUAGE_CODE == "ru" %}Тестовый магазин ЮKassa: настоящие деньги не списываются. Карта <code>5555 5555 5555 4477</code>, любой срок и CVC.{% else %}YooKassa test shop: no real money. Card <code>5555 5555 5555 4477</code>, any expiry and CVC.{% endif %}</p>
+                        {% elif topup_provider.code == "freekassa" %}
+                            <p>{% if LANGUAGE_CODE == "ru" %}Тестовый режим FreeKassa: платежи помечаются как тестовые.{% else %}FreeKassa test mode: payments are flagged as test ones.{% endif %}</p>
                         {% else %}
                             <p>{% if LANGUAGE_CODE == "ru" %}Локальная заглушка платёжки (DEBUG). Подключите ключи ЮKassa, чтобы принимать реальные платежи.{% else %}Local fake checkout (DEBUG). Add YooKassa keys to accept real payments.{% endif %}</p>
                         {% endif %}
@@ -120,7 +122,7 @@
                             <tr>
                                 <td class="topup-table__mono">{{ payment.created_at|date:"d.m.Y H:i" }}</td>
                                 <td class="topup-table__mono topup-table__amount">{% money payment.balance_amount %}{% if payment.fee_amount %}<span class="topup-table__fee">оплачено {% money payment.amount %}</span>{% endif %}</td>
-                                <td>{% if payment.provider == "yookassa" %}ЮKassa{% elif payment.provider == "dev" %}Dev{% else %}{{ payment.provider }}{% endif %}</td>
+                                <td>{% if payment.provider == "yookassa" %}ЮKassa{% elif payment.provider == "freekassa" %}FreeKassa{% elif payment.provider == "dev" %}Dev{% else %}{{ payment.provider }}{% endif %}</td>
                                 <td><span class="topup-status topup-status--{{ payment.status }}">{{ payment.get_status_display }}</span></td>
                                 <td class="topup-table__actions">
                                     <div>

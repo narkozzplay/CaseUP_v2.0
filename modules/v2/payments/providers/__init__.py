@@ -4,12 +4,14 @@ from django.conf import settings
 
 from .base import BasePaymentProvider, PaymentProviderError, ProviderPayment
 from .dev import DevPaymentProvider
+from .freekassa import FreeKassaProvider
 from .yookassa import YooKassaProvider
 
 
 PROVIDER_CLASSES: dict[str, type[BasePaymentProvider]] = {
     DevPaymentProvider.code: DevPaymentProvider,
     YooKassaProvider.code: YooKassaProvider,
+    FreeKassaProvider.code: FreeKassaProvider,
 }
 
 
@@ -19,6 +21,8 @@ def _configured_provider_code() -> str:
         return code
     if YooKassaProvider.is_configured():
         return YooKassaProvider.code
+    if FreeKassaProvider.is_configured():
+        return FreeKassaProvider.code
     if getattr(settings, "DEBUG", False):
         return DevPaymentProvider.code
     return ""

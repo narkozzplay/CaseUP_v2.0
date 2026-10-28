@@ -228,6 +228,7 @@ def handle_webhook(*, provider_code: str, payload: dict) -> Payment | None:
     if payment is None:
         logger.info("Webhook for unknown %s payment %s", provider.code, external_id)
         return None
+    provider.apply_webhook(payment, payload)
     return sync_payment(payment, provider=provider)
 
 
