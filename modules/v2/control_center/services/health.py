@@ -11,6 +11,7 @@ import django
 from django.conf import settings
 from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connections
+from django.db.models import Max
 from django.utils import timezone
 
 OK = "ok"
@@ -196,7 +197,8 @@ def check_price_updates() -> HealthCheck:
     if now - last.started_at > timedelta(days=1):
         status = WARN
         hints.append("Правила не запускались больше суток")
-    last_checked = SteamItem.objects.filter(is_active=True).order_by("-price_checked_at").values_list("price_checked_at", flat=True).first()
+    # Max() skips NULLs (never checked items); ordering by -price_checked_at puts them first on PostgreSQL.
+    last_checked = SteamItem.objects.filter(is_active=True).aggregate(last=Max("price_checked_at"))["last"]
     if PriceAutoUpdateRule.objects.filter(is_enabled=True).exists() and (
         last_checked is None or now - last_checked > timedelta(hours=PRICE_STALL_HOURS)
     ):

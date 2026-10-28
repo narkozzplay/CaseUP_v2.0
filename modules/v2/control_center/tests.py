@@ -374,6 +374,7 @@ class PriceUpdatesHealthTests(TestCase):
 
         item = SteamItem.objects.create(market_hash_name="Health | Item", item_type="skin")
         SteamItem.objects.filter(pk=item.pk).update(price_checked_at=timezone.now())
+        SteamItem.objects.create(market_hash_name="Health | Never Checked", item_type="skin")  # NULL must not win
 
     def test_a_few_failed_runs_among_many_are_not_an_alert(self):
         from modules.v2.control_center.services.health import WARN, check_price_updates
