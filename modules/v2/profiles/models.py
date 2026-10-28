@@ -43,6 +43,12 @@ class UserProfile(models.Model):
         decimal_places=2,
         default=Decimal("0.00"),
     )
+    # Money from market sales: the only withdrawable money (see market.payouts).
+    market_balance_coins = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
 
     steam_id = models.CharField(
         max_length=32,
@@ -162,6 +168,10 @@ class UserProfile(models.Model):
                 condition=Q(balance_coins__gte=Decimal("0.00")),
                 name="profiles_userprofile_balance_non_negative",
             ),
+            models.CheckConstraint(
+                condition=Q(market_balance_coins__gte=Decimal("0.00")),
+                name="profiles_userprofile_market_balance_non_negative",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -192,6 +202,13 @@ class LedgerReason(models.TextChoices):
     MARKET_PAYOUT = "market_payout", "Market payout"
     DONATION = "donation", "Donation"
     MAJOR_PICKEM = "major_pickem", "Major Pick'em reward"
+    MARKET_TRANSFER = "market_transfer", "Market balance to game balance"
+    MARKET_PAYOUT_CANCEL = "market_payout_cancel", "Market payout cancelled"
+
+
+class Wallet(models.TextChoices):
+    GAME = "game", "Игровой баланс"
+    MARKET = "market", "Рыночный баланс"
 
 
 class LedgerEntry(models.Model):
@@ -200,6 +217,8 @@ class LedgerEntry(models.Model):
         on_delete=models.PROTECT,
         related_name="ledger_entries",
     )
+    # Which balance moved; balance_after is that balance after the entry.
+    wallet = models.CharField(max_length=8, choices=Wallet.choices, default=Wallet.GAME, db_index=True)
     delta = models.DecimalField(max_digits=14, decimal_places=2)
     balance_after = models.DecimalField(max_digits=14, decimal_places=2)
 

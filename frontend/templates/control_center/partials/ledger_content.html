@@ -47,7 +47,7 @@
                                     <td>{% include "control_center/partials/_user_cell.html" with u=entry.user %}</td>
                                     <td><span class="cc-chip">{{ entry.get_reason_display }}</span></td>
                                     <td class="cc-num {% if entry.delta >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% if entry.delta > 0 %}+{% endif %}{{ entry.delta|stringformat:".2f" }}</td>
-                                    <td class="cc-num">{{ entry.balance_after|stringformat:".2f" }}</td>
+                                    <td class="cc-num">{{ entry.balance_after|stringformat:".2f" }}{% if entry.wallet == "market" %}<span class="cc-sub">рыночный</span>{% endif %}</td>
                                 </tr>
                             {% empty %}
                                 <tr><td colspan="5" class="text-muted">Операций по фильтрам нет.</td></tr>

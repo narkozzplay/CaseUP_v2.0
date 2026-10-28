@@ -31,6 +31,7 @@ urlpatterns = [
     path("ads/banners/new/", views.ads_banner_edit, name="ads_banner_create"),
     path("ads/banners/<int:banner_id>/", views.ads_banner_edit, name="ads_banner_edit"),
     path("market/", views.market_deals, name="market"),
+    path("market/payout/<str:code>/", views.market_payout_process, name="market_payout"),
     path("promo/new/", views.promo_code_edit, name="promo_create"),
     path("promo/<int:promo_id>/", views.promo_code_edit, name="promo_edit"),
     path("promo/activations/<int:activation_id>/cancel/", views.promo_activation_cancel, name="promo_activation_cancel"),

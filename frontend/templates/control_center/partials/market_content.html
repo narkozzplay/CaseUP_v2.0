@@ -16,6 +16,36 @@
 
     {% include "control_center/partials/_tabs.html" %}
 
+    {% if payout_queue %}
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Выплаты продавцам</h2><span class="ops-panel__hint">{{ payout_queue|length }}</span></div>
+            <p class="ref-text text-muted">Сумма уже списана с рыночного баланса продавца. Переведите деньги вручную и нажмите «Выплачено». При отказе укажите причину: деньги вернутся продавцу.</p>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Заявка</th><th>Продавец</th><th class="cc-num">Сумма</th><th>Реквизиты</th><th style="min-width: 260px">Решение</th></tr></thead>
+                    <tbody>
+                        {% for payout in payout_queue %}
+                            <tr>
+                                <td class="cc-mono">{{ payout.code }}<span class="cc-sub">{{ payout.created_at|date:"d.m.Y H:i" }}</span></td>
+                                <td>{% include "control_center/partials/_user_cell.html" with u=payout.user %}</td>
+                                <td class="cc-num">{{ payout.amount|floatformat:"2u" }} ₽</td>
+                                <td>{{ payout.get_method_display }}<span class="cc-sub cc-mono">{{ payout.requisites }}</span><span class="cc-sub">{{ payout.recipient_name }}</span></td>
+                                <td>
+                                    <form method="post" action="{% url 'control_center:market_payout' payout.code %}" class="mkt-inline">
+                                        {% csrf_token %}
+                                        <input type="text" name="note" class="form-control" maxlength="255" placeholder="Комментарий / причина отказа">
+                                        <button type="submit" name="decision" value="paid" class="btn btn-primary btn-sm" onclick="return confirm('Деньги отправлены продавцу?');">Выплачено</button>
+                                        <button type="submit" name="decision" value="reject" class="btn btn-ghost btn-sm">Отказать</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    {% endif %}
+
     <form method="get" class="cc-toolbar">
         <label class="cc-field cc-field--grow"><span>Поиск</span><input type="search" name="q" value="{{ filters.q }}" class="form-control" placeholder="MKT-код, предмет, покупатель или продавец"></label>
         <label class="cc-field form-field"><span>Статус</span><select name="status"><option value="">Все</option>{% for code, label in status_options %}<option value="{{ code }}"{% if filters.status == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>

@@ -259,6 +259,8 @@ LEDGER_REASON_LABELS_RU = {
     LedgerReason.MARKET_REFUND: "Возврат по сделке",
     LedgerReason.MARKET_SALE: "Продажа на рынке",
     LedgerReason.MARKET_PAYOUT: "Вывод с рынка",
+    LedgerReason.MARKET_PAYOUT_CANCEL: "Возврат заявки на вывод",
+    LedgerReason.MARKET_TRANSFER: "Перевод с рыночного баланса",
     LedgerReason.PROMO_BONUS: "Бонус по промокоду",
     LedgerReason.DONATION: "Донат проекту",
 }

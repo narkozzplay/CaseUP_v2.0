@@ -7,6 +7,7 @@ from modules.v2.notifications.registry import NotificationView, register_kind
 
 KIND_LISTING_MISSING = "market_listing_missing"
 KIND_DEAL = "market_deal"
+KIND_PAYOUT = "market_payout"
 
 DEAL_TEXTS = {
     "new": ("Новая сделка {code}", "Купили «{name}» за {price} ₽. Отправьте обмен в Steam до {deadline} — деньги покупателя уже заморожены."),
@@ -46,6 +47,16 @@ def render_deal(notification, lang: str) -> NotificationView:
     return NotificationView(title=title.format_map(payload), body=body.format_map(payload), url=reverse("market:deal", args=[code]) if code else reverse("market:deals"), icon="market")
 
 
+def render_payout(notification, lang: str) -> NotificationView:
+    payload = _Safe(notification.payload or {})
+    if payload.get("status") == "paid":
+        title, body = "Выплата {code} отправлена", "{amount} ₽ отправлены на ваши реквизиты."
+    else:
+        title, body = "Заявка {code} отклонена", "{amount} ₽ вернулись на рыночный баланс. Причина: {note}"
+    return NotificationView(title=title.format_map(payload), body=body.format_map(payload), url=reverse("market:payout"), icon="market")
+
+
 def register_notification_kinds() -> None:
     register_kind(KIND_LISTING_MISSING, render_listing_missing)
     register_kind(KIND_DEAL, render_deal)
+    register_kind(KIND_PAYOUT, render_payout)

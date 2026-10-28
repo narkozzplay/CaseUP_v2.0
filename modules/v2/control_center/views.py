@@ -1788,6 +1788,7 @@ def ads_banner_edit(request, banner_id: int | None = None):
 @login_required
 def market_deals(request):
     from modules.v2.market.models import Deal, Listing
+    from modules.v2.market.payouts import pending_queue as payout_queue
 
     role_access = _admin_access(request)
     if role_access is None:
@@ -1816,5 +1817,23 @@ def market_deals(request):
         "totals": totals,
         "active_listings": Listing.objects.filter(status=Listing.Status.ACTIVE).count(),
         "pagination_query": _querystring(request),
+        "payout_queue": list(payout_queue()),
     }
     return _render(request, partial="control_center/partials/market_content.html", context=context, title="Рынок · Control Center", tab="market")
+
+
+@login_required
+@require_POST
+def market_payout_process(request, code: str):
+    from modules.v2.market.payouts import PayoutError, process_payout
+
+    if _admin_access(request) is None:
+        return _forbidden()
+    paid = request.POST.get("decision") == "paid"
+    try:
+        payout = process_payout(request.user, code, paid=paid, note=request.POST.get("note", ""), request=request)
+    except PayoutError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, f"{payout.code}: {payout.get_status_display().lower()}.")
+    return redirect("control_center:market")

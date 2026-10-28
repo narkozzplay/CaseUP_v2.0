@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from modules.v2.profiles.models import LedgerEntry
+from modules.v2.profiles.models import LedgerEntry, Wallet
 from modules.v2.profiles.services.ledger import LedgerError, apply_ledger_delta
 
 
@@ -22,6 +22,7 @@ def adjust_balance(
     idempotency_key: str | None = None,
     comment: str = "",
     created_by=None,
+    wallet: str = Wallet.GAME,
 ) -> LedgerEntry:
     try:
         result = apply_ledger_delta(
@@ -35,6 +36,7 @@ def adjust_balance(
             withdraw_request_id=withdraw_request_id,
             comment=comment,
             created_by=created_by,
+            wallet=wallet,
         )
     except LedgerError as exc:
         raise BalanceError(str(exc)) from exc

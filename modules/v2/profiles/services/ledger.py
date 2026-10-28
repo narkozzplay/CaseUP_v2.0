@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from django.db import transaction
 
-from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserProfile
+from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserProfile, Wallet
 
 
 ZERO = Decimal("0.00")
@@ -41,10 +41,13 @@ def _validate_idempotent_replay(
     case_opening_id: int | None,
     inventory_item_id: int | None,
     withdraw_request_id: int | None,
+    wallet: str,
 ) -> None:
     mismatches: list[str] = []
     if existing.user_id != user.id:
         mismatches.append("user")
+    if existing.wallet != wallet:
+        mismatches.append("wallet")
     if existing.delta != delta:
         mismatches.append("delta")
     if existing.reason != normalized_reason:
@@ -77,6 +80,7 @@ def apply_ledger_delta(
     withdraw_request_id: int | None = None,
     comment: str = "",
     created_by=None,
+    wallet: str = Wallet.GAME,
 ) -> LedgerResult:
     if delta is None:
         raise LedgerError("Delta must not be empty")
@@ -90,6 +94,9 @@ def apply_ledger_delta(
     if reason not in LedgerReason.values:
         raise LedgerError(f"Unknown ledger reason: {reason!r}")
     normalized_reason = reason
+    if wallet not in Wallet.values:
+        raise LedgerError(f"Unknown wallet: {wallet!r}")
+    balance_field = "market_balance_coins" if wallet == Wallet.MARKET else "balance_coins"
 
     profile, _ = UserProfile.objects.select_for_update().get_or_create(
         user=user,
@@ -112,20 +119,22 @@ def apply_ledger_delta(
                 case_opening_id=case_opening_id,
                 inventory_item_id=inventory_item_id,
                 withdraw_request_id=withdraw_request_id,
+                wallet=wallet,
             )
             return LedgerResult(entry=existing, profile=profile)
 
-    current_balance = Decimal(profile.balance_coins or ZERO).quantize(Decimal("0.01"))
+    current_balance = Decimal(getattr(profile, balance_field) or ZERO).quantize(Decimal("0.01"))
     new_balance = (current_balance + delta).quantize(Decimal("0.01"))
 
     if new_balance < ZERO:
         raise LedgerError("Insufficient balance")
 
-    profile.balance_coins = new_balance
-    profile.save(update_fields=["balance_coins", "updated_at"])
+    setattr(profile, balance_field, new_balance)
+    profile.save(update_fields=[balance_field, "updated_at"])
 
     entry = LedgerEntry.objects.create(
         user=user,
+        wallet=wallet,
         delta=delta,
         balance_after=new_balance,
         reason=normalized_reason,

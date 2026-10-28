@@ -28,6 +28,10 @@ def balance(user) -> Decimal:
     return UserProfile.objects.get(user=user).balance_coins
 
 
+def market_balance(user) -> Decimal:
+    return UserProfile.objects.get(user=user).market_balance_coins
+
+
 class DealTestCase(TestCase):
     def setUp(self):
         cache.clear()
@@ -102,7 +106,7 @@ class LifecycleTests(DealTestCase):
         deal.refresh_from_db()
         self.listing.refresh_from_db()
         self.assertEqual((deal.status, self.listing.status), (Deal.Status.COMPLETED, Listing.Status.SOLD))
-        self.assertEqual(balance(self.seller), Decimal("300.00"))
+        self.assertEqual((balance(self.seller), market_balance(self.seller)), (Decimal("0.00"), Decimal("300.00")))
         kinds = list(MarketEvent.objects.filter(deal=deal).order_by("id").values_list("kind", flat=True))
         self.assertEqual(kinds, ["deal_created", "deal_sent", "deal_accepted", "deal_completed"])
 
@@ -214,7 +218,7 @@ class DisputeTests(DealTestCase):
         self.day_passed()
         deals.open_dispute(self.seller, self.deal.code, reason="Покупатель получил предмет, но не подтверждает")
         deals.resolve_dispute(self.admin, self.deal.code, decision="pay_seller")
-        self.assertEqual(balance(self.seller), Decimal("300.00"))
+        self.assertEqual((balance(self.seller), market_balance(self.seller)), (Decimal("0.00"), Decimal("300.00")))
 
     def test_strangers_see_nothing(self):
         stranger = make_seller("deal_stranger")

@@ -3,11 +3,11 @@
         <div>
             <span class="eyebrow">Рынок CaseUP</span>
             <h1 class="cc-pagehead__title">Вывод</h1>
-            <p class="ops-hero__text">Деньги за проданные на рынке предметы. Выводить можно только их — пополнения, бонусы, промокоды и предметы из кейсов сюда не входят.</p>
+            <p class="ops-hero__text">Рыночный баланс — деньги за проданные на рынке предметы. Выводить можно только его: пополнения, бонусы, промокоды и продажа предметов из кейсов идут на игровой баланс и с сайта не выводятся.</p>
         </div>
         <dl class="ops-hero__meta">
-            <div><dt>Доступно к выводу</dt><dd class="metric-positive">{{ wallet.available|floatformat:"2u" }} ₽</dd></div>
-            <div><dt>Удерживается</dt><dd>{{ wallet.held|floatformat:"2u" }} ₽</dd></div>
+            <div><dt>Рыночный баланс</dt><dd class="metric-positive">{{ wallet.available|floatformat:"2u" }} ₽</dd></div>
+            <div><dt>Удерживается в сделках</dt><dd>{{ wallet.held|floatformat:"2u" }} ₽</dd></div>
         </dl>
     </header>
 
@@ -19,20 +19,35 @@
             <dl class="biz-metrics">
                 <div><dt>Заработано на рынке</dt><dd>{{ wallet.earned|floatformat:"2u" }} ₽</dd></div>
                 <div><dt>Выведено</dt><dd>{{ wallet.withdrawn|floatformat:"2u" }} ₽</dd></div>
-                {% if wallet.spent %}<div><dt>Потрачено на сайте</dt><dd>{{ wallet.spent|floatformat:"2u" }} ₽</dd></div>{% endif %}
-                <div><dt>Доступно к выводу</dt><dd class="metric-positive">{{ wallet.available|floatformat:"2u" }} ₽</dd></div>
+                {% if wallet.pending %}<div><dt>Ждёт выплаты</dt><dd>{{ wallet.pending|floatformat:"2u" }} ₽</dd></div>{% endif %}
+                <div><dt>Можно вывести</dt><dd class="metric-positive">{{ wallet.available|floatformat:"2u" }} ₽</dd></div>
             </dl>
+            {% if wallet.available %}
+                <form method="post" action="{% url 'market:payout_transfer' %}" class="ref-body" onsubmit="return confirm('Перевести на игровой баланс? Обратно на рыночный баланс деньги не вернуть, и выводить их будет нельзя.');">
+                    {% csrf_token %}
+                    <p class="ref-text text-muted">Хотите потратить деньги на сайте? Переведите их на игровой баланс. Перевод в одну сторону: с игрового баланса деньги не выводятся.</p>
+                    <span class="mkt-inline"><input type="number" name="amount" min="0.01" step="0.01" max="{{ wallet.available|stringformat:'.2f' }}" class="form-control mkt-price-input" placeholder="Сумма, ₽" required aria-label="Сумма"><button type="submit" class="btn btn-secondary btn-sm">На игровой баланс</button></span>
+                </form>
+            {% endif %}
         </article>
 
         <article class="ops-panel">
-            <div class="ops-panel__head"><h2 class="ops-panel__title">Вывести деньги</h2>{% if not payouts_enabled %}<span class="cc-chip cc-chip--info">скоро</span>{% endif %}</div>
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Вывести деньги</h2></div>
             <div class="ref-body">
-                {% if payouts_enabled %}
-                    <p class="ref-text">Доступно {{ wallet.available|floatformat:"2u" }} ₽.</p>
+                {% if not payouts_enabled %}
+                    <p class="ref-text">Вывод сейчас недоступен.</p>
+                {% elif wallet.can_request %}
+                    <form method="post" action="{% url 'market:payout_request' %}" class="ref-body">
+                        {% csrf_token %}
+                        <label class="cc-field"><span>Сумма, ₽ (от {{ payout_min|floatformat:"0" }} до {{ wallet.available|floatformat:"2u" }})</span><input type="number" name="amount" min="{{ payout_min|stringformat:'.2f' }}" max="{{ wallet.available|stringformat:'.2f' }}" step="0.01" value="{{ wallet.available|stringformat:'.2f' }}" class="form-control" required></label>
+                        <label class="cc-field"><span>Способ</span><select name="method" class="form-control" required>{% for value, label in payout_methods %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></label>
+                        <label class="cc-field"><span>Реквизиты</span><input type="text" name="requisites" class="form-control" maxlength="120" placeholder="Для СБП: телефон и банк. Для карты: номер карты" autocomplete="off" required></label>
+                        <label class="cc-field"><span>Получатель, как в банке</span><input type="text" name="recipient_name" class="form-control" maxlength="120" placeholder="Иван Иванович И." required></label>
+                        <p class="ref-text text-muted">Выплаты отправляет администрация вручную, обычно в течение 1–3 рабочих дней. Деньги отправляются только на счёт или карту владельца аккаунта. Сумма сразу списывается с рыночного баланса; если заявку отклонят или вы её отмените, она вернётся.</p>
+                        <div><button type="submit" class="btn btn-primary btn-sm">Вывести</button></div>
+                    </form>
                 {% else %}
-                    <p class="ref-text">Вывод денег сейчас в разработке — способ выплат появится позже. Заработанное уже учитывается здесь и никуда не пропадёт.</p>
-                    <p class="ref-text text-muted">Деньги с продаж лежат на обычном балансе, ими можно платить на сайте. Потраченная часть перестаёт быть доступной к выводу.</p>
-                    <div><button type="button" class="btn btn-primary btn-sm" disabled>Вывести</button></div>
+                    <p class="ref-text">Минимальная сумма вывода — {{ payout_min|floatformat:"0" }} ₽. Сейчас на рыночном балансе {{ wallet.available|floatformat:"2u" }} ₽.</p>
                 {% endif %}
             </div>
         </article>
@@ -83,19 +98,21 @@
         </article>
 
         <article class="ops-panel">
-            <div class="ops-panel__head"><h2 class="ops-panel__title">История выводов</h2><span class="ops-panel__hint">{{ payouts|length }}</span></div>
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Заявки на вывод</h2><span class="ops-panel__hint">{{ payouts|length }}</span></div>
             <div class="table-wrap">
                 <table class="table cc-table">
-                    <thead><tr><th>Дата</th><th class="cc-num">Сумма</th><th>Комментарий</th></tr></thead>
+                    <thead><tr><th>Заявка</th><th class="cc-num">Сумма</th><th>Куда</th><th>Статус</th><th></th></tr></thead>
                     <tbody>
-                        {% for entry in payouts %}
+                        {% for payout in payouts %}
                             <tr>
-                                <td class="cc-mono">{{ entry.created_at|date:"d.m.Y H:i" }}</td>
-                                <td class="cc-num">{{ entry.delta|floatformat:"2u" }} ₽</td>
-                                <td>{{ entry.comment|default:"—" }}</td>
+                                <td class="cc-mono">{{ payout.code }}<span class="cc-sub">{{ payout.created_at|date:"d.m.Y H:i" }}</span></td>
+                                <td class="cc-num">{{ payout.amount|floatformat:"2u" }} ₽</td>
+                                <td>{{ payout.get_method_display }}<span class="cc-sub">{{ payout.masked_requisites }}</span></td>
+                                <td>{{ payout.get_status_display }}{% if payout.admin_note %}<span class="cc-sub">{{ payout.admin_note }}</span>{% endif %}</td>
+                                <td>{% if payout.status == "pending" %}<form method="post" action="{% url 'market:payout_cancel' payout.code %}" onsubmit="return confirm('Отменить заявку?');">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Отменить</button></form>{% endif %}</td>
                             </tr>
                         {% empty %}
-                            <tr><td colspan="3" class="text-muted">Выводов пока не было.</td></tr>
+                            <tr><td colspan="5" class="text-muted">Заявок на вывод пока не было.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
