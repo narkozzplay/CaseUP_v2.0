@@ -1,9 +1,18 @@
 {% extends "layouts/base_public.html" %}
-{% load caseup_brand donations %}
+{% load static caseup_brand donations %}
 
 {% block title %}{{ site_settings.site_name|default:"CaseUP" }} — {% if LANGUAGE_CODE == "ru" %}цены скинов CS2{% else %}CS2 skin prices{% endif %}{% endblock %}
 
 {% block body_class %}theme-public page-home{% endblock %}
+
+{% block extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/modules/majors.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'js/majors.js' %}" defer></script>
+{% endblock %}
 
 {% block content %}
 {% if active_theme and active_theme.key == "midnight" and feature_flags.midnight_theme %}
@@ -19,21 +28,21 @@
                 {% if LANGUAGE_CODE == "ru" %}
                     <h1>Следи за ценой.<br>Забирай <span class="hero-copy__accent">апсайд.</span></h1>
                     <p class="hero-text">
-                        Цены скинов Steam, алерты на изменение, учёт закупок и фарм-аккаунтов,
-                        статистика Steam и FACEIT. Всё на одной панели.
+                        Цены скинов Steam и алерты, Рынок между игроками с гарантом сделки,
+                        Pick'em мейджора и статистика Steam и FACEIT. Всё на одной панели.
                     </p>
                 {% else %}
                     <h1>Track the price.<br>Catch the <span class="hero-copy__accent">upside.</span></h1>
                     <p class="hero-text">
-                        Steam skin prices, change alerts, purchase and farm account tracking,
-                        Steam &amp; FACEIT stats. All on one panel.
+                        Steam skin prices and alerts, a player market with a guaranteed deal,
+                        the Major Pick'em and Steam &amp; FACEIT stats. All on one panel.
                     </p>
                 {% endif %}
 
                 <div class="hero-actions">
                     {% if request.user.is_authenticated %}
                         <a href="{% url 'frontend:dashboard_preview' %}" class="btn btn-primary">
-                            {% if LANGUAGE_CODE == "ru" %}Перейти в Dashboard{% else %}Go to Dashboard{% endif %}
+                            {% if LANGUAGE_CODE == "ru" %}Открыть панель{% else %}Open the panel{% endif %}
                             {% include "components/icon.html" with name="arrow" %}
                         </a>
                     {% else %}
@@ -91,16 +100,86 @@
 
                 <ul class="feature-list market-tracker__modules">
                     <li>{% if LANGUAGE_CODE == "ru" %}CS2 статистика Steam + FACEIT{% else %}CS2 stats — Steam + FACEIT{% endif %}</li>
-                    {% if feature_flags.farm %}<li>{% if LANGUAGE_CODE == "ru" %}Farm — фарм скинов и аккаунты{% else %}Farm — skin farming & accounts{% endif %}</li>{% endif %}
+                    {% if feature_flags.market %}<li>{% if LANGUAGE_CODE == "ru" %}Рынок — покупка и продажа скинов{% else %}Market — buy and sell skins{% endif %}</li>{% endif %}
+                    {% if feature_flags.majors %}<li>{% if LANGUAGE_CODE == "ru" %}Pick'em мейджора — бесплатно{% else %}Major Pick'em — free{% endif %}</li>{% endif %}
                     {% if feature_flags.steam_catalog %}<li>{% if LANGUAGE_CODE == "ru" %}Steam Catalog — предметы и цены{% else %}Steam Catalog — items & prices{% endif %}</li>{% endif %}
                     {% if feature_flags.subscriptions %}<li>{% if LANGUAGE_CODE == "ru" %}Подписки — тарифы и бонусы{% else %}Subscriptions — plans & bonuses{% endif %}</li>{% endif %}
                     <li>{% if LANGUAGE_CODE == "ru" %}Социальный слой — чаты и группы{% else %}Social layer — chats & groups{% endif %}</li>
-                    <li>{% if LANGUAGE_CODE == "ru" %}Верификация и бейджи профиля{% else %}Profile verification & badges{% endif %}</li>
+
                 </ul>
             </aside>
         </div>
     </section>
-    {% donation_widget "home" %}
+
+    {% if home_major %}
+        <section class="section section--compact home-major-section">
+            <div class="container">
+                <div class="home-major">
+                    <a href="{% if request.user.is_authenticated %}{% url 'majors:pickem' home_major.slug %}{% else %}{{ home_major.get_absolute_url }}{% endif %}" class="home-major__banner{% if not home_major.banner %} home-major__banner--empty{% endif %}" aria-label="{{ home_major.name }} — Pick'em">
+                        {% if home_major.banner_video_mp4 or home_major.banner_video_webm %}
+                            <video class="home-major__art" muted loop playsinline autoplay preload="metadata" {% if home_major.banner %}poster="{{ home_major.banner.url }}"{% endif %} aria-hidden="true" data-mj-banner-video>
+                                {% if home_major.banner_video_webm %}<source src="{{ home_major.banner_video_webm.url }}" type="video/webm">{% endif %}
+                                {% if home_major.banner_video_mp4 %}<source src="{{ home_major.banner_video_mp4.url }}" type="video/mp4">{% endif %}
+                            </video>
+                        {% elif home_major.banner %}
+                            <img class="home-major__art" src="{{ home_major.banner.url }}" alt="" loading="lazy">
+                        {% else %}
+                            <span class="home-major__title">{{ home_major.name }}</span>
+                        {% endif %}
+                    </a>
+                    <div class="home-major__bar">
+                        <div class="home-major__info">
+                            <span class="eyebrow">{% if home_major.has_started %}{% if LANGUAGE_CODE == "ru" %}Мейджор идёт{% else %}The Major is live{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}Скоро мейджор CS2{% else %}CS2 Major is coming{% endif %}{% endif %}</span>
+                            <strong class="home-major__name">{{ home_major.name }}</strong>
+                            <span class="home-major__meta">{{ home_major.starts_at|date:"j E" }} – {{ home_major.ends_on|date:"j E Y" }}{% if home_major.location %} · {{ home_major.location }}{% endif %}{% if home_major.prize_pool %} · {{ home_major.prize_pool }}{% endif %}</span>
+                        </div>
+                        {% if home_major_countdown %}
+                            <div class="mj-countdown home-major__countdown" data-mj-countdown="{{ home_major_countdown.at|date:'c' }}">
+                                <span class="mj-countdown__label">{% if LANGUAGE_CODE == "ru" %}{{ home_major_countdown.label }}{% elif home_major.has_started %}Until the next picks lock{% else %}Until the Major starts{% endif %}</span>
+                                <div class="mj-countdown__cells">
+                                    <span class="mj-countdown__cell"><b data-unit="days">{{ home_major_countdown.days }}</b><small>{% if LANGUAGE_CODE == "ru" %}дн{% else %}d{% endif %}</small></span>
+                                    <span class="mj-countdown__cell"><b data-unit="hours">{{ home_major_countdown.hours|stringformat:"02d" }}</b><small>{% if LANGUAGE_CODE == "ru" %}ч{% else %}h{% endif %}</small></span>
+                                    <span class="mj-countdown__cell"><b data-unit="minutes">{{ home_major_countdown.minutes|stringformat:"02d" }}</b><small>{% if LANGUAGE_CODE == "ru" %}мин{% else %}m{% endif %}</small></span>
+                                    <span class="mj-countdown__cell"><b data-unit="seconds">{{ home_major_countdown.seconds|stringformat:"02d" }}</b><small>{% if LANGUAGE_CODE == "ru" %}сек{% else %}s{% endif %}</small></span>
+                                </div>
+                            </div>
+                        {% endif %}
+                        <a href="{% if request.user.is_authenticated %}{% url 'majors:pickem' home_major.slug %}{% else %}{{ home_major.get_absolute_url }}{% endif %}" class="btn btn-primary home-major__cta">{% include "components/icon.html" with name="major" %}{% if LANGUAGE_CODE == "ru" %}Собрать Pick'em бесплатно{% else %}Make your free Pick'em{% endif %}</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    {% endif %}
+
+    {% if home_feed %}
+        <section class="section section--compact home-live">
+            <div class="container">
+                <div class="home-live__head">
+                    <span class="live-dot">LIVE</span>
+                    <h2 class="home-live__title">{% if LANGUAGE_CODE == "ru" %}Сейчас на CaseUP{% else %}Now on CaseUP{% endif %}</h2>
+                    {% if feature_flags.market %}<a href="{% url 'market:index' %}" class="home-live__link">{% if LANGUAGE_CODE == "ru" %}Весь Рынок{% else %}Whole market{% endif %} →</a>{% endif %}
+                </div>
+                <div class="home-live__grid">
+                    {% for row in home_feed %}
+                        <div class="home-live__card ud-rarity--{{ row.rarity|default:'none' }}"{% if row.kind != "drop" and row.rarity %} style="--rarity: #{{ row.rarity }};"{% endif %}>
+                            <span class="home-live__thumb">{% if row.item_icon %}<img src="{{ row.item_icon }}" alt="" loading="lazy">{% endif %}</span>
+                            {% if row.url %}<a href="{{ row.url }}" class="home-live__item">{{ row.item_name }}</a>{% else %}<strong class="home-live__item">{{ row.item_name }}</strong>{% endif %}
+                            <span class="home-live__who">
+                                <{% if row.profile_url %}a href="{{ row.profile_url }}"{% else %}span{% endif %} class="home-live__player"><img src="{{ row.user_avatar }}" alt="" loading="lazy">{{ row.user_name }}</{% if row.profile_url %}a{% else %}span{% endif %}>
+                                {% if row.kind == "buy" %}{% if LANGUAGE_CODE == "ru" %}купил{% else %}bought{% endif %}{% elif row.kind == "list" %}{% if LANGUAGE_CODE == "ru" %}продаёт{% else %}sells{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}выбил{% else %}unboxed{% endif %}{% endif %}
+                            </span>
+                            <span class="home-live__foot">
+                                {% if row.price %}<b>{% money row.price %}</b>{% else %}<b></b>{% endif %}
+                                <time datetime="{{ row.created_at|date:'c' }}">{% if LANGUAGE_CODE == "ru" %}{{ row.created_at|timesince }} назад{% else %}{{ row.created_at|timesince }} ago{% endif %}</time>
+                            </span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    {% endif %}
+
+    {% info_banner "home" %}
 
     <section class="section">
         <div class="container">
@@ -132,12 +211,12 @@
                     <p>{% if LANGUAGE_CODE == "ru" %}K/D, Win rate, карты, FACEIT ELO — всё в одном месте с синхронизацией по кнопке.{% else %}K/D, win rate, maps, FACEIT ELO — all in one place with one-click sync.{% endif %}</p>
                 </a>
 
-                {% if feature_flags.farm %}
+                {% if feature_flags.market %}
                     {% brand_asset "module_farm" as cover_url %}
-                    <a href="{% url 'farm:dashboard' %}" class="module-card cut" style="--module-color: var(--success);{% if cover_url %} --module-image: url('{{ cover_url }}');{% endif %}">
+                    <a href="{% url 'market:index' %}" class="module-card cut" style="--module-color: var(--success);{% if cover_url %} --module-image: url('{{ cover_url }}');{% endif %}">
                         <span class="module-card__cover" aria-hidden="true"></span>
-                        <h3>Farm</h3>
-                        <p>{% if LANGUAGE_CODE == "ru" %}Управляй фарм-аккаунтами, отслеживай дропы и продавай скины с минимальной комиссией.{% else %}Manage farm accounts, track drops and sell skins with minimal commission.{% endif %}</p>
+                        <h3>{% if LANGUAGE_CODE == "ru" %}Рынок{% else %}Market{% endif %}</h3>
+                        <p>{% if LANGUAGE_CODE == "ru" %}Покупай и продавай скины между игроками: деньги замораживаются до получения предмета.{% else %}Buy and sell skins between players: money is held until the item arrives.{% endif %}</p>
                     </a>
                 {% endif %}
 
@@ -150,6 +229,8 @@
             </div>
         </div>
     </section>
+
+    <div class="container">{% donation_widget "home" %}</div>
 
     <section class="section section--compact">
         <div class="container">

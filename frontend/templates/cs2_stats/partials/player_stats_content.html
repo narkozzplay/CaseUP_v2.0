@@ -1,19 +1,20 @@
 {% load static %}
 <section class="section section--compact cs2-stats-page">
+    {% if is_owner %}{% info_banner "stats_top" %}{% endif %}
 
     {# ===== HERO ===== #}
     <div class="dashboard-hero card cs2-stats-hero">
         <div class="card-body dashboard-hero__body">
             <div class="cs2-stats-hero__main">
                 <div class="cs2-stats-hero__identity">
-                    <span class="presence-avatar-wrap">
+                    <span class="presence-avatar-wrap{% if profile_effects.frame %} pfx-frame {{ profile_effects.frame }}{% endif %}">
                         <img src="{{ avatar_url }}" alt="{{ display_name }}" class="cs2-stats-hero__avatar">
                         <span class="presence-indicator {% if is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}"></span>
                     </span>
                     <div>
-                        <span class="eyebrow">CS2 Stats</span>
+                        <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Статистика CS2{% else %}CS2 stats{% endif %}</span>
                         <h1 class="page-title page-title--sm cs2-stats-hero__name">
-                            {{ display_name }}{% if badge %}{% include "components/verification_badge.html" with badge=badge %}{% endif %}
+                            {% if profile_effects.name %}<span class="pfx-name {{ profile_effects.name }}" data-text="{{ display_name }}">{{ display_name }}</span>{% else %}{{ display_name }}{% endif %}{% if badge %}{% include "components/verification_badge.html" with badge=badge %}{% endif %}
                         </h1>
                         {% if steam_stats %}
                         <div class="cs2-stats-hero__meta text-muted">
@@ -29,6 +30,26 @@
                         {% endif %}
                     </div>
                 </div>
+
+                {% if faceit_level %}
+                    <div class="cs2-faceit-badge cs2-faceit-badge--l{{ faceit_level }}" title="FACEIT">
+                        <span class="cs2-faceit-badge__level">{{ faceit_level }}</span>
+                        <span class="cs2-faceit-badge__meta">
+                            <b>{{ faceit_elo }} ELO</b>
+                            {% if faceit_progress %}
+                                <span class="cs2-faceit-badge__bar"><span style="width: {{ faceit_progress.percent }}%;"></span></span>
+                                <small>{% if faceit_progress.next_level %}{% if LANGUAGE_CODE == "ru" %}до {{ faceit_progress.next_level }} уровня {{ faceit_progress.elo_to_next }} ELO{% else %}{{ faceit_progress.elo_to_next }} ELO to level {{ faceit_progress.next_level }}{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}максимальный уровень{% else %}max level{% endif %}{% endif %}</small>
+                            {% endif %}
+                        </span>
+                    </div>
+                {% endif %}
+
+                {% if is_owner %}
+                    <a href="{% url 'cs2_stats:match_history' %}" class="cs2-history-action-btn cs2-history-action-btn--back" data-dashboard-nav="true">
+                        {% include "components/icon.html" with name="cs2_match_history" %}
+                        <span>{% if LANGUAGE_CODE == "ru" %}История матчей{% else %}Match history{% endif %}</span>
+                    </a>
+                {% endif %}
 
                 {% if not is_owner %}
                     <a href="{% url 'profiles:profile_detail' target_user.id %}"
@@ -117,6 +138,20 @@
         </div>
     </div>
 
+    {% if headline %}
+    <div class="cs2-headline">
+        {% for stat in headline %}
+            <div class="cs2-headline__tile{% if forloop.first %} cs2-headline__tile--accent{% endif %}">
+                <span class="cs2-headline__label">{% if LANGUAGE_CODE == "ru" %}{{ stat.label_ru }}{% else %}{{ stat.label_en }}{% endif %}</span>
+                <strong class="cs2-headline__value">{{ stat.value|floatformat:"-2" }}{{ stat.unit }}</strong>
+                <span class="cs2-headline__source">{{ stat.source }}</span>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if is_owner and not has_faceit %}{% info_banner "stats_faceit" %}{% endif %}
+
     {% if not steam_stats and not faceit_ext %}
         {# No data yet #}
         <article class="card dashboard-panel">
@@ -137,7 +172,7 @@
     {% else %}
 
     {# ===== COMPARISON PANEL ===== #}
-    {% if comparison %}
+    {% if comparison and steam_has_data and faceit_ext.matches %}
     <div class="cs2-comparison-grid">
         <article class="card cs2-stat-panel cs2-stat-panel--steam">
             <div class="card-body">
@@ -184,7 +219,11 @@
     {% endif %}
 
     {# ===== STEAM DETAILED STATS ===== #}
-    {% if steam_stats %}
+    {% if steam_stats and not steam_has_data and is_owner %}
+    <p class="cs2-steam-hint">{% if LANGUAGE_CODE == "ru" %}Steam пока отдаёт пустую статистику матчмейкинга. Она появится, когда в Steam будут открыты профиль и игровые данные, затем нажми «Обновить».{% else %}Steam returns empty matchmaking stats for now. They appear once your Steam profile and game details are public, then press "Sync".{% endif %}</p>
+    {% endif %}
+
+    {% if steam_has_data %}
     <article class="card">
         <div class="card-body">
             <h2 class="section-title">
@@ -212,12 +251,7 @@
         <div class="card-body">
             <div class="section-head-inline">
                 <h2 class="section-title">FACEIT CS2</h2>
-                {% if profile.faceit_skill_level %}
-                <span class="status-pill">
-                    {% if LANGUAGE_CODE == "ru" %}Уровень{% else %}Level{% endif %}
-                    {{ profile.faceit_skill_level }} / {{ profile.faceit_elo }} ELO
-                </span>
-                {% endif %}
+                {% if profile.faceit_nickname %}<span class="status-pill">{{ profile.faceit_nickname }}</span>{% endif %}
             </div>
             <div class="cs2-details-grid">
                 {% include "cs2_stats/partials/_big_stat.html" with label_ru="Avg K/D"  label_en="Avg K/D"  value=faceit_ext.avg_kd highlight=True %}

@@ -566,6 +566,7 @@ class DashboardMenuItem(models.Model):
                 "group": cls.Group.OVERVIEW,
                 "visibility_condition": cls.Visibility.AUTHENTICATED,
                 "sort_order": 34,
+                "is_enabled": False,
             },
             {
                 "key": "store",
@@ -581,8 +582,8 @@ class DashboardMenuItem(models.Model):
                 "label_ru": "Web-конструктор",
                 "label_en": "Web Constructor",
                 "url_name": "web_constructor:builder",
-                "group": cls.Group.OVERVIEW,
-                "visibility_condition": cls.Visibility.AUTHENTICATED,
+                "group": cls.Group.ADMIN,
+                "visibility_condition": cls.Visibility.ADMIN_PLUS,
                 "sort_order": 37,
             },
             {

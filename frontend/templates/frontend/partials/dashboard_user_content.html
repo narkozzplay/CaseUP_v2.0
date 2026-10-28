@@ -5,13 +5,6 @@
         <div class="ops-hero__main">
             <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Привет, {% else %}Hi, {% endif %}{{ current_user_display_name|default:request.user.username }}</span>
             <h1 class="ops-hero__title">{% if LANGUAGE_CODE == "ru" %}Твой {{ site_settings.site_name|default:"CaseUP" }}{% else %}Your {{ site_settings.site_name|default:"CaseUP" }}{% endif %}</h1>
-            <p class="ops-hero__text">
-                {% if LANGUAGE_CODE == "ru" %}
-                    Цены скинов CS2, Рынок между игроками, кейсы и Pick'em мейджора. Всё, что происходит на сайте, видно в ленте ниже.
-                {% else %}
-                    CS2 skin prices, a player market, cases and the Major Pick'em. Everything happening on the site shows up in the feed below.
-                {% endif %}
-            </p>
             <div class="ud-hero__actions">
                 {% if feature_flags.market %}
                     <a href="{% url 'market:index' %}" class="btn btn-primary">{% include "components/icon.html" with name="market" %}{% if LANGUAGE_CODE == "ru" %}Купить скины{% else %}Buy skins{% endif %}</a>
@@ -42,7 +35,7 @@
 
     {% if current_major %}
         <a href="{% url 'majors:pickem' current_major.slug %}" class="ud-major{% if current_major.banner %} ud-major--banner{% endif %}">
-            {% if current_major.banner %}<img src="{{ current_major.banner.url }}" alt="" class="ud-major__bg" loading="lazy">{% endif %}
+            {% if current_major.banner %}<img src="{{ current_major.banner.url }}" alt="" class="ud-major__thumb" loading="lazy">{% endif %}
             <span class="ud-major__body">
                 <span class="eyebrow">{% if current_major.has_started %}{% if LANGUAGE_CODE == "ru" %}Мейджор идёт{% else %}Major is live{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}Скоро мейджор{% else %}Major soon{% endif %}{% endif %}</span>
                 <strong class="ud-major__title">{{ current_major.name }}</strong>
@@ -61,7 +54,7 @@
                 <div class="ops-kpi__body">
                     <span class="ops-kpi__label">{% if LANGUAGE_CODE == "ru" %}Рынок{% else %}Market{% endif %}</span>
                     <strong class="ops-kpi__value">{{ market_lots_active }}</strong>
-                    <span class="ops-kpi__meta">{% if LANGUAGE_CODE == "ru" %}лотов на витрине · сделок за неделю {{ market_deals_week }}{% else %}lots listed · {{ market_deals_week }} deals this week{% endif %}</span>
+                    <span class="ops-kpi__meta">{% if LANGUAGE_CODE == "ru" %}лотов · {{ market_deals_week }} сделок за 7 дней{% else %}lots · {{ market_deals_week }} deals in 7 days{% endif %}</span>
                 </div>
             </a>
         {% endif %}
@@ -71,7 +64,7 @@
                 <div class="ops-kpi__body">
                     <span class="ops-kpi__label">{% if LANGUAGE_CODE == "ru" %}Избранное{% else %}Favorites{% endif %}</span>
                     <strong class="ops-kpi__value">{{ my_favorites }}</strong>
-                    <span class="ops-kpi__meta">{% if my_favorites %}{% if LANGUAGE_CODE == "ru" %}предметов слежу за ценой{% else %}items tracked{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}Добавь скины из каталога{% else %}Add skins from the catalog{% endif %}{% endif %}</span>
+                    <span class="ops-kpi__meta">{% if my_favorites %}{% if LANGUAGE_CODE == "ru" %}скинов в избранном{% else %}skins saved{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}Добавь скины{% else %}Add skins{% endif %}{% endif %}</span>
                 </div>
             </a>
             <a href="{% url 'steam_catalog:alert_rules' %}" class="ops-kpi ops-kpi--link">
@@ -79,7 +72,7 @@
                 <div class="ops-kpi__body">
                     <span class="ops-kpi__label">{% if LANGUAGE_CODE == "ru" %}Алерты цен{% else %}Price alerts{% endif %}</span>
                     <strong class="ops-kpi__value">{{ my_alerts }}</strong>
-                    <span class="ops-kpi__meta">{% if LANGUAGE_CODE == "ru" %}сообщим, когда цена дойдёт до нужной{% else %}we ping you when the price hits{% endif %}</span>
+                    <span class="ops-kpi__meta">{% if LANGUAGE_CODE == "ru" %}уведомим о цене{% else %}price pings{% endif %}</span>
                 </div>
             </a>
         {% endif %}
@@ -223,6 +216,8 @@
             </article>
         </aside>
     </div>
+
+    {% info_banner "dashboard" %}
 
     {% donation_widget "dashboard" %}
     {% endwith %}

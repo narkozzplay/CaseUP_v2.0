@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AdPlacement, AdSettings, HouseBanner
+from .models import AdPlacement, AdSettings, HouseBanner, InfoBanner
 
 
 @admin.register(AdSettings)
@@ -39,4 +39,20 @@ class HouseBannerAdmin(admin.ModelAdmin):
         ("Баннер", {"fields": ("title", "text", "image", "video", "url", "button")}),
         ("Где и кому", {"fields": ("placements", "audience", "show_to_ad_free", "weight", "starts_at", "ends_at")}),
         ("Статистика", {"fields": ("impressions", "clicks", "created_at", "updated_at")}),
+    )
+
+
+@admin.register(InfoBanner)
+class InfoBannerAdmin(admin.ModelAdmin):
+    list_display = ("name", "slot", "title", "url", "audience", "sort_order", "is_enabled")
+    list_editable = ("sort_order", "is_enabled")
+    list_filter = ("slot", "is_enabled", "audience")
+    search_fields = ("name", "title", "url")
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("name", "slot", "is_enabled", "sort_order")}),
+        ("Баннер", {"fields": ("eyebrow", "title", "text", "button", "url", "image", "video", "icon")}),
+        ("English", {"fields": ("title_en", "text_en", "button_en"), "classes": ("collapse",)}),
+        ("Кому и когда", {"fields": ("audience", "starts_at", "ends_at")}),
+        ("Служебное", {"fields": ("created_at", "updated_at")}),
     )

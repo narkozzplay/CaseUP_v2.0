@@ -74,7 +74,25 @@ def home(request):
     context = {
         "home_tracker": [],
         "home_stats": {},
+        "home_major": None,
+        "home_major_countdown": None,
+        "home_feed": [],
     }
+    feature_flags = get_module_state_map()
+    try:
+        if feature_flags.get("majors", True):
+            from modules.v2.majors.views import _countdown
+
+            major, _players = _current_major()
+            if major is not None:
+                context["home_major"] = major
+                context["home_major_countdown"] = _countdown(major)
+    except DatabaseError:
+        pass
+    from .activity_feed import build_activity_feed
+
+    viewer_is_team = bool(request.user.is_authenticated and get_user_role(request.user).is_moder_plus)
+    context["home_feed"] = build_activity_feed(feature_flags, limit=6, viewer_is_team=viewer_is_team)
     try:
         context["home_tracker"] = _build_home_tracker()
         context["home_stats"] = {

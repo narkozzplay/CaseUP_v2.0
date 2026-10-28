@@ -29,10 +29,11 @@
                         </div>
                     </a>
 
-                    <div class="dashboard-user-card__wallet">
+                    <a href="{% url 'payments:topup' %}" class="dashboard-user-card__wallet dashboard-user-card__wallet--link" title="{% if LANGUAGE_CODE == 'ru' %}Пополнить баланс{% else %}Top up{% endif %}">
                         <span class="dashboard-user-card__wallet-label">{% if LANGUAGE_CODE == "ru" %}Баланс{% else %}Balance{% endif %}</span>
                         <strong class="dashboard-user-card__wallet-value" data-sim-balance>{% money coins %}</strong>
-                    </div>
+                        <span class="dashboard-user-card__wallet-plus" aria-hidden="true">+</span>
+                    </a>
 
                     <dl class="dashboard-user-card__stats">
                         <div><dt>Steam lvl</dt><dd>{% if request.user.profile_v2.steam_level %}{{ request.user.profile_v2.steam_level }}{% else %}—{% endif %}</dd></div>

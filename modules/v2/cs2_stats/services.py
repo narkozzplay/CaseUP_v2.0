@@ -430,7 +430,23 @@ def get_cs2_stats_context(target_user, *, viewer) -> dict:
             "faceit_last":    faceit_ext.last_match_at,
         }
 
+    steam_has_data = bool(steam_stats and (steam_stats.total_matches_played or steam_stats.total_kills))
+    faceit_level = int(getattr(profile, "faceit_skill_level", 0) or 0)
+    faceit_elo = int(getattr(profile, "faceit_elo", 0) or 0)
+    try:
+        from modules.v2.profile_customization.services import get_profile_effect_classes
+
+        profile_effects = get_profile_effect_classes(target_user)
+    except Exception:
+        profile_effects = {}
+
     return {
+        "profile_effects": profile_effects,
+        "steam_has_data": steam_has_data,
+        "faceit_level":  faceit_level,
+        "faceit_elo":    faceit_elo,
+        "faceit_progress": faceit_level_progress(faceit_elo, faceit_level),
+        "headline":      _headline_stats(steam_stats if steam_has_data else None, faceit_ext),
         "target_user":   target_user,
         "display_name":  display_name,
         "avatar_url":    avatar_url,
@@ -446,3 +462,43 @@ def get_cs2_stats_context(target_user, *, viewer) -> dict:
         "map_rows":      map_rows,
         "comparison":    comparison,
     }
+
+
+# FACEIT CS2 ELO thresholds: level N starts at FACEIT_LEVEL_FLOORS[N - 1].
+FACEIT_LEVEL_FLOORS = (100, 501, 751, 901, 1051, 1201, 1351, 1531, 1751, 2001)
+
+
+def faceit_level_progress(elo: int, level: int) -> dict | None:
+    """How far the player is through the current FACEIT level, for the progress bar."""
+    if not level or not elo:
+        return None
+    level = max(1, min(10, level))
+    floor = FACEIT_LEVEL_FLOORS[level - 1]
+    if level == 10:
+        return {"percent": 100, "next_level": None, "elo_to_next": 0}
+    ceiling = FACEIT_LEVEL_FLOORS[level]
+    percent = round(max(0, min(1, (elo - floor) / (ceiling - floor))) * 100)
+    return {"percent": percent, "next_level": level + 1, "elo_to_next": max(0, ceiling - elo)}
+
+
+def _headline_stats(steam_stats, faceit_ext) -> list[dict]:
+    """The four big numbers on top: FACEIT when the player has it, otherwise Steam MM."""
+    if faceit_ext and faceit_ext.matches:
+        source = "FACEIT"
+        rows = [
+            ("K/D", "K/D", faceit_ext.avg_kd, ""),
+            ("HS %", "HS %", faceit_ext.avg_hs_percent, "%"),
+            ("Винрейт", "Win rate", faceit_ext.win_rate, "%"),
+            ("Матчей", "Matches", faceit_ext.matches, ""),
+        ]
+    elif steam_stats:
+        source = "Steam MM"
+        rows = [
+            ("K/D", "K/D", steam_stats.kd_ratio, ""),
+            ("HS %", "HS %", steam_stats.hs_percent, "%"),
+            ("Раунды выиграны", "Round wins", steam_stats.win_rate, "%"),
+            ("Матчей", "Matches", steam_stats.total_matches_played, ""),
+        ]
+    else:
+        return []
+    return [{"label_ru": ru, "label_en": en, "value": value, "unit": unit, "source": source} for ru, en, value, unit in rows]
