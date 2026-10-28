@@ -445,6 +445,12 @@ STEAM_PRICE_WARM_MOVED_HOURS = int(os.getenv("STEAM_PRICE_WARM_MOVED_HOURS", "48
 STEAM_PRICE_EMPTY_DAYS = int(os.getenv("STEAM_PRICE_EMPTY_DAYS", "7"))
 STEAM_PRICE_RELAY_URLS = get_env_list("STEAM_PRICE_RELAY_URLS", "")
 STEAM_PRICE_RELAY_TOKEN = os.getenv("STEAM_PRICE_RELAY_TOKEN", "").strip()
+# Market sweep (price_sweep.py): lowest prices of the whole market, 100 items per request, a few pages per run.
+STEAM_PRICE_SWEEP_ENABLED = os.getenv("STEAM_PRICE_SWEEP_ENABLED", "1").strip().lower() not in {"0", "false", "no", "off"}
+STEAM_PRICE_SWEEP_PAGES = int(os.getenv("STEAM_PRICE_SWEEP_PAGES", "3"))
+# Roubles per dollar for the sweep; 0 = take Steam's own rate (measured on STEAM_PRICE_SWEEP_RATE_ITEM twice a day).
+STEAM_USD_RUB_RATE = float(os.getenv("STEAM_USD_RUB_RATE", "0") or 0)
+STEAM_PRICE_SWEEP_RATE_ITEM = os.getenv("STEAM_PRICE_SWEEP_RATE_ITEM", "AK-47 | Redline (Field-Tested)")
 
 # Market (Рынок): who may sell and how often lots are checked against the seller's Steam inventory.
 MARKET_SELLER_MIN_ACCOUNT_DAYS = int(os.getenv("MARKET_SELLER_MIN_ACCOUNT_DAYS", "30"))

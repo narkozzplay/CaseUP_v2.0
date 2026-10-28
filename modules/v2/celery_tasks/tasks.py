@@ -15,7 +15,7 @@ from django.utils import timezone
 from modules.v2.steam_catalog.services import dispatch_pending_price_drop_alerts
 from modules.v2.steam_trading.services import dispatch_due_unlock_notifications
 
-from .services import run_due_rules, run_price_auto_update_rule, task_deadline
+from .services import run_due_rules, run_price_auto_update_rule, scheduler_deadline, task_deadline
 
 
 logger = logging.getLogger(__name__)
@@ -73,6 +73,34 @@ def run_due_price_auto_updates_task() -> list[dict]:
         }
         for summary in summaries
     ]
+
+
+SWEEP_LOCK_KEY = "celery_tasks:price_sweep:running"
+
+
+@shared_task(name="celery_tasks.sweep_market_prices")
+def sweep_market_prices_task() -> dict:
+    from modules.v2.steam_catalog.services.price_sweep import sweep
+
+    lock_seconds = int(getattr(settings, "CELERY_TASK_TIME_LIMIT", 1200) or 1200) + 60
+    token = uuid.uuid4().hex
+    if not cache.add(SWEEP_LOCK_KEY, token, timeout=lock_seconds):
+        return {}
+    try:
+        result = sweep(deadline=scheduler_deadline())
+    finally:
+        if cache.get(SWEEP_LOCK_KEY) == token:
+            cache.delete(SWEEP_LOCK_KEY)
+    for line in result.errors:
+        logger.warning("Market sweep: %s", line)
+    return {
+        "pages": result.pages,
+        "matched": result.matched,
+        "updated": result.updated,
+        "history_written": result.history_written,
+        "errors": result.errors,
+        "notes": result.notes,
+    }
 
 
 @shared_task(name="celery_tasks.dispatch_pending_price_drop_alerts")

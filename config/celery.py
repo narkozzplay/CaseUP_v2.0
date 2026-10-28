@@ -20,6 +20,11 @@ app.conf.beat_schedule = {
         "task": "celery_tasks.run_due_price_auto_updates",
         "schedule": float(settings.CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS),
     },
+    # Lowest prices of the whole market, 100 items per request, a few pages per run (price_sweep.py).
+    "sweep-market-prices": {
+        "task": "celery_tasks.sweep_market_prices",
+        "schedule": float(settings.CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS),
+    },
     "dispatch-pending-price-drop-alerts": {
         "task": "celery_tasks.dispatch_pending_price_drop_alerts",
         "schedule": float(settings.CELERY_BEAT_PENDING_ALERT_DISPATCHER_SECONDS),

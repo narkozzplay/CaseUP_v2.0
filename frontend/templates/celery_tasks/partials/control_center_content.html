@@ -26,6 +26,10 @@
                 <li>остальные — по кругу, раз в {{ queue.cold_hours }} ч; предметы без цены в Steam — раз в неделю.</li>
             </ul>
             <p class="ref-text">Ещё ни разу не проверено: {{ queue.never }} из {{ queue.total }}.</p>
+            <p class="ref-text">Массовый проход по рынку (100 цен за запрос, кроме горячих и тёплых):
+                {% if queue.sweep.total %}пройдено {{ queue.sweep.start }} из {{ queue.sweep.total }} позиций рынка, полных кругов {{ queue.sweep.passes }}{% if queue.sweep.last_page_time %}, последняя страница {{ queue.sweep.last_page_time|date:"d.m H:i" }}{% endif %}{% else %}ещё не запускался{% endif %}{% if queue.sweep.rate %}; курс Steam {{ queue.sweep.rate }} ₽ за $1{% endif %}.
+                {% if queue.sweep.message %}<span class="cc-chip cc-chip--warn">{{ queue.sweep.message }}</span>{% endif %}
+            </p>
             <p class="ref-text">Каналы к Steam{% if queue.budget %} (лимит {{ queue.budget }} запросов в час на канал){% endif %}:
                 {% for route in queue.routes %}<span class="cc-chip {% if route.paused_until %}cc-chip--warn{% else %}cc-chip--ok{% endif %}">{{ route.label }} · {{ route.spent }} за час{% if route.slowdown > 1 %} · темп ÷{{ route.slowdown }} после 429{% endif %}{% if route.paused_until %} · пауза до {{ route.paused_until|date:"H:i" }}{% endif %}</span> {% endfor %}
             </p>

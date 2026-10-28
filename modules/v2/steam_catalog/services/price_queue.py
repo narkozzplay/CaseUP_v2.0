@@ -7,7 +7,8 @@ is impossible on every run. Each auto-update run instead takes a small batch of 
    alerts, favorites) — refreshed every ``STEAM_PRICE_HOT_MINUTES``;
 2. then «warm» ones — pages people opened lately or prices that moved lately — every ``STEAM_PRICE_WARM_HOURS``;
 3. then the rest of the catalog in turn, each at most once per ``STEAM_PRICE_COLD_HOURS``. Items Steam has no
-   price for are asked again only after ``STEAM_PRICE_EMPTY_DAYS``.
+   price for are asked again only after ``STEAM_PRICE_EMPTY_DAYS``. Most of this tier is kept fresh by the
+   market sweep (price_sweep.py, 100 lowest prices per request), so the queue spends its requests on 1 and 2.
 
 Requests go out through «routes»: the server itself and any relays listed in ``STEAM_PRICE_RELAY_URLS``
 (a small PHP script on other hosting, i.e. another IP). Every route has its own request slot (a cache
@@ -44,6 +45,8 @@ RELAY_ERROR_PAUSE_MINUTES = 30
 # Kept free before the deadline: one Steam request (timeout 15 s) plus saving the result.
 DEADLINE_RESERVE_SECONDS = 20
 VIEW_THROTTLE_SECONDS = 3600
+# History rows written by the market sweep (price_sweep.py): the lowest listing, not the median.
+SWEEP_SOURCE = "sweep"
 # After each HTTP 429 the route's pace is halved (up to MAX_SLOWDOWN times slower) for SLOWDOWN_HOURS since the last
 # 429, then it goes back to normal: Steam's real limit moves and a fixed pace either wastes it or keeps hitting it.
 MAX_SLOWDOWN = 8
@@ -173,11 +176,13 @@ def _out_of_time(deadline: float | None) -> bool:
     return deadline is not None and time.monotonic() >= deadline - DEADLINE_RESERVE_SECONDS
 
 
-def _acquire_route(deadline: float | None = None) -> str | None:
+def _acquire_route(deadline: float | None = None, *, only: str | None = None) -> str | None:
     """Wait for a free request slot on any route that is not paused and has requests left this hour; None when
-    there is none or the deadline is too close for one more request. The returned route's request is counted."""
+    there is none or the deadline is too close for one more request. The returned route's request is counted.
+    ``only`` limits the choice to one route (the market sweep goes out from the server only)."""
     while not _out_of_time(deadline):
-        available = [route for route in routes() if route_paused_until(route) is None and _has_budget(route)]
+        candidates = [only] if only else routes()
+        available = [route for route in candidates if route_paused_until(route) is None and _has_budget(route)]
         if not available:
             return None
         for route in available:
@@ -215,6 +220,14 @@ def route_label(route: str) -> str:
     return "сервер" if route == DIRECT else "хостинг"
 
 
+def note_rate_limited(route: str) -> str:
+    """Steam answered 429 on the route: pause it, slow its pace down; returns the line for the run log."""
+    minutes = int(_setting("STEAM_PRICE_BACKOFF_MINUTES", 15))
+    _pause_route(route, minutes)
+    factor = _slow_down(route)
+    return f"Steam ограничил запросы ({route_label(route)}, 429): пауза {minutes} мин, дальше темп в {factor} раз ниже."
+
+
 # --------------------------------------------------------------------------- queue
 
 
@@ -238,7 +251,8 @@ def _warm_filter(now) -> Q:
     viewed_since = now - timedelta(days=int(_setting("STEAM_PRICE_WARM_VIEW_DAYS", 7)))
     moved_since = now - timedelta(hours=int(_setting("STEAM_PRICE_WARM_MOVED_HOURS", 48)))
     # Prices that moved lately keep moving: these are the candidates for the channel digest and price alerts.
-    moved = SteamItemPriceHistory.objects.filter(item_id=OuterRef("pk"), created_at__gte=moved_since)
+    # The market sweep's lowest listing moves all the time, so only the per-item median counts here.
+    moved = SteamItemPriceHistory.objects.filter(item_id=OuterRef("pk"), created_at__gte=moved_since).exclude(source=SWEEP_SOURCE)
     return Q(last_viewed_at__gte=viewed_since) | Q(Exists(moved))
 
 
@@ -337,13 +351,8 @@ def refresh_batch(*, category: str, limit: int, source: str = "queue", deadline:
             answered = True
         except urllib.error.HTTPError as exc:
             if exc.code == 429:
-                minutes = int(_setting("STEAM_PRICE_BACKOFF_MINUTES", 15))
-                _pause_route(route, minutes)
-                factor = _slow_down(route)
                 result.rate_limited = True
-                result.notes.append(
-                    f"Steam ограничил запросы ({route_label(route)}, 429): пауза {minutes} мин, дальше темп в {factor} раз ниже."
-                )
+                result.notes.append(note_rate_limited(route))
                 continue  # the item stays unchecked and goes out through another route or the next run
             if _steam_does_not_know(exc):
                 # A name Steam has no market page for (the relay passes Steam's answer through): an answer, not a
@@ -401,7 +410,10 @@ def coverage(*, now=None) -> dict:
     hot_minutes = int(_setting("STEAM_PRICE_HOT_MINUTES", 120))
     warm_hours = int(_setting("STEAM_PRICE_WARM_HOURS", 6))
     budget = hourly_budget()
+    from .price_sweep import state as sweep_state
+
     return {
+        "sweep": sweep_state(),
         "total": total,
         "fresh": fresh,
         "percent": int(fresh * 100 / total) if total else 0,
