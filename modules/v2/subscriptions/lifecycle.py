@@ -81,11 +81,11 @@ def remind_expiring_subscriptions(*, now=None) -> int:
         reminded += 1
         local_end = timezone.localtime(subscription.expires_at)
         if subscription.auto_renew:
-            from .services import get_period_price
+            from .trial import renewal_charge
 
             body = (
                 f"Тариф действует до {local_end:%d.%m.%Y %H:%M}. Включено автопродление: перед окончанием с баланса "
-                f"спишется {get_period_price(subscription.plan, 1):.2f} ₽ за месяц. Отключить его можно на странице тарифов."
+                f"спишется {renewal_charge(subscription.user, subscription.plan):.2f} ₽ за месяц. Отключить его можно на странице тарифов."
             )
         else:
             body = f"Тариф действует до {local_end:%d.%m.%Y %H:%M}. Продлите его заранее, чтобы не потерять доступ."

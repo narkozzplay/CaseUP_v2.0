@@ -110,6 +110,16 @@ def set_auto_renew(user, *, enabled: bool) -> UserSubscription | None:
     return subscription
 
 
+def renewal_charge(user, plan) -> Decimal:
+    """What the next month of ``plan`` costs this user, with their referral or promo discount."""
+    from .services import get_period_price, get_subscription_purchase_quote
+
+    try:
+        return get_subscription_purchase_quote(user=user, plan=plan, months=1).charge_amount
+    except Exception:  # noqa: BLE001 - a notice falls back to the list price
+        return get_period_price(plan, 1)
+
+
 def _notify(user, subscription, *, title: str, body: str) -> None:
     from .lifecycle import _notify as lifecycle_notify
     from .notifications import KIND_SUBSCRIPTION_RENEWAL
@@ -160,7 +170,7 @@ def renew_due_subscriptions(*, now=None) -> dict[str, int]:
                     user,
                     subscription,
                     title=f"Не удалось продлить «{plan.name}»",
-                    body=f"Для продления нужно {plan.price_rub:.2f} ₽, на балансе {balance:.2f} ₽ ({exc}). Пополните баланс до {timezone.localtime(subscription.expires_at):%d.%m %H:%M}, иначе подписка закончится.",
+                    body=f"Для продления нужно {renewal_charge(user, plan):.2f} ₽, на балансе {balance:.2f} ₽ ({exc}). Пополните баланс до {timezone.localtime(subscription.expires_at):%d.%m %H:%M}, иначе подписка закончится.",
                 )
             continue
         renewed += 1
