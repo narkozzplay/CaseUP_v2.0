@@ -378,6 +378,14 @@ class MajorItemsTests(MajorTestCase):
 
 
 class SeedTests(TestCase):
+    def test_pickem_house_banner_is_seeded(self):
+        from modules.v2.ads.models import HouseBanner
+
+        banner = HouseBanner.objects.get(url="/major/singapore-2026/")
+        self.assertTrue(banner.is_enabled)
+        self.assertFalse(banner.show_to_ad_free)
+        self.assertEqual(banner.ends_at.date(), date(2026, 12, 13))
+
     def test_singapore_major_and_team_logos_are_seeded(self):
         major = Major.objects.get(slug="singapore-2026")
         self.assertEqual(major.ends_on, date(2026, 12, 13))

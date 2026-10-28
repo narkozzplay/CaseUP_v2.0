@@ -133,7 +133,8 @@ class HouseBannerTests(TestCase):
 
     def test_promo_banners_are_seeded(self):
         urls = set(HouseBanner.objects.filter(is_enabled=True).values_list("url", flat=True))
-        self.assertEqual(urls, {"/donate/", "https://t.me/+Oo3Eb-Zc1n00Yzgy", "/subscriptions/"})
+        # The Major Pick'em promo (majors.0003) joins them until the final.
+        self.assertEqual(urls, {"/donate/", "https://t.me/+Oo3Eb-Zc1n00Yzgy", "/subscriptions/", "/major/singapore-2026/"})
         html = self._render(self.user)
         self.assertIn("ad-house", html)
 
