@@ -1,0 +1,10 @@
+{% load plan_banners %}
+{# expects: code (plan code or "free"), label (short text for the placeholder) #}
+{% plan_banner_url code as banner_url %}
+<div class="plan-card__banner{% if not banner_url %} plan-card__banner--placeholder{% endif %}" aria-hidden="true">
+    {% if banner_url %}
+        <img src="{{ banner_url }}" alt="" loading="lazy" decoding="async">
+    {% else %}
+        <span class="plan-card__banner-mark">{{ label }}</span>
+    {% endif %}
+</div>

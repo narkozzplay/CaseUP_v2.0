@@ -50,11 +50,12 @@
 <section class="section section--compact">
     <div class="container">
         {% include "subscriptions/partials/_period_tabs.html" %}
-        <div class="plan-grid">
+        <div class="plan-grid plan-grid--wide">
             {% for plan in plans %}
                 {% for row in pricing_rows %}
                     {% if row.plan.id == plan.id %}
                         <article class="plan-card plan-card--{{ plan.code }}{% if current_subscription.active_plan and current_subscription.active_plan.id == plan.id %} plan-card--current{% endif %}">
+                            {% include "subscriptions/partials/_plan_banner.html" with code=plan.code label=plan.ui_badge|default:plan.name %}
                             <header class="plan-card__head">
                                 {% if plan.ui_badge %}<span class="plan-card__badge">{{ plan.ui_badge }}</span>{% endif %}
                                 {% if current_subscription.active_plan and current_subscription.active_plan.id == plan.id %}<span class="plan-card__badge plan-card__badge--current">Ваш тариф</span>{% endif %}
