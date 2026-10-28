@@ -1,0 +1,115 @@
+<section class="mj">
+    {% include "majors/partials/hero.html" %}
+
+    <div class="mj-cta">
+        <div>
+            <h1 class="mj-cta__title">Pick'em {{ major.name }}</h1>
+            <p class="mj-cta__text">Как в CS2: перед каждой стадией выберите 2 команды на 3-0, 6 на выход и 2 на 0-3, а на плей-офф заполните всю сетку. Прогнозы закрываются в момент старта стадии.</p>
+        </div>
+        <a class="btn btn-primary" href="{% url 'majors:pickem' major.slug %}"{% if not request.user.is_authenticated %} rel="nofollow"{% endif %}>{% include "components/icon.html" with name="major" %}{% if summary and summary.picks %}Изменить прогнозы{% else %}Сделать прогноз{% endif %}</a>
+    </div>
+
+    {% if summary %}
+        <article class="mj-panel">
+            <div class="mj-panel__head"><h2 class="mj-panel__title">Ваш Pick'em</h2><span class="mj-panel__hint">{{ summary.correct }} верных · стадий пройдено: {{ summary.passed_stages }}</span></div>
+            <div class="mj-progress">
+                {% for score in summary.stages %}
+                    <div class="mj-progress__cell{% if score.passed %} is-passed{% elif score.passed is False %} is-failed{% endif %}">
+                        <span class="mj-progress__name">{{ score.stage.name }}</span>
+                        <strong>{{ score.correct }} / {{ score.max_picks }}</strong>
+                        <small>{% if score.passed %}пройдена{% elif score.passed is False %}не пройдена{% elif score.picks %}прогнозов: {{ score.picks }}{% else %}нет прогноза{% endif %}</small>
+                    </div>
+                {% endfor %}
+            </div>
+        </article>
+    {% endif %}
+
+    <article class="mj-panel">
+        <div class="mj-panel__head"><h2 class="mj-panel__title">Награды Pick'em</h2><span class="mj-panel__hint">Выдаются после подведения итогов стадии</span></div>
+        <ul class="mj-rewards">
+            {% for rule in rules %}
+                <li class="mj-reward{% if rule.kind == 'subscription' %} mj-reward--top{% endif %}">
+                    <span class="mj-reward__icon">{% include "components/icon.html" with name="trophy" %}</span>
+                    <span class="mj-reward__title">{{ rule.title }}{% if rule.condition == "stage_passed" and not rule.stage %}<small>за каждую стадию</small>{% endif %}</span>
+                    <strong class="mj-reward__prize">{{ rule.reward_label }}</strong>
+                </li>
+            {% empty %}
+                <li class="mj-empty">Награды скоро объявим.</li>
+            {% endfor %}
+        </ul>
+    </article>
+
+    <article class="mj-panel">
+        <div class="mj-panel__head"><h2 class="mj-panel__title">Стадии</h2></div>
+        <ol class="mj-stages">
+            {% for row in stages %}
+                {% with stage=row.stage %}
+                    <li class="mj-stage{% if stage.is_settled %} is-done{% elif stage.is_locked %} is-live{% endif %}">
+                        <span class="mj-stage__name">{{ stage.name }}</span>
+                        <span class="mj-stage__dates">{{ stage.starts_at|date:"j E" }}{% if stage.ends_on %} – {{ stage.ends_on|date:"j E" }}{% endif %}</span>
+                        <span class="mj-stage__format">{{ stage.get_kind_display }}</span>
+                        <span class="mj-stage__state">{% if stage.is_settled %}завершена{% elif stage.is_locked %}идёт{% else %}прогнозы до {{ stage.starts_at|date:"j E H:i" }}{% endif %}</span>
+                    </li>
+                {% endwith %}
+            {% endfor %}
+        </ol>
+    </article>
+
+    {% for row in stages %}
+        {% if row.entries %}
+            <article class="mj-panel">
+                <div class="mj-panel__head"><h2 class="mj-panel__title">{{ row.stage.name }}: команды</h2><span class="mj-panel__hint">{{ row.entries|length }}</span></div>
+                <ul class="mj-teamgrid">
+                    {% for entry in row.entries %}
+                        <li class="mj-teamcard{% if entry.advanced %} is-up{% elif entry.outcome %} is-out{% endif %}">
+                            {% include "majors/partials/team_chip.html" with team=entry.team %}
+                            {% if entry.record %}<span class="mj-record">{{ entry.record }}</span>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </article>
+        {% endif %}
+        {% if row.rounds %}
+            {% with first=row.rounds.0.slots.0.match %}
+                {% if first and first.team_a %}
+                    <article class="mj-panel">
+                        <div class="mj-panel__head"><h2 class="mj-panel__title">{{ row.stage.name }}</h2></div>
+                        <div class="mj-bracket">
+                            {% for round in row.rounds %}
+                                <div class="mj-bracket__col">
+                                    <h3 class="mj-bracket__round">{{ round.label }}</h3>
+                                <div class="mj-bracket__matches">
+                                    {% for slot in round.slots %}
+                                        <div class="mj-match">
+                                            {% if slot.match and slot.match.team_a %}{% if slot.match.winner_id and slot.match.winner_id == slot.match.team_a_id %}{% include "majors/partials/team_chip.html" with team=slot.match.team_a extra_class="is-winner" %}{% else %}{% include "majors/partials/team_chip.html" with team=slot.match.team_a %}{% endif %}{% else %}<span class="mj-team mj-team--tbd">TBD</span>{% endif %}
+                                            {% if slot.match and slot.match.team_b %}{% if slot.match.winner_id and slot.match.winner_id == slot.match.team_b_id %}{% include "majors/partials/team_chip.html" with team=slot.match.team_b extra_class="is-winner" %}{% else %}{% include "majors/partials/team_chip.html" with team=slot.match.team_b %}{% endif %}{% else %}<span class="mj-team mj-team--tbd">TBD</span>{% endif %}
+                                            {% if slot.match.score %}<span class="mj-match__score">{{ slot.match.score }}</span>{% endif %}
+                                        </div>
+                                    {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </article>
+                {% endif %}
+            {% endwith %}
+        {% endif %}
+    {% endfor %}
+
+    {% if not stages.0.entries %}
+        <article class="mj-panel mj-panel--note">
+            <p>{% include "components/icon.html" with name="clock" %} Участников объявят после 2 ноября по рейтингу Valve (VRS). Как только команды станут известны, откроются прогнозы на первую стадию.</p>
+        </article>
+    {% endif %}
+
+    {% include "majors/partials/items.html" %}
+
+    {% if top %}
+        <article class="mj-panel">
+            <div class="mj-panel__head"><h2 class="mj-panel__title">Лидеры Pick'em</h2><a class="mj-panel__hint" href="{% url 'majors:leaderboard' major.slug %}">Вся таблица →</a></div>
+            {% include "majors/partials/board.html" with board=top %}
+        </article>
+    {% endif %}
+
+    {% if major.description %}<p class="mj-about">{{ major.description }}</p>{% endif %}
+</section>

@@ -70,6 +70,7 @@ urlpatterns += i18n_patterns(
     path("referrals/", include("modules.v2.referrals.urls")),
     path("promo/", include("modules.v2.promo.urls")),
     path("bonus/", include("modules.v2.daily_bonus.urls")),
+    path("major/", include("modules.v2.majors.urls")),
     path("donate/", include("modules.v2.donations.urls")),
     path("ads/", include("modules.v2.ads.urls")),
     path("market/", include("modules.v2.market.urls")),

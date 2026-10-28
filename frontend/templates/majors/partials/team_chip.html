@@ -1,0 +1,1 @@
+<span class="mj-team{% if extra_class %} {{ extra_class }}{% endif %}">{% if team.logo_url %}<img class="mj-team__logo" src="{{ team.logo_url }}" alt="" loading="lazy" width="32" height="32">{% else %}<span class="mj-team__logo mj-team__logo--empty">{{ team.short|slice:":2" }}</span>{% endif %}<span class="mj-team__name">{{ team.name }}</span></span>

@@ -1,0 +1,125 @@
+<section class="mj">
+    {% include "majors/partials/hero.html" %}
+
+    <nav class="mj-stagetabs" aria-label="Стадии">
+        {% for item in all_stages %}
+            <a class="mj-stagetabs__link{% if stage and item.pk == stage.pk %} is-active{% endif %}" href="?stage={{ item.order }}">
+                <span>{{ item.name }}</span>
+                <small>{% if item.is_settled %}итоги{% elif item.is_locked %}закрыто{% else %}до {{ item.starts_at|date:"j E H:i" }}{% endif %}</small>
+            </a>
+        {% endfor %}
+    </nav>
+
+    {% if not eligibility.ok %}
+        <div class="mj-panel mj-panel--note">
+            <p>{% include "components/icon.html" with name="shield" %} {{ eligibility.reason }}</p>
+            {% if eligibility.action_url %}<a class="btn btn-primary" href="{{ eligibility.action_url }}">{{ eligibility.action_label }}</a>{% endif %}
+        </div>
+    {% endif %}
+
+    {% if stage %}
+        {% with locked=stage.is_locked %}
+            {% if stage.is_swiss %}
+                {% if entries %}
+                    <form method="post" class="mj-panel mj-pick" data-mj-swiss>
+                        {% csrf_token %}
+                        <input type="hidden" name="stage" value="{{ stage.order }}">
+                        <div class="mj-panel__head">
+                            <h1 class="mj-panel__title">{{ stage.name }}: ваш прогноз</h1>
+                            <span class="mj-panel__hint">{% if locked %}Прогнозы закрыты{% else %}Можно менять до {{ stage.starts_at|date:"j E, H:i" }} (МСК){% endif %}</span>
+                        </div>
+
+                        <div class="mj-slots">
+                            <div class="mj-slots__group mj-slots__group--win" data-slot="3-0" data-limit="{{ limits.win }}"><span class="mj-slots__label">3-0</span><span class="mj-slots__count"><b data-count>{{ counts.win }}</b> / {{ limits.win }}</span><span class="mj-slots__teams" data-teams></span></div>
+                            <div class="mj-slots__group mj-slots__group--adv" data-slot="advance" data-limit="{{ limits.advance }}"><span class="mj-slots__label">Выход 3-1 или 3-2</span><span class="mj-slots__count"><b data-count>{{ counts.advance }}</b> / {{ limits.advance }}</span><span class="mj-slots__teams" data-teams></span></div>
+                            <div class="mj-slots__group mj-slots__group--lose" data-slot="0-3" data-limit="{{ limits.lose }}"><span class="mj-slots__label">0-3</span><span class="mj-slots__count"><b data-count>{{ counts.lose }}</b> / {{ limits.lose }}</span><span class="mj-slots__teams" data-teams></span></div>
+                        </div>
+                        <p class="mj-pick__error" data-mj-error hidden></p>
+
+                        <ul class="mj-picklist">
+                            {% for row in entries %}
+                                <li class="mj-pickrow{% if locked and row.pick and row.entry.outcome %}{% if row.pick == row.entry.outcome %} is-correct{% else %} is-wrong{% endif %}{% endif %}" data-team="{{ row.team.pk }}" data-logo="{{ row.team.logo_url }}" data-name="{{ row.team.name }}">
+                                    {% include "majors/partials/team_chip.html" with team=row.team %}
+                                    {% if row.entry.record %}<span class="mj-record">{{ row.entry.record }}</span>{% endif %}
+                                    <span class="mj-toggle" role="radiogroup" aria-label="Прогноз для {{ row.team.name }}">
+                                        <label class="mj-toggle__opt mj-toggle__opt--win"><input type="radio" name="team_{{ row.team.pk }}" value="3-0"{% if row.pick == "3-0" %} checked{% endif %}{% if locked %} disabled{% endif %}><span>3-0</span></label>
+                                        <label class="mj-toggle__opt mj-toggle__opt--adv"><input type="radio" name="team_{{ row.team.pk }}" value="advance"{% if row.pick == "advance" %} checked{% endif %}{% if locked %} disabled{% endif %}><span>Выход</span></label>
+                                        <label class="mj-toggle__opt mj-toggle__opt--lose"><input type="radio" name="team_{{ row.team.pk }}" value="0-3"{% if row.pick == "0-3" %} checked{% endif %}{% if locked %} disabled{% endif %}><span>0-3</span></label>
+                                    </span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        {% if not locked and eligibility.ok %}
+                            <div class="mj-pick__actions">
+                                <button type="submit" class="btn btn-primary">{% include "components/icon.html" with name="check" %}Сохранить прогноз</button>
+                                <span class="mj-panel__hint">Нажмите на выбранный вариант ещё раз, чтобы снять его.</span>
+                            </div>
+                        {% endif %}
+                    </form>
+                {% else %}
+                    <div class="mj-panel mj-panel--note"><p>{% include "components/icon.html" with name="clock" %} Команды {{ stage.name|lower }} ещё не известны. Прогнозы откроются, как только определится состав.</p></div>
+                {% endif %}
+            {% else %}
+                <form method="post" class="mj-panel mj-pick" data-mj-bracket>
+                    {% csrf_token %}
+                    <input type="hidden" name="stage" value="{{ stage.order }}">
+                    <script type="application/json" data-mj-teams>{{ bracket_teams_json }}</script>
+                    <div class="mj-panel__head">
+                        <h1 class="mj-panel__title">{{ stage.name }}: сетка</h1>
+                        <span class="mj-panel__hint">{% if locked %}Прогнозы закрыты{% else %}Выберите победителя каждого матча до {{ stage.starts_at|date:"j E, H:i" }} (МСК){% endif %}</span>
+                    </div>
+                    <div class="mj-bracket mj-bracket--pick">
+                        {% for round in rounds %}
+                            <div class="mj-bracket__col">
+                                <h3 class="mj-bracket__round">{{ round.label }}</h3>
+                                <div class="mj-bracket__matches">
+                                {% for slot in round.slots %}
+                                    <fieldset class="mj-match mj-match--pick{% if slot.result %} is-{{ slot.result }}{% endif %}" data-key="{{ slot.key }}">
+                                        <legend class="visually-hidden">{{ round.label }} {{ slot.slot }}</legend>
+                                        {% for option in slot.options %}
+                                            <label class="mj-match__opt"{% if option.source %} data-{{ option.source }}-of="{{ option.source_key }}"{% endif %}>
+                                                <input type="radio" name="{{ slot.key }}" value="{% if option.team %}{{ option.team.pk }}{% endif %}"{% if option.checked %} checked{% endif %}{% if locked or not option.team %} disabled{% endif %}>
+                                                <span class="mj-team{% if not option.team %} mj-team--tbd{% endif %}" data-team-view>{% if option.team %}{% if option.team.logo_url %}<img class="mj-team__logo" src="{{ option.team.logo_url }}" alt="" width="32" height="32">{% endif %}<span class="mj-team__name">{{ option.team.name }}</span>{% else %}<span class="mj-team__name">{% if round.round == 1 %}TBD{% else %}выберите выше{% endif %}</span>{% endif %}</span>
+                                            </label>
+                                        {% endfor %}
+                                        {% if slot.match.winner %}<span class="mj-match__score">Победил {{ slot.match.winner.short }}{% if slot.match.score %} · {{ slot.match.score }}{% endif %}</span>{% endif %}
+                                    </fieldset>
+                                {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% if not locked and eligibility.ok %}
+                        <div class="mj-pick__actions"><button type="submit" class="btn btn-primary">{% include "components/icon.html" with name="check" %}Сохранить сетку</button></div>
+                    {% endif %}
+                </form>
+            {% endif %}
+        {% endwith %}
+    {% endif %}
+
+    {% if grants %}
+        <article class="mj-panel">
+            <div class="mj-panel__head"><h2 class="mj-panel__title">Ваши награды</h2></div>
+            <ul class="mj-rewards">
+                {% for grant in grants %}
+                    <li class="mj-reward">
+                        <span class="mj-reward__icon">{% include "components/icon.html" with name="trophy" %}</span>
+                        <span class="mj-reward__title">{{ grant.rule.title }}{% if grant.stage %}<small>{{ grant.stage.name }}</small>{% endif %}</span>
+                        <strong class="mj-reward__prize">{{ grant.rule.reward_label }}<small>{{ grant.get_status_display }}</small></strong>
+                    </li>
+                {% endfor %}
+            </ul>
+            {% if not trade_url %}<p class="mj-panel__hint">Чтобы получить скин, укажите трейд-ссылку Steam в разделе <a href="{% url 'market:sell' %}">Рынок → Продать</a>.</p>{% endif %}
+        </article>
+    {% endif %}
+
+    <article class="mj-panel mj-rules">
+        <div class="mj-panel__head"><h2 class="mj-panel__title">Как это работает</h2></div>
+        <ul>
+            <li>Швейцарские стадии: 2 команды на 3-0, 6 на выход с результатом 3-1 или 3-2 и 2 на 0-3. Стадия пройдена, если верны хотя бы {{ stage.pass_correct|default:5 }} прогнозов.</li>
+            <li>Плей-офф: вся сетка заполняется до первого матча. В полуфинал и финал можно поставить только команды, выбранные раньше.</li>
+            <li>Прогнозы закрываются в момент начала стадии. Награды выдаём после подведения итогов. Скины и подписки проверяем вручную.</li>
+            <li>Участие бесплатное. Нужен аккаунт с привязанным Steam.</li>
+        </ul>
+    </article>
+</section>

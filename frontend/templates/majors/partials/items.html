@@ -1,0 +1,27 @@
+{% if items.total %}
+    <article class="mj-panel">
+        <div class="mj-panel__head"><h2 class="mj-panel__title">Предметы мейджора</h2>{% if items.catalog_url %}<a class="mj-panel__hint" href="{{ items.catalog_url }}">Все в каталоге →</a>{% endif %}</div>
+        {% if items.packages %}
+            <h3 class="mj-subtitle">Капсулы и сувенирные наборы</h3>
+            <ul class="mj-items">
+                {% for item in items.packages %}{% include "majors/partials/item_card.html" %}{% endfor %}
+            </ul>
+        {% endif %}
+        {% if items.stickers %}
+            <h3 class="mj-subtitle">Наклейки{% if items.stickers_total > items.stickers|length %} · самые дорогие {{ items.stickers|length }} из {{ items.stickers_total }}{% endif %}</h3>
+            <ul class="mj-items">
+                {% for item in items.stickers %}{% include "majors/partials/item_card.html" %}{% endfor %}
+            </ul>
+        {% endif %}
+        {% if items.other %}
+            <h3 class="mj-subtitle">Другое</h3>
+            <ul class="mj-items">
+                {% for item in items.other %}{% include "majors/partials/item_card.html" %}{% endfor %}
+            </ul>
+        {% endif %}
+    </article>
+{% else %}
+    <article class="mj-panel mj-panel--note">
+        <p>{% include "components/icon.html" with name="box" %} Капсулы с наклейками и сувенирные наборы мейджора появятся здесь в день выхода, с ценами из Steam.</p>
+    </article>
+{% endif %}

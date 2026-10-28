@@ -1,0 +1,11 @@
+<section class="mj">
+    {% include "majors/partials/hero.html" %}
+    <article class="mj-panel">
+        <div class="mj-panel__head"><h1 class="mj-panel__title">Таблица лидеров Pick'em</h1><span class="mj-panel__hint">Сначала больше верных прогнозов, потом больше пройденных стадий</span></div>
+        {% if board %}
+            {% include "majors/partials/board.html" with show_stages=True %}
+        {% else %}
+            <p class="mj-empty">Таблица заполнится, когда сыграют первые матчи. <a href="{% url 'majors:pickem' major.slug %}" rel="nofollow">Сделайте прогноз</a>, пока стадия не началась.</p>
+        {% endif %}
+    </article>
+</section>

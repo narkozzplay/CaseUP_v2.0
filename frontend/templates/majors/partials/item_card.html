@@ -1,0 +1,7 @@
+<li class="mj-item">
+    <a class="mj-item__link" href="{{ item.get_absolute_url }}">
+        {% with icon=item.icon_cdn %}{% if icon %}<img class="mj-item__img" src="{{ icon }}" alt="" loading="lazy" width="96" height="72">{% endif %}{% endwith %}
+        <span class="mj-item__name">{{ item.market_hash_name }}</span>
+        <strong class="mj-item__price">{% if item.price_rub is not None %}{{ item.price_rub|floatformat:"2g" }} ₽{% else %}цена скоро{% endif %}</strong>
+    </a>
+</li>

@@ -77,7 +77,28 @@ class CatalogItemsSitemap(Sitemap):
         return item.updated_at
 
 
-SITEMAPS = {"pages": PublicPagesSitemap, "items": CatalogItemsSitemap}
+class MajorsSitemap(Sitemap):
+    """Published Majors and their Pick'em leaderboards."""
+
+    protocol = "https"
+    changefreq = "daily"
+    priority = 0.8
+
+    def items(self):
+        from modules.v2.majors.models import Major
+
+        rows = []
+        for major in Major.objects.filter(is_published=True).order_by("-starts_at"):
+            rows += [("majors:detail", major), ("majors:leaderboard", major)]
+        return rows
+
+    def location(self, item):
+        name, major = item
+        with translation.override(settings.LANGUAGE_CODE):
+            return reverse(name, args=[major.slug])
+
+
+SITEMAPS = {"pages": PublicPagesSitemap, "items": CatalogItemsSitemap, "majors": MajorsSitemap}
 
 
 @require_GET

@@ -112,6 +112,7 @@ ACTIVE_VIEW_ALIASES = {
         "store:analytics",
     },
     "web_constructor_moderation": {"web_constructor:moderation", "web_constructor:moderate_version"},
+    "majors": {"majors:index", "majors:detail", "majors:pickem", "majors:leaderboard"},
     "support": {"support:index", "support:create", "support:detail"},
     "support_queue": {"support:queue"},
     "django_admin": {"admin:index"},

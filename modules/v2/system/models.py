@@ -622,6 +622,15 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 47,
             },
             {
+                "key": "majors",
+                "label_ru": "Мейджор · Pick'em",
+                "label_en": "Major · Pick'em",
+                "url_name": "majors:index",
+                "group": cls.Group.OVERVIEW,
+                "visibility_condition": cls.Visibility.AUTHENTICATED,
+                "sort_order": 46,
+            },
+            {
                 "key": "daily_bonus",
                 "label_ru": "Бонус дня",
                 "label_en": "Daily bonus",
