@@ -68,6 +68,11 @@ app.conf.beat_schedule = {
         "task": "daily_bonus.remind_streaks",
         "schedule": crontab(hour=18, minute=5),
     },
+    # Around a Major: new sticker capsules and souvenir packages into the catalog, admins told what is new or missing.
+    "majors-check-items": {
+        "task": "majors.check_items",
+        "schedule": crontab(hour=9, minute=30),
+    },
     # 1st of the month: last month's top donors become «Спонсор» candidates; admins get a notification.
     "donations-monthly-sponsors": {
         "task": "donations.monthly_sponsors",

@@ -43,6 +43,7 @@ BONUS_REASONS = {
     LedgerReason.REFERRAL_BONUS: "Реферальные бонусы",
     LedgerReason.PROMO_BONUS: "Бонусы промокодов",
     LedgerReason.DAILY_BONUS: "Ежедневные бонусы",
+    LedgerReason.MAJOR_PICKEM: "Награды Pick'em",
     LedgerReason.ADMIN_ADJUST: "Начисления админами (нетто)",
 }
 

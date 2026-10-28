@@ -191,6 +191,7 @@ class LedgerReason(models.TextChoices):
     MARKET_SALE = "market_sale", "Market sale"
     MARKET_PAYOUT = "market_payout", "Market payout"
     DONATION = "donation", "Donation"
+    MAJOR_PICKEM = "major_pickem", "Major Pick'em reward"
 
 
 class LedgerEntry(models.Model):

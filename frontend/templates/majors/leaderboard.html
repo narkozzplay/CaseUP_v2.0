@@ -1,0 +1,7 @@
+{% extends majors_base_template|default:"layouts/base_dashboard.html" %}
+
+{% block title %}{{ seo_title|default:dashboard_page_title }}{% endblock %}
+
+{% block content %}
+    {% include "majors/partials/leaderboard_content.html" %}
+{% endblock %}

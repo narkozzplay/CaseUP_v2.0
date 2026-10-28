@@ -1,0 +1,38 @@
+<header class="mj-hero">
+    <div class="mj-banner{% if not major.banner %} mj-banner--empty{% endif %}">
+        {% if major.banner %}
+            <img class="mj-banner__img" src="{{ major.banner.url }}" alt="{{ major.name }} — Pick'em" width="1920" height="640">
+        {% else %}
+            <div class="mj-banner__placeholder">
+                <span class="mj-banner__eyebrow">{% include "components/icon.html" with name="major" %} CS2 Major</span>
+                <strong class="mj-banner__name">{{ major.name }}</strong>
+                <span class="mj-banner__pickem">Pick'em</span>
+                {% if request.user.is_staff %}<span class="mj-banner__hint">Место для баннера 1920×640 (3:1) · загрузите в админке мейджора</span>{% endif %}
+            </div>
+        {% endif %}
+    </div>
+    <div class="mj-hero__bar">
+        <dl class="mj-facts">
+            <div><dt>Даты</dt><dd>{{ major.starts_at|date:"j E" }} – {{ major.ends_on|date:"j E Y" }}</dd></div>
+            {% if major.location %}<div><dt>Место</dt><dd>{{ major.location }}{% if major.venue %} · {{ major.venue }}{% endif %}</dd></div>{% endif %}
+            {% if major.prize_pool %}<div><dt>Призовой фонд</dt><dd>{{ major.prize_pool }}</dd></div>{% endif %}
+        </dl>
+        {% if countdown %}
+            <div class="mj-countdown" data-mj-countdown="{{ countdown.at|date:'c' }}">
+                <span class="mj-countdown__label">{{ countdown.label }}</span>
+                <div class="mj-countdown__cells">
+                    <span class="mj-countdown__cell"><b data-unit="days">{{ countdown.days }}</b><small>дн</small></span>
+                    <span class="mj-countdown__cell"><b data-unit="hours">{{ countdown.hours|stringformat:"02d" }}</b><small>ч</small></span>
+                    <span class="mj-countdown__cell"><b data-unit="minutes">{{ countdown.minutes|stringformat:"02d" }}</b><small>мин</small></span>
+                    <span class="mj-countdown__cell"><b data-unit="seconds">{{ countdown.seconds|stringformat:"02d" }}</b><small>сек</small></span>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</header>
+
+<nav class="mj-tabs" aria-label="Разделы мейджора">
+    <a class="mj-tabs__link{% if mj_tab == 'detail' %} is-active{% endif %}" href="{% url 'majors:detail' major.slug %}">Обзор</a>
+    <a class="mj-tabs__link{% if mj_tab == 'pickem' %} is-active{% endif %}" href="{% url 'majors:pickem' major.slug %}"{% if not request.user.is_authenticated %} rel="nofollow"{% endif %}>Pick'em</a>
+    <a class="mj-tabs__link{% if mj_tab == 'leaderboard' %} is-active{% endif %}" href="{% url 'majors:leaderboard' major.slug %}">Лидеры</a>
+</nav>

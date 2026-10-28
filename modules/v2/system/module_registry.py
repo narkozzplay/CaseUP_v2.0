@@ -127,6 +127,13 @@ MODULE_REGISTRY: dict[str, ModuleDefinition] = {
         namespaces=("profile_customization",),
         default_enabled=True,
     ),
+    "majors": ModuleDefinition(
+        key="majors",
+        label="Мейджор и Pick’em",
+        description="Страница мейджора CS2, прогнозы на стадии (Pick'em), таблица лидеров и награды.",
+        namespaces=("majors",),
+        default_enabled=True,
+    ),
     "support": ModuleDefinition(
         key="support",
         label="Поддержка",

@@ -401,7 +401,23 @@ def profile_settings_view(request):
             messages.error(request, "Ошибка сохранения настроек приватности.")
         return redirect("profiles:profile_settings")
 
+    if request.method == "POST" and "trade_url_submit" in request.POST:
+        from modules.v2.majors.services import PickemError
+        from modules.v2.majors.services import save_trade_url
+
+        try:
+            save_trade_url(request.user, request.POST.get("trade_url", ""), ip=request.META.get("REMOTE_ADDR"))
+        except PickemError as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, "Трейд-ссылка сохранена.")
+        return redirect(f"{reverse('profiles:profile_settings')}#settings-trade-url")
+
     context = _build_settings_context(request=request, target_user=request.user)
+    from modules.v2.majors.services import trade_url as saved_trade_url
+
+    # Private: rendered only on the owner's own settings page.
+    context["trade_url"] = saved_trade_url(request.user)
     from modules.v2.webpush.services import settings_context as push_settings_context
 
     context["push_settings"] = push_settings_context(request.user)

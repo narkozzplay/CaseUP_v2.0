@@ -89,6 +89,7 @@ PROJECT_APPS = [
     "modules.v2.antifraud.apps.AntifraudConfig",
     "modules.v2.business.apps.BusinessConfig",
     "modules.v2.daily_bonus.apps.DailyBonusConfig",
+    "modules.v2.majors.apps.MajorsConfig",
     "modules.v2.donations.apps.DonationsConfig",
     "modules.v2.market.apps.MarketConfig",
     "modules.v2.webpush.apps.WebPushConfig",
@@ -349,7 +350,7 @@ STEAM_CATALOG_GRID_COLUMNS = int(os.getenv("STEAM_CATALOG_GRID_COLUMNS", "7"))
 GUEST_RATE_LIMIT_REQUESTS = int(os.getenv("GUEST_RATE_LIMIT_REQUESTS", "60"))
 GUEST_RATE_LIMIT_WINDOW = int(os.getenv("GUEST_RATE_LIMIT_WINDOW", "60"))
 GUEST_RATE_LIMIT_PATHS = tuple(
-    prefix.strip() for prefix in os.getenv("GUEST_RATE_LIMIT_PATHS", "/steam-catalog/,/en/steam-catalog/,/sitemap").split(",") if prefix.strip()
+    prefix.strip() for prefix in os.getenv("GUEST_RATE_LIMIT_PATHS", "/steam-catalog/,/en/steam-catalog/,/sitemap,/major/,/en/major/").split(",") if prefix.strip()
 )
 # Guest pages of the catalog are cached this many seconds (0 = off).
 STEAM_CATALOG_GUEST_CACHE_SECONDS = int(os.getenv("STEAM_CATALOG_GUEST_CACHE_SECONDS", "600"))
