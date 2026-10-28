@@ -18,8 +18,8 @@ class LegalDocument:
     version_label: str
 
 
-AGREEMENT = LegalDocument("agreement", "Пользовательское соглашение", "frontend:agreement", "2026-10-28", "28.10.2026")
-PRIVACY = LegalDocument("privacy", "Политика конфиденциальности", "frontend:privacy", "2026-10-28", "28.10.2026")
+AGREEMENT = LegalDocument("agreement", "Пользовательское соглашение", "frontend:agreement", "2026-10-28.2", "28.10.2026 (ред. 2)")
+PRIVACY = LegalDocument("privacy", "Политика конфиденциальности", "frontend:privacy", "2026-10-28.2", "28.10.2026 (ред. 2)")
 PD_CONSENT = LegalDocument("consent", "Согласие на обработку персональных данных", "frontend:pd_consent", "2026-10-14", "14.10.2026")
 COOKIES = LegalDocument("cookies", "Политика cookie", "frontend:cookies", "2026-10-25", "25.10.2026")
 # Part of the agreement, not accepted separately: changing them alone does not ask users to re-consent.

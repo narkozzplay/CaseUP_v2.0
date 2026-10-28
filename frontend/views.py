@@ -308,6 +308,20 @@ def admin_panel(request):
 
 
 
+PAYMENT_SERVICE_LABELS = {
+    "yookassa": "ЮKassa (ООО НКО «ЮМани»)",
+    "freekassa": "FreeKassa (freekassa.net)",
+}
+
+
+def _payment_service_label() -> str:
+    """The payment service the documents name: the one top-ups actually go through."""
+    from modules.v2.payments.providers import get_provider
+
+    provider = get_provider()
+    return PAYMENT_SERVICE_LABELS.get(getattr(provider, "code", ""), PAYMENT_SERVICE_LABELS["freekassa"])
+
+
 def _render_legal_document(request, document, template_name: str):
     from django.conf import settings
 
@@ -320,6 +334,7 @@ def _render_legal_document(request, document, template_name: str):
             "legal_doc": document,
             "legal_documents": LEGAL_DOCUMENTS,
             "site_base_url": (getattr(settings, "SITE_BASE_URL", "") or "").rstrip("/"),
+            "payment_service": _payment_service_label(),
         },
     )
 

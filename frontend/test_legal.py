@@ -89,3 +89,17 @@ class LegalSectionTests(TestCase):
         response = self.client.get(reverse("frontend:cookies"))
         for cookie in (settings.SESSION_COOKIE_NAME, settings.CSRF_COOKIE_NAME, settings.LANGUAGE_COOKIE_NAME):
             self.assertContains(response, f"<code>{cookie}</code>")
+
+
+class PaymentServiceNameTests(TestCase):
+    @override_settings(PAYMENTS_PROVIDER="freekassa", FREEKASSA_MERCHANT_ID="1", FREEKASSA_SECRET_1="a", FREEKASSA_SECRET_2="b")
+    def test_documents_name_freekassa_when_top_ups_go_through_it(self):
+        for name in ("frontend:agreement", "frontend:privacy"):
+            response = self.client.get(reverse(name))
+            self.assertContains(response, "FreeKassa (freekassa.net)")
+            self.assertNotContains(response, "ЮKassa")
+
+    @override_settings(PAYMENTS_PROVIDER="yookassa", YOOKASSA_SHOP_ID="123456", YOOKASSA_SECRET_KEY="test_secret")
+    def test_documents_follow_the_configured_provider(self):
+        for name in ("frontend:agreement", "frontend:privacy"):
+            self.assertContains(self.client.get(reverse(name)), "ЮKassa (ООО НКО «ЮМани»)")
