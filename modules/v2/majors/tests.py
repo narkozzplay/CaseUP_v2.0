@@ -357,6 +357,28 @@ class ScoringAndRewardTests(MajorTestCase):
         self.assertTrue(services.trade_url(self.user))
 
 
+    def test_trade_link_in_profile_settings_is_private_and_shared(self):
+        self.settle_everything()
+        services.settle_major(self.major)
+        skin_grant = RewardGrant.objects.get(rule=self.perfect)
+        services.approve_grant(skin_grant)
+        UserProfile.objects.filter(user=self.user).update(steam_id="76561198000000042")
+        partner = 76561198000000042 - 76561197960265728
+        link = f"https://steamcommunity.com/tradeoffer/new/?partner={partner}&token=AbCd1234"
+        client = Client()
+        client.force_login(self.user)
+        settings_url = reverse("profiles:profile_settings")
+        response = client.post(settings_url, {"trade_url_submit": "1", "trade_url": link})
+        self.assertEqual(response.status_code, 302)
+        skin_grant.refresh_from_db()
+        self.assertEqual(skin_grant.status, RewardGrant.Status.TO_SEND)
+        self.assertContains(client.get(settings_url), f"partner={partner}")
+        # Nobody else sees it: neither on the public profile nor on the admin settings page.
+        admin = User.objects.create_user(username="mj-admin", password="x", is_staff=True, is_superuser=True)
+        client.force_login(admin)
+        for url in (reverse("profiles:profile_user_settings", args=[self.user.pk]), reverse("profiles:profile_detail", args=[self.user.pk])):
+            self.assertNotIn(f"partner={partner}", client.get(url).content.decode())
+
 class MajorItemsTests(MajorTestCase):
     def test_items_by_keyword_and_by_hand(self):
         capsule = SteamItem.objects.create(market_hash_name="Test 2026 Legends Sticker Capsule", name="Capsule", item_type="case", price_rub=Decimal("90"))

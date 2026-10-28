@@ -134,6 +134,30 @@
         </article>
         {% endif %}
 
+        {# ===== ТРЕЙД-ССЫЛКА (owner only, private) ===== #}
+        {% if is_owner_profile and profile_user == request.user %}
+        <article class="card profile-card-accent" id="settings-trade-url">
+            <div class="card-body">
+                <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Трейд-ссылка Steam{% else %}Steam trade link{% endif %}</h2>
+                <p class="text-muted" style="margin-bottom:.75rem;">
+                    {% if LANGUAGE_CODE == "ru" %}Видна только вам. По ней мы отправим скин, если вы выиграете его в Pick'em, её же использует Рынок. Ссылку можно скопировать в Steam: Инвентарь → Предложения обмена → «Кто может отправлять мне предложения обмена».{% else %}Only you can see it. We use it to send skins you win in Pick'em, and the Market uses it too. Find it in Steam: Inventory → Trade Offers → "Who can send me trade offers".{% endif %}
+                </p>
+                <form method="post" action="{% url 'profiles:profile_settings' %}" class="form-stack">
+                    {% csrf_token %}
+                    <input type="hidden" name="trade_url_submit" value="1">
+                    <div class="form-field">
+                        <label for="id_trade_url">{% if LANGUAGE_CODE == "ru" %}Ссылка{% else %}Link{% endif %}</label>
+                        <input type="url" name="trade_url" id="id_trade_url" value="{{ trade_url }}" required autocomplete="off"
+                               placeholder="https://steamcommunity.com/tradeoffer/new/?partner=…&amp;token=…">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        {% if LANGUAGE_CODE == "ru" %}Сохранить{% else %}Save{% endif %}
+                    </button>
+                </form>
+            </div>
+        </article>
+        {% endif %}
+
         {# ===== ВЕРИФИКАЦИЯ (owner only) ===== #}
         {% if is_owner_profile %}
         <article class="card profile-card-accent" id="settings-verification">

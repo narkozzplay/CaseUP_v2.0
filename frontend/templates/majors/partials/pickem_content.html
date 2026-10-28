@@ -117,7 +117,7 @@
                         <input id="mj-trade-url" class="input" type="url" name="trade_url" value="{{ trade_url }}" placeholder="https://steamcommunity.com/tradeoffer/new/?partner=…&amp;token=…" required>
                         <button type="submit" class="btn btn-primary">Сохранить</button>
                     </div>
-                    <small class="mj-panel__hint">В Steam: Инвентарь → Предложения обмена → «Кто может отправлять мне предложения обмена?»</small>
+                    <small class="mj-panel__hint">В Steam: Инвентарь → Предложения обмена → «Кто может отправлять мне предложения обмена?» Ссылка сохраняется в <a href="{% url 'profiles:profile_settings' %}#settings-trade-url">настройках профиля</a> и видна только вам.</small>
                 </form>
             {% endif %}
         </article>
