@@ -547,7 +547,7 @@ def send_telegram_now(user_id: int, text: str, url: str) -> bool:
     from django.contrib.auth import get_user_model
 
     from modules.v2.system.services import is_module_enabled
-    from modules.v2.tg_notifier.services import ensure_public_base_url, send_user_message
+    from modules.v2.tg_notifier.services import bot_utm_link, ensure_public_base_url, send_user_message
 
     if not is_module_enabled("tg_notifier"):
         return False
@@ -556,7 +556,7 @@ def send_telegram_now(user_id: int, text: str, url: str) -> bool:
     if profile is None or not profile.telegram_is_linked:
         return False
     try:
-        link = f"{ensure_public_base_url()}{url}"
+        link = bot_utm_link(f"{ensure_public_base_url()}{url}", content="support")
     except Exception:  # noqa: BLE001
         link = ""
     try:

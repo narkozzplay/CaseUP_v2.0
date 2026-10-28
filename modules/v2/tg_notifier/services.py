@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from django.conf import settings
 from django.db import transaction
@@ -110,6 +111,35 @@ def ensure_public_base_url(config: TelegramNotifierConfig | None = None) -> str:
     if not (base_url.startswith("https://") or base_url.startswith("http://")):
         raise TelegramNotifierError("Public base URL должен начинаться с http:// или https://.")
     return base_url
+
+
+def add_utm(url: str, *, source: str, medium: str, campaign: str = "", content: str = "") -> str:
+    """The url with utm_* added; links that already carry utm_source, and non-http links, stay as they are."""
+    parts = urlsplit(url)
+    source = (source or "").strip()
+    if not source or parts.scheme not in ("http", "https"):
+        return url
+    query = parse_qsl(parts.query, keep_blank_values=True)
+    if any(key == "utm_source" for key, _ in query):
+        return url
+    tags = {"utm_source": source, "utm_medium": medium, "utm_campaign": (campaign or "").strip(), "utm_content": (content or "").strip()}
+    query += [(key, value) for key, value in tags.items() if value]
+    return urlunsplit(parts._replace(query=urlencode(query)))
+
+
+def channel_utm_link(url: str, *, content: str = "", config: TelegramNotifierConfig | None = None) -> str:
+    """A site link in a post to the public channel."""
+    config = config or get_telegram_notifier_config()
+    return add_utm(url, source=config.utm_source, medium="channel", campaign=config.channel_utm_campaign, content=content)
+
+
+def bot_utm_link(url: str, *, content: str = "") -> str:
+    """A site link in a personal bot message; content names the kind of notice (price_alert, support, ...)."""
+    try:
+        config = get_telegram_notifier_config()
+    except Exception:  # noqa: BLE001 - tagging must never stop a notice
+        return url
+    return add_utm(url, source=config.utm_source, medium="bot", campaign=config.bot_utm_campaign, content=content)
 
 def _build_telegram_endpoint(bot_token: str, method: str) -> str:
     return f"https://api.telegram.org/bot{bot_token}/{method}"
@@ -332,7 +362,7 @@ def build_investment_message_context(purchase: SteamPurchase) -> dict[str, Any]:
         "purchase_id": purchase.id,
         "item_id": purchase.item_id,
         "item_name": item_name,
-        "item_url": build_item_absolute_url(purchase),
+        "item_url": bot_utm_link(build_item_absolute_url(purchase), content="investment"),
         "purchased_at": format_datetime_msk(purchase.purchased_at),
         "unlock_at": format_datetime_msk(purchase.unlocked_at),
         "quantity": quantity,

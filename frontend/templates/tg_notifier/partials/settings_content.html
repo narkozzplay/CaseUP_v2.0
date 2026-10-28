@@ -155,6 +155,28 @@
                     </p>
                 </fieldset>
 
+                <fieldset class="tgn-admin-notices">
+                    <legend>UTM-метки в ссылках на сайт</legend>
+                    <div class="tgn-row">
+                        <div class="form-field">
+                            <label for="{{ settings_form.utm_source.id_for_label }}">Источник (utm_source)</label>
+                            {{ settings_form.utm_source }}
+                            {{ settings_form.utm_source.errors }}
+                        </div>
+                        <div class="form-field">
+                            <label for="{{ settings_form.bot_utm_campaign.id_for_label }}">Кампания уведомлений бота (utm_campaign)</label>
+                            {{ settings_form.bot_utm_campaign }}
+                            {{ settings_form.bot_utm_campaign.errors }}
+                        </div>
+                    </div>
+                    <p class="text-muted tgn-hint">
+                        Метки добавляются сами к ссылкам в личных уведомлениях бота (<code>utm_medium=bot</code>) и в автопостах канала
+                        (<code>utm_medium=channel</code>, кампания задаётся на странице автопостинга). В <code>utm_content</code> — тип ссылки:
+                        <code>price_alert</code>, <code>investment</code>, <code>support</code>, <code>farm</code>, в постах — <code>item</code>, <code>section</code>, <code>top</code>, <code>catalog</code>.
+                        В Яндекс Метрике: Отчёты → Источники → <b>UTM-метки</b>. Пустой источник — без меток.
+                    </p>
+                </fieldset>
+
                 <details class="tgn-template">
                     <summary>Шаблон сообщения об инвестиции <span class="text-muted">— кнопка TG в «Инвестициях»</span></summary>
                     <div class="form-field">

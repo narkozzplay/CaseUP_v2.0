@@ -1,8 +1,27 @@
 from __future__ import annotations
 
+import re
+
 from django import forms
 
 from .models import DEFAULT_INVESTMENT_MESSAGE_TEMPLATE, ChannelDigestSection, TelegramNotifierConfig
+
+
+UTM_VALUE_RE = re.compile(r"^[A-Za-z0-9_.-]*$")
+
+
+def clean_utm_value(form: forms.ModelForm, name: str) -> str:
+    """Latin letters, digits, _ . - only; a form posted without the field keeps what is stored."""
+    if form.add_prefix(name) not in form.data:
+        return getattr(form.instance, name)
+    value = (form.cleaned_data.get(name) or "").strip()
+    if not UTM_VALUE_RE.match(value):
+        raise forms.ValidationError("Только латиница, цифры и знаки _ . - без пробелов, например «telegram».")
+    return value
+
+
+def utm_input(placeholder: str) -> forms.TextInput:
+    return forms.TextInput(attrs={"class": "form-control", "placeholder": placeholder, "spellcheck": "false"})
 
 
 class TelegramNotifierSettingsForm(forms.ModelForm):
@@ -30,6 +49,8 @@ class TelegramNotifierSettingsForm(forms.ModelForm):
             "investment_message_template",
             "admin_signup_notices",
             "admin_topup_notices",
+            "utm_source",
+            "bot_utm_campaign",
         ]
         widgets = {
             "is_enabled": forms.CheckboxInput(
@@ -58,6 +79,8 @@ class TelegramNotifierSettingsForm(forms.ModelForm):
             ),
             "admin_signup_notices": forms.CheckboxInput(attrs={"class": "toggle-control__input"}),
             "admin_topup_notices": forms.CheckboxInput(attrs={"class": "toggle-control__input"}),
+            "utm_source": utm_input("Пусто — без меток"),
+            "bot_utm_campaign": utm_input("notifications"),
             "investment_message_template": forms.Textarea(
                 attrs={
                     "class": "form-control",
@@ -89,6 +112,12 @@ class TelegramNotifierSettingsForm(forms.ModelForm):
 
         if not self.instance.pk and not self.initial.get("investment_message_template"):
             self.initial["investment_message_template"] = DEFAULT_INVESTMENT_MESSAGE_TEMPLATE
+
+    def clean_utm_source(self):
+        return clean_utm_value(self, "utm_source")
+
+    def clean_bot_utm_campaign(self):
+        return clean_utm_value(self, "bot_utm_campaign")
 
     def clean_bot_username(self):
         value = (self.cleaned_data.get("bot_username") or "").strip().lstrip("@")
@@ -157,6 +186,7 @@ class TelegramChannelDigestForm(forms.ModelForm):
             "channel_digest_link_text",
             "channel_digest_hashtags",
             "channel_digest_card_title",
+            "channel_utm_campaign",
         ]
         widgets = {
             "channel_digest_enabled": forms.CheckboxInput(attrs={"class": "toggle-control__input"}),
@@ -170,6 +200,7 @@ class TelegramChannelDigestForm(forms.ModelForm):
             "channel_digest_link_text": forms.TextInput(attrs={"class": "form-control", "placeholder": "Пусто — без ссылки"}),
             "channel_digest_hashtags": forms.TextInput(attrs={"class": "form-control", "placeholder": "Пусто — без хэштегов"}),
             "channel_digest_card_title": forms.TextInput(attrs={"class": "form-control"}),
+            "channel_utm_campaign": utm_input("price_digest"),
         }
 
     # The caption under the picture is capped at 1024 characters by Telegram; the top itself needs room too.
@@ -191,6 +222,9 @@ class TelegramChannelDigestForm(forms.ModelForm):
         except ValueError:
             raise forms.ValidationError("Время в формате ЧЧ:ММ через запятую, например «10:00, 20:00».")
         return ", ".join(slot.strftime("%H:%M") for slot in times)
+
+    def clean_channel_utm_campaign(self):
+        return clean_utm_value(self, "channel_utm_campaign")
 
     def clean_channel_digest_fresh_hours(self):
         value = self.cleaned_data.get("channel_digest_fresh_hours") or 0
