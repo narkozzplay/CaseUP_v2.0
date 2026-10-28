@@ -1,0 +1,229 @@
+{% load donations %}
+<section class="section section--compact ops ud" data-user-dashboard>
+    {% with currency=site_settings.site_currency_symbol|default:"₽" %}
+    <header class="ops-hero ud-hero">
+        <div class="ops-hero__main">
+            <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Привет, {% else %}Hi, {% endif %}{{ current_user_display_name|default:request.user.username }}</span>
+            <h1 class="ops-hero__title">{% if LANGUAGE_CODE == "ru" %}Твой {{ site_settings.site_name|default:"CaseUP" }}{% else %}Your {{ site_settings.site_name|default:"CaseUP" }}{% endif %}</h1>
+            <p class="ops-hero__text">
+                {% if LANGUAGE_CODE == "ru" %}
+                    Цены скинов CS2, Рынок между игроками, кейсы и Pick'em мейджора. Всё, что происходит на сайте, видно в ленте ниже.
+                {% else %}
+                    CS2 skin prices, a player market, cases and the Major Pick'em. Everything happening on the site shows up in the feed below.
+                {% endif %}
+            </p>
+            <div class="ud-hero__actions">
+                {% if feature_flags.market %}
+                    <a href="{% url 'market:index' %}" class="btn btn-primary">{% include "components/icon.html" with name="market" %}{% if LANGUAGE_CODE == "ru" %}Купить скины{% else %}Buy skins{% endif %}</a>
+                    <a href="{% url 'market:sell' %}" class="btn btn-secondary">{% include "components/icon.html" with name="box" %}{% if LANGUAGE_CODE == "ru" %}Продать из инвентаря{% else %}Sell from inventory{% endif %}</a>
+                {% endif %}
+                {% if feature_flags.steam_trading %}
+                    <a href="{% url 'steam_trading:investments' %}" class="btn btn-secondary">{% include "components/icon.html" with name="steam_investments" %}{% if LANGUAGE_CODE == "ru" %}Инвестиции{% else %}Investments{% endif %}</a>
+                {% endif %}
+            </div>
+        </div>
+        <dl class="ops-hero__meta">
+            <div>
+                <dt>{% if LANGUAGE_CODE == "ru" %}Баланс{% else %}Balance{% endif %}</dt>
+                <dd><a href="{% url 'payments:topup' %}" class="ud-hero__balance">{% money coins %} <span aria-hidden="true">+</span></a></dd>
+            </div>
+            {% if feature_flags.subscriptions %}
+                <div>
+                    <dt>{% if LANGUAGE_CODE == "ru" %}Подписка{% else %}Plan{% endif %}</dt>
+                    <dd><a href="{% url 'subscriptions:plans' %}">{{ subscription_context.plan_name }}</a></dd>
+                </div>
+            {% endif %}
+            <div>
+                <dt>{% if LANGUAGE_CODE == "ru" %}Сейчас на сайте{% else %}Online now{% endif %}</dt>
+                <dd class="ops-live"><span class="ops-live__dot" aria-hidden="true"></span>{{ online_total }}</dd>
+            </div>
+        </dl>
+    </header>
+
+    {% if current_major %}
+        <a href="{% url 'majors:pickem' current_major.slug %}" class="ud-major{% if current_major.banner %} ud-major--banner{% endif %}">
+            {% if current_major.banner %}<img src="{{ current_major.banner.url }}" alt="" class="ud-major__bg" loading="lazy">{% endif %}
+            <span class="ud-major__body">
+                <span class="eyebrow">{% if current_major.has_started %}{% if LANGUAGE_CODE == "ru" %}Мейджор идёт{% else %}Major is live{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}Скоро мейджор{% else %}Major soon{% endif %}{% endif %}</span>
+                <strong class="ud-major__title">{{ current_major.name }}</strong>
+                <span class="ud-major__meta">
+                    {% if current_major.location %}{{ current_major.location }} · {% endif %}{% if current_major.has_started %}{% if LANGUAGE_CODE == "ru" %}финал {% else %}final {% endif %}{{ current_major.ends_on|date:"d.m" }}{% else %}{% if LANGUAGE_CODE == "ru" %}старт {% else %}starts {% endif %}{{ current_major.starts_at|date:"d.m H:i" }}{% endif %}{% if major_players %} · {% if LANGUAGE_CODE == "ru" %}прогнозов уже {% else %}players {% endif %}{{ major_players }}{% endif %}
+                </span>
+            </span>
+            <span class="btn btn-primary ud-major__cta">{% if LANGUAGE_CODE == "ru" %}Собрать Pick'em{% else %}Make your Pick'em{% endif %}</span>
+        </a>
+    {% endif %}
+
+    <div class="ops-kpis">
+        {% if feature_flags.market %}
+            <a href="{% url 'market:index' %}" class="ops-kpi ops-kpi--link">
+                <span class="ops-kpi__icon">{% include "components/icon.html" with name="market" %}</span>
+                <div class="ops-kpi__body">
+                    <span class="ops-kpi__label">{% if LANGUAGE_CODE == "ru" %}Рынок{% else %}Market{% endif %}</span>
+                    <strong class="ops-kpi__value">{{ market_lots_active }}</strong>
+                    <span class="ops-kpi__meta">{% if LANGUAGE_CODE == "ru" %}лотов на витрине · сделок за неделю {{ market_deals_week }}{% else %}lots listed · {{ market_deals_week }} deals this week{% endif %}</span>
+                </div>
+            </a>
+        {% endif %}
+        {% if feature_flags.steam_catalog %}
+            <a href="{% url 'steam_catalog:list' %}" class="ops-kpi ops-kpi--link">
+                <span class="ops-kpi__icon">{% include "components/icon.html" with name="steam_catalog" %}</span>
+                <div class="ops-kpi__body">
+                    <span class="ops-kpi__label">{% if LANGUAGE_CODE == "ru" %}Избранное{% else %}Favorites{% endif %}</span>
+                    <strong class="ops-kpi__value">{{ my_favorites }}</strong>
+                    <span class="ops-kpi__meta">{% if my_favorites %}{% if LANGUAGE_CODE == "ru" %}предметов слежу за ценой{% else %}items tracked{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}Добавь скины из каталога{% else %}Add skins from the catalog{% endif %}{% endif %}</span>
+                </div>
+            </a>
+            <a href="{% url 'steam_catalog:alert_rules' %}" class="ops-kpi ops-kpi--link">
+                <span class="ops-kpi__icon">{% include "components/icon.html" with name="notifications" %}</span>
+                <div class="ops-kpi__body">
+                    <span class="ops-kpi__label">{% if LANGUAGE_CODE == "ru" %}Алерты цен{% else %}Price alerts{% endif %}</span>
+                    <strong class="ops-kpi__value">{{ my_alerts }}</strong>
+                    <span class="ops-kpi__meta">{% if LANGUAGE_CODE == "ru" %}сообщим, когда цена дойдёт до нужной{% else %}we ping you when the price hits{% endif %}</span>
+                </div>
+            </a>
+        {% endif %}
+        {% if feature_flags.case_simulator %}
+            <a href="{% url 'case_simulator:list' %}" class="ops-kpi ops-kpi--link">
+                <span class="ops-kpi__icon">{% include "components/icon.html" with name="case_simulator" %}</span>
+                <div class="ops-kpi__body">
+                    <span class="ops-kpi__label">{% if LANGUAGE_CODE == "ru" %}Кейсы{% else %}Cases{% endif %}</span>
+                    <strong class="ops-kpi__value">CS2</strong>
+                    <span class="ops-kpi__meta">{% if LANGUAGE_CODE == "ru" %}симулятор открытия{% else %}opening simulator{% endif %}</span>
+                </div>
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="ops-grid">
+        <div class="ops-grid__main">
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">{% if LANGUAGE_CODE == "ru" %}Лента сайта{% else %}Site feed{% endif %}</h2>
+                    <span class="ops-panel__hint ops-live"><span class="ops-live__dot" aria-hidden="true"></span>{% if LANGUAGE_CODE == "ru" %}покупки, лоты и дропы игроков{% else %}player buys, lots and drops{% endif %}</span>
+                </div>
+                <div class="ops-list">
+                    {% for row in activity_feed %}
+                        <div class="ops-row ud-feed ud-feed--{{ row.kind }} ud-rarity--{{ row.rarity|default:'none' }}"{% if row.kind != "drop" and row.rarity %} style="--rarity: #{{ row.rarity }};"{% endif %}>
+                            <span class="ops-row__thumb ud-feed__thumb">
+                                {% if row.item_icon %}<img src="{{ row.item_icon }}" alt="" loading="lazy">{% else %}{% include "components/icon.html" with name="box" %}{% endif %}
+                            </span>
+                            <span class="ops-row__main">
+                                {% if row.url %}<a href="{{ row.url }}" class="ud-feed__item">{{ row.item_name }}</a>{% else %}<strong>{{ row.item_name }}</strong>{% endif %}
+                                <span class="ud-feed__who">
+                                    <{% if row.profile_url %}a href="{{ row.profile_url }}"{% else %}span{% endif %} class="ud-feed__player">
+                                        <img src="{{ row.user_avatar }}" alt="" class="ud-feed__avatar" loading="lazy">
+                                        <b>{{ row.user_name }}</b>
+                                    </{% if row.profile_url %}a{% else %}span{% endif %}>
+                                    {% if row.kind == "buy" %}{% if LANGUAGE_CODE == "ru" %}купил на Рынке{% else %}bought on the Market{% endif %}
+                                    {% elif row.kind == "list" %}{% if LANGUAGE_CODE == "ru" %}выставил на продажу{% else %}listed for sale{% endif %}
+                                    {% else %}{% if LANGUAGE_CODE == "ru" %}выбил из кейса{% else %}unboxed{% endif %}{% endif %}
+                                </span>
+                            </span>
+                            <span class="ops-row__side">
+                                {% if row.price %}<b class="ops-row__amount">{% money row.price %}</b>{% endif %}
+                                <time datetime="{{ row.created_at|date:'c' }}">{% if LANGUAGE_CODE == "ru" %}{{ row.created_at|timesince }} назад{% else %}{{ row.created_at|timesince }} ago{% endif %}</time>
+                            </span>
+                        </div>
+                    {% empty %}
+                        <div class="ud-empty">
+                            <p>{% if LANGUAGE_CODE == "ru" %}Здесь появятся покупки и лоты игроков. Будь первым: выставь скин на Рынок.{% else %}Player buys and lots will show up here. Be the first to list a skin.{% endif %}</p>
+                            {% if feature_flags.market %}<a href="{% url 'market:sell' %}" class="btn btn-secondary btn-sm">{% if LANGUAGE_CODE == "ru" %}Продать скин{% else %}Sell a skin{% endif %}</a>{% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </article>
+
+            {% if price_tracker %}
+                <article class="ops-panel">
+                    <div class="ops-panel__head">
+                        <h2 class="ops-panel__title">{% if LANGUAGE_CODE == "ru" %}Цены Steam за неделю{% else %}Steam prices, 7 days{% endif %}</h2>
+                        <a href="{% url 'steam_catalog:list' %}" class="ops-panel__link">{% if LANGUAGE_CODE == "ru" %}Весь каталог{% else %}Catalog{% endif %} →</a>
+                    </div>
+                    <div class="ops-list">
+                        {% for row in price_tracker %}
+                            <a href="{% url 'steam_catalog:detail' row.item.id %}" class="ops-row ops-row--link">
+                                <span class="ops-row__thumb">{% if row.icon %}<img src="{{ row.icon }}" alt="" loading="lazy">{% else %}{% include "components/icon.html" with name="steam_catalog" %}{% endif %}</span>
+                                <span class="ops-row__main">
+                                    <strong>{{ row.item.group_name }}</strong>
+                                    <span>{{ row.item.get_item_type_display }}{% if row.item.exterior %} · {{ row.item.exterior }}{% endif %}</span>
+                                </span>
+                                <span class="ops-row__side">
+                                    <b class="ops-row__amount">{% money row.item.price_rub %}</b>
+                                    {% if row.change_percent is not None %}<span class="{% if row.change_percent >= 0 %}text-up{% else %}text-down{% endif %}">{% if row.change_percent > 0 %}+{% endif %}{{ row.change_percent|floatformat:1 }}%</span>{% endif %}
+                                </span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </article>
+            {% endif %}
+        </div>
+
+        <aside class="ops-grid__side">
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">{% if LANGUAGE_CODE == "ru" %}Мои операции{% else %}My balance history{% endif %}</h2>
+                    <a href="{% url 'profiles:profile' %}#recent-operations" class="ops-panel__link">{% if LANGUAGE_CODE == "ru" %}Все{% else %}All{% endif %} →</a>
+                </div>
+                <div class="ops-list">
+                    {% for entry in my_ledger %}
+                        <div class="ops-row">
+                            <span class="ops-row__badge ops-row__badge--{% if entry.delta >= 0 %}up{% else %}down{% endif %}" aria-hidden="true">{% if entry.delta >= 0 %}+{% else %}−{% endif %}</span>
+                            <span class="ops-row__main"><strong>{% if LANGUAGE_CODE == "ru" %}{{ entry.label_ru }}{% else %}{{ entry.get_reason_display }}{% endif %}</strong></span>
+                            <span class="ops-row__side">
+                                <b class="ops-row__amount {% if entry.delta >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% if entry.delta > 0 %}+{% endif %}{{ entry.delta|stringformat:".2f" }} {{ currency }}</b>
+                                <time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"d.m H:i" }}</time>
+                            </span>
+                        </div>
+                    {% empty %}
+                        <div class="ud-empty">
+                            <p>{% if LANGUAGE_CODE == "ru" %}Операций пока нет. Пополни баланс, чтобы покупать скины на Рынке.{% else %}No operations yet. Top up to buy skins on the Market.{% endif %}</p>
+                            <a href="{% url 'payments:topup' %}" class="btn btn-secondary btn-sm">{% if LANGUAGE_CODE == "ru" %}Пополнить{% else %}Top up{% endif %}</a>
+                        </div>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">{% if LANGUAGE_CODE == "ru" %}Бонусы{% else %}Bonuses{% endif %}</h2>
+                </div>
+                <nav class="ud-bonus">
+                    <a href="{% url 'daily_bonus:page' %}" class="ud-bonus__tile">{% include "components/icon.html" with name="daily_bonus" %}<span>{% if LANGUAGE_CODE == "ru" %}Бонус дня{% else %}Daily bonus{% endif %}</span></a>
+                    <a href="{% url 'promo:dashboard' %}" class="ud-bonus__tile">{% include "components/icon.html" with name="promo" %}<span>{% if LANGUAGE_CODE == "ru" %}Промокоды{% else %}Promo codes{% endif %}</span></a>
+                    <a href="{% url 'referrals:dashboard' %}" class="ud-bonus__tile">{% include "components/icon.html" with name="referrals" %}<span>{% if LANGUAGE_CODE == "ru" %}Пригласи друга{% else %}Invite a friend{% endif %}</span></a>
+                </nav>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">{% if LANGUAGE_CODE == "ru" %}С чего начать{% else %}Get started{% endif %}</h2>
+                </div>
+                <nav class="ops-actions">
+                    {% if feature_flags.cs2_stats %}
+                        <a href="{% url 'cs2_stats:own' %}" class="ops-action">
+                            <span class="ops-action__icon">{% include "components/icon.html" with name="steam" %}</span>
+                            <span class="ops-action__text"><strong>{% if LANGUAGE_CODE == "ru" %}Моя статистика CS2{% else %}My CS2 stats{% endif %}</strong><span>Steam + FACEIT</span></span>
+                            {% include "components/icon.html" with name="arrow" %}
+                        </a>
+                    {% endif %}
+                    {% if feature_flags.market %}
+                        <a href="{% url 'market:sell' %}" class="ops-action">
+                            <span class="ops-action__icon">{% include "components/icon.html" with name="box" %}</span>
+                            <span class="ops-action__text"><strong>{% if LANGUAGE_CODE == "ru" %}Продать скин{% else %}Sell a skin{% endif %}</strong><span>{% if LANGUAGE_CODE == "ru" %}сделка через гаранта сайта{% else %}site-guaranteed deal{% endif %}</span></span>
+                            {% include "components/icon.html" with name="arrow" %}
+                        </a>
+                    {% endif %}
+                    <a href="{% url 'profile_customization:catalog' %}" class="ops-action">
+                        <span class="ops-action__icon">{% include "components/icon.html" with name="customization_catalog" %}</span>
+                        <span class="ops-action__text"><strong>{% if LANGUAGE_CODE == "ru" %}Оформить профиль{% else %}Customize profile{% endif %}</strong><span>{% if LANGUAGE_CODE == "ru" %}рамка, эффект ника, фон{% else %}frame, nick effect, background{% endif %}</span></span>
+                        {% include "components/icon.html" with name="arrow" %}
+                    </a>
+                </nav>
+            </article>
+        </aside>
+    </div>
+
+    {% donation_widget "dashboard" %}
+    {% endwith %}
+</section>

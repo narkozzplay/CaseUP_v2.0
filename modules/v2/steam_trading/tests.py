@@ -77,12 +77,12 @@ class SteamTradingTests(TestCase):
             created_by=user,
         )
 
-    def test_plain_user_cannot_open_trading_module(self):
+    def test_plain_user_opens_own_investments(self):
         User.objects.create_user(username="plain_trade", password="StrongPass123")
         self.client.login(username="plain_trade", password="StrongPass123")
 
         response = self.client.get(reverse("steam_trading:investments"))
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
 
     def test_farmer_can_create_purchase(self):
         user = self._make_farmer("farmer_create_purchase")

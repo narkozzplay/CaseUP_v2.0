@@ -14,6 +14,10 @@ def farm_required(view_func):
     def _wrapped(request, *args, **kwargs):
         access = get_farm_access(request.user)
         if not access.has_access:
+            if request.method == "GET":
+                from .join import render_farm_join_page
+
+                return render_farm_join_page(request)
             return HttpResponseForbidden("Farm доступен только farmer+.")
         return view_func(request, *args, **kwargs)
 

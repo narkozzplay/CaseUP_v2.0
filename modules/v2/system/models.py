@@ -524,7 +524,7 @@ class DashboardMenuItem(models.Model):
             },
             {
                 "key": "dashboard_preview",
-                "label_ru": "Dashboard",
+                "label_ru": "Панель",
                 "label_en": "Dashboard",
                 "url_name": "frontend:dashboard_preview",
                 "group": cls.Group.OVERVIEW,
@@ -602,6 +602,7 @@ class DashboardMenuItem(models.Model):
                 "group": cls.Group.OVERVIEW,
                 "visibility_condition": cls.Visibility.AUTHENTICATED,
                 "sort_order": 52,
+                "is_enabled": False,
             },
             {
                 "key": "promo",
@@ -611,6 +612,7 @@ class DashboardMenuItem(models.Model):
                 "group": cls.Group.OVERVIEW,
                 "visibility_condition": cls.Visibility.AUTHENTICATED,
                 "sort_order": 53,
+                "is_enabled": False,
             },
             {
                 "key": "market",
@@ -638,6 +640,7 @@ class DashboardMenuItem(models.Model):
                 "group": cls.Group.OVERVIEW,
                 "visibility_condition": cls.Visibility.AUTHENTICATED,
                 "sort_order": 54,
+                "is_enabled": False,
             },
             {
                 "key": "donations",
@@ -731,7 +734,7 @@ class DashboardMenuItem(models.Model):
             },
             {
                 "key": "steam_catalog",
-                "label_ru": "Steam Catalog",
+                "label_ru": "Каталог скинов",
                 "label_en": "Steam Catalog",
                 "url_name": "steam_catalog:list",
                 "group": cls.Group.STEAM,
@@ -740,8 +743,8 @@ class DashboardMenuItem(models.Model):
             },
             {
                 "key": "steam_investments",
-                "label_ru": "Портфель",
-                "label_en": "Portfolio",
+                "label_ru": "Инвестиции",
+                "label_en": "Investments",
                 "url_name": "steam_trading:investments",
                 "group": cls.Group.STEAM,
                 "visibility_condition": cls.Visibility.STEAM_INVESTOR_ACCESS,
@@ -827,6 +830,7 @@ class DashboardMenuItem(models.Model):
                 "group": cls.Group.OVERVIEW,
                 "visibility_condition": cls.Visibility.AUTHENTICATED,
                 "sort_order": 56,
+                "is_enabled": False,
             },
             {
                 "key": "verification_requests",

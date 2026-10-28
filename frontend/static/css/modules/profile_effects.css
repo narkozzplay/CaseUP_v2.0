@@ -369,3 +369,13 @@
         animation: none !important;
     }
 }
+
+/* Small avatars (sidebar card): a thinner ring and smaller cut corners */
+.pfx-frame--compact::before {
+    inset: -3px;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+
+.pfx-frame > .presence-indicator {
+    z-index: 2;
+}

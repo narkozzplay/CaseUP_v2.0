@@ -62,12 +62,40 @@ class FarmTests(TestCase):
         self.assertIn("декабрь 2025 / январь 2026", week.label)
         self.assertIn("31.12.2025 — 06.01.2026", week.label)
 
-    def test_farm_forbidden_for_plain_user(self):
-        user = User.objects.create_user(username="user1", password="StrongPass123")
+    def test_farm_shows_join_page_for_plain_user(self):
+        User.objects.create_user(username="user1", password="StrongPass123")
         self.client.login(username="user1", password="StrongPass123")
 
         response = self.client.get(reverse("farm:dashboard"))
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "farm/partials/pages/join_content.html")
+        self.assertContains(response, "Подать заявку")
+
+        # Writes stay closed for users without access.
+        self.assertEqual(self.client.post(reverse("farm:accounts_add"), {}).status_code, 403)
+
+    def test_farm_apply_creates_request_and_approval_opens_farm(self):
+        from modules.v2.profiles.models import UserProfile, UserRole, VerificationRequest
+        from modules.v2.profiles.services.verification import grant_verification
+
+        user = User.objects.create_user(username="applicant", password="StrongPass123")
+        self.client.login(username="applicant", password="StrongPass123")
+
+        response = self.client.post(reverse("farm:apply"), {"accounts": "6–20", "message": "фармлю ботов"})
+        self.assertRedirects(response, reverse("farm:dashboard"), fetch_redirect_response=False)
+        ver_req = VerificationRequest.objects.get(user=user)
+        self.assertEqual(ver_req.requested_level, VerificationRequest.RequestedLevel.FARMER)
+        self.assertIn("6–20", ver_req.user_message)
+
+        # A second application while the first is pending is not created.
+        self.client.post(reverse("farm:apply"), {"accounts": "1–5"})
+        self.assertEqual(VerificationRequest.objects.filter(user=user).count(), 1)
+        self.assertContains(self.client.get(reverse("farm:dashboard")), "Заявка на проверке")
+
+        grant_verification(ver_req)
+        self.assertEqual(UserProfile.objects.get(user=user).role, UserRole.FARMER)
+        self.assertEqual(self.client.get(reverse("farm:dashboard")).status_code, 200)
+        self.assertTemplateNotUsed(self.client.get(reverse("farm:dashboard")), "farm/partials/pages/join_content.html")
 
     def test_farm_available_for_farmer(self):
         self._make_farmer("farmer_dashboard")

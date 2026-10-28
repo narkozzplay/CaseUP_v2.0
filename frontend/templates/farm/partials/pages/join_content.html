@@ -1,0 +1,87 @@
+<section class="section section--compact ops fm-join">
+    <header class="ops-hero">
+        <div class="ops-hero__main">
+            <span class="eyebrow">Ферма CaseUP</span>
+            <h1 class="ops-hero__title">Учёт фарм-аккаунтов CS2</h1>
+            <p class="ops-hero__text">Ферма — раздел для тех, кто фармит еженедельные дропы на нескольких Steam-аккаунтах. Здесь видно, где дроп уже собран, что лежит в инвентарях и сколько принесла каждая неделя.</p>
+        </div>
+        <div class="fm-join__status">
+            {% if farmer_request and farmer_request.status == "pending" %}
+                <span class="fm-join__pill fm-join__pill--wait">Заявка на проверке</span>
+            {% elif farmer_request and farmer_request.status == "denied" %}
+                <span class="fm-join__pill fm-join__pill--no">Заявка отклонена</span>
+            {% else %}
+                <span class="fm-join__pill">Доступ по заявке</span>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="fm-join__features">
+        <article class="fm-join__feature">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="farm_accounts" %}</span>
+            <strong>Все аккаунты на одном экране</strong>
+            <p>Подключи ботов по Steam: статус, уровень и инвентарь подтянутся сами.</p>
+        </article>
+        <article class="fm-join__feature">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="farm_drops" %}</span>
+            <strong>Недельные дропы</strong>
+            <p>Отмечай собранные кейсы и скины, сайт напомнит, кто ещё не забрал дроп.</p>
+        </article>
+        <article class="fm-join__feature">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="steam_investments" %}</span>
+            <strong>Доход и продажи</strong>
+            <p>Цены Steam по каждому дропу и итог недели. С тарифом Farmer: PnL, аналитика и TG-алерты.</p>
+        </article>
+    </div>
+
+    <div class="ops-grid">
+        <div class="ops-grid__main">
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">{% if farmer_request and farmer_request.status == "pending" %}Заявка отправлена{% else %}Подать заявку{% endif %}</h2>
+                    {% if farmer_request %}<span class="ops-panel__hint">от {{ farmer_request.created_at|date:"d.m.Y H:i" }}</span>{% endif %}
+                </div>
+                <div class="fm-join__body">
+                    {% if farmer_request and farmer_request.status == "pending" %}
+                        <p>Модератор проверит заявку и откроет Ферму. Обычно это занимает до суток: загляни на эту страницу позже, статус обновится здесь.</p>
+                        {% if farmer_request.user_message %}<blockquote class="fm-join__quote">{{ farmer_request.user_message|linebreaksbr }}</blockquote>{% endif %}
+                        <a href="{% url 'support:create' %}" class="btn btn-secondary">Написать в поддержку</a>
+                    {% else %}
+                        {% if farmer_request and farmer_request.status == "denied" %}
+                            <p class="fm-join__denied">Прошлую заявку отклонили{% if farmer_request.admin_note %}: {{ farmer_request.admin_note }}{% endif %}. Можно подать новую.</p>
+                        {% endif %}
+                        <form method="post" action="{% url 'farm:apply' %}" class="fm-join__form">
+                            {% csrf_token %}
+                            <label class="form-label" for="fm-join-accounts">Сколько аккаунтов фармишь</label>
+                            <select id="fm-join-accounts" name="accounts" class="form-control">
+                                <option value="1–5">1–5</option>
+                                <option value="6–20">6–20</option>
+                                <option value="21–50">21–50</option>
+                                <option value="50+">Больше 50</option>
+                            </select>
+                            <label class="form-label" for="fm-join-message">Пара слов о себе (необязательно)</label>
+                            <textarea id="fm-join-message" name="message" rows="3" maxlength="450" class="form-control" placeholder="Например: фармлю 10 аккаунтов, хочу считать доход по неделям"></textarea>
+                            <button type="submit" class="btn btn-primary">Отправить заявку</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </article>
+        </div>
+        <aside class="ops-grid__side">
+            <article class="ops-panel">
+                <div class="ops-panel__head">
+                    <h2 class="ops-panel__title">Как это работает</h2>
+                </div>
+                <ol class="fm-join__steps">
+                    <li><b>Заявка.</b> Расскажи, сколько у тебя аккаунтов.</li>
+                    <li><b>Проверка.</b> Модератор откроет доступ, это бесплатно.</li>
+                    <li><b>Ферма.</b> Подключай аккаунты и отмечай дропы.</li>
+                    <li><b>По желанию.</b> Тариф Farmer добавит аналитику и алерты.</li>
+                </ol>
+                {% if feature_flags.subscriptions %}
+                    <a href="{% url 'subscriptions:farmer_plans' %}" class="ops-panel__link fm-join__plans">Тарифы Farmer →</a>
+                {% endif %}
+            </article>
+        </aside>
+    </div>
+</section>

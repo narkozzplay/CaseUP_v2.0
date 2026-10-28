@@ -179,8 +179,9 @@ def _visibility_map(request, *, feature_flags: dict[str, bool] | None = None) ->
         DashboardMenuItem.Visibility.STEAM_CATALOG_ACCESS: bool(
             feature_flags.get("steam_catalog", False) and site_subscription.feature_map.get("steam_catalog_view", False)
         ),
+        # Investments are a personal purchase tracker: open to every signed-in user.
         DashboardMenuItem.Visibility.STEAM_INVESTOR_ACCESS: bool(
-            feature_flags.get("steam_trading", False) and farm_access.has_access
+            feature_flags.get("steam_trading", False) and getattr(user, "is_authenticated", False)
         ),
         DashboardMenuItem.Visibility.TG_USER_ACCESS: tg_allowed,
         DashboardMenuItem.Visibility.MODER_PLUS: bool(getattr(user, "is_authenticated", False) and role_access.is_moder_plus),
