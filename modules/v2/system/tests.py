@@ -319,8 +319,6 @@ class SystemConfigurationTests(TestCase):
         admin = self._make_admin("admin_partial_theme_swap")
         bootstrap_versioning()
         default_theme = ThemeProfile.objects.get(key="default")
-        midnight_theme = ThemeProfile.objects.get(key="midnight")
-        update_module_states({"midnight_theme": True})
         config = get_site_configuration()
         config.active_theme = default_theme
         config.save(update_fields=["active_theme", "updated_at"])
@@ -337,14 +335,13 @@ class SystemConfigurationTests(TestCase):
                 "maintenance_message": "Maint",
                 "registration_enabled": "on",
                 "current_project_version": str(config.current_project_version_id or ""),
-                "active_theme": str(midnight_theme.id),
+                "active_theme": str(default_theme.id),
                 "module__steam_catalog": "on",
                 "module__farm": "on",
                 "module__tradehub": "on",
                 "module__steam_trading": "on",
                 "module__celery_tasks": "on",
                 "module__subscriptions": "on",
-                "module__midnight_theme": "on",
             },
             HTTP_X_DASHBOARD_PARTIAL="1",
             HTTP_X_REQUESTED_WITH="XMLHttpRequest",
@@ -353,20 +350,7 @@ class SystemConfigurationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["X-Dashboard-Partial"], "1")
         self.assertEqual(response["X-Dashboard-Theme-Mode"], "css")
-        self.assertIn("css/themes/midnight.css", response["X-Dashboard-Theme-Css-Url"])
-
-    def test_midnight_theme_falls_back_to_default_when_plugin_disabled(self):
-        bootstrap_versioning()
-        midnight_theme = ThemeProfile.objects.get(key="midnight")
-        default_theme = ThemeProfile.objects.get(key="default")
-        config = get_site_configuration()
-        config.active_theme = midnight_theme
-        config.save(update_fields=["active_theme", "updated_at"])
-
-        update_module_states({"midnight_theme": False})
-        active_theme = get_active_theme()
-        self.assertIsNotNone(active_theme)
-        self.assertEqual(active_theme.key, default_theme.key)
+        self.assertIn("css/themes/default.css", response["X-Dashboard-Theme-Css-Url"])
 
     def test_admin_can_toggle_module_live_endpoint(self):
         admin = self._make_admin("admin_toggle_module_live")
@@ -384,37 +368,6 @@ class SystemConfigurationTests(TestCase):
             },
         )
         self.assertTrue(get_module_state_map()["store"])
-
-    def test_midnight_live_toggle_warning_and_confirm_hook_present_when_active(self):
-        admin = self._make_admin("admin_midnight_warning_hook")
-        bootstrap_versioning()
-        update_module_states({"midnight_theme": True})
-        config = get_site_configuration()
-        config.active_theme = ThemeProfile.objects.get(key="midnight")
-        config.save(update_fields=["active_theme", "updated_at"])
-
-        self.client.login(username=admin.username, password="StrongPass123")
-        response = self.client.get(reverse("system_config:settings"))
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Disable Midnight Theme Plugin? Active theme will switch to default.")
-        self.assertContains(response, "data-module-live-toggle")
-        self.assertContains(response, 'data-module-toggle-confirm="Disable Midnight Theme Plugin? Active theme will switch to default."', count=1)
-
-    def test_midnight_theme_uses_topnav_shell_layout(self):
-        admin = self._make_admin("admin_midnight_shell")
-        self.client.login(username=admin.username, password="StrongPass123")
-        bootstrap_versioning()
-        midnight = ThemeProfile.objects.get(key="midnight")
-        config = get_site_configuration()
-        config.active_theme = midnight
-        config.save(update_fields=["active_theme", "updated_at"])
-        update_module_states({"midnight_theme": True})
-
-        response = self.client.get(reverse("system_config:settings"))
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "midnight-topnav")
-        self.assertContains(response, "dashboard-shell--midnight")
-
 
     def test_store_menu_item_visible_only_when_store_enabled(self):
         user = self._make_user("menu_store_user")
@@ -553,13 +506,13 @@ class SystemConfigurationTests(TestCase):
 
 
 class ThemeVersioningTests(TestCase):
-    def test_bootstrap_versioning_seeds_default_and_midnight_themes(self):
+    def test_bootstrap_versioning_seeds_only_the_default_theme(self):
         bootstrap_versioning()
 
         themes = set(ThemeProfile.objects.values_list("key", flat=True))
 
         self.assertIn("default", themes)
-        self.assertIn("midnight", themes)
+        self.assertNotIn("midnight", themes)
 
 
 class SystemBootstrapIsolationTests(TestCase):
@@ -664,7 +617,7 @@ class DashboardMenuBuilderTests(TestCase):
         ensure_dashboard_menu_items()
         self.assertTrue(DashboardMenuItem.objects.filter(key="farm_drops").exists())
         self.assertTrue(DashboardMenuItem.objects.filter(key="steam_catalog").exists())
-        self.assertEqual(DashboardMenuItem.objects.get(key="web_constructor").url_name, "web_constructor:builder")
+        self.assertFalse(DashboardMenuItem.objects.filter(key="web_constructor").exists())
 
     def test_disabled_menu_item_is_hidden(self):
         ensure_dashboard_menu_items()
@@ -699,42 +652,6 @@ class DashboardMenuBuilderTests(TestCase):
         self.assertTrue(any(group["key"] == DashboardMenuItem.Group.INVESTMENTS for group in menu_groups))
         self.assertFalse(any(group["key"] == DashboardMenuItem.Group.FARM for group in menu_groups))
         self.assertFalse(any(group["key"] == DashboardMenuItem.Group.STEAM for group in menu_groups))
-
-    @override_settings(CASEUP_LAB_BASE_URL="http://lib.caseup.localhost:8000", ALLOWED_HOSTS=["testserver", "caseup.localhost", "lib.caseup.localhost"])
-    def test_web_constructor_menu_item_points_to_lab_host(self):
-        ensure_dashboard_menu_items()
-        user = self._make_user(username="menu_lab_link", role=UserRole.ADMIN)
-        self.client.login(username=user.username, password="StrongPass123")
-
-        response = self.client.get(reverse("frontend:dashboard_preview"), HTTP_HOST="caseup.localhost:8000")
-
-        self.assertEqual(response.status_code, 200)
-        menu_groups = build_dashboard_menu(response.wsgi_request)
-        web_constructor_item = next(
-            item
-            for group in menu_groups
-            for item in group["items"]
-            if item.key == "web_constructor"
-        )
-        self.assertEqual(web_constructor_item.url, "http://lib.caseup.localhost:8000/constructor/builder/")
-
-    def test_web_constructor_menu_item_hidden_when_module_disabled(self):
-        ensure_dashboard_menu_items()
-        user = self._make_user(username="menu_web_constructor_disabled", role=UserRole.ADMIN)
-        self.client.login(username=user.username, password="StrongPass123")
-
-        update_module_states({"web_constructor": False})
-        response = self.client.get(reverse("frontend:dashboard_preview"))
-
-        self.assertEqual(response.status_code, 200)
-        menu_groups = build_dashboard_menu(response.wsgi_request)
-        self.assertFalse(
-            any(
-                item.key == "web_constructor"
-                for group in menu_groups
-                for item in group["items"]
-            )
-        )
 
     def test_steam_catalog_menu_item_hidden_when_module_disabled(self):
         ensure_dashboard_menu_items()

@@ -12,7 +12,7 @@ from modules.v2.subscriptions.feature_codes import TG_NOTIFIER_USER
 from modules.v2.subscriptions.services import get_subscription_context
 
 from .models import DashboardMenuItem
-from .services import build_lab_url, get_module_state_map, resolve_module_for_namespace
+from .services import get_module_state_map, resolve_module_for_namespace
 
 
 @dataclass(frozen=True)
@@ -39,8 +39,6 @@ SHELL_DISABLED_URL_NAMES = {
     "subscriptions:plans",
     "subscriptions:farmer_plans",
     "admin:index",
-    "web_constructor:builder",
-    "web_constructor:builder_editor",
 }
 
 ACTIVE_VIEW_ALIASES = {
@@ -102,7 +100,6 @@ ACTIVE_VIEW_ALIASES = {
     "tg_settings": {"tg_notifier:settings", "tg_notifier:autopost"},
     "subscription_pricing": {"subscriptions:pricing_dashboard"},
     "farm_settings": {"farm:settings"},
-    "web_constructor": {"web_constructor:builder", "web_constructor:builder_editor", "web_constructor:dashboard", "web_constructor:create", "web_constructor:detail", "web_constructor:editor", "web_constructor:versions"},
     "store": {
         "store:storefront",
         "store:library",
@@ -111,7 +108,6 @@ ACTIVE_VIEW_ALIASES = {
         "store:moderation_queue",
         "store:analytics",
     },
-    "web_constructor_moderation": {"web_constructor:moderation", "web_constructor:moderate_version"},
     "majors": {"majors:index", "majors:detail", "majors:pickem", "majors:leaderboard"},
     "support": {"support:index", "support:create", "support:detail"},
     "support_queue": {"support:queue"},
@@ -192,14 +188,6 @@ def _visibility_map(request, *, feature_flags: dict[str, bool] | None = None) ->
     }
 
 
-def _resolve_menu_target_url(item: DashboardMenuItem, url: str) -> str:
-    if item.key == "web_constructor":
-        lab_url = build_lab_url(url)
-        if lab_url:
-            return lab_url
-    return url
-
-
 def _is_item_active(item: DashboardMenuItem, request, url: str) -> bool:
     current_view_name = getattr(getattr(request, "resolver_match", None), "view_name", "") or ""
     aliases = ACTIVE_VIEW_ALIASES.get(item.key, {item.url_name})
@@ -242,7 +230,7 @@ def build_dashboard_menu(request) -> tuple[dict[str, object], ...]:
                 url = reverse(item.url_name)
             except NoReverseMatch:
                 continue
-            items.append((item, _resolve_menu_target_url(item, url)))
+            items.append((item, url))
     except (OperationalError, ProgrammingError):
         return tuple()
 

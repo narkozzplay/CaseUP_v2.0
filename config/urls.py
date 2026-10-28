@@ -62,7 +62,6 @@ urlpatterns += i18n_patterns(
     path("cases/", include("modules.v2.case_simulator.urls")),
     path("payments/", include("modules.v2.payments.urls")),
     path("store/", include("modules.v2.store.urls")),
-    path("constructor/", include("modules.v2.web_constructor.urls")),
     path("social/", include("modules.v2.social.urls")),
     path("social/", include("modules.v2.social_friends.urls")),
     path("notifications/", include("modules.v2.notifications.urls")),

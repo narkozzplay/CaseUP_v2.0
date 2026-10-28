@@ -94,7 +94,6 @@ PROJECT_APPS = [
     "modules.v2.market.apps.MarketConfig",
     "modules.v2.webpush.apps.WebPushConfig",
     "modules.v2.store.apps.StoreConfig",
-    "modules.v2.web_constructor.apps.WebConstructorConfig",
     "modules.v2.support.apps.SupportConfig",
 ]
 
@@ -362,13 +361,10 @@ TELEGRAM_WEBHOOK_MAX_BODY_BYTES = int(os.getenv("TELEGRAM_WEBHOOK_MAX_BODY_BYTES
 # Telegram is unreachable from Russian servers: send through deploy/hosting/telegram_relay.php on other hosting.
 TELEGRAM_RELAY_URL = os.getenv("TELEGRAM_RELAY_URL", "").strip()
 TELEGRAM_RELAY_TOKEN = os.getenv("TELEGRAM_RELAY_TOKEN", "").strip()
-WEB_CONSTRUCTOR_MAX_IMAGE_UPLOAD_BYTES = int(os.getenv("WEB_CONSTRUCTOR_MAX_IMAGE_UPLOAD_BYTES", "5242880"))
 SITE_BASE_URL = os.getenv("SITE_BASE_URL", "http://127.0.0.1:8000").strip().rstrip("/")
 
 # Support: a new ticket nobody took within this many hours is sent to the team in Telegram.
 SUPPORT_ESCALATE_AFTER_HOURS = float(os.getenv("SUPPORT_ESCALATE_AFTER_HOURS", "3") or 3)
-
-CASEUP_LAB_BASE_URL = os.getenv("CASEUP_LAB_BASE_URL", "").strip().rstrip("/")
 
 CELERY_BEAT_PENDING_ALERT_DISPATCHER_SECONDS = int(
     os.getenv("CELERY_BEAT_PENDING_ALERT_DISPATCHER_SECONDS", "120")

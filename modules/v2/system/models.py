@@ -578,15 +578,6 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 36,
             },
             {
-                "key": "web_constructor",
-                "label_ru": "Web-конструктор",
-                "label_en": "Web Constructor",
-                "url_name": "web_constructor:builder",
-                "group": cls.Group.ADMIN,
-                "visibility_condition": cls.Visibility.ADMIN_PLUS,
-                "sort_order": 37,
-            },
-            {
                 "key": "profile",
                 "label_ru": "Мой профиль",
                 "label_en": "My profile",
@@ -804,15 +795,6 @@ class DashboardMenuItem(models.Model):
                 "group": cls.Group.ADMIN,
                 "visibility_condition": cls.Visibility.ADMIN_PLUS,
                 "sort_order": 60,
-            },
-            {
-                "key": "web_constructor_moderation",
-                "label_ru": "Модерация конструктора",
-                "label_en": "Constructor moderation",
-                "url_name": "web_constructor:moderation",
-                "group": cls.Group.ADMIN,
-                "visibility_condition": cls.Visibility.ADMIN_PLUS,
-                "sort_order": 65,
             },
             {
                 "key": "cs2_stats",

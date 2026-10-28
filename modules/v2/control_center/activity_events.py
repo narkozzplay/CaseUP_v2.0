@@ -379,7 +379,7 @@ def _on_message(sender, instance, created, **kwargs):
         log_activity(category=C.SOCIAL, event="social.message", summary=f"Сообщение в «{instance.space.title}»", user=instance.author, obj=instance, payload={"space": instance.space_id, "type": instance.message_type})
 
 
-# --------------------------------------------------------------------------- moderation, constructor, admin
+# --------------------------------------------------------------------------- moderation, admin
 
 
 def _on_ban(sender, instance, created, **kwargs):
@@ -390,26 +390,6 @@ def _on_ban(sender, instance, created, **kwargs):
         changed, old = _changed(instance, "lifted_at")
         if changed and old is None and instance.lifted_at is not None:
             log_activity(category=C.SECURITY, event="security.unban", summary=f"Бан снят: {instance.user.username}", user=instance.user, actor=instance.lifted_by, obj=instance)
-    _remember_after_save(instance)
-
-
-def _on_template(sender, instance, created, **kwargs):
-    if created:
-        log_activity(category=C.CONSTRUCTOR, event="constructor.template_created", summary=f"Шаблон «{instance.title}»", user=instance.owner, obj=instance)
-
-
-def _on_template_version(sender, instance, created, **kwargs):
-    if not created:
-        changed, old = _changed(instance, "moderation_status")
-        if changed:
-            log_activity(
-                category=C.CONSTRUCTOR,
-                event="constructor.version_moderated",
-                summary=f"«{instance.template.title}» v{instance.version_number}: {_transition(instance, 'moderation_status', old)}",
-                user=instance.template.owner,
-                actor=instance.approved_by,
-                obj=instance,
-            )
     _remember_after_save(instance)
 
 
@@ -445,7 +425,6 @@ def connect_activity_receivers() -> None:
     _track("tradehub.SaleOrder", "status")
     _track("social_friends.FriendRequest", "status")
     _track("control_center.UserBan", "lifted_at")
-    _track("web_constructor.PageTemplateVersion", "moderation_status")
 
     saves = {
         "accounts_v2.LegalConsent": _on_consent,
@@ -472,8 +451,6 @@ def connect_activity_receivers() -> None:
         "social_layer.SocialMembership": _on_membership,
         "social_layer.SocialMessage": _on_message,
         "control_center.UserBan": _on_ban,
-        "web_constructor.PageTemplate": _on_template,
-        "web_constructor.PageTemplateVersion": _on_template_version,
         "control_center.AdminAuditLog": _on_admin_audit,
     }
     for label, receiver in saves.items():

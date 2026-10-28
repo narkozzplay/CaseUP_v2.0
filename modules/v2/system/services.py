@@ -469,21 +469,6 @@ def ensure_themes() -> None:
                 "project_version_to": version,
             },
         },
-        {
-            "key": "midnight",
-            "defaults": {
-                "name": "Midnight Neon",
-                "code": "midnight",
-                "description": "Альтернативная тёмная тема для dev/test и plugin-поставок.",
-                "template_base_path": "themes/midnight",
-                "css_file": "css/themes/midnight.css",
-                "is_default": False,
-                "is_active": True,
-                "is_test_only": True,
-                "project_version_from": version,
-                "project_version_to": version,
-            },
-        },
     ]
 
     created_by_key: dict[str, ThemeProfile] = {}
@@ -1076,8 +1061,6 @@ def get_available_themes(*, project_version: ProjectVersion | None = None, envir
         for theme in ThemeProfile.objects.select_related("project_version_from", "project_version_to").order_by("-is_default", "name")
         if is_theme_compatible(theme, project_version, environment)
     ]
-    if not module_state_map.get("midnight_theme", MODULE_REGISTRY["midnight_theme"].default_enabled):
-        return [theme for theme in themes if theme.key != "midnight"]
     return themes
 
 
@@ -1272,10 +1255,6 @@ def get_site_base_url() -> str:
     return get_public_base_url()
 
 
-def get_lab_base_url() -> str:
-    return (getattr(settings, "CASEUP_LAB_BASE_URL", "") or "").strip().rstrip("/")
-
-
 def build_absolute_url(path_or_url: str, *, base_url: str = "") -> str:
     raw = (path_or_url or "").strip()
     if not raw:
@@ -1293,10 +1272,6 @@ def build_site_url(path_or_url: str) -> str:
     return build_absolute_url(path_or_url, base_url=get_site_base_url())
 
 
-def build_lab_url(path_or_url: str) -> str:
-    return build_absolute_url(path_or_url, base_url=get_lab_base_url())
-
-
 def _normalized_host(value: str) -> str:
     raw = (value or "").strip()
     if not raw:
@@ -1306,13 +1281,6 @@ def _normalized_host(value: str) -> str:
     parsed = urlparse(raw)
     host = (parsed.hostname or "").strip().lower()
     return host.lstrip(".")
-
-
-def request_is_lab_host(request) -> bool:
-    lab_base_url = get_lab_base_url()
-    if not lab_base_url:
-        return False
-    return _normalized_host(request.get_host()) == _normalized_host(lab_base_url)
 
 
 def request_is_site_host(request) -> bool:

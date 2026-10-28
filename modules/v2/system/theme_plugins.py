@@ -37,7 +37,6 @@ _DASHBOARD_NAMESPACES = {
     "celery_tasks",
     "tg_notifier",
     "store",
-    "web_constructor",
 }
 
 

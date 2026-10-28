@@ -161,9 +161,6 @@
                                 {% if card.row.addon_target_labels %}<span class="cc-chip cc-chip--info">Commercial access for: {{ card.row.addon_target_labels|join:", " }}</span>{% endif %}
                             </div>
                             {% if card.row.blocked_reason %}<p class="cc-module-card__warn">{{ card.row.blocked_reason }}</p>{% endif %}
-                            {% if card.row.key == "midnight_theme" and summary.active_theme and summary.active_theme.key == "midnight" %}
-                                <p class="cc-module-card__warn">{% trans "Warning:" %} {% trans "disabling Midnight plugin will fallback to the default theme." %}</p>
-                            {% endif %}
                             <footer class="cc-module-card__foot">
                                 <span class="cc-module-card__release">
                                     <span>Current release: <b>{{ card.release.active_release_version }}</b> · {{ card.release.active_release_channel }}</span>
@@ -175,9 +172,6 @@
                                     data-module-live-toggle
                                     data-module-key="{{ card.row.key }}"
                                     data-module-toggle-url="{% url 'system_config:toggle_module_state' module_key=card.row.key %}"
-                                    {% if card.row.key == "midnight_theme" and summary.active_theme and summary.active_theme.key == "midnight" %}
-                                        data-module-toggle-confirm="Disable Midnight Theme Plugin? Active theme will switch to default."
-                                    {% endif %}
                                     title="Применить состояние переключателя сразу, без сохранения формы"
                                 >Применить сразу</button>
                             </footer>

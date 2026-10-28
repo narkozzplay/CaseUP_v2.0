@@ -106,7 +106,6 @@ nano .env.prod
 |---|---|
 | `CADDY_DOMAIN` | `case-up.ru` |
 | `SITE_BASE_URL` | `https://case-up.ru` |
-| `CASEUP_LAB_BASE_URL` | `https://lib.case-up.ru` |
 | `DJANGO_ALLOWED_HOSTS` | `case-up.ru,www.case-up.ru,lib.case-up.ru` |
 | `DJANGO_HEALTHCHECK_HOST` | `case-up.ru` |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | `https://case-up.ru,https://www.case-up.ru,https://lib.case-up.ru` |

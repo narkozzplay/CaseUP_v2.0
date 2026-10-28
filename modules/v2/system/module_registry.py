@@ -15,13 +15,6 @@ class ModuleDefinition:
 
 
 MODULE_REGISTRY: dict[str, ModuleDefinition] = {
-    "midnight_theme": ModuleDefinition(
-        key="midnight_theme",
-        label="Midnight Theme Plugin",
-        description="Плагин-поставка альтернативной темы Midnight Neon.",
-        namespaces=(),
-        default_enabled=False,
-    ),
     "steam_catalog": ModuleDefinition(
         key="steam_catalog",
         label="Steam Catalog",
@@ -95,14 +88,6 @@ MODULE_REGISTRY: dict[str, ModuleDefinition] = {
         label="Case Simulator",
         description="Симуляция открытия кейсов CS2 и своих кейсов CaseUP за внутренний баланс, терминал с предложениями.",
         namespaces=("case_simulator",),
-        default_enabled=True,
-    ),
-    "web_constructor": ModuleDefinition(
-        key="web_constructor",
-        label="Web Constructor",
-        description="JS-driven конструктор страниц с live preview, версионированием и модерацией.",
-        namespaces=("web_constructor",),
-        addon_targets=("subscriptions",),
         default_enabled=True,
     ),
     "store": ModuleDefinition(

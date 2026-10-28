@@ -1,9 +1,0 @@
-<div class="{{ page.classes }}" {% if page.background_url %}style="background-image: url('{{ page.background_url }}');"{% endif %}>
-    {% for block in blocks %}
-        {% if block.visible %}
-            <section class="wc-block {{ block.style_classes }}">
-                {% include block.template_name with block=block only %}
-            </section>
-        {% endif %}
-    {% endfor %}
-</div>
