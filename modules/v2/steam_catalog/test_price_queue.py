@@ -69,6 +69,8 @@ class QueueTests(TestCase):
         self.assertEqual(price_queue._interval(price_queue.DIRECT), 24)
         self.assertEqual(price_queue.hourly_budget(price_queue.DIRECT), 112)
         self.assertEqual(price_queue.hourly_budget(), 900)
+        with self.settings(STEAM_PRICE_HOURLY_BUDGET=1):
+            self.assertEqual(price_queue.hourly_budget(price_queue.DIRECT), 1)  # a small cap never turns into «no cap»
 
     @mock.patch(PRICE_FETCH)
     def test_names_steam_does_not_know_are_answers_not_errors(self, fetch_mock):

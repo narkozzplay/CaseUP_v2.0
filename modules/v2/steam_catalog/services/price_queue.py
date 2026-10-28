@@ -111,7 +111,8 @@ def _interval(route: str) -> float:
 
 def hourly_budget(route: str | None = None) -> int:
     budget = max(int(_setting("STEAM_PRICE_HOURLY_BUDGET", 900) or 0), 0)
-    return budget // slowdown(route) if budget and route else budget
+    # Never down to 0: 0 means «no hourly limit».
+    return max(budget // slowdown(route), 1) if budget and route else budget
 
 
 def spent_this_hour(route: str) -> int:
