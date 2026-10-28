@@ -1,11 +1,13 @@
 from django.urls import path
 
 from . import views
+from .join import farm_apply
 
 app_name = "farm"
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    path("apply/", farm_apply, name="apply"),
     path("hub/", views.hub, name="hub"),
     path("accounts/", views.accounts_list, name="accounts_list"),
     path("accounts/add/", views.accounts_add, name="accounts_add"),

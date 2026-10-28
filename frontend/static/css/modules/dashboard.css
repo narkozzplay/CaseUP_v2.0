@@ -634,3 +634,213 @@
         padding-right: 14px;
     }
 }
+
+/* ==========================================================================
+   User dashboard (regular users)
+   ========================================================================== */
+
+.ud-hero__balance {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.ud-hero__balance span {
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    margin-left: 4px;
+    background: var(--accent);
+    color: #0b0e13;
+    font-size: 0.8rem;
+}
+
+.ud-major {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px 24px;
+    padding: 22px 24px;
+    overflow: hidden;
+    border: 1px solid rgba(245, 166, 35, 0.35);
+    background: linear-gradient(100deg, rgba(245, 166, 35, 0.18), rgba(11, 14, 19, 0.2) 60%), var(--panel);
+    color: var(--text);
+    text-decoration: none;
+}
+
+.ud-major--banner {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    padding: 0 24px 0 0;
+}
+
+.ud-major--banner .ud-major__body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ud-major__thumb {
+    display: block;
+    width: min(42%, 420px);
+    aspect-ratio: 3 / 1;
+    object-fit: cover;
+    border-right: 1px solid rgba(245, 166, 35, 0.35);
+}
+
+.ud-major--banner .ud-major__cta {
+    margin-left: auto;
+}
+
+.ud-major__body,
+.ud-major__cta {
+    position: relative;
+    z-index: 1;
+}
+
+.ud-major__body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ud-major__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 2.2vw, 1.9rem);
+    line-height: 1.05;
+    text-transform: uppercase;
+}
+
+.ud-major__meta {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.ud-major:hover {
+    border-color: var(--accent);
+}
+
+.ud-feed {
+    border-left: 3px solid var(--rarity, transparent);
+}
+
+.ud-rarity--classified { --rarity: #d32ce6; }
+.ud-rarity--covert { --rarity: #eb4b4b; }
+.ud-rarity--gold { --rarity: #ffd24a; }
+
+.ud-feed__thumb {
+    background: linear-gradient(0deg, color-mix(in srgb, var(--rarity, transparent) 30%, transparent), transparent 80%);
+}
+
+.ud-feed__who {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.ud-feed__who b {
+    color: var(--text);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 16ch;
+}
+
+.ud-feed__avatar {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    object-fit: cover;
+}
+
+.ud-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 18px;
+}
+
+.ud-empty p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+    .ud-major { padding: 18px 16px; }
+    .ud-major--banner { flex-wrap: wrap; padding: 0 0 16px; }
+    .ud-major__thumb { width: 100%; border-right: 0; }
+    .ud-major--banner .ud-major__body { padding: 0 16px; }
+    .ud-major__cta { width: 100%; justify-content: center; }
+    .ud-major--banner .ud-major__cta { margin: 0 16px; width: calc(100% - 32px); }
+}
+
+.ud-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.ud-feed__item {
+    overflow: hidden;
+    color: var(--text);
+    font-weight: 700;
+    font-size: 0.88rem;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ud-feed__item:hover,
+.ud-feed__player:hover b {
+    color: var(--accent);
+}
+
+.ud-feed__player {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    text-decoration: none;
+}
+
+.ud-bonus {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 12px;
+}
+
+.ud-bonus__tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 6px;
+    border: 1px solid var(--border);
+    background: rgba(9, 11, 15, 0.45);
+    color: var(--text);
+    font-size: 0.8rem;
+    text-align: center;
+    text-decoration: none;
+}
+
+.ud-bonus__tile .ui-icon {
+    color: var(--accent);
+}
+
+.ud-bonus__tile:hover {
+    border-color: rgba(245, 166, 35, 0.45);
+}
+
+@media (max-width: 640px) {
+    .ud-feed .ops-row__main { min-width: 0; }
+    .ud-feed__who { flex-wrap: wrap; row-gap: 2px; }
+    .ud-feed__who b { max-width: 22ch; }
+    .ud-feed .ops-row__side time { white-space: nowrap; font-size: 0.68rem; }
+}

@@ -19,6 +19,7 @@ from modules.v2.profiles.services.balance import BalanceError, adjust_balance
 from modules.v2.profiles.services.faceit import sync_faceit_if_needed, sync_faceit_profile
 from modules.v2.profiles.services.presence import is_profile_online
 from modules.v2.profiles.services.steam_profile import sync_profile_steam_meta_if_needed
+from modules.v2.profiles.services.verification import grant_verification
 from modules.v2.profile_customization.services import (
     can_customize_profile,
     get_or_create_customization,
@@ -878,10 +879,7 @@ def verification_requests_view(request):
             ver_req.reviewed_by = request.user
             ver_req.reviewed_at = tz.now()
             ver_req.save(update_fields=["status", "admin_note", "reviewed_by", "reviewed_at"])
-            UserProfile.objects.filter(user=ver_req.user).update(
-                verification_level=ver_req.requested_level,
-                updated_at=tz.now(),
-            )
+            grant_verification(ver_req)
             messages.success(request, f"Заявка одобрена — {ver_req.user.username} верифицирован как {ver_req.get_requested_level_display()}.")
         elif action == "deny":
             ver_req.status = VerificationRequest.Status.DENIED

@@ -32,6 +32,7 @@ def user_balance(request):
             "current_user_avatar_url": "",
             "current_user_display_name": "",
             "current_user_is_online": False,
+            "current_user_effects": {},
         }
 
     profile = _get_request_profile(request)
@@ -46,4 +47,20 @@ def user_balance(request):
         "current_user_avatar_url": get_profile_avatar_url(profile),
         "current_user_display_name": get_profile_display_name(profile, fallback_username=request.user.username),
         "current_user_is_online": is_profile_online(profile),
+        "current_user_effects": _get_request_effects(request),
     }
+
+
+def _get_request_effects(request) -> dict[str, str]:
+    """Frame and nickname effects for the sidebar card, once per request."""
+    cached = getattr(request, "_profile_effects_cache", None)
+    if cached is not None:
+        return cached
+    try:
+        from modules.v2.profile_customization.services import get_profile_effect_classes
+
+        effects = get_profile_effect_classes(request.user)
+    except Exception:
+        effects = {}
+    request._profile_effects_cache = effects
+    return effects

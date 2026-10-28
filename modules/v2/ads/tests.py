@@ -327,3 +327,24 @@ class PromoVideoTests(TestCase):
             self.assertEqual(banner.video_type, "video/mp4")
             banner.video.delete(save=False)
             banner.image.delete(save=False)
+
+
+class InfoBannerTests(TestCase):
+    def test_seeded_banners_carry_their_art(self):
+        from .models import InfoBanner
+
+        self.assertFalse(InfoBanner.objects.filter(image="").exists())
+
+    def test_banner_into_disabled_module_is_hidden(self):
+        from modules.v2.system.services import update_module_states
+
+        from .info_banners import get_info_banners
+
+        update_module_states({"market": False})
+        names = [banner.name for banner in get_info_banners("dashboard")]
+        self.assertNotIn("Рынок: продать скины", names)
+        self.assertIn("Бонус дня", names)
+
+        update_module_states({"market": True})
+        names = [banner.name for banner in get_info_banners("dashboard")]
+        self.assertIn("Рынок: продать скины", names)

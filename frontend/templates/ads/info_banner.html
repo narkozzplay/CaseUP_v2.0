@@ -1,0 +1,30 @@
+{% if banners %}
+<section class="info-banners info-banners--{{ slot }}{% if banners|length > 1 %} info-banners--multi{% endif %}" data-info-banners aria-label="{% if LANGUAGE_CODE == 'ru' %}Новости CaseUP{% else %}CaseUP news{% endif %}">
+    <div class="info-banners__track">
+        {% for banner in banners %}
+            <{% if banner.url %}a href="{{ banner.href }}"{% if banner.is_external %} target="_blank" rel="noopener"{% endif %}{% else %}div{% endif %} class="info-banner{% if banner.image %} info-banner--art{% endif %}{% if forloop.first %} is-active{% endif %}" data-info-banner>
+                {% if banner.image %}
+                    {% if banner.video %}
+                        <video class="info-banner__art" autoplay muted loop playsinline preload="metadata" poster="{{ banner.image.url }}" aria-hidden="true"><source src="{{ banner.video.url }}" type="{{ banner.video_type }}"></video>
+                    {% else %}
+                        <img class="info-banner__art" src="{{ banner.image.url }}" alt="" loading="lazy">
+                    {% endif %}
+                {% else %}
+                    <span class="info-banner__glyph" aria-hidden="true">{% include "components/icon.html" with name=banner.icon|default:"major" %}</span>
+                {% endif %}
+                <span class="info-banner__copy">
+                    {% if banner.eyebrow %}<span class="eyebrow">{{ banner.eyebrow }}</span>{% endif %}
+                    <strong class="info-banner__title">{% if LANGUAGE_CODE != "ru" and banner.title_en %}{{ banner.title_en }}{% else %}{{ banner.title }}{% endif %}</strong>
+                    {% if banner.text %}<span class="info-banner__text">{% if LANGUAGE_CODE != "ru" and banner.text_en %}{{ banner.text_en }}{% else %}{{ banner.text }}{% endif %}</span>{% endif %}
+                    {% if banner.button and banner.url %}<span class="btn btn-primary btn-sm info-banner__button">{% if LANGUAGE_CODE != "ru" and banner.button_en %}{{ banner.button_en }}{% else %}{{ banner.button }}{% endif %}</span>{% endif %}
+                </span>
+            </{% if banner.url %}a{% else %}div{% endif %}>
+        {% endfor %}
+    </div>
+    {% if banners|length > 1 %}
+        <div class="info-banners__dots">
+            {% for banner in banners %}<button type="button" class="info-banners__dot{% if forloop.first %} is-active{% endif %}" data-info-dot="{{ forloop.counter0 }}" aria-label="{{ forloop.counter }}"></button>{% endfor %}
+        </div>
+    {% endif %}
+</section>
+{% endif %}

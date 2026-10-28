@@ -11,12 +11,12 @@ from django.utils import timezone
 
 from common.errors import render_access_denied_page, render_not_found_page
 from modules.v2.farm.models import FarmAccount
-from modules.v2.profiles.models import LedgerEntry, UserProfile, UserRole
+from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserProfile, UserRole
 from modules.v2.profiles.services.presence import ONLINE_THRESHOLD_MINUTES
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.steam_catalog.models import SteamItem, SteamItemPriceHistory, UserPriceAlertRule
 from modules.v2.system.dashboard_shell import render_dashboard_page
-from modules.v2.system.services import build_page_title
+from modules.v2.system.services import build_page_title, get_module_state_map
 
 User = get_user_model()
 ROLE_LABELS = {
@@ -74,7 +74,25 @@ def home(request):
     context = {
         "home_tracker": [],
         "home_stats": {},
+        "home_major": None,
+        "home_major_countdown": None,
+        "home_feed": [],
     }
+    feature_flags = get_module_state_map()
+    try:
+        if feature_flags.get("majors", True):
+            from modules.v2.majors.views import _countdown
+
+            major, _players = _current_major()
+            if major is not None:
+                context["home_major"] = major
+                context["home_major_countdown"] = _countdown(major)
+    except DatabaseError:
+        pass
+    from .activity_feed import build_activity_feed
+
+    viewer_is_team = bool(request.user.is_authenticated and get_user_role(request.user).is_moder_plus)
+    context["home_feed"] = build_activity_feed(feature_flags, limit=6, viewer_is_team=viewer_is_team)
     try:
         context["home_tracker"] = _build_home_tracker()
         context["home_stats"] = {
@@ -175,16 +193,106 @@ def _dashboard_stats():
     }
 
 
+# Ledger lines a user sees about their own balance, in plain words. Admin corrections stay out.
+USER_LEDGER_LABELS_RU = {
+    "topup": "Пополнение баланса",
+    "case_open": "Открытие кейса",
+    "item_sale": "Продажа предмета",
+    "withdraw_lock": "Заявка на вывод",
+    "withdraw_cancel": "Вывод отменён",
+    "subscription_purchase": "Покупка подписки",
+    "theme_purchase": "Покупка темы",
+    "store_purchase": "Покупка в магазине",
+    "bundle_purchase": "Покупка набора",
+    "referral_bonus": "Бонус за друга",
+    "promo_bonus": "Промокод",
+    "daily_bonus": "Бонус дня",
+    "market_purchase": "Покупка на Рынке",
+    "market_refund": "Возврат с Рынка",
+    "market_sale": "Продажа на Рынке",
+    "market_payout": "Выплата с Рынка",
+    "donation": "Поддержка проекта",
+    "major_pickem": "Награда Pick'em",
+}
+USER_LEDGER_HIDDEN_REASONS = (LedgerReason.ADMIN_ADJUST,)
+
+
+def _current_major():
+    from modules.v2.majors.models import Major, SwissPick
+
+    major = (
+        Major.objects.filter(is_published=True, ends_on__gte=timezone.localdate())
+        .order_by("starts_at")
+        .first()
+    )
+    if major is None:
+        return None, 0
+    players = SwissPick.objects.filter(stage__major=major).values("user_id").distinct().count()
+    return major, players
+
+
+def _user_dashboard_context(request) -> dict[str, object]:
+    from modules.v2.steam_catalog.models import SteamItemFavorite
+
+    from .activity_feed import build_activity_feed
+
+    user = request.user
+    feature_flags = get_module_state_map()
+    now = timezone.now()
+    threshold = now - timedelta(minutes=ONLINE_THRESHOLD_MINUTES)
+    context: dict[str, object] = {
+        "activity_feed": [],
+        "my_ledger": [],
+        "online_total": 0,
+        "market_deals_week": 0,
+        "market_lots_active": 0,
+        "my_favorites": 0,
+        "my_alerts": 0,
+        "current_major": None,
+        "major_players": 0,
+        "price_tracker": [],
+    }
+    try:
+        context["online_total"] = UserProfile.objects.filter(last_seen_at__gte=threshold).count()
+        my_ledger = list(
+            LedgerEntry.objects.filter(user=user)
+            .exclude(reason__in=USER_LEDGER_HIDDEN_REASONS)
+            .order_by("-created_at")[:6]
+        )
+        for entry in my_ledger:
+            entry.label_ru = USER_LEDGER_LABELS_RU.get(entry.reason, entry.get_reason_display())
+        context["my_ledger"] = my_ledger
+        context["my_favorites"] = SteamItemFavorite.objects.filter(user=user).count()
+        context["my_alerts"] = UserPriceAlertRule.objects.filter(user=user, status=UserPriceAlertRule.Status.ACTIVE).count()
+        if feature_flags.get("market", True):
+            from modules.v2.market.models import Deal, Listing
+
+            context["market_deals_week"] = Deal.objects.exclude(status=Deal.Status.CANCELLED).filter(created_at__gte=now - timedelta(days=7)).count()
+            context["market_lots_active"] = Listing.objects.filter(status=Listing.Status.ACTIVE).count()
+        if feature_flags.get("majors", True):
+            context["current_major"], context["major_players"] = _current_major()
+        if feature_flags.get("steam_catalog", True):
+            context["price_tracker"] = _build_home_tracker()
+    except DatabaseError:
+        pass
+    context["activity_feed"] = build_activity_feed(feature_flags, viewer_is_team=get_user_role(user).is_moder_plus)
+    return context
+
+
 @login_required
 def dashboard_preview(request):
-    context = {
-        "role_access": get_user_role(request.user),
-        **_dashboard_stats(),
-    }
+    role_access = get_user_role(request.user)
+    is_team = role_access.is_moder_plus or request.user.is_staff or request.user.is_superuser
+    if is_team:
+        context = {"role_access": role_access, "dashboard_mode": "team", **_dashboard_stats()}
+        partial_template = "frontend/partials/dashboard_preview_content.html"
+    else:
+        context = {"role_access": role_access, "dashboard_mode": "user", **_user_dashboard_context(request)}
+        partial_template = "frontend/partials/dashboard_user_content.html"
     return render_dashboard_page(
         request,
         full_template="frontend/dashboard_preview.html",
-        partial_template="frontend/partials/dashboard_preview_content.html",
+        partial_template=partial_template,
         context=context,
         page_title=build_page_title("Dashboard"),
         active_menu_key="dashboard_preview",

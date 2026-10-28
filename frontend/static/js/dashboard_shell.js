@@ -110,6 +110,22 @@
         });
     }
 
+    // The sidebar is not re-rendered on shell navigation, so the RU/EN links must follow the new URL
+    // (otherwise switching language jumps back to the page the shell was first loaded on).
+    function syncLanguageSwitcher() {
+        const { pathname, search, hash } = window.location;
+        let basePath = pathname === '/en' ? '/' : (pathname.startsWith('/en/') ? pathname.slice(3) : pathname);
+        if (!basePath.startsWith('/')) basePath = `/${basePath}`;
+        const targets = {
+            ru: basePath,
+            en: basePath === '/' ? '/en/' : `/en${basePath}`,
+        };
+        document.querySelectorAll('.lang-switcher__btn[data-lang]').forEach((link) => {
+            const target = targets[link.dataset.lang];
+            if (target) link.setAttribute('href', `${target}${search}${hash}`);
+        });
+    }
+
     function syncTitleAndActiveStateFromContent() {
         const frame = contentRoot.querySelector('.dashboard-content-frame');
         if (!frame) {
@@ -122,6 +138,7 @@
         }
         syncSidebarActiveState(activeMenu, window.location.href);
         syncSocialActiveState(activeMenu, window.location.href);
+        syncLanguageSwitcher();
         document.dispatchEvent(new CustomEvent('dashboard:content-replaced', { detail: { frame } }));
     }
 

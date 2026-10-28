@@ -307,6 +307,47 @@ class FrontendDashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, reverse("profiles:profile_detail", args=[target.id]))
 
+    def test_regular_user_dashboard_shows_own_history_and_real_feed(self):
+        from modules.v2.market.models import Listing
+
+        update_module_states({"market": True})
+        viewer = User.objects.create_user(username="plain_viewer", password="StrongPass123")
+        other = User.objects.create_user(username="other_seller", password="StrongPass123")
+        LedgerEntry.objects.create(user=viewer, delta=Decimal("50.00"), balance_after=Decimal("50.00"), reason=LedgerReason.TOPUP)
+        LedgerEntry.objects.create(user=viewer, delta=Decimal("7.00"), balance_after=Decimal("57.00"), reason=LedgerReason.ADMIN_ADJUST)
+        LedgerEntry.objects.create(user=other, delta=Decimal("-900.00"), balance_after=Decimal("0.00"), reason=LedgerReason.DONATION)
+        Listing.objects.create(seller=other, asset_id="111", market_hash_name="AK-47 | Redline (Field-Tested)", price=Decimal("1500.00"))
+
+        self.client.login(username="plain_viewer", password="StrongPass123")
+        response = self.client.get(reverse("frontend:dashboard_preview"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "frontend/partials/dashboard_user_content.html")
+        self.assertNotContains(response, "Операционный центр")
+        self.assertContains(response, "+50.00")
+        self.assertNotContains(response, "Admin adjust")
+        self.assertNotContains(response, "+7.00")
+        self.assertNotContains(response, "-900.00")
+        self.assertContains(response, "AK-47 | Redline (Field-Tested)")
+        self.assertContains(response, "other_seller")
+        self.assertContains(response, reverse("market:lot", args=[Listing.objects.get().pk]))
+        self.assertContains(response, reverse("profiles:profile_detail", args=[other.pk]))
+
+    def test_user_feed_does_not_link_team_profiles_for_regular_users(self):
+        from modules.v2.market.models import Listing
+
+        update_module_states({"market": True})
+        User.objects.create_user(username="plain_feed_viewer", password="StrongPass123")
+        moder = User.objects.create_user(username="feed_moder", password="StrongPass123")
+        UserProfile.objects.filter(user=moder).update(role=UserRole.MOD)
+        Listing.objects.create(seller=moder, asset_id="222", market_hash_name="AWP | Asiimov (Field-Tested)", price=Decimal("9000.00"))
+
+        self.client.login(username="plain_feed_viewer", password="StrongPass123")
+        response = self.client.get(reverse("frontend:dashboard_preview"))
+
+        self.assertContains(response, "feed_moder")
+        self.assertNotContains(response, reverse("profiles:profile_detail", args=[moder.pk]))
+
     def test_dashboard_hides_disabled_module_quick_blocks(self):
         owner = User.objects.create_user(username="owner_disabled_blocks", password="StrongPass123")
         item = SteamItem.objects.create(
@@ -443,12 +484,12 @@ class AccessDeniedPageTests(TestCase):
         self.client.login(username="denied_user", password="StrongPass123")
 
     def test_bare_forbidden_text_is_rendered_as_styled_page(self):
-        response = self.client.get(reverse("farm:dashboard"))
+        response = self.client.get(reverse("profiles:verification_requests"))
 
         self.assertEqual(response.status_code, 403)
         self.assertTemplateUsed(response, "errors/access_denied.html")
         self.assertContains(response, "Доступ к странице закрыт", status_code=403)
-        self.assertContains(response, "Farm доступен только farmer+.", status_code=403)
+        self.assertContains(response, "Требуется роль Модератора или выше.", status_code=403)
         self.assertContains(response, "access-denied__card", status_code=403)
 
     def test_json_forbidden_response_is_left_untouched(self):

@@ -1,4 +1,5 @@
 <section class="section section--compact donation-page">
+    {% info_banner "donate_top" %}
     {% if not donation_state %}
         <div class="donation-off">
             <h1 class="donation-off__title">{% if LANGUAGE_CODE == "en" %}No fundraiser right now{% else %}Сейчас сбор не ведётся{% endif %}</h1>
@@ -55,5 +56,6 @@
                 </article>
             {% endif %}
         </div>
+        {% info_banner "donate_bottom" %}
     {% endif %}
 </section>

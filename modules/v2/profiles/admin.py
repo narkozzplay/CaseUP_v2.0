@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.utils import timezone
 
 from .models import LedgerEntry, UserProfile, VerificationRequest
+from .services.verification import grant_verification
 
 
 @admin.register(UserProfile)
@@ -112,9 +113,7 @@ class VerificationRequestAdmin(admin.ModelAdmin):
             req.reviewed_by = request.user
             req.reviewed_at = timezone.now()
             req.save(update_fields=["status", "reviewed_by", "reviewed_at"])
-            UserProfile.objects.filter(user=req.user).update(
-                verification_level=req.requested_level
-            )
+            grant_verification(req)
             approved += 1
         self.message_user(request, f"Одобрено заявок: {approved}.")
 

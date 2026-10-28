@@ -5,6 +5,7 @@ from collections import Counter
 from urllib.parse import urlencode
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -13,7 +14,6 @@ from common.search import render_search_not_found
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from modules.v2.farm.auth import get_farm_access
-from modules.v2.farm.decorators import farm_required
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
@@ -50,12 +50,12 @@ def _resolve_safe_next(request, fallback_url_name: str) -> str:
     return redirect(fallback_url_name).url
 
 
-@farm_required
+@login_required
 def purchases_list(request):
     return redirect("steam_trading:investments")
 
 
-@farm_required
+@login_required
 def purchase_add(request):
     access = get_farm_access(request.user)
     initial = {
@@ -99,7 +99,7 @@ def purchase_add(request):
     )
 
 
-@farm_required
+@login_required
 def purchase_sell(request, purchase_id: int):
     access = get_farm_access(request.user)
     role_access = get_user_role(request.user)
@@ -172,7 +172,7 @@ def purchase_sell(request, purchase_id: int):
     )
 
 
-@farm_required
+@login_required
 def investments_dashboard(request):
     access = get_farm_access(request.user)
     advanced_analytics_access = get_feature_access_state(request.user, STEAM_TRADING_ADVANCED_ANALYTICS)
@@ -253,7 +253,7 @@ def investments_dashboard(request):
     )
 
 
-@farm_required
+@login_required
 def purchase_send_telegram(request, purchase_id: int):
     if request.method != "POST":
         return redirect("steam_trading:investments")
