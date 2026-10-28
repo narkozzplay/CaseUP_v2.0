@@ -240,6 +240,18 @@ def cookies_page(request):
     return _render_legal_document(request, COOKIES, "legal/cookies.html")
 
 
+def withdrawal_page(request):
+    from .legal import WITHDRAWAL
+
+    return _render_legal_document(request, WITHDRAWAL, "legal/withdrawal.html")
+
+
+def pickem_rules_page(request):
+    from .legal import PICKEM_RULES
+
+    return _render_legal_document(request, PICKEM_RULES, "legal/pickem_rules.html")
+
+
 def not_found_page(request, exception=None):
     return render_not_found_page(request)
 
