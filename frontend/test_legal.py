@@ -52,12 +52,33 @@ class LegalOwnerDeployCheckTests(TestCase):
 
 
 class LegalSectionTests(TestCase):
+    DOCUMENTS = (
+        "frontend:agreement",
+        "frontend:privacy",
+        "frontend:pd_consent",
+        "frontend:cookies",
+        "frontend:withdrawal",
+        "frontend:pickem_rules",
+    )
+
     def test_all_documents_are_public_and_cross_linked(self):
-        for name in ("frontend:agreement", "frontend:privacy", "frontend:pd_consent", "frontend:cookies"):
+        for name in self.DOCUMENTS:
             response = self.client.get(reverse(name))
             self.assertEqual(response.status_code, 200, name)
-            for other in ("frontend:agreement", "frontend:privacy", "frontend:pd_consent", "frontend:cookies"):
+            for other in self.DOCUMENTS:
                 self.assertContains(response, reverse(other))
+
+    def test_only_contest_prizes_are_withdrawn_to_steam(self):
+        response = self.client.get(reverse("frontend:withdrawal"))
+        self.assertContains(response, "В Steam выводятся только <strong>Призы</strong>")
+        self.assertContains(response, "Виртуальные предметы из Симулятора кейсов")
+        # Withdrawal terms are part of the agreement, which points to them.
+        self.assertContains(self.client.get(reverse("frontend:agreement")), reverse("frontend:withdrawal"))
+
+    def test_pickem_is_a_free_contest(self):
+        response = self.client.get(reverse("frontend:pickem_rules"))
+        self.assertContains(response, "Участие бесплатное.")
+        self.assertContains(response, "не является азартной игрой, пари или лотереей")
 
     def test_privacy_policy_names_cross_border_transfer_to_steam(self):
         self.assertContains(self.client.get(reverse("frontend:privacy")), "трансграничную передачу")
