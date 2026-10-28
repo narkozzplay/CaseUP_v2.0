@@ -201,8 +201,18 @@
         refresh();
     }
 
+    // The banner loop stays on its first frame for people who asked for less motion.
+    function initBannerVideo() {
+        if (!window.matchMedia || !window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        document.querySelectorAll('[data-mj-banner-video]').forEach((video) => {
+            video.removeAttribute('autoplay');
+            video.pause();
+        });
+    }
+
     function initAll() {
         initCountdowns();
+        initBannerVideo();
         document.querySelectorAll('[data-mj-swiss]').forEach(initSwiss);
         document.querySelectorAll('[data-mj-bracket]').forEach(initBracket);
     }

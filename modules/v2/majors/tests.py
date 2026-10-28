@@ -112,6 +112,16 @@ class PublicPageTests(MajorTestCase):
         self.assertContains(page, "/media/majors/banners/test.webp")
         self.assertContains(page, "data-dashboard-shell")
 
+    def test_banner_animation_plays_with_the_picture_as_poster(self):
+        self.major.banner = "majors/banners/test.webp"
+        self.major.banner_video_mp4 = "majors/banners/loop.mp4"
+        self.major.banner_video_webm = "majors/banners/loop.webm"
+        self.major.save()
+        page = Client().get(self.major.get_absolute_url()).content.decode()
+        self.assertIn('poster="/media/majors/banners/test.webp"', page)
+        self.assertLess(page.index("/media/majors/banners/loop.webm"), page.index("/media/majors/banners/loop.mp4"))
+        self.assertIn("autoplay muted loop playsinline", page)
+
     def test_unpublished_major_is_hidden_and_index_redirects_to_the_current_one(self):
         Major.objects.exclude(pk=self.major.pk).update(is_published=False)
         self.assertRedirects(Client().get(reverse("majors:index")), self.major.get_absolute_url(), fetch_redirect_response=False)

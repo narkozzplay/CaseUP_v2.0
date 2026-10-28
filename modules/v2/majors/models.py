@@ -11,6 +11,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.templatetags.static import static
 from django.urls import reverse
@@ -70,6 +71,16 @@ class Major(models.Model):
     prize_pool = models.CharField("Призовой фонд", max_length=60, blank=True, default="")
     description = models.TextField("Описание", blank=True, default="")
     banner = models.ImageField("Баннер", upload_to="majors/banners/", null=True, blank=True, help_text="Шапка страницы: логотип мейджора + Pick'em, 1920×640 (3:1).")
+    banner_video_mp4 = models.FileField(
+        "Анимация баннера (MP4)", upload_to="majors/banners/", null=True, blank=True,
+        validators=[FileExtensionValidator(["mp4"])],
+        help_text="Необязательно. Петля 1920×640 без звука; картинка «Баннер» остаётся заставкой.",
+    )
+    banner_video_webm = models.FileField(
+        "Анимация баннера (WebM)", upload_to="majors/banners/", null=True, blank=True,
+        validators=[FileExtensionValidator(["webm"])],
+        help_text="Необязательно, тот же ролик в WebM: он легче, браузер возьмёт его первым.",
+    )
     is_published = models.BooleanField("Опубликован", default=False)
     require_steam = models.BooleanField("Pick'em только с привязанным Steam", default=True)
     items_keyword = models.CharField("Предметы: ключ в названии", max_length=60, blank=True, default="", help_text="Наклейки, капсулы и сувенирные наборы из каталога, в названии которых есть эти слова, например «Singapore 2026».")
