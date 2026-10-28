@@ -28,6 +28,8 @@ class TelegramNotifierSettingsForm(forms.ModelForm):
             "public_base_url",
             "updates_mode",
             "investment_message_template",
+            "admin_signup_notices",
+            "admin_topup_notices",
         ]
         widgets = {
             "is_enabled": forms.CheckboxInput(
@@ -54,6 +56,8 @@ class TelegramNotifierSettingsForm(forms.ModelForm):
                     "placeholder": "https://case-up.ru",
                 }
             ),
+            "admin_signup_notices": forms.CheckboxInput(attrs={"class": "toggle-control__input"}),
+            "admin_topup_notices": forms.CheckboxInput(attrs={"class": "toggle-control__input"}),
             "investment_message_template": forms.Textarea(
                 attrs={
                     "class": "form-control",

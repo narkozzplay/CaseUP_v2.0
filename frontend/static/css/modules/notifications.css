@@ -444,6 +444,8 @@
 .tgn-template[open] summary { margin-bottom: 10px; }
 .tgn-template textarea { min-height: 220px; font-family: var(--font-mono); font-size: 0.82rem; }
 .tgn-channel { margin-top: 16px; }
+.tgn-admin-notices { display: grid; gap: 8px; margin: 0; padding: 10px 12px; border: 1px solid var(--border); }
+.tgn-admin-notices legend { padding: 0 4px; font-weight: 600; }
 .tgn-row--3 { grid-template-columns: repeat(3, 1fr); }
 .tgn-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .tgn-sections td { vertical-align: top; }
