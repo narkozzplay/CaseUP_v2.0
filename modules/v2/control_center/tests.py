@@ -406,6 +406,22 @@ class PriceUpdatesHealthTests(TestCase):
         self.assertEqual(check.status, WARN)
         self.assertIn("30 из 40", check.hint)
 
+    def test_one_stalled_category_alerts_while_others_update(self):
+        from modules.v2.control_center.services.health import WARN, check_price_updates
+        from modules.v2.steam_catalog.models import SteamItem
+
+        self._fresh_prices()
+        self._logs("success", 10)
+        case = SteamItem.objects.create(market_hash_name="Stuck Case", item_type="case")
+        SteamItem.objects.filter(pk=case.pk).update(price_checked_at=timezone.now() - timedelta(hours=40))
+        # A sticker without a market price is rechecked weekly: an old check there is expected.
+        sticker = SteamItem.objects.create(market_hash_name="Sticker | Unlisted", item_type="sticker", price_missing=True)
+        SteamItem.objects.filter(pk=sticker.pk).update(price_checked_at=timezone.now() - timedelta(days=5))
+        check = check_price_updates()
+        self.assertEqual(check.status, WARN)
+        self.assertIn("Не обновляются: Кейсы", check.hint)
+        self.assertNotIn("Стикеры", check.hint)
+
     def test_stalled_queue_alerts_even_without_errors(self):
         from modules.v2.control_center.services.health import WARN, check_price_updates
         from modules.v2.steam_catalog.models import SteamItem

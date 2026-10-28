@@ -174,6 +174,33 @@ def _top_price_error(logs) -> str:
     return causes.most_common(1)[0][0][:120] if causes else ""
 
 
+def _stalled_price_categories(now) -> list[str]:
+    """Enabled categories whose newest check is older than a full cold round: their own runs stopped.
+
+    The global newest check stays fresh while any other category is updated, so it cannot see this.
+    Items Steam has no price for are rechecked weekly and are left out.
+    """
+    from modules.v2.celery_tasks.models import CATEGORY_LABELS_RU, PriceAutoUpdateRule
+    from modules.v2.steam_catalog.models import SteamItem
+
+    categories = set(PriceAutoUpdateRule.objects.filter(is_enabled=True).values_list("category", flat=True))
+    if not categories:
+        return []
+    cold_hours = int(getattr(settings, "STEAM_PRICE_COLD_HOURS", 24))
+    cutoff = now - timedelta(hours=cold_hours + PRICE_STALL_HOURS)
+    newest = (
+        SteamItem.objects.filter(is_active=True, price_missing=False, item_type__in=categories)
+        .values("item_type")
+        .annotate(last=Max("price_checked_at"))
+    )
+    stalled = []
+    for row in newest.order_by("item_type"):
+        if row["last"] is None or row["last"] < cutoff:
+            since = f"с {timezone.localtime(row['last']):%d.%m %H:%M}" if row["last"] else "ни разу"
+            stalled.append(f"{CATEGORY_LABELS_RU.get(row['item_type'], row['item_type'])} ({since})")
+    return stalled
+
+
 def check_price_updates() -> HealthCheck:
     try:
         from modules.v2.celery_tasks.models import PriceAutoUpdateRule, PriceAutoUpdateRunLog
@@ -206,6 +233,11 @@ def check_price_updates() -> HealthCheck:
         status = WARN
         since = f"с {timezone.localtime(last_checked):%d.%m %H:%M}" if last_checked else "ни разу"
         hints.append(f"Цены не проверялись {since}")
+    else:
+        stalled = _stalled_price_categories(now)
+        if stalled:
+            status = WARN
+            hints.append("Не обновляются: " + ", ".join(stalled))
     if failed >= PRICE_FAILED_RUNS_MIN and failed * 100 >= runs * PRICE_FAILED_RUNS_PERCENT:
         status = WARN
         cause = _top_price_error(failed_logs)
