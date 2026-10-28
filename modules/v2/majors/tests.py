@@ -112,6 +112,17 @@ class PublicPageTests(MajorTestCase):
         self.assertContains(page, "/media/majors/banners/test.webp")
         self.assertContains(page, "data-dashboard-shell")
 
+    def test_banner_animation_plays_with_the_picture_as_poster(self):
+        self.major.banner = "majors/banners/test.webp"
+        self.major.banner_video_mp4 = "majors/banners/loop.mp4"
+        self.major.banner_video_webm = "majors/banners/loop.webm"
+        self.major.save()
+        page = Client().get(self.major.get_absolute_url()).content.decode()
+        self.assertIn('poster="/media/majors/banners/test.webp"', page)
+        self.assertLess(page.index("/media/majors/banners/loop.webm"), page.index("/media/majors/banners/loop.mp4"))
+        self.assertIn("muted loop playsinline", page)
+        self.assertNotIn("autoplay", page)  # majors.js starts it unless reduced motion is on
+
     def test_unpublished_major_is_hidden_and_index_redirects_to_the_current_one(self):
         Major.objects.exclude(pk=self.major.pk).update(is_published=False)
         self.assertRedirects(Client().get(reverse("majors:index")), self.major.get_absolute_url(), fetch_redirect_response=False)
@@ -419,6 +430,12 @@ class MajorItemsTests(MajorTestCase):
 
 
 class SeedTests(TestCase):
+    def test_singapore_banner_and_animation_are_seeded(self):
+        major = Major.objects.get(slug="singapore-2026")
+        self.assertTrue(major.banner.name.endswith(".webp"))
+        self.assertTrue(major.banner_video_mp4.name.endswith(".mp4"))
+        self.assertTrue(major.banner_video_webm.name.endswith(".webm"))
+
     def test_pickem_house_banner_is_seeded(self):
         from modules.v2.ads.models import HouseBanner
 

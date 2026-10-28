@@ -201,8 +201,19 @@
         refresh();
     }
 
+    // The banner loop starts from here, so it never plays for people who asked for less motion.
+    function initBannerVideo() {
+        const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (still) return;
+        document.querySelectorAll('[data-mj-banner-video]').forEach((video) => {
+            const played = video.play();
+            if (played && played.catch) played.catch(() => {});
+        });
+    }
+
     function initAll() {
         initCountdowns();
+        initBannerVideo();
         document.querySelectorAll('[data-mj-swiss]').forEach(initSwiss);
         document.querySelectorAll('[data-mj-bracket]').forEach(initBracket);
     }
