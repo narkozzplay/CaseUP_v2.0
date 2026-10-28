@@ -85,13 +85,13 @@ def advance_winners(stage: Stage) -> None:
         if match is None:
             continue
         sources = [matches.get(key) for key in feeders(round_no, slot)]
-        if round_no == R.THIRD_PLACE:
-            teams = [src.loser if src else None for src in sources]
-        else:
-            teams = [src.winner if src else None for src in sources]
         changed = False
-        for attr, team in zip(("team_a", "team_b"), teams):
-            if team is not None and getattr(match, f"{attr}_id") != team.pk:
+        for attr, source in zip(("team_a", "team_b"), sources):
+            if source is None:
+                continue  # no feeder match: the side is entered by hand
+            # A cleared feeder result clears this side too, so a stale winner never counts.
+            team = source.loser if round_no == R.THIRD_PLACE else source.winner
+            if getattr(match, f"{attr}_id") != (team.pk if team else None):
                 setattr(match, attr, team)
                 changed = True
         if changed:

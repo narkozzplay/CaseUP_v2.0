@@ -220,6 +220,15 @@ class ScoringAndRewardTests(MajorTestCase):
         semi = Match.objects.get(stage=self.playoffs, round=R.SEMIFINAL, slot=1)
         self.assertEqual((semi.team_a_id, semi.team_b_id), (self.t(1), self.t(2)))
 
+    def test_cleared_result_clears_the_next_rounds(self):
+        self.play_bracket({(1, 1): self.t(0), (1, 2): self.t(2)})
+        self.play_bracket({(2, 1): self.t(0)})
+        Match.objects.filter(stage=self.playoffs, round=R.QUARTERFINAL, slot=1).update(winner=None)
+        services.advance_winners(self.playoffs)
+        semi = Match.objects.get(stage=self.playoffs, round=R.SEMIFINAL, slot=1)
+        self.assertEqual((semi.team_a_id, semi.team_b_id, semi.winner_id), (None, self.t(2), None))
+        self.assertIsNone(Match.objects.get(stage=self.playoffs, round=R.FINAL, slot=1).team_a_id)
+
     def test_scores_and_leaderboard(self):
         self.record_swiss_results()
         summary = services.user_summary(self.major, self.user)
