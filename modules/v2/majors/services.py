@@ -95,8 +95,8 @@ def advance_winners(stage: Stage) -> None:
                 setattr(match, attr, team)
                 changed = True
         if changed:
-            if match.winner_id and match.winner_id not in (match.team_a_id, match.team_b_id):
-                match.winner = None
+            # New entrants make the old result meaningless, even if the winner is still one of them.
+            match.winner, match.score = None, ""
             match.save()
 
 

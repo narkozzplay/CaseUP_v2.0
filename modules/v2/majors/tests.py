@@ -229,6 +229,15 @@ class ScoringAndRewardTests(MajorTestCase):
         self.assertEqual((semi.team_a_id, semi.team_b_id, semi.winner_id), (None, self.t(2), None))
         self.assertIsNone(Match.objects.get(stage=self.playoffs, round=R.FINAL, slot=1).team_a_id)
 
+    def test_changed_entrant_voids_the_later_result(self):
+        self.play_bracket({(1, 1): self.t(0), (1, 2): self.t(2), (1, 3): self.t(4), (1, 4): self.t(6)})
+        self.play_bracket({(2, 1): self.t(0), (2, 2): self.t(4)})
+        self.play_bracket({(3, 1): self.t(4)})
+        # The first semifinal is corrected: the final keeps team 4 but its result no longer stands.
+        self.play_bracket({(2, 1): self.t(2)})
+        final = Match.objects.get(stage=self.playoffs, round=R.FINAL, slot=1)
+        self.assertEqual((final.team_a_id, final.team_b_id, final.winner_id), (self.t(2), self.t(4), None))
+
     def test_scores_and_leaderboard(self):
         self.record_swiss_results()
         summary = services.user_summary(self.major, self.user)
