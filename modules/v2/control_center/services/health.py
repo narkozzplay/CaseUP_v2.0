@@ -188,7 +188,8 @@ def check_price_updates() -> HealthCheck:
         status=PriceAutoUpdateRule.Status.RUNNING
     )
     runs = day.count()
-    failed_logs = day.filter(status=PriceAutoUpdateRule.Status.ERROR)
+    # Partial runs count too: a queue where every run loses part of its items to errors is failing as well.
+    failed_logs = day.filter(status__in=(PriceAutoUpdateRule.Status.ERROR, PriceAutoUpdateRule.Status.PARTIAL))
     failed = failed_logs.count()
     value = timezone.localtime(last.started_at).strftime("%d.%m %H:%M")
     hints = []
@@ -208,9 +209,9 @@ def check_price_updates() -> HealthCheck:
     if failed >= PRICE_FAILED_RUNS_MIN and failed * 100 >= runs * PRICE_FAILED_RUNS_PERCENT:
         status = WARN
         cause = _top_price_error(failed_logs)
-        hints.append(f"Неудачных запусков за 24 ч: {failed} из {runs}" + (f" · чаще всего: {cause}" if cause else ""))
+        hints.append(f"Запусков с ошибками за 24 ч: {failed} из {runs}" + (f" · чаще всего: {cause}" if cause else ""))
     elif failed:
-        hints.append(f"Неудачных запусков за 24 ч: {failed} из {runs}")
+        hints.append(f"Запусков с ошибками за 24 ч: {failed} из {runs}")
     return HealthCheck("price_updates", "Авто-обновление цен", status, value, " · ".join(hints) or f"Статус: {last.status}")
 
 

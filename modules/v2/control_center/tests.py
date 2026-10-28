@@ -396,6 +396,16 @@ class PriceUpdatesHealthTests(TestCase):
         self.assertEqual(check.status, WARN)
         self.assertIn("HTTP 502", check.hint)
 
+    def test_runs_that_keep_failing_partly_alert_too(self):
+        from modules.v2.control_center.services.health import WARN, check_price_updates
+
+        self._fresh_prices()
+        self._logs("success", 10)
+        self._logs("partial", 30, "AK | X: HTTP 502")
+        check = check_price_updates()
+        self.assertEqual(check.status, WARN)
+        self.assertIn("30 из 40", check.hint)
+
     def test_stalled_queue_alerts_even_without_errors(self):
         from modules.v2.control_center.services.health import WARN, check_price_updates
         from modules.v2.steam_catalog.models import SteamItem
