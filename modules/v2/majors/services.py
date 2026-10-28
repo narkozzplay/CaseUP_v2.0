@@ -411,7 +411,7 @@ def _deliver(grant: RewardGrant) -> None:
 
 @transaction.atomic
 def approve_grant(grant: RewardGrant, *, by=None) -> bool:
-    grant = RewardGrant.objects.select_for_update().select_related("rule__major", "rule__plan", "user").get(pk=grant.pk)
+    grant = RewardGrant.objects.select_for_update(of=("self",)).select_related("rule__major", "rule__plan", "user").get(pk=grant.pk)
     if grant.status != RewardGrant.Status.PENDING:
         return False
     grant.decided_by = by
