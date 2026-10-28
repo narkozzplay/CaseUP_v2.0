@@ -837,3 +837,10 @@
 .ud-bonus__tile:hover {
     border-color: rgba(245, 166, 35, 0.45);
 }
+
+@media (max-width: 640px) {
+    .ud-feed .ops-row__main { min-width: 0; }
+    .ud-feed__who { flex-wrap: wrap; row-gap: 2px; }
+    .ud-feed__who b { max-width: 22ch; }
+    .ud-feed .ops-row__side time { white-space: nowrap; font-size: 0.68rem; }
+}

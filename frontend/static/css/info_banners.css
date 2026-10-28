@@ -364,4 +364,7 @@ a.home-live__item:hover {
     .home-major__cta { width: 100%; justify-content: center; }
     .home-major__countdown .mj-countdown__cell { min-width: 48px; }
     .home-live__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .home-live__head { flex-wrap: wrap; }
+    .home-live__title { font-size: 1.15rem; }
+    .home-live__foot { flex-direction: column; align-items: flex-start; gap: 2px; }
 }
