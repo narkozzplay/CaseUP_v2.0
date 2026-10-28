@@ -302,7 +302,7 @@ class SubscriptionViewsTests(TestCase):
         from .forms import SubscriptionPricingConfigForm
         from .services import get_subscription_pricing_config
 
-        data = {name: str(value) for name, value in SubscriptionPricingConfigForm(instance=get_subscription_pricing_config()).initial.items()}
+        data = {name: str(value) for name, value in SubscriptionPricingConfigForm(instance=get_subscription_pricing_config()).initial.items() if value is not None}
         data.update({"form_scope": "config", "site_base_price_rub": "155.00"})
         response = self.client.post(reverse("subscriptions:pricing_dashboard"), data)
 

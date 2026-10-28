@@ -372,7 +372,7 @@
                                 <span class="balance-admin__delta {% if entry.delta > 0 %}is-up{% else %}is-down{% endif %}">{% money entry.delta signed=True %}</span>
                                 <span class="balance-admin__meta">
                                     <b>{% if LANGUAGE_CODE == "ru" %}{{ entry.reason_label_ru|default:entry.get_reason_display }}{% else %}{{ entry.get_reason_display }}{% endif %}</b>{% if entry.comment %}<span>{{ entry.comment }}</span>{% endif %}
-                                    <small>{{ entry.created_at|date:"d.m.Y H:i" }}{% if entry.created_by %} · {{ entry.created_by.username }}{% endif %} · {% if LANGUAGE_CODE == "ru" %}итог{% else %}after{% endif %} {% money entry.balance_after %}</small>
+                                    <small>{{ entry.created_at|date:"d.m.Y H:i" }}{% if entry.created_by %} · {{ entry.created_by.username }}{% endif %} · {% if LANGUAGE_CODE == "ru" %}итог{% if entry.wallet == "market" %} рыночного баланса{% endif %}{% else %}{% if entry.wallet == "market" %}market {% endif %}after{% endif %} {% money entry.balance_after %}</small>
                                 </span>
                             </li>
                         {% endfor %}

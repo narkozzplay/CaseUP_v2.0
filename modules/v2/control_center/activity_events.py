@@ -177,12 +177,12 @@ def _on_ledger(sender, instance, created, **kwargs):
     log_activity(
         category=C.BALANCE,
         event=f"balance.{instance.reason}",
-        summary=f"{instance.delta:+.2f} ₽, баланс {instance.balance_after:.2f} ₽{comment}",
+        summary=f"{instance.delta:+.2f} ₽, {'рыночный ' if instance.wallet == 'market' else ''}баланс {instance.balance_after:.2f} ₽{comment}",
         user=instance.user,
         actor=instance.created_by,
         amount=instance.delta,
         obj=instance,
-        payload={"reason": instance.reason, "balance_after": f"{instance.balance_after:.2f}", "idempotency_key": instance.idempotency_key or ""},
+        payload={"reason": instance.reason, "wallet": instance.wallet, "balance_after": f"{instance.balance_after:.2f}", "idempotency_key": instance.idempotency_key or ""},
     )
 
 

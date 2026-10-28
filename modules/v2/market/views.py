@@ -220,10 +220,55 @@ def payout_page(request):
             "sales": payouts.sales_history(request.user),
             "payouts": payouts.payout_history(request.user),
             "payouts_enabled": payouts.PAYOUTS_ENABLED,
+            "payout_min": payouts.min_payout(),
+            "payout_methods": payouts.PayoutRequest.Method.choices,
         },
         page_title=build_page_title("Вывод", "Рынок"),
         active_menu_key=MENU_KEY,
     )
+
+
+def _run_payout(request, action, success: str) -> None:
+    from .payouts import PayoutError
+
+    try:
+        action()
+    except PayoutError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, success)
+
+
+@login_required
+@require_POST
+def payout_request(request):
+    from . import payouts
+
+    post = request.POST
+    _run_payout(
+        request,
+        lambda: payouts.request_payout(request.user, amount=post.get("amount"), method=post.get("method", ""), requisites=post.get("requisites", ""), recipient_name=post.get("recipient_name", "")),
+        "Заявка на вывод создана. Сумма списана с рыночного баланса и ждёт выплаты.",
+    )
+    return redirect("market:payout")
+
+
+@login_required
+@require_POST
+def payout_cancel(request, code: str):
+    from . import payouts
+
+    _run_payout(request, lambda: payouts.cancel_payout(request.user, code), "Заявка отменена, деньги вернулись на рыночный баланс.")
+    return redirect("market:payout")
+
+
+@login_required
+@require_POST
+def payout_transfer(request):
+    from . import payouts
+
+    _run_payout(request, lambda: payouts.transfer_to_game(request.user, request.POST.get("amount")), "Деньги переведены на игровой баланс.")
+    return redirect("market:payout")
 
 
 @login_required

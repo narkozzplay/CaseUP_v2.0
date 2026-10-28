@@ -19,6 +19,7 @@
         </div>
         <dl class="ops-hero__meta">
             <div><dt>Баланс</dt><dd>{% money profile.balance_coins %}</dd></div>
+            {% if profile.market_balance_coins %}<div><dt>Рыночный баланс</dt><dd>{% money profile.market_balance_coins %}</dd></div>{% endif %}
             <div><dt>Операций</dt><dd>{{ ledger_stats.count }}</dd></div>
             <div><dt>С нами с</dt><dd>{{ target.date_joined|date:"d.m.Y" }}</dd></div>
         </dl>
@@ -76,7 +77,7 @@
                     {% for entry in recent_ledger %}
                         <div class="ops-row">
                             <span class="ops-row__badge ops-row__badge--{% if entry.delta >= 0 %}up{% else %}down{% endif %}" aria-hidden="true">{% if entry.delta >= 0 %}+{% else %}−{% endif %}</span>
-                            <span class="ops-row__main"><strong>{{ entry.get_reason_display }}</strong><span>Баланс после: {{ entry.balance_after|stringformat:".2f" }} {{ currency }}</span></span>
+                            <span class="ops-row__main"><strong>{{ entry.get_reason_display }}</strong><span>{% if entry.wallet == "market" %}Рыночный баланс{% else %}Баланс{% endif %} после: {{ entry.balance_after|stringformat:".2f" }} {{ currency }}</span></span>
                             <span class="ops-row__side">
                                 <b class="ops-row__amount {% if entry.delta >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% if entry.delta > 0 %}+{% endif %}{{ entry.delta|stringformat:".2f" }} {{ currency }}</b>
                                 <time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"d.m H:i" }}</time>

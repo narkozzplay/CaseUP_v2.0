@@ -25,7 +25,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-from modules.v2.profiles.models import LedgerReason, UserProfile
+from modules.v2.profiles.models import LedgerReason, UserProfile, Wallet
 from modules.v2.profiles.services.balance import BalanceError, adjust_balance
 
 from .models import Deal, Listing, MarketEvent, MarketSeller
@@ -298,7 +298,7 @@ def chat_for_admin(deal: Deal, admin, *, limit: int = 300) -> list:
 
 
 def _complete(deal: Deal, *, by_admin=None) -> None:
-    adjust_balance(user=deal.seller, delta=deal.price, reason=LedgerReason.MARKET_SALE, amount_snapshot=deal.price, idempotency_key=f"market:{deal.code}:sale", comment=f"Сделка {deal.code}: {deal.listing.market_hash_name}"[:255])
+    adjust_balance(user=deal.seller, delta=deal.price, reason=LedgerReason.MARKET_SALE, amount_snapshot=deal.price, idempotency_key=f"market:{deal.code}:sale", comment=f"Сделка {deal.code}: {deal.listing.market_hash_name}"[:255], wallet=Wallet.MARKET)
     deal.status, deal.completed_at = Deal.Status.COMPLETED, timezone.now()
     listing = Listing.objects.select_for_update().get(pk=deal.listing_id)
     listing.status, listing.closed_at = Listing.Status.SOLD, timezone.now()

@@ -213,6 +213,12 @@ class SubscriptionPricingConfig(models.Model):
     period_discount_3m_percent = models.PositiveSmallIntegerField(default=10)
     period_discount_6m_percent = models.PositiveSmallIntegerField(default=15)
     period_discount_12m_percent = models.PositiveSmallIntegerField(default=25)
+    # Trial: a new subscriber gets ``trial_plan`` for ``trial_days`` at ``trial_price_rub`` and agrees
+    # to auto-renewal at the plan's monthly price from the game balance (lifecycle.renew_due_subscriptions).
+    trial_enabled = models.BooleanField(default=True)
+    trial_plan = models.ForeignKey("SubscriptionPlan", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    trial_price_rub = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("1.00"))
+    trial_days = models.PositiveSmallIntegerField(default=7)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -248,6 +254,10 @@ class SubscriptionPricingConfig(models.Model):
             errors["reduced_commission_capture_ratio_percent"] = "Capture ratio cannot be negative."
         if self.reasonable_delta_percent <= ZERO_MONEY:
             errors["reasonable_delta_percent"] = "Reasonable delta must be greater than 0."
+        if self.trial_price_rub <= ZERO_MONEY:
+            errors["trial_price_rub"] = "Trial price must be greater than 0."
+        if not 1 <= self.trial_days <= 30:
+            errors["trial_days"] = "Trial lasts from 1 to 30 days."
         for field_name in ("period_discount_3m_percent", "period_discount_6m_percent", "period_discount_12m_percent"):
             if getattr(self, field_name) > 90:
                 errors[field_name] = "Discount cannot exceed 90%."
@@ -290,6 +300,9 @@ class UserSubscription(models.Model):
     starts_at = models.DateTimeField(default=timezone.now, db_index=True)
     expires_at = models.DateTimeField(null=True, blank=True, db_index=True)
     expiry_reminder_sent_at = models.DateTimeField(null=True, blank=True)
+    is_trial = models.BooleanField(default=False)
+    # The user agreed to be charged the plan's monthly price from the game balance at each end date.
+    auto_renew = models.BooleanField(default=False, db_index=True)
     notes = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -7,6 +7,8 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from common.encryption import EncryptedTextField
+
 
 class MarketSeller(models.Model):
     """A user who sells on the market: the Steam trade link buyers' items go through."""
@@ -209,3 +211,45 @@ class MarketEvent(models.Model):
         ordering = ("-created_at", "-id")
         verbose_name = "Market event"
         verbose_name_plural = "Market events"
+
+
+class PayoutRequest(models.Model):
+    """A seller asks to withdraw market money. The amount leaves the market balance at once; an admin
+    pays it by hand and marks it paid, or rejects it and the amount goes back."""
+
+    class Method(models.TextChoices):
+        SBP = "sbp", "СБП по номеру телефона"
+        CARD = "card", "Банковская карта"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Ждёт выплаты"
+        PAID = "paid", "Выплачено"
+        REJECTED = "rejected", "Отклонено, деньги возвращены"
+        CANCELLED = "cancelled", "Отменено пользователем"
+
+    code = models.CharField(max_length=16, unique=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="market_payouts")
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    method = models.CharField(max_length=8, choices=Method.choices)
+    # Phone and bank for СБП or the card number; stored encrypted, shown in full to admins only.
+    requisites = EncryptedTextField()
+    recipient_name = models.CharField(max_length=120)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING, db_index=True)
+    admin_note = models.CharField(max_length=255, blank=True, default="")
+    processed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    processed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        verbose_name = "Market payout request"
+        verbose_name_plural = "Market payout requests"
+        constraints = [models.CheckConstraint(condition=Q(amount__gt=0), name="market_payout_amount_positive")]
+
+    def __str__(self) -> str:
+        return self.code
+
+    @property
+    def masked_requisites(self) -> str:
+        digits = "".join(ch for ch in (self.requisites or "") if ch.isdigit())
+        return f"•••• {digits[-4:]}" if len(digits) >= 4 else "••••"

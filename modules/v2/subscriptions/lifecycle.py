@@ -1,4 +1,4 @@
-"""Background upkeep: close expired subscriptions and warn users before the end."""
+"""Background upkeep: renew subscriptions with auto-renewal, close expired ones and warn users before the end."""
 from __future__ import annotations
 
 from datetime import timedelta
@@ -80,19 +80,33 @@ def remind_expiring_subscriptions(*, now=None) -> int:
             continue
         reminded += 1
         local_end = timezone.localtime(subscription.expires_at)
+        if subscription.auto_renew:
+            from .trial import renewal_charge
+
+            body = (
+                f"Тариф действует до {local_end:%d.%m.%Y %H:%M}. Включено автопродление: перед окончанием с баланса "
+                f"спишется {renewal_charge(subscription.user, subscription.plan):.2f} ₽ за месяц. Отключить его можно на странице тарифов."
+            )
+        else:
+            body = f"Тариф действует до {local_end:%d.%m.%Y %H:%M}. Продлите его заранее, чтобы не потерять доступ."
         _notify(
             subscription.user,
             KIND_SUBSCRIPTION_EXPIRING,
             object_id=subscription.pk,
             title=f"Подписка «{subscription.plan.name}» скоро закончится",
-            body=f"Тариф действует до {local_end:%d.%m.%Y %H:%M}. Продлите его заранее, чтобы не потерять доступ.",
+            body=body,
         )
     return reminded
 
 
 def process_subscription_lifecycle(*, now=None) -> dict[str, int]:
+    from .trial import renew_due_subscriptions
+
     now = now or timezone.now()
+    # Renew first, so a subscription paid for in time is never closed.
+    renewal = renew_due_subscriptions(now=now)
     return {
+        **renewal,
         "expired": expire_subscriptions(now=now),
         "reminded": remind_expiring_subscriptions(now=now),
     }

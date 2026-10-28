@@ -18,6 +18,7 @@ class AuditAction(models.TextChoices):
     DONATION_UPDATE = "donation_update", "Donation goal updated"
     ADS_UPDATE = "ads_update", "Ads updated"
     MARKET_DISPUTE = "market_dispute", "Market dispute resolved"
+    MARKET_PAYOUT = "market_payout", "Market payout processed"
     MULTI_ACCOUNT_DECISION = "multi_account_decision", "Multi-account decision"
     IP_BAN = "ip_ban", "IP banned"
     IP_UNBAN = "ip_unban", "IP unbanned"
@@ -45,6 +46,7 @@ AUDIT_ACTION_LABELS_RU = {
     AuditAction.DONATION_UPDATE: "Изменён сбор донатов",
     AuditAction.ADS_UPDATE: "Изменена реклама",
     AuditAction.MARKET_DISPUTE: "Решён спор на рынке",
+    AuditAction.MARKET_PAYOUT: "Выплата продавцу рынка",
     AuditAction.MULTI_ACCOUNT_DECISION: "Решение по мульти-аккаунтам",
     AuditAction.IP_BAN: "Бан IP",
     AuditAction.IP_UNBAN: "Снятие бана IP",

@@ -36,6 +36,18 @@
                             <strong>{{ current_subscription.active_plan.name }}</strong>
                             {% if current_subscription.active_subscription.expires_at %}
                                 <small>Активен до {{ current_subscription.active_subscription.expires_at|date:"d.m.Y H:i" }}</small>
+                                <form method="post" action="{% url 'subscriptions:auto_renew' %}" class="pricing-auto-renew">
+                                    {% csrf_token %}
+                                    {% if current_subscription.active_subscription.auto_renew %}
+                                        <small>{% if current_subscription.active_subscription.is_trial %}Пробный период. {% endif %}Автопродление включено: цена месяца спишется с баланса.</small>
+                                        <input type="hidden" name="enabled" value="0">
+                                        <button type="submit" class="btn btn-secondary btn-sm">Отключить автопродление</button>
+                                    {% else %}
+                                        <small>Автопродление выключено.</small>
+                                        <input type="hidden" name="enabled" value="1">
+                                        <button type="submit" class="btn btn-secondary btn-sm">Включить автопродление</button>
+                                    {% endif %}
+                                </form>
                             {% else %}
                                 <small>Без даты окончания</small>
                             {% endif %}
@@ -55,6 +67,27 @@
 
 <section class="section section--compact">
     <div class="container">
+        {% if trial %}
+            <article class="card pricing-trial-card">
+                <div class="card-body">
+                    <span class="badge">Пробный период</span>
+                    <h2>«{{ trial.plan.name }}» на {{ trial.days }} дн. за {% money trial.price %}</h2>
+                    <p class="text-muted">Попробуйте все возможности тарифа. Затем подписка продлевается автоматически: каждые {{ trial.plan.billing_period_days }} дн. с баланса списывается {% money trial.renewal_price %}. За 3 дня до списания придёт напоминание, отключить автопродление можно здесь в любой момент.</p>
+                    {% if request.user.is_authenticated %}
+                        <form method="post" action="{% url 'subscriptions:start_trial' %}" class="pricing-trial-card__form">
+                            {% csrf_token %}
+                            <label class="checkbox-row">
+                                <input type="checkbox" name="accept_auto_renew" value="1" required>
+                                <span>Согласен на автопродление: {% money trial.renewal_price %} каждые {{ trial.plan.billing_period_days }} дн. с баланса профиля до отключения, по <a href="{% url 'frontend:agreement' %}" target="_blank" rel="noopener">пользовательскому соглашению</a>.</span>
+                            </label>
+                            <button type="submit" class="btn btn-primary">Попробовать за {% money trial.price %}</button>
+                        </form>
+                    {% else %}
+                        <a href="{% url 'accounts:login' %}" class="btn btn-primary">Войти и попробовать</a>
+                    {% endif %}
+                </div>
+            </article>
+        {% endif %}
         {% include "subscriptions/partials/_period_tabs.html" %}
         <div class="plan-grid">
             <article class="plan-card plan-card--free{% if request.user.is_authenticated and not current_subscription.has_active_subscription %} plan-card--current{% endif %}">

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Listing, MarketEvent, MarketSeller
+from .models import Listing, MarketEvent, MarketSeller, PayoutRequest
 
 
 @admin.register(MarketSeller)
@@ -23,6 +23,26 @@ class MarketEventAdmin(admin.ModelAdmin):
     list_display = ("created_at", "kind", "listing", "user", "actor", "message")
     list_filter = ("kind",)
     raw_id_fields = ("listing", "user", "actor")
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(PayoutRequest)
+class PayoutRequestAdmin(admin.ModelAdmin):
+    """Read-only: payouts are processed in Control Center → Рынок, which keeps the balances in step."""
+
+    list_display = ("code", "user", "amount", "method", "status", "created_at", "processed_at")
+    list_filter = ("status", "method")
+    search_fields = ("code", "user__username")
+    raw_id_fields = ("user", "processed_by")
+    exclude = ("requisites",)
+
+    def has_add_permission(self, request):
+        return False
 
     def has_change_permission(self, request, obj=None):
         return False
