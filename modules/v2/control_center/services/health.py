@@ -156,26 +156,60 @@ def check_celery_workers() -> HealthCheck:
     return HealthCheck("celery_workers", "Celery workers", OK, f"{len(replies)} онлайн", ", ".join(sorted(replies))[:120])
 
 
+# A single failed run is noise (one network hiccup); the alert is for a queue that mostly fails or stopped.
+PRICE_FAILED_RUNS_MIN = 12
+PRICE_FAILED_RUNS_PERCENT = 30
+PRICE_STALL_HOURS = 3
+
+
+def _top_price_error(logs) -> str:
+    """The most common first line of the failed runs' errors, item names cut off so equal causes add up."""
+    from collections import Counter
+
+    causes = Counter()
+    for summary in logs.exclude(error_summary="").values_list("error_summary", flat=True)[:500]:
+        line = summary.splitlines()[0]
+        causes[line.split(": ", 1)[-1] if "HTTP" in line else line] += 1
+    return causes.most_common(1)[0][0][:120] if causes else ""
+
+
 def check_price_updates() -> HealthCheck:
     try:
         from modules.v2.celery_tasks.models import PriceAutoUpdateRule, PriceAutoUpdateRunLog
+        from modules.v2.steam_catalog.models import SteamItem
     except Exception:  # noqa: BLE001
         return HealthCheck("price_updates", "Авто-обновление цен", INFO, "Модуль недоступен")
     last = PriceAutoUpdateRunLog.objects.order_by("-started_at").first()
     if last is None:
         return HealthCheck("price_updates", "Авто-обновление цен", INFO, "Запусков ещё не было")
-    failed_day = PriceAutoUpdateRunLog.objects.filter(
-        started_at__gte=timezone.now() - timedelta(hours=24),
-        status=PriceAutoUpdateRule.Status.ERROR,
-    ).count()
-    age = timezone.now() - last.started_at
+    now = timezone.now()
+    day = PriceAutoUpdateRunLog.objects.filter(started_at__gte=now - timedelta(hours=24)).exclude(
+        status=PriceAutoUpdateRule.Status.RUNNING
+    )
+    runs = day.count()
+    failed_logs = day.filter(status=PriceAutoUpdateRule.Status.ERROR)
+    failed = failed_logs.count()
+    value = timezone.localtime(last.started_at).strftime("%d.%m %H:%M")
+    hints = []
     status = OK
-    if failed_day:
+
+    if now - last.started_at > timedelta(days=1):
         status = WARN
-    if age > timedelta(days=1):
+        hints.append("Правила не запускались больше суток")
+    last_checked = SteamItem.objects.filter(is_active=True).order_by("-price_checked_at").values_list("price_checked_at", flat=True).first()
+    if PriceAutoUpdateRule.objects.filter(is_enabled=True).exists() and (
+        last_checked is None or now - last_checked > timedelta(hours=PRICE_STALL_HOURS)
+    ):
         status = WARN
-    hint = f"Ошибок за 24 ч: {failed_day}" if failed_day else f"Статус: {last.status}"
-    return HealthCheck("price_updates", "Авто-обновление цен", status, timezone.localtime(last.started_at).strftime("%d.%m %H:%M"), hint)
+        since = f"с {timezone.localtime(last_checked):%d.%m %H:%M}" if last_checked else "ни разу"
+        hints.append(f"Цены не проверялись {since}")
+    if failed >= PRICE_FAILED_RUNS_MIN and failed * 100 >= runs * PRICE_FAILED_RUNS_PERCENT:
+        status = WARN
+        cause = _top_price_error(failed_logs)
+        hints.append(f"Неудачных запусков за 24 ч: {failed} из {runs}" + (f" · чаще всего: {cause}" if cause else ""))
+    elif failed:
+        hints.append(f"Неудачных запусков за 24 ч: {failed} из {runs}")
+    return HealthCheck("price_updates", "Авто-обновление цен", status, value, " · ".join(hints) or f"Статус: {last.status}")
 
 
 def check_disk(*, include_media: bool = False) -> HealthCheck:

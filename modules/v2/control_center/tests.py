@@ -359,3 +359,49 @@ class PaymentsTabTests(TestCase):
         body = response.content.decode("utf-8")
         self.assertIn("yk-paid", body)
         self.assertNotIn("yk-stuck", body)
+
+
+class PriceUpdatesHealthTests(TestCase):
+    def _logs(self, status, count, summary=""):
+        from modules.v2.celery_tasks.models import PriceAutoUpdateRule, PriceAutoUpdateRunLog
+
+        rule = PriceAutoUpdateRule.objects.get(category="skin")
+        for _ in range(count):
+            PriceAutoUpdateRunLog.objects.create(rule=rule, category="skin", status=status, started_at=timezone.now(), error_summary=summary)
+
+    def _fresh_prices(self):
+        from modules.v2.steam_catalog.models import SteamItem
+
+        item = SteamItem.objects.create(market_hash_name="Health | Item", item_type="skin")
+        SteamItem.objects.filter(pk=item.pk).update(price_checked_at=timezone.now())
+
+    def test_a_few_failed_runs_among_many_are_not_an_alert(self):
+        from modules.v2.control_center.services.health import WARN, check_price_updates
+
+        self._fresh_prices()
+        self._logs("success", 200)
+        self._logs("error", 20, "AK | X: HTTP 502")
+        check = check_price_updates()
+        self.assertNotEqual(check.status, WARN)
+        self.assertIn("20 из 220", check.hint)
+
+    def test_mostly_failing_queue_alerts_with_its_main_cause(self):
+        from modules.v2.control_center.services.health import WARN, check_price_updates
+
+        self._fresh_prices()
+        self._logs("success", 10)
+        self._logs("error", 30, "AK | X: HTTP 502\nM4 | Y: HTTP 502")
+        check = check_price_updates()
+        self.assertEqual(check.status, WARN)
+        self.assertIn("HTTP 502", check.hint)
+
+    def test_stalled_queue_alerts_even_without_errors(self):
+        from modules.v2.control_center.services.health import WARN, check_price_updates
+        from modules.v2.steam_catalog.models import SteamItem
+
+        item = SteamItem.objects.create(market_hash_name="Stale | Item", item_type="skin")
+        SteamItem.objects.filter(pk=item.pk).update(price_checked_at=timezone.now() - timedelta(hours=5))
+        self._logs("idle", 5)
+        check = check_price_updates()
+        self.assertEqual(check.status, WARN)
+        self.assertIn("не проверялись", check.hint)

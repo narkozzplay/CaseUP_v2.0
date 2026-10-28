@@ -365,3 +365,13 @@ class PriceSchedulerPaceTests(TestCase):
             schedule_mode=PriceAutoUpdateRule.ScheduleMode.HOURLY, hourly_minute=0, next_run_at=timezone.now() + timedelta(seconds=240)
         )
         self.assertEqual(list(get_due_rules()), [])
+
+    @patch("modules.v2.celery_tasks.services.refresh_batch")
+    def test_waiting_out_a_steam_pause_is_not_an_error(self, refresh_mock):
+        from modules.v2.steam_catalog.services.price_queue import QueueBatchResult
+
+        refresh_mock.return_value = QueueBatchResult(rate_limited=True, notes=["Пауза: Steam ограничил запросы"])
+        rule = PriceAutoUpdateRule.objects.get(category=SteamItem.ItemType.SKIN)
+        summary = run_price_auto_update_rule(rule.id, triggered_by="beat")
+        self.assertEqual(summary.status, PriceAutoUpdateRule.Status.IDLE)
+        self.assertIn("Пауза", PriceAutoUpdateRunLog.objects.filter(rule=rule).latest("started_at").error_summary)
