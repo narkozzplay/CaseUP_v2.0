@@ -33,7 +33,10 @@
 
                 {% if faceit_level %}
                     <div class="cs2-faceit-badge cs2-faceit-badge--l{{ faceit_level }}" title="FACEIT">
-                        <span class="cs2-faceit-badge__level">{{ faceit_level }}</span>
+                        {% if faceit_level_icon %}
+                            <img class="cs2-faceit-badge__icon" src="{{ faceit_level_icon }}" alt="FACEIT {{ faceit_level }}" width="52" height="52" data-fallback="{{ profile.faceit_level_image_url }}" onerror="if(this.dataset.fallback&&this.src!==this.dataset.fallback){this.src=this.dataset.fallback}else{this.hidden=true;this.nextElementSibling.hidden=false}">
+                        {% endif %}
+                        <span class="cs2-faceit-badge__level"{% if faceit_level_icon %} hidden{% endif %}>{{ faceit_level }}</span>
                         <span class="cs2-faceit-badge__meta">
                             <b>{{ faceit_elo }} ELO</b>
                             {% if faceit_progress %}
