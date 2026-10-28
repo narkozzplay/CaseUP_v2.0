@@ -98,6 +98,22 @@ class SweepTests(TestCase):
         SteamItemPriceHistory.objects.create(item=item, price_rub=Decimal("8.00"), source=price_queue.SWEEP_SOURCE)
         self.assertEqual([row.pk for row in _history_for_rule_item(rule, item)], [median.pk])
 
+    def test_items_watched_by_a_family_alert_keep_the_median(self):
+        from django.contrib.auth import get_user_model
+
+        from .models import UserPriceAlertRule
+
+        watched = make_item("AK-47 | Redline (Field-Tested)", price_rub=Decimal("10.00"))
+        SteamItem.objects.filter(pk=watched.pk).update(family_name="AK-47 | Redline")
+        user = get_user_model().objects.create_user(username="family", password="x")
+        UserPriceAlertRule.objects.create(
+            user=user, scope_type=UserPriceAlertRule.ScopeType.FAMILY, family_name="AK-47 | Redline", status=UserPriceAlertRule.Status.ACTIVE
+        )
+        with mock.patch(FETCH_PAGE, return_value=page([row("AK-47 | Redline (Field-Tested)", 500)])):
+            result = price_sweep.sweep(pages=1)
+        watched.refresh_from_db()
+        self.assertEqual((result.matched, watched.price_rub), (0, Decimal("10.00")))
+
     def test_429_pauses_the_server_and_keeps_the_page(self):
         error = urllib.error.HTTPError("https://steam", 429, "Too Many Requests", {}, io.BytesIO(b""))
         with mock.patch(FETCH_PAGE, side_effect=error):

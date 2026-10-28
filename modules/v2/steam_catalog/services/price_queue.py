@@ -245,6 +245,12 @@ def _hot_filter() -> Q:
     hot |= Q(Exists(FarmDropItem.objects.filter(steam_item_id=OuterRef("pk"))))
     hot |= Q(Exists(SaleOrderItem.objects.filter(steam_item_id=OuterRef("pk"))))
     hot |= Q(Exists(UserPriceAlertRule.objects.filter(item_id=OuterRef("pk"))))
+    # A family alert watches every wear of the family, so they all need the median too.
+    hot |= Q(Exists(UserPriceAlertRule.objects.filter(
+        scope_type=UserPriceAlertRule.ScopeType.FAMILY,
+        status=UserPriceAlertRule.Status.ACTIVE,
+        family_name=OuterRef("family_name"),
+    )))
     # A favorite stars the whole family card, so every wear of it is hot.
     hot |= Q(Exists(SteamItemFavorite.objects.filter(family_key=OuterRef("family_name"))))
     hot |= Q(Exists(SteamItemFavorite.objects.filter(item_id=OuterRef("pk"))))
