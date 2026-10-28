@@ -8,7 +8,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 
-from modules.v2.steam_catalog.models import PriceDropAlertEvent, PriceDropAlertRule, SteamItem, SteamItemPriceHistory
+from modules.v2.steam_catalog.models import SWEEP_SOURCE, PriceDropAlertEvent, PriceDropAlertRule, SteamItem, SteamItemPriceHistory
 
 
 def _quantize_percent(value: Decimal) -> Decimal:
@@ -124,6 +124,7 @@ def detect_price_movement_alerts_for_category(item_type: str, *, trigger_source:
             history_rows = list(
                 SteamItemPriceHistory.objects
                 .filter(item=item, created_at__gte=window_started_at)
+                .exclude(source=SWEEP_SOURCE)  # lowest listing vs median is not a move
                 .order_by("created_at", "id")
             )
             if len(history_rows) < 2:

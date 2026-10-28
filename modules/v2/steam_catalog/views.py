@@ -45,7 +45,7 @@ from modules.v2.system.services import build_page_title
 from modules.v2.ads.services import get_feed_every_n
 
 from .forms import AddSteamItemForm, SteamItemNameRuForm, StockMovementCreateForm, UserPriceAlertRuleForm, alert_limit_error, lock_alert_quota
-from .models import CS2ReferenceItem, SteamItem, UserPriceAlertEvent, UserPriceAlertRule
+from .models import SWEEP_SOURCE, CS2ReferenceItem, SteamItem, UserPriceAlertEvent, UserPriceAlertRule
 from .services.bulk_import import read_status as read_bulk_import_status, write_status as write_bulk_import_status
 from .services import MarketSearchError, refresh_item_prices, search_market_items, upsert_from_market_input
 from .services import price_queue
@@ -869,6 +869,10 @@ def catalog_detail(request, item_id: int, slug: str | None = None):
     history_data = _guest_cache_get(guest_key)
     if history_data is None:
         history_qs = item.price_history.all()
+        # The market sweep's lowest listing sits below the queue's median: mixed on one chart it would look like a
+        # drop. Its points are shown only for items that have no median history at all.
+        if history_qs.exclude(source=SWEEP_SOURCE).exists():
+            history_qs = history_qs.exclude(source=SWEEP_SOURCE)
         if range_start is not None:
             history_qs = history_qs.filter(created_at__gte=range_start)
 

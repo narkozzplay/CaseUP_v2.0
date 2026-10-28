@@ -108,6 +108,11 @@ class SteamItem(models.Model):
         ]
 
 
+# History rows written by the market sweep (services/price_sweep.py): the lowest listing, not the median, so they
+# are never compared with the other rows when looking for price moves.
+SWEEP_SOURCE = "sweep"
+
+
 class SteamItemPriceHistory(models.Model):
     item = models.ForeignKey(
         SteamItem,
