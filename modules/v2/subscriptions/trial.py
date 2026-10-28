@@ -121,7 +121,7 @@ def _notify(user, subscription, *, title: str, body: str) -> None:
 
 
 def renew_due_subscriptions(*, now=None) -> dict[str, int]:
-    from .services import SubscriptionPurchaseError, purchase_subscription_with_balance
+    from .services import SubscriptionPurchaseError, _lock_subscription_owner, purchase_subscription_with_balance
 
     now = now or timezone.now()
     due = list(
@@ -139,7 +139,18 @@ def renew_due_subscriptions(*, now=None) -> dict[str, int]:
             UserSubscription.objects.filter(pk=subscription.pk).update(auto_renew=False, updated_at=now)
             continue
         try:
-            purchase_subscription_with_balance(user=user, plan=plan, months=1)
+            with transaction.atomic():
+                _lock_subscription_owner(user)
+                # Re-check under lock: the user may have switched auto-renewal off, or an overlapping run renewed it.
+                still_due = UserSubscription.objects.select_for_update().filter(
+                    pk=subscription.pk,
+                    status=UserSubscription.Status.ACTIVE,
+                    auto_renew=True,
+                    expires_at=subscription.expires_at,
+                ).exists()
+                if not still_due:
+                    continue
+                purchase_subscription_with_balance(user=user, plan=plan, months=1)
         except SubscriptionPurchaseError as exc:
             failed += 1
             # One notice per end date, not one per hourly run.

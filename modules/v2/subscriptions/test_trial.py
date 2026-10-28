@@ -1,5 +1,6 @@
 from datetime import timedelta
 from decimal import Decimal
+from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -95,6 +96,19 @@ class TrialTests(TestCase):
         result = process_subscription_lifecycle(now=subscription.expires_at + timedelta(minutes=1))
         self.assertEqual(result["expired"], 1)
         self.assertEqual(balance(self.user), Decimal("9.00"))
+
+    def test_overlapping_run_does_not_charge_twice(self):
+        subscription = start_trial(self.user, accepted_auto_renew=True)
+        price = get_period_price(self.plus, 1)
+        adjust_balance(user=self.user, delta=price * 2, reason="topup", amount_snapshot=price * 2)
+        due = subscription.expires_at - timedelta(hours=1)
+        stale = list(UserSubscription.objects.filter(pk=subscription.pk))
+
+        renew_due_subscriptions(now=due)
+        # A second run that loaded the row before the first one renewed it.
+        with mock.patch("modules.v2.subscriptions.trial.list", return_value=stale, create=True):
+            self.assertEqual(renew_due_subscriptions(now=due)["renewed"], 0)
+        self.assertEqual(balance(self.user), Decimal("9.00") + price)
 
     def test_switched_off_auto_renew_is_not_charged(self):
         subscription = start_trial(self.user, accepted_auto_renew=True)
