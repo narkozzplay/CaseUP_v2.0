@@ -598,6 +598,17 @@
     font-size: 0.8rem;
 }
 
+.footer-payment {
+    margin-top: 6px;
+}
+
+.footer-payment img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--border);
+}
+
 /* ---------- auth + error ---------- */
 
 .auth-section {
