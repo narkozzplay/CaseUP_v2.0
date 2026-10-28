@@ -442,6 +442,8 @@ class SeedTests(TestCase):
         banner = HouseBanner.objects.get(url="/major/singapore-2026/")
         self.assertTrue(banner.is_enabled)
         self.assertFalse(banner.show_to_ad_free)
+        self.assertTrue(banner.image.name.endswith(".webp"))
+        self.assertTrue(banner.video.name.endswith(".mp4"))
         self.assertEqual(banner.ends_at.date(), date(2026, 12, 13))
 
     def test_singapore_major_and_team_logos_are_seeded(self):
