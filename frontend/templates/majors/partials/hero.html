@@ -1,7 +1,7 @@
 <header class="mj-hero">
     <div class="mj-banner{% if not major.banner and not major.banner_video_mp4 and not major.banner_video_webm %} mj-banner--empty{% endif %}">
         {% if major.banner_video_mp4 or major.banner_video_webm %}
-            <video class="mj-banner__img" autoplay muted loop playsinline preload="auto" width="1920" height="640"
+            <video class="mj-banner__img" muted loop playsinline preload="auto" width="1920" height="640"
                    {% if major.banner %}poster="{{ major.banner.url }}"{% endif %} aria-label="{{ major.name }} — Pick'em" data-mj-banner-video>
                 {% if major.banner_video_webm %}<source src="{{ major.banner_video_webm.url }}" type="video/webm">{% endif %}
                 {% if major.banner_video_mp4 %}<source src="{{ major.banner_video_mp4.url }}" type="video/mp4">{% endif %}

@@ -201,12 +201,13 @@
         refresh();
     }
 
-    // The banner loop stays on its first frame for people who asked for less motion.
+    // The banner loop starts from here, so it never plays for people who asked for less motion.
     function initBannerVideo() {
-        if (!window.matchMedia || !window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (still) return;
         document.querySelectorAll('[data-mj-banner-video]').forEach((video) => {
-            video.removeAttribute('autoplay');
-            video.pause();
+            const played = video.play();
+            if (played && played.catch) played.catch(() => {});
         });
     }
 

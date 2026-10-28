@@ -120,7 +120,8 @@ class PublicPageTests(MajorTestCase):
         page = Client().get(self.major.get_absolute_url()).content.decode()
         self.assertIn('poster="/media/majors/banners/test.webp"', page)
         self.assertLess(page.index("/media/majors/banners/loop.webm"), page.index("/media/majors/banners/loop.mp4"))
-        self.assertIn("autoplay muted loop playsinline", page)
+        self.assertIn("muted loop playsinline", page)
+        self.assertNotIn("autoplay", page)  # majors.js starts it unless reduced motion is on
 
     def test_unpublished_major_is_hidden_and_index_redirects_to_the_current_one(self):
         Major.objects.exclude(pk=self.major.pk).update(is_published=False)
