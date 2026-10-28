@@ -57,12 +57,14 @@ def item_meta(request, item, *, family_min_price=None, family_max_price=None) ->
             parts.append(f"All exteriors: from {_price_text(family_min_price)} to {_price_text(family_max_price)}.")
         parts.append("Price chart and history for a day, week, month and year. Free, with price alerts.")
 
+    description = " ".join(parts)
     canonical = _absolute(request, item.get_absolute_url())
     image = item.icon_cdn(512)
     product = {
         "@context": "https://schema.org",
         "@type": "Product",
         "name": name,
+        "description": description,
         "url": canonical,
         "category": item.get_item_type_display(),
         "brand": {"@type": "Brand", "name": "Counter-Strike 2"},
@@ -70,16 +72,19 @@ def item_meta(request, item, *, family_min_price=None, family_max_price=None) ->
     if image:
         product["image"] = image
     if item.price_rub is not None:
+        # The site only shows the Steam price and sells nothing itself. AggregateOffer keeps the price in
+        # the search snippet without marking the page as a shop listing, which would ask for shipping and returns.
+        price = f"{item.price_rub:.2f}"
         product["offers"] = {
-            "@type": "Offer",
-            "price": f"{item.price_rub:.2f}",
+            "@type": "AggregateOffer",
+            "lowPrice": price,
+            "highPrice": price,
             "priceCurrency": "RUB",
-            "availability": "https://schema.org/InStock",
             "url": canonical,
         }
     return {
         "seo_title": item_title(item),
-        "seo_description": " ".join(parts),
+        "seo_description": description,
         "seo_canonical": canonical,
         "seo_image": image,
         "seo_og_type": "product",
