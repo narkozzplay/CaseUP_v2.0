@@ -92,9 +92,10 @@ class GuestCatalogTests(TestCase):
         self.assertIn('property="og:image" content="https://community.cloudflare.steamstatic.com/economy/image/abc123/512x512"', html)
         data = json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>', html, re.S).group(1))
         self.assertEqual(data["@type"], "Product")
+        self.assertTrue(data["description"].startswith("Цена AK-47 | Redline (Field-Tested) на торговой площадке Steam"))
         self.assertEqual(data["offers"], {
-            "@type": "Offer", "price": "1250.00", "priceCurrency": "RUB",
-            "availability": "https://schema.org/InStock", "url": f"http://testserver{self.item.get_absolute_url()}",
+            "@type": "AggregateOffer", "lowPrice": "1250.00", "highPrice": "1250.00", "priceCurrency": "RUB",
+            "url": f"http://testserver{self.item.get_absolute_url()}",
         })
 
     def test_filtered_lists_are_not_indexed(self):
