@@ -422,6 +422,15 @@ class PriceUpdatesHealthTests(TestCase):
         self.assertIn("Не обновляются: Кейсы", check.hint)
         self.assertNotIn("Стикеры", check.hint)
 
+    def test_items_without_a_market_price_do_not_count_as_a_stall(self):
+        from modules.v2.control_center.services.health import WARN, check_price_updates
+        from modules.v2.steam_catalog.models import SteamItem
+
+        item = SteamItem.objects.create(market_hash_name="Unlisted | Item", item_type="skin", price_missing=True)
+        SteamItem.objects.filter(pk=item.pk).update(price_checked_at=timezone.now() - timedelta(days=3))
+        self._logs("success", 5)
+        self.assertNotEqual(check_price_updates().status, WARN)
+
     def test_stalled_queue_alerts_even_without_errors(self):
         from modules.v2.control_center.services.health import WARN, check_price_updates
         from modules.v2.steam_catalog.models import SteamItem

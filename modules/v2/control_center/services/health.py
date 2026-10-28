@@ -226,9 +226,13 @@ def check_price_updates() -> HealthCheck:
         status = WARN
         hints.append("Правила не запускались больше суток")
     # Max() skips NULLs (never checked items); ordering by -price_checked_at puts them first on PostgreSQL.
-    last_checked = SteamItem.objects.filter(is_active=True).aggregate(last=Max("price_checked_at"))["last"]
-    if PriceAutoUpdateRule.objects.filter(is_enabled=True).exists() and (
-        last_checked is None or now - last_checked > timedelta(hours=PRICE_STALL_HOURS)
+    # Items Steam has no price for are rechecked weekly by design, so they say nothing about a stall.
+    listed = SteamItem.objects.filter(is_active=True, price_missing=False)
+    last_checked = listed.aggregate(last=Max("price_checked_at"))["last"]
+    if (
+        PriceAutoUpdateRule.objects.filter(is_enabled=True).exists()
+        and listed.exists()
+        and (last_checked is None or now - last_checked > timedelta(hours=PRICE_STALL_HOURS))
     ):
         status = WARN
         since = f"с {timezone.localtime(last_checked):%d.%m %H:%M}" if last_checked else "ни разу"
