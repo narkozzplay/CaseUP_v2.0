@@ -85,6 +85,13 @@ def real_topups_total(user) -> Decimal:
     return Payment.objects.filter(user=user, status=Payment.Status.SUCCEEDED, is_test=False).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
 
 
+def is_market_admin(user) -> bool:
+    """Admins and above use the market without the seller conditions and payout minimum."""
+    from modules.v2.profiles.rbac import get_user_role
+
+    return get_user_role(user).is_admin_plus
+
+
 def seller_requirements(user) -> list[Requirement]:
     from modules.v2.control_center.models import UserBan
     from modules.v2.profiles.models import UserProfile, VerificationLevel
@@ -95,6 +102,11 @@ def seller_requirements(user) -> list[Requirement]:
     min_topup = Decimal(str(_setting("MARKET_SELLER_MIN_TOPUP", 500)))
     age_days = (timezone.now() - user.date_joined).days
     topups = real_topups_total(user)
+    if is_market_admin(user):  # only what a trade technically needs: Steam and the trade link
+        return [
+            Requirement("steam", "Привязан Steam", bool(profile and (profile.steam_id or "").strip()), "Подключите Steam в профиле.", reverse("profiles:profile")),
+            Requirement("trade_url", "Сохранена трейд-ссылка Steam", bool(seller and seller.trade_url), "Вставьте трейд-ссылку ниже."),
+        ]
     return [
         Requirement("verified", "Аккаунт верифицирован", bool(profile and profile.verification_level != VerificationLevel.NONE), "Подайте заявку на верификацию в профиле.", reverse("profiles:profile_settings")),
         Requirement("age", f"На сайте не меньше {min_days} дней", age_days >= min_days, f"Сейчас: {age_days} дн. Осталось {max(0, min_days - age_days)} дн."),

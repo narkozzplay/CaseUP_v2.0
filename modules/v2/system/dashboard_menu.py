@@ -216,6 +216,7 @@ def build_dashboard_menu(request) -> tuple[dict[str, object], ...]:
 
     feature_flags = get_module_state_map()
     visibility_map = _visibility_map(request, feature_flags=feature_flags)
+    role_access = get_user_role(getattr(request, "user", None))
     items = []
     try:
         queryset = DashboardMenuItem.objects.filter(is_enabled=True).order_by("group", "sort_order", "id")
@@ -223,7 +224,8 @@ def build_dashboard_menu(request) -> tuple[dict[str, object], ...]:
             namespace = _resolve_item_namespace(item.url_name)
             module = resolve_module_for_namespace(namespace)
             if module is not None and not bool(feature_flags.get(module.key, module.default_enabled)):
-                continue
+                if not (module.admin_open and role_access.is_admin_plus):
+                    continue
             if not visibility_map.get(item.visibility_condition, False):
                 continue
             try:

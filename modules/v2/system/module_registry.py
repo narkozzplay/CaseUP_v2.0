@@ -12,6 +12,8 @@ class ModuleDefinition:
     dependencies: tuple[str, ...] = ()
     addon_targets: tuple[str, ...] = ()
     default_enabled: bool = True
+    # Admins and above may use the module even while it is switched off for everyone else.
+    admin_open: bool = False
 
 
 MODULE_REGISTRY: dict[str, ModuleDefinition] = {
@@ -29,6 +31,7 @@ MODULE_REGISTRY: dict[str, ModuleDefinition] = {
         description="P2P-торговля предметами Steam между игроками с гарантом сделки.",
         namespaces=("market",),
         default_enabled=False,
+        admin_open=True,
     ),
     "farm": ModuleDefinition(
         key="farm",
