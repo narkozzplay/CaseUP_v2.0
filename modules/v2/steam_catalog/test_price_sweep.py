@@ -48,10 +48,10 @@ class SweepTests(TestCase):
         stocked.refresh_from_db()
         self.assertEqual(stocked.price_rub, Decimal("50.00"))
         self.assertEqual((result.pages, result.seen, result.matched), (1, 3, 1))
-        self.assertEqual(price_sweep.state()["start"], 100)
+        self.assertEqual(price_sweep.state()["start"], 3)
 
     def test_after_the_last_page_the_sweep_starts_over(self):
-        with mock.patch(FETCH_PAGE, side_effect=[page([row("A", 1)] * 3, total=150), page([row("B", 1)], total=150)]) as fetch:
+        with mock.patch(FETCH_PAGE, side_effect=[page([row("A", 1)] * 100, total=150), page([row("B", 1)] * 50, total=150)]) as fetch:
             price_sweep.sweep(pages=2)
         self.assertEqual([call.args[0] for call in fetch.call_args_list], [0, 100])
         current = price_sweep.state()
@@ -113,6 +113,20 @@ class SweepTests(TestCase):
             result = price_sweep.sweep(pages=1)
         watched.refresh_from_db()
         self.assertEqual((result.matched, watched.price_rub), (0, Decimal("10.00")))
+
+    def test_prices_in_another_currency_are_skipped(self):
+        item = make_item("Euro | Item")
+        euro = dict(row("Euro | Item", 385), sell_price_text="3,85€")
+        with mock.patch(FETCH_PAGE, return_value=page([euro])):
+            result = price_sweep.sweep(pages=1)
+        item.refresh_from_db()
+        self.assertIsNone(item.price_rub)
+        self.assertEqual(result.skipped, 1)
+
+    def test_cursor_moves_by_the_rows_steam_returned(self):
+        with mock.patch(FETCH_PAGE, return_value=page([row("A", 1)] * 10, total=500)):
+            price_sweep.sweep(pages=1)
+        self.assertEqual(price_sweep.state()["start"], 10)
 
     def test_429_pauses_the_server_and_keeps_the_page(self):
         error = urllib.error.HTTPError("https://steam", 429, "Too Many Requests", {}, io.BytesIO(b""))

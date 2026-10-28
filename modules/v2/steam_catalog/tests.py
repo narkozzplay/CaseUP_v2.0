@@ -471,6 +471,22 @@ class SteamCatalogTests(TestCase):
         self.assertEqual(point_values, [Decimal("100.00"), Decimal("150.00"), Decimal("130.00")])
 
 
+    def test_detail_chart_hides_sweep_lows_when_median_history_exists(self):
+        user = User.objects.create_user(username="staff_chart_sweep", password="StrongPass123", is_staff=True)
+        median = SteamItem.objects.create(market_hash_name="Median | Item", family_name="Median | Item", name="Median | Item", price_rub=Decimal("100.00"))
+        swept = SteamItem.objects.create(market_hash_name="Swept | Item", family_name="Swept | Item", name="Swept | Item", price_rub=Decimal("90.00"))
+        for price, source in ((Decimal("100.00"), "queue"), (Decimal("90.00"), "sweep"), (Decimal("101.00"), "queue")):
+            SteamItemPriceHistory.objects.create(item=median, price_rub=price, source=source)
+        for price in (Decimal("95.00"), Decimal("90.00")):
+            SteamItemPriceHistory.objects.create(item=swept, price_rub=price, source="sweep")
+        self._grant_plan(user, 2)
+        self.client.force_login(user)
+
+        values = [point["value"] for point in self.client.get(median.get_absolute_url(), {"range": "all"}).context["price_chart"]["points"]]
+        self.assertNotIn(90.0, values)
+        swept_history = self.client.get(swept.get_absolute_url(), {"range": "all"}).context["price_history"]
+        self.assertEqual(len(swept_history), 2)
+
     def test_detail_day_range_chart_shows_all_raw_points(self):
         user = User.objects.create_user(username="staff_chart_day", password="StrongPass123", is_staff=True)
         item = SteamItem.objects.create(

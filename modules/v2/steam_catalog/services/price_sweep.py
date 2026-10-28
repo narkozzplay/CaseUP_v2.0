@@ -70,6 +70,7 @@ class SweepResult:
     matched: int = 0
     updated: int = 0
     history_written: int = 0
+    skipped: int = 0  # rows priced in another currency
     notes: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
@@ -156,6 +157,7 @@ def _save_state(current: dict) -> None:
 def fetch_page(start: int) -> dict:
     params = urlencode({
         "appid": 730,
+        "currency": USD,
         "norender": 1,
         "count": PAGE_SIZE,
         "start": start,
@@ -186,8 +188,13 @@ def apply_page(rows: list[dict], rate: Decimal, result: SweepResult) -> None:
         except (TypeError, ValueError):
             cents = 0
         # No listings right now: nothing to price by; the per-item queue still asks for the median.
-        if name and cents > 0 and int(row.get("sell_listings") or 0) > 0:
-            prices[name] = (Decimal(cents) / 100 * rate).quantize(Decimal("0.01"))
+        if not (name and cents > 0 and int(row.get("sell_listings") or 0) > 0):
+            continue
+        # sell_price is in the answer's currency: anything but dollars would be converted at the wrong rate.
+        if not str(row.get("sell_price_text") or "").startswith("$"):
+            result.skipped += 1
+            continue
+        prices[name] = (Decimal(cents) / 100 * rate).quantize(Decimal("0.01"))
     result.seen += len(rows)
     if not prices:
         return
@@ -255,7 +262,8 @@ def sweep(*, pages: int | None = None, deadline=None) -> SweepResult:
             break
         apply_page(rows, rate, result)
         result.pages += 1
-        current["start"] += PAGE_SIZE
+        # An anonymous client may get fewer rows than it asked for: move on by what Steam actually returned.
+        current["start"] += len(rows)
         current["total"] = total
         current["last_page_at"] = timezone.now().isoformat()
         if not rows or current["start"] >= total:
