@@ -74,6 +74,30 @@ class SellerTests(TestCase):
         Payment.objects.create(user=user, provider="yookassa", amount=Decimal("1000"), status=Payment.Status.SUCCEEDED, is_test=True)
         self.assertTrue(services.can_sell(user))
 
+    def test_admin_skips_seller_conditions(self):
+        from modules.v2.profiles.models import UserRole
+
+        admin = make_seller("mkt_admin", verified=False, days=0, topup=None)
+        UserProfile.objects.filter(user=admin).update(role=UserRole.ADMIN)
+        self.assertEqual([item.key for item in services.seller_requirements(admin)], ["steam", "trade_url"])
+        self.assertTrue(services.can_sell(admin))
+
+    def test_admin_opens_market_while_module_is_off(self):
+        from modules.v2.profiles.models import UserRole
+
+        update_module_states({"market": False})
+        user = User.objects.create_user(username="mkt_plain", password="x")
+        admin = User.objects.create_user(username="mkt_chief", password="x")
+        UserProfile.objects.filter(user=admin).update(role=UserRole.CHIEF_ADMIN)
+        client = Client()
+        menu_link = f'href="{reverse("market:index")}"'
+        client.force_login(user)
+        self.assertEqual(client.get(reverse("market:index")).status_code, 404)
+        self.assertNotContains(client.get(reverse("frontend:dashboard_preview")), menu_link)
+        client.force_login(admin)
+        self.assertEqual(client.get(reverse("market:index")).status_code, 200)
+        self.assertContains(client.get(reverse("frontend:dashboard_preview")), menu_link)
+
     def test_trade_link_must_belong_to_the_linked_steam(self):
         user = make_seller("mkt_link", trade_url=False)
         good = trade_url_for(user)

@@ -54,7 +54,7 @@ def showcase_page(request):
 def lot_page(request, listing_id: int):
     listing = get_object_or_404(Listing.objects.select_related("seller", "seller__profile_v2", "steam_item"), pk=listing_id)
     is_owner = listing.seller_id == request.user.pk
-    if not listing.is_open and not is_owner and not request.user.is_staff:
+    if not listing.is_open and not is_owner and not services.is_market_admin(request.user):
         messages.info(request, "Этот лот уже не продаётся.")
         return redirect("market:index")
     return render_dashboard_page(
@@ -64,7 +64,7 @@ def lot_page(request, listing_id: int):
         context={
             "listing": listing,
             "is_owner": is_owner,
-            "history": services.listing_history(listing) if is_owner or request.user.is_staff else None,
+            "history": services.listing_history(listing) if is_owner or services.is_market_admin(request.user) else None,
             "seller_stats": services.seller_stats(listing.seller),
             "more_from_seller": Listing.objects.filter(seller=listing.seller, status=Listing.Status.ACTIVE).exclude(pk=listing.pk)[:6],
             **_buy_context(request, listing, is_owner),
@@ -220,7 +220,7 @@ def payout_page(request):
             "sales": payouts.sales_history(request.user),
             "payouts": payouts.payout_history(request.user),
             "payouts_enabled": payouts.PAYOUTS_ENABLED,
-            "payout_min": payouts.min_payout(),
+            "payout_min": payouts.min_payout(request.user),
             "payout_methods": payouts.PayoutRequest.Method.choices,
         },
         page_title=build_page_title("Вывод", "Рынок"),

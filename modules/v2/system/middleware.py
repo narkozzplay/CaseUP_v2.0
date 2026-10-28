@@ -89,6 +89,8 @@ class ModuleAccessMiddleware:
             normalized_path = _normalize_path(request.path_info)
             if normalized_path.startswith("/control-center/") and access.is_admin_plus:
                 return self.get_response(request)
+            if module.admin_open and access.is_admin_plus:
+                return self.get_response(request)
             is_authenticated = bool(getattr(request.user, "is_authenticated", False))
             dashboard_url = reverse("frontend:dashboard_preview") if is_authenticated else reverse("frontend:home")
             back_url = (request.META.get("HTTP_REFERER") or "").strip() or dashboard_url

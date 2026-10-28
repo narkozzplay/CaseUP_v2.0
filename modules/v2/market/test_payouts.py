@@ -95,6 +95,13 @@ class PayoutWalletTests(TestCase):
         self.assertFalse(PayoutRequest.objects.exists())
         self.assertEqual(payouts.seller_wallet(self.seller).available, Decimal("300.00"))
 
+    def test_admin_has_no_payout_minimum(self):
+        from modules.v2.profiles.models import UserRole
+
+        self.complete(self.sell("300.00", "1"))
+        UserProfile.objects.filter(user=self.seller).update(role=UserRole.SUPER_ADMIN)
+        self.assertEqual(self.request("50").amount, Decimal("50.00"))
+
     def test_cancel_and_reject_return_the_amount(self):
         self.complete(self.sell("300.00", "1"))
         payout = self.request("200")

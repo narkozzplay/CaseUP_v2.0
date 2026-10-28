@@ -39,7 +39,11 @@ class PayoutError(ValueError):
     pass
 
 
-def min_payout() -> Decimal:
+def min_payout(user=None) -> Decimal:
+    from .services import is_market_admin
+
+    if user is not None and is_market_admin(user):
+        return Decimal("0.01")
     return Decimal(str(getattr(settings, "MARKET_PAYOUT_MIN_RUB", "100")))
 
 
@@ -50,15 +54,20 @@ class SellerWallet:
     pending: Decimal  # requested, waiting for an admin
     held: Decimal  # open deals: paid by buyers, not released yet
     available: Decimal  # the market balance: withdrawable now
+    minimum: Decimal  # the smallest payout this user may request
 
     @property
     def can_request(self) -> bool:
-        return PAYOUTS_ENABLED and self.available >= min_payout()
+        return PAYOUTS_ENABLED and self.available >= self.minimum
 
 
 def is_market_seller(user) -> bool:
     if not user.is_authenticated:
         return False
+    from .services import is_market_admin
+
+    if is_market_admin(user):
+        return True
     if Listing.objects.filter(seller=user).exists():
         return True
     return UserProfile.objects.filter(user=user, market_balance_coins__gt=0).exists()
@@ -79,6 +88,7 @@ def seller_wallet(user) -> SellerWallet:
         pending=pending,
         held=held,
         available=profile.market_balance_coins if profile else ZERO,
+        minimum=min_payout(user),
     )
 
 
@@ -146,8 +156,9 @@ def request_payout(user, *, amount, method: str, requisites: str, recipient_name
     if not PAYOUTS_ENABLED:
         raise PayoutError("Вывод сейчас недоступен.")
     amount = _parse_amount(amount)
-    if amount < min_payout():
-        raise PayoutError(f"Минимальная сумма вывода — {min_payout():.0f} ₽.")
+    minimum = min_payout(user)
+    if amount < minimum:
+        raise PayoutError(f"Минимальная сумма вывода — {minimum:.0f} ₽.")
     name = " ".join((recipient_name or "").split())[:120]
     if len(name) < 3:
         raise PayoutError("Укажите имя получателя, как в банке.")
