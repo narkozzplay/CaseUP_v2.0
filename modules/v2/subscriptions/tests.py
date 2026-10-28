@@ -265,6 +265,20 @@ class SubscriptionViewsTests(TestCase):
         self.assertContains(response, "Farmer-подписки")
         self.assertContains(response, "Farmer Pro")
 
+    def test_plan_cards_show_banner_image_or_placeholder(self):
+        from unittest import mock
+
+        from frontend.templatetags import plan_banners
+
+        plan_banners._banner_path.cache_clear()
+        self.addCleanup(plan_banners._banner_path.cache_clear)
+        with mock.patch.object(plan_banners.finders, "find", side_effect=lambda path: path if "site_pro" in path else None):
+            response = self.client.get(reverse("subscriptions:plans"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "img/plans/site_pro.webp")
+        self.assertContains(response, "plan-card__banner--placeholder", count=3)
+
     def test_pricing_dashboard_renders_site_and_farmer_sections_for_admin(self):
         user = User.objects.create_user(username="admin_viewer", password="StrongPass123", is_staff=True, is_superuser=True)
         self.client.login(username="admin_viewer", password="StrongPass123")

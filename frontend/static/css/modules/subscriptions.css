@@ -566,6 +566,48 @@ select.form-control option {
     box-shadow: 0 0 0 1px var(--accent), 0 0 32px rgba(245, 166, 35, 0.12);
 }
 
+/* Plan banner: full-bleed art on top of the card (img/plans/<code>.webp), CSS placeholder until it exists. */
+.plan-card__banner {
+    position: relative;
+    margin: -20px -20px 0;
+    aspect-ratio: 2 / 1;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+    background: #0b0e13;
+}
+
+.plan-grid--wide .plan-card__banner {
+    aspect-ratio: 3 / 1;
+}
+
+.plan-card__banner img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.plan-card__banner--placeholder {
+    display: grid;
+    place-items: center;
+    background:
+        radial-gradient(ellipse at 75% 40%, color-mix(in srgb, var(--plan-accent) 38%, transparent), transparent 62%),
+        repeating-linear-gradient(135deg, transparent 0 22px, color-mix(in srgb, var(--plan-accent) 10%, transparent) 22px 23px),
+        linear-gradient(160deg, #141922, #0b0e13);
+}
+
+.plan-card__banner-mark {
+    font-family: var(--font-display);
+    font-size: 2.4rem;
+    font-weight: 800;
+    font-style: italic;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--plan-accent) 70%, #fff);
+    opacity: 0.35;
+    text-shadow: 0 0 24px var(--plan-accent);
+}
+
 .plan-card__head {
     display: flex;
     align-items: center;
