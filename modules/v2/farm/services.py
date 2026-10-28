@@ -1022,6 +1022,13 @@ def build_farm_item_absolute_url(item: FarmDropItem) -> str:
 
 
 
+def _bot_link(url: str) -> str:
+    from modules.v2.tg_notifier.services import bot_utm_link
+
+    return bot_utm_link(url, content="farm")
+
+
+
 def build_caseup_advantage(item: FarmDropItem) -> FarmCaseupAdvantage:
     config = get_farm_module_config()
     current_price = current_item_price_rub(item)
@@ -1137,7 +1144,7 @@ def dispatch_price_threshold_notifications(*, user=None) -> list[FarmNotificatio
             f"Цена на сборе: {collected:.2f} ₽\n"
             f"Текущая цена: {current_price:.2f} ₽\n"
             f"Изменение: {delta_percent:+.2f}%\n"
-            f"Открыть: {build_farm_item_absolute_url(item)}"
+            f"Открыть: {_bot_link(build_farm_item_absolute_url(item))}"
         )
         sent = _maybe_send_user_message(user=item.owner, text=message)
         event = _create_notification_event(
@@ -1174,7 +1181,7 @@ def dispatch_caseup_advantage_notifications(*, user=None) -> list[FarmNotificati
             f"CaseUP net: {advantage.caseup_net_rub:.2f} ₽\n"
             f"External ref net: {advantage.external_net_rub:.2f} ₽\n"
             f"Разница: +{advantage.advantage_rub:.2f} ₽\n"
-            f"Открыть: {build_farm_item_absolute_url(item)}"
+            f"Открыть: {_bot_link(build_farm_item_absolute_url(item))}"
         )
         sent = _maybe_send_user_message(user=item.owner, text=message)
         event = _create_notification_event(

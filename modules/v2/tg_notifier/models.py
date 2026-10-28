@@ -77,6 +77,12 @@ class TelegramNotifierConfig(models.Model):
     channel_digest_card_title = models.CharField(max_length=60, blank=True, default="Цены CS2 за сутки")
     channel_digest_last_sent_at = models.DateTimeField(null=True, blank=True)
 
+    # UTM tags on site links in Telegram, so Yandex Metrika shows them as Telegram, not "direct" visits.
+    # Empty utm_source turns tagging off. Medium is fixed: "channel" for autoposts, "bot" for personal messages.
+    utm_source = models.CharField(max_length=64, blank=True, default="telegram")
+    channel_utm_campaign = models.CharField(max_length=64, blank=True, default="price_digest")
+    bot_utm_campaign = models.CharField(max_length=64, blank=True, default="notifications")
+
     # Personal Telegram notices to the head of the site (admin_events.py): the highest-ranked admins with Telegram linked.
     admin_signup_notices = models.BooleanField(default=True)
     admin_topup_notices = models.BooleanField(default=True)

@@ -292,6 +292,12 @@ def _build_item_absolute_url(item: SteamItem) -> str:
     return f"{base_url}{reverse('steam_catalog:detail', args=[item.id])}"
 
 
+def _bot_link(url: str) -> str:
+    from modules.v2.tg_notifier.services import bot_utm_link
+
+    return bot_utm_link(url, content="price_alert")
+
+
 def _build_user_price_alert_message(event: UserPriceAlertEvent) -> str:
     direction_title = "Рост" if event.direction == UserPriceAlertRule.Direction.UP else "Падение"
 
@@ -299,7 +305,7 @@ def _build_user_price_alert_message(event: UserPriceAlertEvent) -> str:
         f"<b>Price alert</b>\n\n"
         f"<b>Правило:</b> {html.escape(event.rule.name)}\n"
         f"<b>Предмет:</b> "
-        f"<a href=\"{html.escape(_build_item_absolute_url(event.item), quote=True)}\">"
+        f"<a href=\"{html.escape(_bot_link(_build_item_absolute_url(event.item)), quote=True)}\">"
         f"{html.escape(event.item.group_name)}</a>\n"
         f"<b>Направление:</b> {direction_title}\n"
         f"<b>Reference:</b> {html.escape(event.rule.get_reference_point_display())}\n"

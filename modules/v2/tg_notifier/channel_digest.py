@@ -23,6 +23,7 @@ from modules.v2.steam_catalog.services.browse import TYPE_LABELS, WEAPON_GROUPS,
 from .models import ChannelDigestPost, ChannelDigestSection, TelegramNotifierConfig
 from .services import (
     TelegramNotifierError,
+    channel_utm_link,
     ensure_public_base_url,
     get_telegram_notifier_config,
     resolve_public_base_url,
@@ -46,7 +47,6 @@ TEXT_PLACEHOLDERS = {
 # Telegram counts the text after markup is parsed: tags and link addresses are free.
 TELEGRAM_TEXT_LIMIT = 4096
 TELEGRAM_CAPTION_LIMIT = 1024
-UTM = {"utm_source": "telegram", "utm_medium": "channel", "utm_campaign": "price_digest"}
 
 CATEGORY_CHOICES = [
     ("all", "Все предметы"),
@@ -187,8 +187,10 @@ def _price(value: Decimal) -> str:
     return (text[:-3] if text.endswith(".00") else text) + " ₽"
 
 
-def _link(base_url: str, path: str, params: dict[str, str] | None = None) -> str:
-    return f"{base_url}{path}?{urlencode({**(params or {}), **UTM})}"
+def _link(base_url: str, path: str, params: dict[str, str] | None = None, *, config: TelegramNotifierConfig, content: str) -> str:
+    """A site link with UTM tags from the Telegram settings; utm_content says which link of the post it was."""
+    query = f"?{urlencode(params)}" if params else ""
+    return channel_utm_link(f"{base_url}{path}{query}", content=content, config=config)
 
 
 def render_digest(digest: PriceDigest, *, config: TelegramNotifierConfig, compact: bool = False) -> str:
@@ -202,12 +204,12 @@ def render_digest(digest: PriceDigest, *, config: TelegramNotifierConfig, compac
         title = html.escape(section.title)
         params = category_catalog_params(section.category)
         if params:
-            url = html.escape(_link(base_url, catalog_path, params), quote=True)
+            url = html.escape(_link(base_url, catalog_path, params, config=config, content="section"), quote=True)
             title = f'<a href="{url}">{title}</a>'
         rows = [f"{icon} <b>{title}</b>"]
         for index, move in enumerate(block.moves, start=1):
             name = html.escape(move.item.market_hash_name)
-            url = html.escape(_link(base_url, move.item.get_absolute_url()), quote=True)
+            url = html.escape(_link(base_url, move.item.get_absolute_url(), config=config, content="item"), quote=True)
             sign = "+" if move.change_percent > 0 else ""
             if compact:
                 rows.append(f'{index}. <a href="{url}">{name}</a> <b>{sign}{move.change_percent}%</b>')
@@ -229,12 +231,12 @@ def render_digest(digest: PriceDigest, *, config: TelegramNotifierConfig, compac
     link_text = fill_text(config.channel_digest_link_text, values)
     if compact:
         if link_text:
-            top_url = html.escape(_link(base_url, reverse("price_movers")), quote=True)
+            top_url = html.escape(_link(base_url, reverse("price_movers"), config=config, content="top"), quote=True)
             parts.append(f'<a href="{top_url}">{link_text}</a>')
     else:
         footer = f"Цены Steam Community Market, проверены за последние {config.channel_digest_fresh_hours} ч."
         if link_text:
-            catalog_url = html.escape(_link(base_url, catalog_path), quote=True)
+            catalog_url = html.escape(_link(base_url, catalog_path, config=config, content="catalog"), quote=True)
             footer += f'\n<a href="{catalog_url}">{link_text}</a>'
         parts.append(footer)
     if hashtags := fill_text(config.channel_digest_hashtags, values):

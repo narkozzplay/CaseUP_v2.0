@@ -414,3 +414,71 @@ class MultipartTests(TestCase):
         self.assertIn(b'name="caption"\r\n\r\n' + "Цены".encode(), body)
         self.assertIn(b'name="photo"; filename="d.jpg"\r\nContent-Type: image/jpeg\r\n\r\n\xff\xd8\r\n', body)
         self.assertTrue(body.endswith(f"--{boundary}--\r\n".encode()))
+
+
+class UtmTagTests(DigestFixtures):
+    def test_add_utm_keeps_query_and_fragment(self):
+        from .services import add_utm
+
+        url = add_utm("https://case-up.ru/farm/sessions/3/?a=1#item-5", source="telegram", medium="bot", campaign="notifications", content="farm")
+
+        self.assertEqual(url, "https://case-up.ru/farm/sessions/3/?a=1&utm_source=telegram&utm_medium=bot&utm_campaign=notifications&utm_content=farm#item-5")
+        self.assertEqual(add_utm(url, source="other", medium="x"), url)
+        self.assertEqual(add_utm("/relative/", source="telegram", medium="bot"), "/relative/")
+        self.assertEqual(add_utm("https://case-up.ru/", source="", medium="bot"), "https://case-up.ru/")
+
+    def test_digest_links_use_configured_campaign_and_content(self):
+        self._section("Кейсы: рост", "type:case")
+        item = self._item("Revolution Case", item_type="case", before=Decimal("1000"), after=Decimal("1200"))
+        self.config.utm_source = "tg"
+        self.config.channel_utm_campaign = "caseup_pro_anons"
+
+        text = build_digest_text(self.config, now=NOW)
+
+        self.assertIn(f'href="https://case-up.ru{item.get_absolute_url()}?utm_source=tg&amp;utm_medium=channel&amp;utm_campaign=caseup_pro_anons&amp;utm_content=item"', text)
+        self.assertIn('href="https://case-up.ru/steam-catalog/?type=case&amp;utm_source=tg&amp;utm_medium=channel&amp;utm_campaign=caseup_pro_anons&amp;utm_content=section"', text)
+        self.assertIn('href="https://case-up.ru/steam-catalog/?utm_source=tg&amp;utm_medium=channel&amp;utm_campaign=caseup_pro_anons&amp;utm_content=catalog"', text)
+
+    def test_empty_source_turns_tags_off(self):
+        self._section("Рост")
+        item = self._item("AK-47 | Redline (Field-Tested)", before=Decimal("1000"), after=Decimal("1200"))
+        self.config.utm_source = ""
+
+        text = build_digest_text(self.config, now=NOW)
+
+        self.assertIn(f'href="https://case-up.ru{item.get_absolute_url()}"', text)
+        self.assertNotIn("utm_", text)
+
+    def test_bot_link_uses_bot_medium(self):
+        from .services import bot_utm_link
+
+        self.assertEqual(
+            bot_utm_link("https://case-up.ru/support/7/", content="support"),
+            "https://case-up.ru/support/7/?utm_source=telegram&utm_medium=bot&utm_campaign=notifications&utm_content=support",
+        )
+
+    def test_campaign_field_rejects_spaces_and_keeps_value_when_not_posted(self):
+        from .forms import TelegramNotifierSettingsForm
+
+        form = TelegramChannelDigestForm(self._schedule_data(channel_utm_campaign="мой канал"), instance=self.config)
+        self.assertFalse(form.is_valid())
+        self.assertIn("channel_utm_campaign", form.errors)
+
+        self.config.utm_source = "tg"
+        self.config.save()
+        form = TelegramNotifierSettingsForm({"is_enabled": "on", "investment_message_template": "x"}, instance=self.config)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["utm_source"], "tg")
+        self.assertEqual(form.cleaned_data["bot_utm_campaign"], "notifications")
+
+    def _schedule_data(self, **overrides):
+        data = {
+            "channel_chat_id": "@caseup_pro_anons",
+            "channel_digest_times": "20:00",
+            "channel_digest_fresh_hours": 12,
+            "channel_digest_title": "t",
+            "channel_digest_card_title": "c",
+            "channel_utm_campaign": "price_digest",
+        }
+        data.update(overrides)
+        return data

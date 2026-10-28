@@ -128,6 +128,17 @@
                         {{ schedule_form.channel_digest_hashtags.errors }}
                     </div>
                 </div>
+                <div class="tgn-row">
+                    <div class="form-field">
+                        <label for="{{ schedule_form.channel_utm_campaign.id_for_label }}">UTM-кампания (utm_campaign)</label>
+                        {{ schedule_form.channel_utm_campaign }}
+                        <p class="text-muted tgn-hint">
+                            Все ссылки поста получают <code>utm_source={{ config.utm_source|default:"—" }}&amp;utm_medium=channel</code> и эту кампанию,
+                            чтобы Метрика показала переходы из канала. Источник меняется в настройках бота.
+                        </p>
+                        {{ schedule_form.channel_utm_campaign.errors }}
+                    </div>
+                </div>
                 <p class="text-muted tgn-hint">Текст вставляется как есть, без HTML. Эмодзи можно.</p>
             </div>
         </article>
