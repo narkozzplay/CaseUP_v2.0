@@ -430,6 +430,12 @@ class MajorItemsTests(MajorTestCase):
 
 
 class SeedTests(TestCase):
+    def test_singapore_banner_and_animation_are_seeded(self):
+        major = Major.objects.get(slug="singapore-2026")
+        self.assertTrue(major.banner.name.endswith(".webp"))
+        self.assertTrue(major.banner_video_mp4.name.endswith(".mp4"))
+        self.assertTrue(major.banner_video_webm.name.endswith(".webm"))
+
     def test_pickem_house_banner_is_seeded(self):
         from modules.v2.ads.models import HouseBanner
 
