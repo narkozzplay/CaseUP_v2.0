@@ -207,11 +207,13 @@
                             {% include "components/icon.html" with name="arrow" %}
                         </a>
                     {% endif %}
+                    {% if feature_flags.profile_customization %}
                     <a href="{% url 'profile_customization:catalog' %}" class="ops-action">
                         <span class="ops-action__icon">{% include "components/icon.html" with name="customization_catalog" %}</span>
                         <span class="ops-action__text"><strong>{% if LANGUAGE_CODE == "ru" %}Оформить профиль{% else %}Customize profile{% endif %}</strong><span>{% if LANGUAGE_CODE == "ru" %}рамка, эффект ника, фон{% else %}frame, nick effect, background{% endif %}</span></span>
                         {% include "components/icon.html" with name="arrow" %}
                     </a>
+                    {% endif %}
                 </nav>
             </article>
         </aside>
