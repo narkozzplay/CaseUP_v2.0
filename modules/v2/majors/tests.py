@@ -335,7 +335,26 @@ class ScoringAndRewardTests(MajorTestCase):
         page = client.get(reverse("majors:pickem", args=[self.major.slug]))
         self.assertContains(page, "Ваши награды")
         self.assertContains(page, "AWP | Dragon Lore (Factory New)")
-        self.assertContains(page, "трейд-ссылку")
+        self.assertContains(page, reverse("majors:trade_link", args=[self.major.slug]))
+
+    def test_winner_saves_the_trade_link_on_the_pickem_page(self):
+        self.settle_everything()
+        services.settle_major(self.major)
+        skin_grant = RewardGrant.objects.get(rule=self.perfect)
+        services.approve_grant(skin_grant)
+        client = Client()
+        client.force_login(self.user)
+        url = reverse("majors:trade_link", args=[self.major.slug])
+        client.post(url, {"trade_url": "https://example.com/not-steam"})
+        skin_grant.refresh_from_db()
+        self.assertEqual(skin_grant.status, RewardGrant.Status.NEEDS_TRADE_URL)
+        UserProfile.objects.filter(user=self.user).update(steam_id="76561198000000042")
+        partner = 76561198000000042 - 76561197960265728
+        response = client.post(url, {"trade_url": f"https://steamcommunity.com/tradeoffer/new/?partner={partner}&token=AbCd1234"})
+        self.assertRedirects(response, reverse("majors:pickem", args=[self.major.slug]), fetch_redirect_response=False)
+        skin_grant.refresh_from_db()
+        self.assertEqual(skin_grant.status, RewardGrant.Status.TO_SEND)
+        self.assertTrue(services.trade_url(self.user))
 
 
 class MajorItemsTests(MajorTestCase):

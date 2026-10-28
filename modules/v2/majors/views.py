@@ -6,16 +6,18 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
+from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
+from modules.v2.control_center._compat import client_ip
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title, get_site_name
 
 from .items import page_items
-from .models import SWISS_PICK_LIMITS, BracketPick, Major, Match, RewardGrant, Stage, SwissPick, Team
-from .services import PickemError, bracket_slots, feeders, current_major, eligibility, leaderboard, save_bracket_picks, save_swiss_picks, trade_url, user_summary
+from .models import SWISS_PICK_LIMITS, BracketPick, Major, Match, RewardGrant, RewardRule, Stage, SwissPick, Team
+from .services import PickemError, bracket_slots, feeders, current_major, eligibility, leaderboard, save_bracket_picks, save_swiss_picks, save_trade_url, trade_url, user_summary
 
 ROUND_LABELS = dict(Match.Round.choices)
 SLOT_NAMES = {"win": "3-0", "advance": "advance", "lose": "0-3"}
@@ -221,12 +223,14 @@ def pickem(request, slug):
             messages.success(request, f"Прогноз на «{stage.name}» сохранён: {saved} из {_max_picks(stage)}.")
         return redirect(f"{reverse('majors:pickem', args=[major.slug])}?stage={stage.order}")
 
+    grants = list(RewardGrant.objects.filter(user=request.user, rule__major=major).select_related("rule__plan", "rule__item", "stage"))
     context = {
         "stage": stage,
         "all_stages": list(major.stages.order_by("order")),
         "eligibility": eligibility(request.user, major),
         "summary": user_summary(major, request.user),
-        "grants": RewardGrant.objects.filter(user=request.user, rule__major=major).select_related("rule__plan", "rule__item", "stage"),
+        "grants": grants,
+        "has_skin_prize": any(grant.rule.kind == RewardRule.Kind.ITEM and grant.status != RewardGrant.Status.REJECTED for grant in grants),
         "trade_url": trade_url(request.user),
         "seo_robots": "noindex, follow",
     }
@@ -251,3 +255,17 @@ def major_leaderboard(request, slug):
         "seo_canonical": request.build_absolute_uri(reverse("majors:leaderboard", args=[major.slug])),
     }
     return _render(request, major, template="leaderboard", context=context, title=build_page_title(f"Лидеры Pick'em · {major.name}"))
+
+
+@login_required
+@require_POST
+def pickem_trade_link(request, slug):
+    """Trade link for skin prizes, kept here so winners need not open the Market (which may be switched off)."""
+    major = _get_major(request, slug)
+    try:
+        save_trade_url(request.user, request.POST.get("trade_url", ""), ip=client_ip(request))
+    except PickemError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, "Трейд-ссылка сохранена. Скин отправим обменом в Steam.")
+    return redirect(reverse("majors:pickem", args=[major.slug]))

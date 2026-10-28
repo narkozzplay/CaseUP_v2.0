@@ -109,7 +109,17 @@
                     </li>
                 {% endfor %}
             </ul>
-            {% if not trade_url %}<p class="mj-panel__hint">Чтобы получить скин, укажите трейд-ссылку Steam в разделе <a href="{% url 'market:sell' %}">Рынок → Продать</a>.</p>{% endif %}
+            {% if has_skin_prize %}
+                <form method="post" action="{% url 'majors:trade_link' major.slug %}" class="mj-tradelink">
+                    {% csrf_token %}
+                    <label class="mj-tradelink__label" for="mj-trade-url">Трейд-ссылка Steam для получения скина</label>
+                    <div class="mj-tradelink__row">
+                        <input id="mj-trade-url" class="input" type="url" name="trade_url" value="{{ trade_url }}" placeholder="https://steamcommunity.com/tradeoffer/new/?partner=…&amp;token=…" required>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </div>
+                    <small class="mj-panel__hint">В Steam: Инвентарь → Предложения обмена → «Кто может отправлять мне предложения обмена?»</small>
+                </form>
+            {% endif %}
         </article>
     {% endif %}
 

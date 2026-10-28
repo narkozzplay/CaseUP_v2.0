@@ -427,6 +427,18 @@ def mark_item_sent(grant: RewardGrant, *, by=None, note: str = "") -> bool:
     return bool(updated)
 
 
+def save_trade_url(user, raw: str, *, ip: str | None = None) -> int:
+    """Store the winner's Steam trade link (shared with the Market) and move waiting skin prizes on to sending."""
+    from modules.v2.market.services import MarketError
+    from modules.v2.market.services import save_trade_url as save_market_trade_url
+
+    try:
+        save_market_trade_url(user, raw, ip=ip)
+    except MarketError as exc:
+        raise PickemError(str(exc)) from exc
+    return RewardGrant.objects.filter(user=user, status=RewardGrant.Status.NEEDS_TRADE_URL).update(status=RewardGrant.Status.TO_SEND)
+
+
 def trade_url(user) -> str:
     from modules.v2.market.models import MarketSeller
 

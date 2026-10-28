@@ -186,6 +186,11 @@ a.mj-panel__hint { color: var(--accent); text-decoration: none; }
 .mj-match__opt input:disabled + .mj-team { cursor: default; }
 .mj-match__opt input:focus-visible + .mj-team { outline: 2px solid var(--accent); }
 
+.mj-tradelink { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+.mj-tradelink__label { font-weight: 600; }
+.mj-tradelink__row { display: flex; flex-wrap: wrap; gap: 8px; }
+.mj-tradelink__row .input { flex: 1 1 320px; min-width: 0; }
+
 .mj-rules ul { margin: 0; padding-left: 18px; color: var(--text-soft); display: flex; flex-direction: column; gap: 6px; }
 
 .visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
