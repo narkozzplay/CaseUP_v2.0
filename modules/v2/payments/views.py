@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 import logging
+import uuid
 
 from django.conf import settings
 from django.contrib import messages
@@ -135,6 +135,19 @@ def payment_return_view(request, public_id):
 
 
 @login_required
+def freekassa_return_view(request):
+    """FreeKassa sends the payer to one fixed success/fail URL with the order id in the query."""
+    order_id = request.GET.get("MERCHANT_ORDER_ID") or request.GET.get("o") or ""
+    try:
+        public_id = uuid.UUID(order_id)
+    except ValueError:
+        return redirect("payments:topup")
+    if not Payment.objects.filter(public_id=public_id, user=request.user).exists():
+        return redirect("payments:topup")
+    return redirect("payments:return", public_id=public_id)
+
+
+@login_required
 def payment_recheck_view(request, public_id):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
@@ -172,11 +185,11 @@ def webhook_view(request, provider_code: str):
     provider = get_provider(provider_code)
     if provider is not None and not is_allowed_webhook_source(request, provider):
         return HttpResponse(status=403)
+    if provider is None:
+        return HttpResponse(status=200)
     try:
-        payload = json.loads(request.body or b"{}")
+        payload = provider.parse_webhook(request)
     except (ValueError, UnicodeDecodeError):
-        return HttpResponse(status=400)
-    if not isinstance(payload, dict):
         return HttpResponse(status=400)
 
     try:
@@ -185,4 +198,4 @@ def webhook_view(request, provider_code: str):
         # Non-2xx makes the provider retry later.
         logger.warning("Webhook %s could not be verified: %s", provider_code, exc)
         return HttpResponse(status=503)
-    return HttpResponse(status=200)
+    return HttpResponse(provider.webhook_ok_body, status=200, content_type="text/plain")

@@ -379,8 +379,8 @@ CELERY_BEAT_CS2_FACEIT_STATS_SYNC_SECONDS = int(
     os.getenv("CELERY_BEAT_CS2_FACEIT_STATS_SYNC_SECONDS", "1800")  # default: 30 min
 )
 
-# Balance top-up. PAYMENTS_PROVIDER: auto | yookassa | dev.
-# auto = ЮKassa when YOOKASSA_SHOP_ID/YOOKASSA_SECRET_KEY are set, otherwise the fake "dev" checkout (DEBUG only).
+# Balance top-up. PAYMENTS_PROVIDER: auto | yookassa | freekassa | dev.
+# auto = ЮKassa when its keys are set, else FreeKassa when its keys are set, else the fake "dev" checkout (DEBUG only).
 PAYMENTS_PROVIDER = os.getenv("PAYMENTS_PROVIDER", "auto").strip().lower()
 PAYMENTS_CURRENCY = os.getenv("PAYMENTS_CURRENCY", "RUB").strip().upper()
 PAYMENTS_TOPUP_MIN = os.getenv("PAYMENTS_TOPUP_MIN", "50")
@@ -391,6 +391,14 @@ YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY", "").strip()
 YOOKASSA_TIMEOUT_SECONDS = float(os.getenv("YOOKASSA_TIMEOUT_SECONDS", "15"))
 YOOKASSA_SEND_RECEIPT = os.getenv("YOOKASSA_SEND_RECEIPT", "0").lower() in {"1", "true", "yes"}
 YOOKASSA_VAT_CODE = int(os.getenv("YOOKASSA_VAT_CODE", "1"))
+# FreeKassa: shop id and both secret words from merchant.freekassa.net/settings; the API key is optional
+# (re-checks payments whose notification was lost). FREEKASSA_TEST_MODE marks payments as test ones.
+FREEKASSA_MERCHANT_ID = os.getenv("FREEKASSA_MERCHANT_ID", "").strip()
+FREEKASSA_SECRET_1 = os.getenv("FREEKASSA_SECRET_1", "").strip()
+FREEKASSA_SECRET_2 = os.getenv("FREEKASSA_SECRET_2", "").strip()
+FREEKASSA_API_KEY = os.getenv("FREEKASSA_API_KEY", "").strip()
+FREEKASSA_TEST_MODE = os.getenv("FREEKASSA_TEST_MODE", "0").lower() in {"1", "true", "yes"}
+FREEKASSA_TIMEOUT_SECONDS = float(os.getenv("FREEKASSA_TIMEOUT_SECONDS", "15"))
 PAYMENTS_MAX_OPEN_PER_USER = int(os.getenv("PAYMENTS_MAX_OPEN_PER_USER", "5"))
 # Accept provider webhooks only from the provider's addresses: auto = on unless DEBUG.
 PAYMENTS_WEBHOOK_IP_CHECK = os.getenv("PAYMENTS_WEBHOOK_IP_CHECK", "auto").strip().lower()
