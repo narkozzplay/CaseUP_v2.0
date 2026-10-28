@@ -760,6 +760,14 @@
     font-size: 1.5rem;
     box-shadow: 0 0 22px -4px var(--lvl);
 }
+.cs2-faceit-badge__level[hidden] { display: none; }
+.cs2-faceit-badge__icon {
+    display: block;
+    flex: 0 0 auto;
+    width: 52px;
+    height: 52px;
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--lvl) 55%, transparent));
+}
 .cs2-faceit-badge__meta { display: flex; flex-direction: column; gap: 4px; min-width: 150px; }
 .cs2-faceit-badge__meta b { font-family: var(--font-mono); font-size: 1.05rem; }
 .cs2-faceit-badge__meta small { color: var(--text-muted); font-size: 0.72rem; }

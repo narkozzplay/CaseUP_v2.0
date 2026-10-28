@@ -444,6 +444,7 @@ def get_cs2_stats_context(target_user, *, viewer) -> dict:
         "profile_effects": profile_effects,
         "steam_has_data": steam_has_data,
         "faceit_level":  faceit_level,
+        "faceit_level_icon": faceit_level_icon_url(faceit_level),
         "faceit_elo":    faceit_elo,
         "faceit_progress": faceit_level_progress(faceit_elo, faceit_level),
         "headline":      _headline_stats(steam_stats if steam_has_data else None, faceit_ext),
@@ -466,6 +467,16 @@ def get_cs2_stats_context(target_user, *, viewer) -> dict:
 
 # FACEIT CS2 ELO thresholds: level N starts at FACEIT_LEVEL_FLOORS[N - 1].
 FACEIT_LEVEL_FLOORS = (100, 501, 751, 901, 1051, 1201, 1351, 1531, 1751, 2001)
+
+
+# Official FACEIT skill level icons, served from FACEIT's own CDN.
+FACEIT_LEVEL_ICON_URL = "https://cdn-frontend.faceit-cdn.net/web/static/media/assets_images_skill-icons_skill_level_{level}_svg.svg"
+
+
+def faceit_level_icon_url(level: int) -> str:
+    if not 1 <= level <= 10:
+        return ""
+    return FACEIT_LEVEL_ICON_URL.format(level=level)
 
 
 def faceit_level_progress(elo: int, level: int) -> dict | None:
