@@ -81,6 +81,7 @@
                     {% endif %}
                     <div><dt>Проверка IP webhook</dt><dd>{% if setup.ip_check %}включена{% else %}выключена{% endif %}</dd></div>
                     <div><dt>Автосверка</dt><dd>каждые {{ setup.reconcile_minutes }} мин (Celery beat)</dd></div>
+                    <div><dt>Автоотмена</dt><dd>не оплачен за {{ setup.unpaid_timeout_minutes }} мин · <a href="{% url 'system_config:settings' %}#site">изменить</a></dd></div>
                 </dl>
             </article>
         </div>

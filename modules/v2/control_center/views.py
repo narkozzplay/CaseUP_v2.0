@@ -624,6 +624,7 @@ def _filtered_payments(request):
 def _payments_setup_summary() -> dict:
     from modules.v2.payments.ip_allowlist import webhook_ip_check_enabled
     from modules.v2.payments.providers import get_provider
+    from modules.v2.payments.services import unpaid_payment_timeout
 
     provider = get_provider()
     base_url = (getattr(settings, "SITE_BASE_URL", "") or "").rstrip("/")
@@ -632,6 +633,7 @@ def _payments_setup_summary() -> dict:
         "webhook_url": f"{base_url}{reverse('payments_public:webhook', args=[provider.code])}" if provider else "",
         "ip_check": webhook_ip_check_enabled(),
         "reconcile_minutes": int(getattr(settings, "CELERY_BEAT_PAYMENTS_RECONCILE_SECONDS", 300)) // 60,
+        "unpaid_timeout_minutes": round(unpaid_payment_timeout().total_seconds() / 60),
     }
 
 

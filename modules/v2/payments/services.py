@@ -28,6 +28,8 @@ RECONCILE_MIN_AGE = timedelta(minutes=2)
 RECONCILE_MAX_AGE = timedelta(days=3)
 # A payment that never got a provider id (creation failed mid-way) is closed after this.
 UNSTARTED_PAYMENT_TTL = timedelta(hours=1)
+# Fallback when the site settings hold no payment timeout (SiteConfiguration.payment_unpaid_timeout_minutes).
+DEFAULT_UNPAID_TIMEOUT_MINUTES = 30
 
 
 class TopupError(Exception):
@@ -55,6 +57,14 @@ def topup_fee_percent() -> Decimal:
 
     value = getattr(get_site_configuration(), "topup_fee_percent", None)
     return Decimal(str(value if value is not None else "0")).quantize(MONEY_Q)
+
+
+def unpaid_payment_timeout() -> timedelta:
+    """How long a started top-up may stay unpaid before reconciliation cancels it."""
+    from modules.v2.system.services import get_site_configuration
+
+    minutes = getattr(get_site_configuration(), "payment_unpaid_timeout_minutes", None) or DEFAULT_UNPAID_TIMEOUT_MINUTES
+    return timedelta(minutes=max(int(minutes), 1))
 
 
 def quote_topup(credit: Decimal) -> tuple[Decimal, Decimal]:
@@ -208,6 +218,8 @@ def sync_payment(payment: Payment, *, provider: BasePaymentProvider | None = Non
                 locked.paid_at = locked.paid_at or timezone.now()
                 locked.provider_fee = _provider_fee(locked)
                 _credit(locked)
+        elif locked.is_final and new_status in (Payment.Status.CREATED, Payment.Status.PENDING):
+            pass  # an expired payment is not reopened by "still waiting"; only a confirmed payment changes it
         else:
             locked.status = new_status
             if remote.error_message:
@@ -232,18 +244,37 @@ def handle_webhook(*, provider_code: str, payload: dict) -> Payment | None:
     return sync_payment(payment, provider=provider)
 
 
+def expire_unpaid_payment(payment: Payment, *, now=None) -> bool:
+    """Cancel a still-unpaid top-up. A payment that arrives later is still credited: the webhook and
+    sync_payment credit whatever the provider confirms, whatever the local status says."""
+    now = now or timezone.now()
+    minutes = round(unpaid_payment_timeout().total_seconds() / 60)
+    updated = Payment.objects.filter(
+        pk=payment.pk,
+        status__in=(Payment.Status.CREATED, Payment.Status.PENDING),
+        ledger_entry__isnull=True,
+    ).update(
+        status=Payment.Status.CANCELED,
+        error_message=f"Не оплачен за {minutes} мин, отменён автоматически.",
+        updated_at=now,
+    )
+    return bool(updated)
+
+
 def reconcile_pending_payments(*, now=None, limit: int = 200) -> dict[str, int]:
-    """Re-check unpaid payments with the provider so a lost webhook or a closed tab never strands money.
+    """Re-check unpaid payments with the provider so a lost webhook or a closed tab never strands money,
+    and cancel the ones still unpaid after the timeout set in the site settings.
 
     Runs from Celery beat. Each payment goes through sync_payment, so crediting stays exactly-once.
     """
     now = now or timezone.now()
-    stats = {"checked": 0, "credited": 0, "closed": 0, "errors": 0, "unstarted_closed": 0}
+    timeout = unpaid_payment_timeout()
+    stats = {"checked": 0, "credited": 0, "closed": 0, "expired": 0, "errors": 0, "unstarted_closed": 0}
 
     stats["unstarted_closed"] = Payment.objects.filter(
         status=Payment.Status.CREATED,
         external_id="",
-        created_at__lt=now - UNSTARTED_PAYMENT_TTL,
+        created_at__lt=now - min(UNSTARTED_PAYMENT_TTL, timeout),
     ).update(
         status=Payment.Status.FAILED,
         error_message="Платёж не был создан у провайдера.",
@@ -264,6 +295,7 @@ def reconcile_pending_payments(*, now=None, limit: int = 200) -> dict[str, int]:
         try:
             synced = sync_payment(payment)
         except PaymentProviderError as exc:
+            # The provider could not confirm the state: leave it open and try again on the next run.
             stats["errors"] += 1
             logger.warning("Reconcile: top-up %s could not be checked: %s", payment.public_id, exc)
             continue
@@ -271,6 +303,17 @@ def reconcile_pending_payments(*, now=None, limit: int = 200) -> dict[str, int]:
             stats["credited"] += 1
         elif synced.is_final:
             stats["closed"] += 1
-    if stats["checked"] or stats["unstarted_closed"]:
+        elif synced.created_at <= now - timeout and expire_unpaid_payment(synced, now=now):
+            stats["expired"] += 1
+
+    # Too old to be polled any more: nothing will come of these, close them without asking the provider.
+    for payment in Payment.objects.filter(
+        status__in=(Payment.Status.CREATED, Payment.Status.PENDING),
+        created_at__lt=now - max(RECONCILE_MAX_AGE, timeout),
+    ).exclude(external_id="")[:limit]:
+        if expire_unpaid_payment(payment, now=now):
+            stats["expired"] += 1
+
+    if stats["checked"] or stats["unstarted_closed"] or stats["expired"]:
         logger.info("Reconcile pending payments: %s", stats)
     return stats

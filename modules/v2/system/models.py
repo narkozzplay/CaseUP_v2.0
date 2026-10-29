@@ -111,6 +111,8 @@ class SiteConfiguration(models.Model):
     )
     # Added on top of every top-up: covers the payment provider's fee plus the site's commission.
     topup_fee_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("8.50"))
+    # A top-up nobody paid within this many minutes is canceled (a late payment is still credited).
+    payment_unpaid_timeout_minutes = models.PositiveIntegerField(default=30)
     maintenance_mode_enabled = models.BooleanField(default=False)
     maintenance_message = models.TextField(blank=True, default="")
     registration_enabled = models.BooleanField(default=True)
