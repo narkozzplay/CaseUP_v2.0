@@ -451,3 +451,67 @@
     color: var(--text-muted);
     font-size: 0.92rem;
 }
+
+/* «Глазами пользователя»: плашка поверх любой страницы, пока команда смотрит сайт как обычный пользователь. */
+.view-as-user-bar {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: max-content;
+    max-width: calc(100% - 32px);
+    padding: 10px 12px 10px 16px;
+    transform: translateX(-50%);
+    border: 1px solid var(--accent);
+    background: var(--panel-2);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    color: var(--text-soft);
+}
+
+.view-as-user-bar__icon {
+    display: inline-flex;
+    color: var(--accent);
+}
+
+.view-as-user-bar__icon .ui-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.view-as-user-bar__text {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.35;
+}
+
+.view-as-user-bar__text strong {
+    color: var(--text);
+}
+
+.view-as-user-bar__form {
+    flex-shrink: 0;
+    margin: 0;
+}
+
+.ops-hero__actions {
+    margin: 14px 0 0;
+}
+
+@media (max-width: 640px) {
+    .view-as-user-bar {
+        bottom: 8px;
+        flex-wrap: wrap;
+        gap: 8px 10px;
+    }
+
+    .view-as-user-bar__form {
+        width: 100%;
+    }
+
+    .view-as-user-bar__form .btn {
+        width: 100%;
+    }
+}

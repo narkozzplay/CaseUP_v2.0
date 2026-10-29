@@ -38,6 +38,7 @@ class MaintenanceModeMiddleware:
         "/admin/",
         "/auth/login/",
         "/auth/logout/",
+        "/auth/view-as-user/exit/",
         "/telegram/",
         "/payments/webhook/",
     )
