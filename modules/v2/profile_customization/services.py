@@ -2,14 +2,26 @@ from __future__ import annotations
 
 import re
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
+from django.utils import timezone
 
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.subscriptions.feature_codes import PROFILE_CUSTOMIZATION
 from modules.v2.subscriptions.services import user_has_feature
+from modules.v2.system.request_cache import request_memoize
 
-from .effects import SLOT_FRAME, SLOT_HERO, SLOT_NAME, SLOTS, get_effect
-from .models import SteamAvatar, SteamBackground, UserCustomization
+from .effects import (
+    SLOT_ACCENT,
+    SLOT_FRAME,
+    SLOT_HERO,
+    SLOT_NAME,
+    SLOT_TITLE,
+    SLOTS,
+    ProfileEffect,
+    get_effect,
+    get_kit,
+)
+from .models import EffectGrant, ShowcaseItem, SteamAvatar, SteamBackground, UserCustomization
 
 
 # ---------------------------------------------------------------------------
@@ -237,24 +249,61 @@ def _update_profile_avatar_cache(user, avatar_url: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# CaseUP effects (avatar frame, nickname, profile header)
+# CaseUP effects (avatar frame, nickname, profile header, title, accent)
 # ---------------------------------------------------------------------------
 
 EFFECT_FIELDS = {
     SLOT_FRAME: "avatar_frame",
     SLOT_NAME: "name_effect",
     SLOT_HERO: "hero_effect",
+    SLOT_TITLE: "title_effect",
+    SLOT_ACCENT: "accent_effect",
 }
+
+def owned_effects(user) -> set[tuple[str, str]]:
+    """(slot, key) of the reward effects the user has earned."""
+    if not getattr(user, "pk", None):
+        return set()
+    return set(EffectGrant.objects.filter(user=user).values_list("slot", "key"))
+
+
+def _is_admin_plus(user) -> bool:
+    return bool(getattr(user, "is_authenticated", False)) and get_user_role(user).is_admin_plus
+
+
+def can_wear(user, effect: ProfileEffect, *, can_customize: bool | None = None, owned: set | None = None) -> bool:
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if effect.is_free:
+        return True
+    if effect.is_pro:
+        return can_customize_profile(user) if can_customize is None else can_customize
+    if _is_admin_plus(user):
+        return True
+    owned = owned_effects(user) if owned is None else owned
+    return (effect.slot, effect.key) in owned
+
+
+def _locked_message(effect: ProfileEffect) -> str:
+    if effect.is_reward:
+        how = f" {effect.how_ru}." if effect.how_ru else ""
+        return f"«{effect.title_ru}» — награда, её нужно заработать.{how}"
+    return "Этот эффект входит в тариф Pro."
 
 
 def set_effect(user, slot: str, key: str) -> UserCustomization:
     """Set (or clear with an empty key) one effect slot for the user."""
-    _require_can_customize(user)
+    if not getattr(user, "is_authenticated", False):
+        raise PermissionError("Нужен вход в аккаунт.")
     if slot not in SLOTS:
         raise ValueError("Неизвестный тип эффекта.")
     clean_key = str(key or "").strip()
-    if clean_key and get_effect(slot, clean_key) is None:
-        raise ValueError("Эффект не найден.")
+    if clean_key:
+        effect = get_effect(slot, clean_key)
+        if effect is None:
+            raise ValueError("Эффект не найден.")
+        if not can_wear(user, effect):
+            raise PermissionError(_locked_message(effect))
     field = EFFECT_FIELDS[slot]
     customization = get_or_create_customization(user)
     setattr(customization, field, clean_key)
@@ -262,21 +311,199 @@ def set_effect(user, slot: str, key: str) -> UserCustomization:
     return customization
 
 
-def get_profile_effect_classes(user) -> dict[str, str]:
-    """CSS classes for the effects a profile shows: {"frame": "pfx-frame--neon", ...}.
+def apply_kit(user, kit_key: str) -> UserCustomization:
+    """Put on every part of a kit at once; all parts must be available."""
+    if not getattr(user, "is_authenticated", False):
+        raise PermissionError("Нужен вход в аккаунт.")
+    kit = get_kit(kit_key)
+    if kit is None:
+        raise ValueError("Комплект не найден.")
+    can_customize = can_customize_profile(user)
+    owned = owned_effects(user)
+    locked = [effect for effect in kit.effects if not can_wear(user, effect, can_customize=can_customize, owned=owned)]
+    if locked:
+        names = ", ".join(f"«{effect.title_ru}»" for effect in locked)
+        raise PermissionError(f"В комплекте есть недоступные эффекты: {names}.")
+    customization = get_or_create_customization(user)
+    fields = []
+    for effect in kit.effects:
+        field = EFFECT_FIELDS[effect.slot]
+        setattr(customization, field, effect.key)
+        fields.append(field)
+    customization.save(update_fields=[*fields, "updated_at"])
+    return customization
 
-    Effects are a perk, so they show only while the owner still has access.
+
+def grant_effect(user, slot: str, key: str, *, source: str = "admin", note: str = "", send_notification: bool = True) -> EffectGrant | None:
+    """Give the user a reward effect. Returns None when it was already theirs."""
+    effect = get_effect(slot, key)
+    if effect is None:
+        raise ValueError("Эффект не найден.")
+    try:
+        with transaction.atomic():
+            grant = EffectGrant.objects.create(user=user, slot=slot, key=key, source=source[:64], note=note[:255])
+    except IntegrityError:
+        return None
+    if send_notification:
+        from .notifications import notify_effect_unlocked
+
+        notify_effect_unlocked(grant)
+    return grant
+
+
+def sync_achievements(user) -> list[EffectGrant]:
+    """Grant every achievement effect the user now qualifies for."""
+    from .achievements import due_achievements
+
+    if not getattr(user, "pk", None):
+        return []
+    new = []
+    for achievement in due_achievements(user, owned_effects(user)):
+        grant = grant_effect(user, achievement.slot, achievement.effect_key, source=f"achievement:{achievement.key}")
+        if grant is not None:
+            new.append(grant)
+    return new
+
+
+def sync_recent_achievements() -> int:
+    """Hourly: achievements for everyone active lately, so the unlock notification comes on its own."""
+    from django.contrib.auth import get_user_model
+
+    from .achievements import recently_active_cutoff
+
+    granted = 0
+    users = get_user_model().objects.filter(profile_v2__last_seen_at__gte=recently_active_cutoff(), is_active=True)
+    for user in users.iterator():
+        granted += len(sync_achievements(user))
+    return granted
+
+
+def mark_grants_seen(user) -> None:
+    EffectGrant.objects.filter(user=user, seen_at__isnull=True).update(seen_at=timezone.now())
+
+
+def _compute_look(customization: UserCustomization | None) -> dict:
+    """{slot: key} of the effects the profile may show right now."""
+    if customization is None:
+        return {}
+    picked = {slot: get_effect(slot, getattr(customization, field)) for slot, field in EFFECT_FIELDS.items()}
+    picked = {slot: effect for slot, effect in picked.items() if effect is not None}
+    if not picked:
+        return {}
+    user = customization.user
+    if any(effect.is_pro or effect.is_reward for effect in picked.values()):
+        can_customize = can_customize_profile(user) if any(effect.is_pro for effect in picked.values()) else False
+        owned = owned_effects(user) if any(effect.is_reward for effect in picked.values()) else set()
+        picked = {
+            slot: effect
+            for slot, effect in picked.items()
+            if can_wear(user, effect, can_customize=can_customize, owned=owned)
+        }
+    return {slot: effect.key for slot, effect in picked.items()}
+
+
+@request_memoize
+def _look_keys(user_id) -> dict:
+    """Memoized per request: a chat or a friends list shows the same people many times."""
+    customization = (
+        UserCustomization.objects.filter(user_id=user_id)
+        .select_related("user", "user__profile_v2")
+        .first()
+    )
+    return _compute_look(customization)
+
+
+def get_profile_look(user_or_id) -> dict:
+    """What a profile shows: CSS classes for frame/name/hero/accent and the title effect.
+
+    {"frame": "pfx-frame--neon", "name": "", "hero": "", "accent": "", "title": ProfileEffect | None}
+    Pro effects show only while the owner still has access, rewards while the grant exists.
     """
-    empty = {slot: "" for slot in SLOTS}
-    if user is None or not getattr(user, "pk", None):
-        return empty
-    customization = UserCustomization.objects.filter(user=user).only(*EFFECT_FIELDS.values()).first()
-    if customization is None or not any(getattr(customization, f) for f in EFFECT_FIELDS.values()):
-        return empty
-    if not can_customize_profile(user):
-        return empty
-    classes = {}
-    for slot, field in EFFECT_FIELDS.items():
-        effect = get_effect(slot, getattr(customization, field))
-        classes[slot] = effect.css_class if effect else ""
-    return classes
+    look = {slot: "" for slot in SLOTS}
+    look[SLOT_TITLE] = None
+    user_id = getattr(user_or_id, "pk", user_or_id)
+    if not user_id:
+        return look
+    for slot, key in _look_keys(user_id).items():
+        effect = get_effect(slot, key)
+        if effect is None:
+            continue
+        look[slot] = effect if slot == SLOT_TITLE else effect.css_class
+    return look
+
+
+# Older name, used by profile and CS2 stats views.
+get_profile_effect_classes = get_profile_look
+
+
+# ---------------------------------------------------------------------------
+# Showcase: skins pinned to the profile
+# ---------------------------------------------------------------------------
+
+def showcase_candidates(user, *, limit: int = 60) -> list:
+    """Items the user follows: favorites, price alerts and investments, newest first."""
+    from modules.v2.steam_catalog.models import SteamItem, SteamItemFavorite, UserPriceAlertRule
+    from modules.v2.steam_trading.models import SteamPurchase
+
+    ids: list[int] = []
+    for qs in (
+        SteamItemFavorite.objects.filter(user=user).order_by("-created_at").values_list("item_id", flat=True),
+        UserPriceAlertRule.objects.filter(user=user, item__isnull=False).order_by("-id").values_list("item_id", flat=True),
+        SteamPurchase.objects.filter(created_by=user).order_by("-purchased_at").values_list("item_id", flat=True),
+    ):
+        for item_id in qs[:limit]:
+            if item_id not in ids:
+                ids.append(item_id)
+    items = SteamItem.objects.in_bulk(ids[:limit])
+    return [items[item_id] for item_id in ids[:limit] if item_id in items]
+
+
+def set_showcase(user, item_ids) -> list[ShowcaseItem]:
+    if not getattr(user, "is_authenticated", False):
+        raise PermissionError("Нужен вход в аккаунт.")
+    clean: list[int] = []
+    for raw in item_ids or []:
+        try:
+            item_id = int(raw)
+        except (TypeError, ValueError):
+            continue
+        if item_id not in clean:
+            clean.append(item_id)
+    if len(clean) > ShowcaseItem.MAX_ITEMS:
+        raise ValueError(f"В витрину помещается до {ShowcaseItem.MAX_ITEMS} предметов.")
+    allowed = {item.pk for item in showcase_candidates(user, limit=500)}
+    if any(item_id not in allowed for item_id in clean):
+        raise ValueError("В витрину можно поставить только предметы из избранного, уведомлений или инвестиций.")
+    with transaction.atomic():
+        ShowcaseItem.objects.filter(user=user).delete()
+        rows = [ShowcaseItem(user=user, item_id=item_id, position=index) for index, item_id in enumerate(clean)]
+        ShowcaseItem.objects.bulk_create(rows)
+    return rows
+
+
+def showcase_for(user) -> list[dict]:
+    """Pinned items with the current price and the change over the last 7 days."""
+    from datetime import timedelta
+    from decimal import Decimal
+
+    from modules.v2.steam_catalog.models import SteamItemPriceHistory
+
+    if not getattr(user, "pk", None):
+        return []
+    rows = list(ShowcaseItem.objects.filter(user=user).select_related("item").order_by("position", "id"))
+    week_ago = timezone.now() - timedelta(days=7)
+    out = []
+    for row in rows:
+        item = row.item
+        price = item.price_rub
+        old = (
+            SteamItemPriceHistory.objects.filter(item=item, created_at__lte=week_ago)
+            .order_by("-created_at")
+            .values_list("price_rub", flat=True)
+            .first()
+        )
+        change = None
+        if price is not None and old:
+            change = ((Decimal(price) - Decimal(old)) / Decimal(old) * 100).quantize(Decimal("0.1"))
+        out.append({"item": item, "price": price, "change": change})
+    return out

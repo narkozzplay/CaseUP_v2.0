@@ -1,5 +1,5 @@
 <article class="pcz-card pcz-card--av{% if item.pk == selected_av_id and not hidden_item %} is-current{% endif %}{% if hidden_item %} is-hidden{% endif %}"
-         data-pcz-item data-kind="av" data-title="{{ item.title|lower }}"
+         data-pcz-item data-state="{% if can_customize %}open{% else %}pro{% endif %}" data-kind="av" data-title="{{ item.title|lower }}"
          data-avatar="{{ item.avatar_url }}" data-name="{{ item.title }}"
          {% if not hidden_item %}data-select-url="{% url 'profile_customization:select_avatar' item.pk %}"{% endif %}>
     <button type="button" class="pcz-card__media" data-pcz-preview aria-label="{% if LANGUAGE_CODE == "ru" %}Примерить{% else %}Try on{% endif %}: {{ item.title }}">

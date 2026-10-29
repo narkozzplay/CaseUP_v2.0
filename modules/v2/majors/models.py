@@ -263,11 +263,13 @@ class RewardRule(models.Model):
         SEMIFINALISTS = "semifinalists", "Угаданы полуфиналисты"
         FINALISTS = "finalists", "Угаданы финалисты"
         CHAMPION = "champion", "Угадан чемпион"
+        PARTICIPATED = "participated", "Участвовал (есть прогнозы)"
 
     class Kind(models.TextChoices):
         BALANCE = "balance", "Бонус на баланс"
         SUBSCRIPTION = "subscription", "Дни подписки"
         ITEM = "item", "Скин"
+        EFFECT = "effect", "Оформление профиля"
 
     major = models.ForeignKey(Major, on_delete=models.CASCADE, related_name="reward_rules")
     title = models.CharField("Название", max_length=120)
@@ -279,6 +281,7 @@ class RewardRule(models.Model):
     plan = models.ForeignKey("subscriptions.SubscriptionPlan", on_delete=models.PROTECT, null=True, blank=True, related_name="+", verbose_name="Тариф")
     days = models.PositiveSmallIntegerField("Дней подписки", default=0)
     item = models.ForeignKey("steam_catalog.SteamItem", on_delete=models.PROTECT, null=True, blank=True, related_name="+", verbose_name="Скин", help_text="Отправляется трейдом на трейд-ссылку игрока; такие награды всегда выдаются после проверки.")
+    effect_ref = models.CharField("Оформление", max_length=64, blank=True, default="", help_text="Рамка, ник, шапка или титул из наград CaseUP. Только косметика: нельзя продать или передать.")
     requires_approval = models.BooleanField("Выдавать после проверки", default=False, help_text="Награда ждёт одобрения в админке: защита от мультиаккаунтов на крупных призах.")
     is_active = models.BooleanField("Активно", default=True)
     sort_order = models.PositiveSmallIntegerField(default=100)
@@ -299,6 +302,12 @@ class RewardRule(models.Model):
             raise ValidationError({"plan": "Укажите тариф и число дней."})
         if self.kind == self.Kind.ITEM and self.item_id is None:
             raise ValidationError({"item": "Выберите скин из каталога."})
+        if self.kind == self.Kind.EFFECT:
+            from modules.v2.profile_customization.effects import get_effect_by_ref
+
+            effect = get_effect_by_ref(self.effect_ref)
+            if effect is None or not effect.is_reward:
+                raise ValidationError({"effect_ref": "Выберите оформление из наград CaseUP."})
         if self.stage_id and self.stage.major_id != self.major_id:
             raise ValidationError({"stage": "Стадия другого мейджора."})
 
@@ -325,6 +334,11 @@ class RewardRule(models.Model):
             return self.item.market_hash_name if self.item_id else "Скин"
         if self.kind == self.Kind.SUBSCRIPTION:
             return f"{self.plan.name if self.plan_id else 'Подписка'} на {self.days} дн."
+        if self.kind == self.Kind.EFFECT:
+            from modules.v2.profile_customization.effects import get_effect_by_ref
+
+            effect = get_effect_by_ref(self.effect_ref)
+            return f"Оформление «{effect.title_ru}»" if effect else "Оформление профиля"
         amount = self.amount or ZERO
         return f"{amount:.0f} ₽" if amount == amount.to_integral() else f"{amount:.2f} ₽"
 

@@ -14,11 +14,16 @@
             var video = stage.querySelector('[data-pcz-stage-video]');
             var avatar = stage.querySelector('[data-pcz-stage-avatar]');
             var fx = {};
-            stage.querySelectorAll('[data-pcz-stage-fx]').forEach(function (node) {
-                fx[node.dataset.pczStageFx] = node.className;
+            var fxText = {};
+            [stage].concat(Array.prototype.slice.call(stage.querySelectorAll('[data-pcz-stage-fx]'))).forEach(function (node) {
+                if (node.dataset.pczStageFx) {
+                    fx[node.dataset.pczStageFx] = node.className;
+                    fxText[node.dataset.pczStageFx] = node.textContent;
+                }
             });
             stage.pczInitial = {
                 fx: fx,
+                fxText: fxText,
                 background: media ? media.style.backgroundImage : '',
                 video: video && !video.hidden ? video.getAttribute('src') || '' : '',
                 poster: video ? video.getAttribute('poster') || '' : '',
@@ -55,10 +60,14 @@
         }
     }
 
-    function setEffect(stage, slot, fxClass) {
-        var node = stage.querySelector('[data-pcz-stage-fx="' + slot + '"]');
+    function setEffect(stage, slot, fxClass, text) {
+        var node = stage.matches('[data-pcz-stage-fx="' + slot + '"]') ? stage : stage.querySelector('[data-pcz-stage-fx="' + slot + '"]');
         if (!node) {
             return;
+        }
+        if (slot === 'title') {
+            node.textContent = text || '';
+            node.hidden = !text;
         }
         var prefix = 'pfx-' + slot + '--';
         Array.prototype.slice.call(node.classList).forEach(function (name) {
@@ -94,8 +103,16 @@
         if (avatar) {
             avatar.setAttribute('src', initial.avatar);
         }
-        stage.querySelectorAll('[data-pcz-stage-fx]').forEach(function (node) {
-            node.className = initial.fx[node.dataset.pczStageFx] || node.className;
+        [stage].concat(Array.prototype.slice.call(stage.querySelectorAll('[data-pcz-stage-fx]'))).forEach(function (node) {
+            var slot = node.dataset.pczStageFx;
+            if (!slot) {
+                return;
+            }
+            node.className = initial.fx[slot] || node.className;
+            if (slot === 'title') {
+                node.textContent = initial.fxText[slot] || '';
+                node.hidden = !node.textContent.trim();
+            }
         });
         setTag(stage, false);
         root.querySelectorAll('[data-pcz-item].is-trying').forEach(function (card) {
@@ -113,7 +130,7 @@
             return;
         }
         if (card.dataset.kind === 'fx') {
-            setEffect(stage, card.dataset.slot, card.dataset.fxClass || '');
+            setEffect(stage, card.dataset.slot, card.dataset.fxClass || '', card.dataset.name || '');
         } else if (card.dataset.kind === 'bg') {
             setBackground(stage, card.dataset.static || '', card.dataset.video || '');
         } else {
@@ -138,8 +155,18 @@
         }
         var form = tryBox.querySelector('[data-pcz-apply-form]');
         var isCurrent = card.classList.contains('is-current');
+        var state = card.dataset.state || 'open';
+        var pro = tryBox.querySelector('[data-pcz-try-pro]');
+        if (pro) {
+            pro.hidden = state !== 'pro';
+        }
+        var note = tryBox.querySelector('[data-pcz-try-note]');
+        if (note) {
+            note.textContent = state === 'reward' ? (card.dataset.how || '') : '';
+            note.hidden = state !== 'reward';
+        }
         if (form) {
-            form.hidden = !card.dataset.selectUrl || isCurrent;
+            form.hidden = !card.dataset.selectUrl || isCurrent || state !== 'open';
             form.setAttribute('action', card.dataset.selectUrl || '');
             var key = form.querySelector('[data-pcz-apply-key]');
             if (key) {
@@ -213,6 +240,27 @@
         if (video) {
             video.pause();
             video.classList.remove('is-playing');
+        }
+    });
+
+    /* showcase: at most data-max items, live counter */
+
+    document.addEventListener('change', function (event) {
+        var box = event.target;
+        var form = box.closest && box.closest('[data-pcz-showcase]');
+        if (!form || box.name !== 'items') {
+            return;
+        }
+        var max = parseInt(form.dataset.max, 10) || 4;
+        var checked = form.querySelectorAll('input[name="items"]:checked');
+        if (checked.length > max) {
+            box.checked = false;
+            checked = form.querySelectorAll('input[name="items"]:checked');
+        }
+        box.closest('.pcz-showcase-pick').classList.toggle('is-current', box.checked);
+        var counter = form.querySelector('[data-pcz-showcase-count]');
+        if (counter) {
+            counter.textContent = checked.length + '/' + max;
         }
     });
 

@@ -93,6 +93,8 @@ class UserCustomization(models.Model):
     avatar_frame = models.CharField(max_length=32, blank=True, default="")
     name_effect = models.CharField(max_length=32, blank=True, default="")
     hero_effect = models.CharField(max_length=32, blank=True, default="")
+    title_effect = models.CharField(max_length=32, blank=True, default="")
+    accent_effect = models.CharField(max_length=32, blank=True, default="")
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -101,3 +103,48 @@ class UserCustomization(models.Model):
 
     def __str__(self) -> str:
         return f"UserCustomization(user={self.user_id})"
+
+
+class EffectGrant(models.Model):
+    """A reward effect the user owns: earned by an achievement, won in Pick'em or given by an admin.
+
+    Cosmetic only: bound to the account, it cannot be sold, traded or turned into money.
+    """
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="effect_grants")
+    slot = models.CharField(max_length=16)
+    key = models.CharField(max_length=32)
+    # "achievement:<key>", "pickem:<grant id>" or "admin"
+    source = models.CharField(max_length=64, blank=True, default="")
+    note = models.CharField(max_length=255, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    seen_at = models.DateTimeField(null=True, blank=True, help_text="Когда пользователь увидел награду в каталоге.")
+
+    class Meta:
+        verbose_name = "Effect grant"
+        verbose_name_plural = "Effect grants"
+        ordering = ["-created_at", "-id"]
+        constraints = [models.UniqueConstraint(fields=["user", "slot", "key"], name="pcust_effect_grant_uniq")]
+
+    def __str__(self) -> str:
+        return f"EffectGrant(user={self.user_id}, {self.slot}:{self.key})"
+
+
+class ShowcaseItem(models.Model):
+    """A skin pinned to the profile showcase, shown with its current price and weekly change."""
+
+    MAX_ITEMS = 4
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="showcase_items")
+    item = models.ForeignKey("steam_catalog.SteamItem", on_delete=models.CASCADE, related_name="+")
+    position = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Showcase item"
+        verbose_name_plural = "Showcase items"
+        ordering = ["position", "id"]
+        constraints = [models.UniqueConstraint(fields=["user", "item"], name="pcust_showcase_user_item_uniq")]
+
+    def __str__(self) -> str:
+        return f"ShowcaseItem(user={self.user_id}, item={self.item_id})"

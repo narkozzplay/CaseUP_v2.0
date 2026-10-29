@@ -395,3 +395,183 @@ class ProfileEffectsTests(TestCase):
         resp = self.client.get(reverse("profile_customization:catalog"), **PARTIAL_HEADERS)
         self.assertEqual(resp.context["active_tab"], "effects")
         self.assertContains(resp, "pfx-frame--holo")
+
+
+class EffectCollectionTests(TestCase):
+    def setUp(self):
+        self.regular = _make_user("regular_coll")
+        self.admin = _make_admin("admin_coll")
+        self.client = Client()
+
+    def _pro(self, user):
+        plan = SubscriptionPlan.objects.get(code="site_pro")
+        UserSubscription.objects.create(user=user, plan=plan, family="site")
+
+    def test_free_effects_need_no_plan(self):
+        from .services import get_profile_look, set_effect
+
+        set_effect(self.regular, "frame", "steel")
+        set_effect(self.regular, "title", "cs2_player")
+        set_effect(self.regular, "accent", "blue")
+        look = get_profile_look(self.regular)
+        self.assertEqual(look["frame"], "pfx-frame--steel")
+        self.assertEqual(look["accent"], "pfx-accent--blue")
+        self.assertEqual(look["title"].key, "cs2_player")
+
+    def test_pro_effect_needs_pro(self):
+        from .services import set_effect
+
+        with self.assertRaises(PermissionError):
+            set_effect(self.regular, "name", "fade")
+        self._pro(self.regular)
+        set_effect(self.regular, "name", "fade")
+
+    def test_reward_needs_a_grant_even_with_pro(self):
+        from .services import get_profile_look, grant_effect, set_effect
+
+        self._pro(self.regular)
+        with self.assertRaises(PermissionError):
+            set_effect(self.regular, "frame", "case_hardened")
+        grant = grant_effect(self.regular, "frame", "case_hardened", source="test")
+        self.assertIsNotNone(grant)
+        self.assertIsNone(grant_effect(self.regular, "frame", "case_hardened", source="test"))
+        set_effect(self.regular, "frame", "case_hardened")
+        self.assertEqual(get_profile_look(self.regular)["frame"], "pfx-frame--case_hardened")
+        # Taken back by an admin: the profile stops showing it.
+        grant.delete()
+        self.assertEqual(get_profile_look(self.regular)["frame"], "")
+
+    def test_grant_sends_a_notification(self):
+        from modules.v2.notifications.models import Notification
+
+        from .services import grant_effect
+
+        grant_effect(self.regular, "title", "veteran")
+        self.assertTrue(Notification.objects.filter(recipient=self.regular, kind="profile_effect_unlocked").exists())
+
+    def test_admin_wears_rewards(self):
+        from .services import set_effect
+
+        set_effect(self.admin, "hero", "dust2")
+
+    def test_pro_effects_hide_when_pro_ends_free_ones_stay(self):
+        from .services import get_profile_look, set_effect
+
+        self._pro(self.regular)
+        set_effect(self.regular, "frame", "doppler")
+        set_effect(self.regular, "title", "skin_fan")
+        UserSubscription.objects.filter(user=self.regular).delete()
+        look = get_profile_look(self.regular)
+        self.assertEqual(look["frame"], "")
+        self.assertEqual(look["title"].key, "skin_fan")
+
+    def test_achievement_from_daily_bonus_streak(self):
+        from modules.v2.daily_bonus.models import DailyBonusState
+
+        from .models import EffectGrant
+        from .services import sync_achievements
+
+        DailyBonusState.objects.create(user=self.regular, streak=0, best_streak=8)
+        new = sync_achievements(self.regular)
+        self.assertEqual([(g.slot, g.key) for g in new], [("title", "regular")])
+        self.assertEqual(sync_achievements(self.regular), [])
+        self.assertEqual(EffectGrant.objects.get(user=self.regular).source, "achievement:regular")
+
+    def test_catalog_syncs_and_marks_new(self):
+        from modules.v2.daily_bonus.models import DailyBonusState
+
+        from .models import EffectGrant
+
+        DailyBonusState.objects.create(user=self.regular, best_streak=31)
+        self.client.force_login(self.regular)
+        resp = self.client.get(reverse("profile_customization:catalog"), **PARTIAL_HEADERS)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context["new_effects_count"], 2)
+        self.assertContains(resp, "pcz-flag--new")
+        self.assertFalse(EffectGrant.objects.filter(user=self.regular, seen_at__isnull=True).exists())
+
+    def test_kit(self):
+        from .services import apply_kit
+
+        apply_kit(self.regular, "recruit")
+        customization = get_or_create_customization(self.regular)
+        self.assertEqual((customization.avatar_frame, customization.name_effect, customization.accent_effect), ("steel", "milspec", "blue"))
+        with self.assertRaises(PermissionError):
+            apply_kit(self.regular, "fire")
+        self.client.force_login(self.regular)
+        self.client.post(reverse("profile_customization:apply_kit"), {"kit": "fire"})
+        self.assertEqual(get_or_create_customization(self.regular).avatar_frame, "steel")
+
+    def test_profile_shows_title_and_accent(self):
+        from .services import set_effect
+
+        set_effect(self.regular, "title", "skin_fan")
+        set_effect(self.regular, "accent", "green")
+        self.client.force_login(self.admin)
+        resp = self.client.get(reverse("profiles:profile_detail", args=[self.regular.pk]), **PARTIAL_HEADERS)
+        self.assertContains(resp, "pfx-title--milspec")
+        self.assertContains(resp, "Ценитель скинов")
+        self.assertContains(resp, "pfx-accent--green")
+
+    def test_friends_list_shows_effects(self):
+        from modules.v2.social_friends.models import Friendship
+
+        from .services import set_effect
+
+        set_effect(self.regular, "name", "milspec")
+        set_effect(self.regular, "title", "cs2_player")
+        low, high = sorted([self.regular, self.admin], key=lambda u: u.pk)
+        Friendship.objects.create(user_a=low, user_b=high)
+        self.client.force_login(self.admin)
+        resp = self.client.get(reverse("social_friends:friends"), **PARTIAL_HEADERS)
+        self.assertContains(resp, "pfx-name--milspec")
+        self.assertContains(resp, "Игрок CS2")
+
+
+class ShowcaseTests(TestCase):
+    def setUp(self):
+        from modules.v2.steam_catalog.models import SteamItem, SteamItemFavorite
+
+        self.user = _make_user("showcase_user")
+        self.items = []
+        for index in range(6):
+            item = SteamItem.objects.create(market_hash_name=f"Item {index}", name=f"Item {index}", item_type="skin", price_rub=100 + index)
+            SteamItemFavorite.objects.create(user=self.user, family_key=f"fam-{index}", item=item)
+            self.items.append(item)
+        self.stranger_item = SteamItem.objects.create(market_hash_name="Other", name="Other", item_type="skin")
+
+    def test_set_and_show_with_weekly_change(self):
+        from datetime import timedelta
+        from decimal import Decimal
+
+        from django.utils import timezone
+
+        from modules.v2.steam_catalog.models import SteamItemPriceHistory
+
+        from .services import set_showcase, showcase_for
+
+        set_showcase(self.user, [self.items[0].pk, self.items[1].pk])
+        old = SteamItemPriceHistory.objects.create(item=self.items[0], price_rub=Decimal("80"))
+        SteamItemPriceHistory.objects.filter(pk=old.pk).update(created_at=timezone.now() - timedelta(days=8))
+        rows = showcase_for(self.user)
+        self.assertEqual([row["item"].pk for row in rows], [self.items[0].pk, self.items[1].pk])
+        self.assertEqual(rows[0]["change"], Decimal("25.0"))
+        self.assertIsNone(rows[1]["change"])
+
+    def test_limits(self):
+        from .services import set_showcase
+
+        with self.assertRaises(ValueError):
+            set_showcase(self.user, [item.pk for item in self.items[:5]])
+        with self.assertRaises(ValueError):
+            set_showcase(self.user, [self.stranger_item.pk])
+
+    def test_views(self):
+        client = Client()
+        client.force_login(self.user)
+        resp = client.get(reverse("profile_customization:catalog") + "?tab=showcase", **PARTIAL_HEADERS)
+        self.assertContains(resp, "data-pcz-showcase")
+        client.post(reverse("profile_customization:save_showcase"), {"items": [self.items[2].pk]})
+        resp = client.get(reverse("profiles:profile"), **PARTIAL_HEADERS)
+        self.assertContains(resp, "pfx-showcase__item")
+        self.assertContains(resp, "Item 2")

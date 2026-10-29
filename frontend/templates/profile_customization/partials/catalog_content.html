@@ -9,19 +9,15 @@
             </p>
         </div>
         <span class="pcz-access {% if can_customize %}is-open{% else %}is-locked{% endif %}">
-            {% if can_customize %}
-                {% if LANGUAGE_CODE == "ru" %}Доступно{% else %}Unlocked{% endif %}
-            {% else %}
-                {% if LANGUAGE_CODE == "ru" %}Нужен тариф Pro{% else %}Pro plan required{% endif %}
-            {% endif %}
+            {% if LANGUAGE_CODE == "ru" %}Открыто {{ open_effects_count }} из {{ effects_count }}{% else %}{{ open_effects_count }} of {{ effects_count }} unlocked{% endif %}
         </span>
     </header>
 
     {% if not can_customize %}
         <div class="pcz-lock">
             <div>
-                <strong>{% if LANGUAGE_CODE == "ru" %}Примерять можно всем, применять с тарифом Pro{% else %}Anyone can try, the Pro plan can apply{% endif %}</strong>
-                <p>{% if LANGUAGE_CODE == "ru" %}Эффекты CaseUP, анимированные фоны и аватарки из Steam входят в тариф Pro. Также доступны авторам магазина и администрации.{% else %}CaseUP effects and animated Steam backgrounds and avatars come with the Pro plan. Store authors and staff have them too.{% endif %}</p>
+                <strong>{% if LANGUAGE_CODE == "ru" %}Примерять можно всё, часть оформления уже ваша{% else %}Try on anything, part of it is already yours{% endif %}</strong>
+                <p>{% if LANGUAGE_CODE == "ru" %}Армейские эффекты, титулы и цвета бесплатны. Остальные эффекты, анимированные фоны и аватарки из Steam входят в тариф Pro. Награды открываются за достижения и Pick'em, их не купить.{% else %}Mil-Spec effects, titles and colors are free. Other effects and animated Steam backgrounds and avatars come with the Pro plan. Rewards are earned with achievements and Pick'em, they cannot be bought.{% endif %}</p>
             </div>
             <a href="{% url 'subscriptions:plans' %}" class="btn btn-primary btn-sm" data-dashboard-nav="false">{% if LANGUAGE_CODE == "ru" %}Смотреть тарифы{% else %}See plans{% endif %}</a>
         </div>
@@ -29,7 +25,7 @@
 
     {# ===== LIVE PREVIEW ===== #}
     <div class="pcz-top">
-        <div class="pcz-stage{% if not current_bg_static %} is-empty{% endif %}" data-pcz-stage>
+        <div class="pcz-stage pfx-accent {{ current_effects.accent.css_class|default:'' }}{% if not current_bg_static %} is-empty{% endif %}" data-pcz-stage data-pcz-stage-fx="accent">
             <div class="pcz-stage__media" data-pcz-stage-media {% if current_bg_static %}style="background-image: url('{{ current_bg_static }}');"{% endif %}>
                 <video class="pcz-stage__video" data-pcz-stage-video autoplay muted loop playsinline preload="metadata"
                        {% if current_bg_static %}poster="{{ current_bg_static }}"{% endif %}
@@ -47,6 +43,7 @@
                 <div class="pcz-stage__who">
                     <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}</span>
                     <strong class="pcz-stage__name"><span class="pfx-name {{ current_effects.name.css_class|default:'' }}" data-pcz-stage-fx="name" data-pfx-slot="name" data-text="{{ preview_display_name }}">{{ preview_display_name }}</span></strong>
+                    <span class="pfx-title {% if current_effects.title %}pfx-title--{{ current_effects.title.rarity }}{% endif %}" data-pcz-stage-fx="title"{% if not current_effects.title %} hidden{% endif %}>{% if current_effects.title %}{% if LANGUAGE_CODE == "ru" %}{{ current_effects.title.title_ru }}{% else %}{{ current_effects.title.title_en }}{% endif %}{% endif %}</span>
                 </div>
             </div>
             {% if not current_bg_static %}
@@ -102,7 +99,7 @@
                         {% for group in effect_groups %}
                             {% if group.current %}<span class="pcz-chip pcz-chip--{{ group.current.rarity }}">{% if LANGUAGE_CODE == "ru" %}{{ group.current.title_ru }}{% else %}{{ group.current.title_en }}{% endif %}</span>{% endif %}
                         {% endfor %}
-                        {% if not current_effects.frame and not current_effects.name and not current_effects.hero %}
+                        {% if not current_effects.frame and not current_effects.name and not current_effects.hero and not current_effects.title and not current_effects.accent %}
                             <span class="pcz-current__name is-muted">{% if LANGUAGE_CODE == "ru" %}Не выбраны{% else %}None yet{% endif %}</span>
                         {% endif %}
                     </dd>
@@ -112,17 +109,15 @@
             <div class="pcz-try" data-pcz-try hidden>
                 <span class="pcz-try__label">{% if LANGUAGE_CODE == "ru" %}Примеряете{% else %}Trying on{% endif %}</span>
                 <strong class="pcz-try__title" data-pcz-try-title></strong>
+                <p class="pcz-try__note" data-pcz-try-note hidden></p>
                 <div class="pcz-try__actions">
-                    {% if can_customize %}
-                        <form method="post" action="" data-pcz-apply-form>
-                            {% csrf_token %}
-                            <input type="hidden" name="next" value="" data-pcz-apply-next>
-                            <input type="hidden" name="key" value="" data-pcz-apply-key>
-                            <button type="submit" class="btn btn-primary btn-sm">{% if LANGUAGE_CODE == "ru" %}Применить{% else %}Apply{% endif %}</button>
-                        </form>
-                    {% else %}
-                        <a href="{% url 'subscriptions:plans' %}" class="btn btn-primary btn-sm" data-dashboard-nav="false">{% if LANGUAGE_CODE == "ru" %}Открыть с Pro{% else %}Unlock with Pro{% endif %}</a>
-                    {% endif %}
+                    <form method="post" action="" data-pcz-apply-form>
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="" data-pcz-apply-next>
+                        <input type="hidden" name="key" value="" data-pcz-apply-key>
+                        <button type="submit" class="btn btn-primary btn-sm">{% if LANGUAGE_CODE == "ru" %}Применить{% else %}Apply{% endif %}</button>
+                    </form>
+                    <a href="{% url 'subscriptions:plans' %}" class="btn btn-primary btn-sm" data-dashboard-nav="false" data-pcz-try-pro hidden>{% if LANGUAGE_CODE == "ru" %}Открыть с Pro{% else %}Unlock with Pro{% endif %}</a>
                     <button type="button" class="btn btn-ghost btn-sm" data-pcz-reset>{% if LANGUAGE_CODE == "ru" %}Вернуть как было{% else %}Undo{% endif %}</button>
                 </div>
             </div>
@@ -133,7 +128,10 @@
     <div class="pcz-toolbar">
         <nav class="cc-tabs pcz-tabs" aria-label="{% if LANGUAGE_CODE == "ru" %}Разделы каталога{% else %}Catalog sections{% endif %}">
             <a href="?tab=effects" class="cc-tab{% if active_tab == 'effects' %} is-active{% endif %}" data-dashboard-nav="true">
-                <span>{% if LANGUAGE_CODE == "ru" %}Эффекты CaseUP{% else %}CaseUP effects{% endif %}</span><b class="pcz-tabs__count">{{ effects_count }}</b>
+                <span>{% if LANGUAGE_CODE == "ru" %}Эффекты CaseUP{% else %}CaseUP effects{% endif %}</span><b class="pcz-tabs__count">{{ open_effects_count }}/{{ effects_count }}</b>{% if new_effects_count %}<b class="pcz-tabs__new">+{{ new_effects_count }}</b>{% endif %}
+            </a>
+            <a href="?tab=showcase" class="cc-tab{% if active_tab == 'showcase' %} is-active{% endif %}" data-dashboard-nav="true">
+                <span>{% if LANGUAGE_CODE == "ru" %}Витрина{% else %}Showcase{% endif %}</span><b class="pcz-tabs__count">{{ showcase_ids|length }}/{{ showcase_max }}</b>
             </a>
             <a href="?tab=backgrounds" class="cc-tab{% if active_tab == 'backgrounds' %} is-active{% endif %}" data-dashboard-nav="true">
                 <span>{% if LANGUAGE_CODE == "ru" %}Фоны{% else %}Backgrounds{% endif %}</span><b class="pcz-tabs__count">{{ backgrounds|length }}</b>
@@ -155,6 +153,8 @@
 
     {% if active_tab == "effects" %}
         {% include "profile_customization/partials/_effects_tab.html" %}
+    {% elif active_tab == "showcase" %}
+        {% include "profile_customization/partials/_showcase_tab.html" %}
     {% elif active_tab == "backgrounds" %}
         {% if backgrounds %}
             <div class="pcz-grid pcz-grid--bg" data-pcz-grid>

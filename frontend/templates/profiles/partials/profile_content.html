@@ -1,5 +1,5 @@
 {% load donations %}
-<section class="section section--compact">
+<section class="section section--compact{% if profile_effects.accent %} pfx-accent {{ profile_effects.accent }}{% endif %}">
     <div class="profile-hero profile-hero--dashboard card {% if effective_bg_static %}profile-hero--with-bg{% endif %}"
          {% if effective_bg_static %}style="--profile-bg: url('{{ effective_bg_static }}');"{% endif %}>
 
@@ -44,6 +44,7 @@
                 <h1 class="page-title page-title--sm">
                     {% if profile_effects.name %}<span class="pfx-name {{ profile_effects.name }}" data-text="{{ profile_display_name }}">{{ profile_display_name }}</span>{% else %}{{ profile_display_name }}{% endif %}{% if profile_verification_badge %}{% include "components/verification_badge.html" with badge=profile_verification_badge %}{% endif %}{% sponsor_badge profile_user %}
                 </h1>
+                {% if profile_effects.title %}<span class="pfx-title pfx-title--{{ profile_effects.title.rarity }} profile-hero__title">{% if LANGUAGE_CODE == "ru" %}{{ profile_effects.title.title_ru }}{% else %}{{ profile_effects.title.title_en }}{% endif %}</span>{% endif %}
 
                 <p class="text-muted profile-hero__subtitle">
                     {% if is_owner_profile %}{% if LANGUAGE_CODE == "ru" %}
@@ -218,6 +219,10 @@
             </div>
         </div>
     </div>
+
+    {% if profile_showcase or is_owner_profile %}
+        {% include "profile_customization/partials/_profile_showcase.html" %}
+    {% endif %}
 
     <div class="profile-grid profile-grid--3 profile-grid--profile">
         <article class="card profile-card-accent">

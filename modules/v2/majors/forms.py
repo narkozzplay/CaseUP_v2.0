@@ -218,7 +218,7 @@ class RewardRuleForm(forms.ModelForm):
 
     class Meta:
         model = RewardRule
-        fields = ("title", "condition", "stage", "min_correct", "kind", "amount", "plan", "days", "requires_approval", "is_active", "sort_order")
+        fields = ("title", "condition", "stage", "min_correct", "kind", "amount", "plan", "days", "effect_ref", "requires_approval", "is_active", "sort_order")
         widgets = {
             "title": _text(),
             "condition": _select(),
@@ -228,6 +228,7 @@ class RewardRuleForm(forms.ModelForm):
             "amount": _number(min=0, step="0.01"),
             "plan": _select(),
             "days": _number(min=0, max=365),
+            "effect_ref": _select(),
             "sort_order": _number(min=0, max=1000),
         }
 
@@ -237,11 +238,18 @@ class RewardRuleForm(forms.ModelForm):
         self.instance.major = major
         self.fields["stage"].queryset = major.stages.order_by("order")
         self.fields["stage"].empty_label = "Любая стадия"
+        from modules.v2.profile_customization.effects import reward_choices
+
+        self.fields["effect_ref"] = forms.ChoiceField(
+            label=RewardRule._meta.get_field("effect_ref").verbose_name, required=False,
+            choices=[("", "—"), *reward_choices()], widget=_select(),
+            help_text=RewardRule._meta.get_field("effect_ref").help_text,
+        )
         if self.instance.item_id:
             self.initial.setdefault("item_name", self.instance.item.market_hash_name)
 
     # What a player is promised: fixed once the rule has grants, since a grant is delivered by the rule as it is then.
-    FROZEN_WITH_GRANTS = ("condition", "stage", "min_correct", "kind", "amount", "plan", "days", "item_name")
+    FROZEN_WITH_GRANTS = ("condition", "stage", "min_correct", "kind", "amount", "plan", "days", "item_name", "effect_ref")
 
     def clean(self):
         cleaned = super().clean()

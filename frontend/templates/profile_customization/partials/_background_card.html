@@ -1,5 +1,5 @@
 <article class="pcz-card pcz-card--bg{% if item.pk == selected_bg_id and not hidden_item %} is-current{% endif %}{% if hidden_item %} is-hidden{% endif %}"
-         data-pcz-item data-kind="bg" data-title="{{ item.title|lower }}"
+         data-pcz-item data-state="{% if can_customize %}open{% else %}pro{% endif %}" data-kind="bg" data-title="{{ item.title|lower }}"
          data-static="{{ item.static_url }}" data-video="{{ item.video_url }}" data-name="{{ item.title }}"
          {% if not hidden_item %}data-select-url="{% url 'profile_customization:select_background' item.pk %}"{% endif %}>
     <button type="button" class="pcz-card__media" data-pcz-preview aria-label="{% if LANGUAGE_CODE == "ru" %}Примерить{% else %}Try on{% endif %}: {{ item.title }}">

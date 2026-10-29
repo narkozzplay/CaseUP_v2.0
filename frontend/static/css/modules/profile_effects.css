@@ -1,5 +1,6 @@
 /* ==========================================================================
-   CaseUP profile effects: avatar frames, nickname, profile header.
+   CaseUP profile effects: avatar frames, nickname, profile header,
+   title under the nickname and the profile accent color.
    Keys live in modules/v2/profile_customization/effects.py,
    class names are pfx-<slot>--<key>.
    ========================================================================== */
@@ -111,6 +112,96 @@
     filter: drop-shadow(0 0 12px rgba(160, 200, 255, 0.55));
 }
 
+/* steel: plain brushed metal, the free frame */
+
+.pfx-frame--steel::before {
+    background: linear-gradient(135deg, #8fa3c7, #4b69ff 40%, #2c3a63 60%, #9fb2d9);
+}
+
+.pfx-frame--steel {
+    filter: drop-shadow(0 0 6px rgba(75, 105, 255, 0.4));
+}
+
+/* asiimov: white plate, orange and black stripes */
+
+.pfx-frame--asiimov::before {
+    background:
+        linear-gradient(135deg, transparent 0 62%, #111 62% 70%, #ff6a00 70% 80%, #111 80% 84%, transparent 84%),
+        linear-gradient(135deg, #f4f4f2, #d9dbe0);
+}
+
+.pfx-frame--asiimov {
+    filter: drop-shadow(0 0 8px rgba(255, 106, 0, 0.45));
+}
+
+/* fade: the pink-purple-yellow knife gradient, slowly sliding */
+
+.pfx-frame--fade::before {
+    background: linear-gradient(135deg, #ffd44d, #ff6fa8 35%, #b35cff 65%, #4d7cff);
+    background-size: 220% 220%;
+    animation: pfx-fade-slide 5s ease-in-out infinite alternate;
+}
+
+.pfx-frame--fade {
+    filter: drop-shadow(0 0 12px rgba(255, 111, 168, 0.5));
+}
+
+@keyframes pfx-fade-slide {
+    from { background-position: 0% 0%; }
+    to { background-position: 100% 100%; }
+}
+
+/* doppler: dark candy metal with a moving shine */
+
+.pfx-frame--doppler::before {
+    background:
+        linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.55) 45%, transparent 60%),
+        conic-gradient(from 200deg, #1a0b3d, #6b1fb3, #c2185b, #2b0f5c, #1565c0, #1a0b3d);
+    background-size: 300% 100%, 100% 100%;
+    animation: pfx-shine 3.2s linear infinite;
+}
+
+.pfx-frame--doppler {
+    filter: drop-shadow(0 0 12px rgba(107, 31, 179, 0.65));
+}
+
+@keyframes pfx-shine {
+    from { background-position: 150% 0, 0 0; }
+    to { background-position: -150% 0, 0 0; }
+}
+
+/* case hardened: blue and gold patina */
+
+.pfx-frame--case_hardened::before {
+    background:
+        radial-gradient(circle at 25% 30%, #2f6fd6 0 18%, transparent 30%),
+        radial-gradient(circle at 75% 70%, #2f6fd6 0 14%, transparent 26%),
+        radial-gradient(circle at 70% 20%, #d9a441 0 12%, transparent 24%),
+        linear-gradient(135deg, #8a7a5a, #c9b27a 40%, #5c6f8f 70%, #b89a52);
+}
+
+.pfx-frame--case_hardened {
+    animation: pfx-ch-glow 4s ease-in-out infinite;
+}
+
+@keyframes pfx-ch-glow {
+    0%, 100% { filter: drop-shadow(0 0 8px rgba(47, 111, 214, 0.6)); }
+    50% { filter: drop-shadow(0 0 12px rgba(217, 164, 65, 0.65)); }
+}
+
+/* major champion: gold ring with a spinning flare */
+
+.pfx-frame--champion::before {
+    background:
+        conic-gradient(from var(--pfx-angle), transparent 0deg, rgba(255, 255, 255, 0.95) 12deg, transparent 30deg 360deg),
+        linear-gradient(135deg, #fff1b8, #e4ae39 40%, #9c6b10 70%, #ffe08a);
+    animation: pfx-spin 2.4s linear infinite;
+}
+
+.pfx-frame--champion {
+    filter: drop-shadow(0 0 16px rgba(228, 174, 57, 0.85));
+}
+
 /* --------------------------------------------------------------------------
    Nickname
    -------------------------------------------------------------------------- */
@@ -213,6 +304,54 @@
     10% { clip-path: inset(10% 0 70% 0); transform: translate(-3px, 0); }
     22% { clip-path: inset(45% 0 30% 0); transform: translate(2px, -1px); }
     34%, 100% { clip-path: inset(100% 0 0 0); transform: none; }
+}
+
+.pfx-name--milspec {
+    color: #8ea4ff;
+    text-shadow: 0 0 10px rgba(75, 105, 255, 0.55);
+}
+
+.pfx-name--fade,
+.pfx-name--doppler,
+.pfx-name--asiimov,
+.pfx-name--case_hardened,
+.pfx-name--prophet {
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    background-size: 220% 100%;
+    animation: pfx-sweep 3s linear infinite;
+}
+
+.pfx-name--fade {
+    background-image: linear-gradient(90deg, #ffd44d, #ff6fa8, #b35cff, #ff6fa8, #ffd44d);
+    filter: drop-shadow(0 0 8px rgba(255, 111, 168, 0.45));
+    animation-duration: 5s;
+}
+
+.pfx-name--doppler {
+    background-image: linear-gradient(90deg, #6b1fb3, #c2185b 25%, #f2e9ff 40%, #1565c0 55%, #6b1fb3);
+    filter: drop-shadow(0 0 8px rgba(107, 31, 179, 0.6));
+}
+
+.pfx-name--asiimov {
+    background-image: linear-gradient(90deg, #f4f4f2 0 45%, #ff6a00 45% 70%, #f4f4f2 70%);
+    background-size: 100% 100%;
+    animation: none;
+    filter: drop-shadow(0 1px 0 #111) drop-shadow(0 0 6px rgba(255, 106, 0, 0.4));
+}
+
+.pfx-name--case_hardened {
+    background-image: linear-gradient(90deg, #2f6fd6, #c9b27a, #5c6f8f, #d9a441, #2f6fd6);
+    filter: drop-shadow(0 0 6px rgba(47, 111, 214, 0.5));
+    animation-duration: 6s;
+}
+
+.pfx-name--prophet {
+    background-image: linear-gradient(100deg, #9c6b10, #ffe08a 30%, #ffffff 42%, #ffe08a 55%, #9c6b10);
+    filter: drop-shadow(0 0 10px rgba(228, 174, 57, 0.75));
+    animation-duration: 2.2s;
 }
 
 /* --------------------------------------------------------------------------
@@ -357,6 +496,250 @@
     to { background-position-y: -520px; }
 }
 
+/* smoke: two slow grey clouds drifting across */
+
+.pfx-hero--smoke::before,
+.pfx-hero--smoke::after {
+    inset: -30%;
+    background:
+        radial-gradient(30% 40% at 30% 60%, rgba(200, 205, 215, 0.28), transparent 70%),
+        radial-gradient(25% 30% at 60% 40%, rgba(170, 178, 190, 0.22), transparent 70%),
+        radial-gradient(35% 30% at 80% 70%, rgba(210, 214, 222, 0.2), transparent 70%);
+    filter: blur(14px);
+    animation: pfx-smoke 16s ease-in-out infinite alternate;
+}
+
+.pfx-hero--smoke::after {
+    animation-duration: 22s;
+    animation-direction: alternate-reverse;
+    opacity: 0.8;
+}
+
+@keyframes pfx-smoke {
+    from { transform: translateX(-10%) scale(1); }
+    to { transform: translateX(10%) scale(1.15); }
+}
+
+/* dust II: sand-colored skyline at the bottom with a heat haze */
+
+.pfx-hero--dust2 {
+    background: linear-gradient(0deg, rgba(214, 170, 100, 0.25), transparent 60%);
+}
+
+.pfx-hero--dust2::before {
+    top: auto;
+    height: 38%;
+    background: #3b2a17;
+    opacity: 0.85;
+    clip-path: polygon(0 100%, 0 55%, 6% 55%, 6% 35%, 14% 35%, 14% 60%, 22% 60%, 22% 25%, 24% 20%, 26% 25%, 26% 60%, 35% 60%, 35% 45%, 48% 45%, 48% 30%, 52% 30%, 52% 45%, 60% 45%, 60% 65%, 70% 65%, 70% 40%, 78% 40%, 78% 55%, 88% 55%, 88% 35%, 94% 35%, 94% 60%, 100% 60%, 100% 100%);
+}
+
+.pfx-hero--dust2::after {
+    background: linear-gradient(0deg, transparent 55%, rgba(255, 200, 120, 0.12) 70%, transparent 85%);
+    animation: pfx-haze 3s ease-in-out infinite alternate;
+}
+
+@keyframes pfx-haze {
+    from { transform: translateY(0); opacity: 0.6; }
+    to { transform: translateY(-6%); opacity: 1; }
+}
+
+/* trophy: falling gold confetti, two layers */
+
+.pfx-hero--confetti {
+    background: radial-gradient(60% 80% at 50% 0%, rgba(228, 174, 57, 0.22), transparent 70%);
+}
+
+.pfx-hero--confetti::before,
+.pfx-hero--confetti::after {
+    background-image:
+        radial-gradient(2px 4px at 20px 30px, #ffe08a 60%, transparent 100%),
+        radial-gradient(4px 2px at 90px 120px, #e4ae39 60%, transparent 100%),
+        radial-gradient(2px 3px at 150px 60px, #fff6d0 60%, transparent 100%),
+        radial-gradient(3px 2px at 60px 170px, #ff9a3d 60%, transparent 100%),
+        radial-gradient(2px 2px at 180px 190px, #e4ae39 60%, transparent 100%);
+    background-size: 200px 200px;
+    -webkit-mask-image: linear-gradient(180deg, #000 40%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 40%, transparent 100%);
+    filter: drop-shadow(0 0 3px rgba(228, 174, 57, 0.8));
+    animation: pfx-fall 6s linear infinite;
+}
+
+.pfx-hero--confetti::after {
+    background-size: 270px 240px;
+    background-position: 70px 40px;
+    animation-duration: 9s;
+    opacity: 0.8;
+}
+
+@keyframes pfx-fall {
+    from { background-position-y: 0; }
+    to { background-position-y: 520px; }
+}
+
+/* --------------------------------------------------------------------------
+   Title under the nickname, colored by rarity
+   -------------------------------------------------------------------------- */
+
+.pfx-title {
+    --pfx-rarity: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    width: max-content;
+    max-width: 100%;
+    padding: 2px 8px;
+    border-left: 3px solid var(--pfx-rarity);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--pfx-rarity) 22%, transparent), transparent);
+    color: color-mix(in srgb, var(--pfx-rarity) 70%, #fff);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    line-height: 1.5;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.pfx-title[hidden] {
+    display: none;
+}
+
+.pfx-title--milspec { --pfx-rarity: var(--rarity-milspec); }
+.pfx-title--restricted { --pfx-rarity: var(--rarity-restricted); }
+.pfx-title--classified { --pfx-rarity: var(--rarity-classified); }
+.pfx-title--covert { --pfx-rarity: var(--rarity-covert); }
+.pfx-title--contraband {
+    --pfx-rarity: var(--rarity-contraband);
+    box-shadow: 0 0 12px rgba(228, 174, 57, 0.25);
+}
+
+.pfx-title--sm {
+    padding: 0 6px;
+    border-left-width: 2px;
+    font-size: 0.6rem;
+    vertical-align: middle;
+}
+
+/* --------------------------------------------------------------------------
+   Accent color: recolors buttons, pills and panels inside the profile
+   -------------------------------------------------------------------------- */
+
+.pfx-accent--blue { --pfx-accent: #4b8bff; }
+.pfx-accent--green { --pfx-accent: #3ddc84; }
+.pfx-accent--purple { --pfx-accent: #8847ff; }
+.pfx-accent--pink { --pfx-accent: #ff5fc8; }
+.pfx-accent--cyan { --pfx-accent: #22d3ee; }
+.pfx-accent--red { --pfx-accent: #eb4b4b; }
+.pfx-accent--gold { --pfx-accent: #e4ae39; }
+
+.pfx-accent[class*="pfx-accent--"] {
+    --accent: var(--pfx-accent);
+    --primary: var(--pfx-accent);
+    --primary-hover: color-mix(in srgb, var(--pfx-accent) 80%, #fff);
+    --accent-hot: color-mix(in srgb, var(--pfx-accent) 85%, #fff);
+    --accent-soft: color-mix(in srgb, var(--pfx-accent) 14%, transparent);
+    --accent-ink: #0b0e13;
+}
+
+.pfx-accent[class*="pfx-accent--"] .profile-card-accent {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--pfx-accent) 8%, transparent), rgba(255, 255, 255, 0.03));
+    border-color: color-mix(in srgb, var(--pfx-accent) 22%, transparent);
+}
+
+.pfx-accent[class*="pfx-accent--"] .status-pill {
+    border-color: color-mix(in srgb, var(--pfx-accent) 35%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+   Effects on small avatars inside clipped boxes (friends, chats, user chips)
+   -------------------------------------------------------------------------- */
+
+.chat-avatar.pfx-frame,
+.cc-user__avatar.pfx-frame {
+    display: grid;
+    overflow: visible;
+}
+
+.chat-avatar.pfx-frame > img,
+.cc-user__avatar.pfx-frame > img,
+.cc-user__avatar.pfx-frame > span {
+    position: relative;
+    z-index: 1;
+}
+
+.mj-player .pfx-frame > img {
+    display: block;
+}
+
+/* --------------------------------------------------------------------------
+   Profile showcase
+   -------------------------------------------------------------------------- */
+
+.pfx-showcase {
+    margin: 16px 0;
+}
+
+.pfx-showcase__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.pfx-showcase__item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid var(--border);
+    background: rgba(9, 11, 15, 0.45);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s ease;
+}
+
+.pfx-showcase__item:hover {
+    border-color: var(--accent);
+}
+
+.pfx-showcase__media {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 4 / 3;
+    background: radial-gradient(circle at 50% 60%, var(--accent-soft), transparent 70%);
+}
+
+.pfx-showcase__media img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.pfx-showcase__name {
+    overflow: hidden;
+    font-size: 0.82rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pfx-showcase__price {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    font-family: var(--font-mono);
+}
+
+.pfx-showcase__change {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.pfx-showcase__change.is-up { color: var(--up); }
+.pfx-showcase__change.is-down { color: var(--down); }
+
 @media (prefers-reduced-motion: reduce) {
     .pfx-frame,
     .pfx-frame::before,
@@ -378,4 +761,8 @@
 
 .pfx-frame > .presence-indicator {
     z-index: 2;
+}
+
+.profile-hero__title {
+    margin: -2px 0 10px;
 }

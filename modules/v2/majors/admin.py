@@ -30,7 +30,7 @@ class StageInline(admin.TabularInline):
 class RewardRuleInline(admin.TabularInline):
     model = RewardRule
     extra = 0
-    fields = ("sort_order", "title", "condition", "stage", "min_correct", "kind", "amount", "plan", "days", "item", "requires_approval", "is_active")
+    fields = ("sort_order", "title", "condition", "stage", "min_correct", "kind", "amount", "plan", "days", "item", "effect_ref", "requires_approval", "is_active")
     raw_id_fields = ("item",)
 
 

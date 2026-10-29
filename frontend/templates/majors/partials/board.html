@@ -1,10 +1,11 @@
-<table class="mj-board">
+{% load profile_looks %}<table class="mj-board">
     <thead><tr><th>#</th><th>Игрок</th><th class="mj-board__num">Верных</th><th class="mj-board__num">Стадий</th>{% if show_stages %}{% for stage in stages %}<th class="mj-board__num mj-board__stage">{{ stage.name }}</th>{% endfor %}{% endif %}</tr></thead>
     <tbody>
         {% for row in board %}
             <tr{% if request.user.is_authenticated and row.user.pk == request.user.pk %} class="is-me"{% endif %}>
                 <td class="mj-board__place">{{ row.place }}</td>
-                <td><span class="mj-player">{% if row.avatar %}<img src="{{ row.avatar }}" alt="" width="28" height="28" loading="lazy">{% else %}<span class="mj-player__dot"></span>{% endif %}{{ row.name }}</span></td>
+                {% pfx_look row.user as look %}
+                <td><span class="mj-player">{% if row.avatar %}<span class="{% if look.frame %}pfx-frame pfx-frame--compact {{ look.frame }}{% endif %}"><img src="{{ row.avatar }}" alt="" width="28" height="28" loading="lazy"></span>{% else %}<span class="mj-player__dot"></span>{% endif %}{% include "profile_customization/_fx_name.html" with name=row.name show_title=True %}</span></td>
                 <td class="mj-board__num"><strong>{{ row.summary.correct }}</strong></td>
                 <td class="mj-board__num">{{ row.summary.passed_stages }}</td>
                 {% if show_stages %}{% for score in row.summary.stages %}<td class="mj-board__num mj-board__stage">{{ score.correct }}/{{ score.max_picks }}</td>{% endfor %}{% endif %}

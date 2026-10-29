@@ -29,6 +29,7 @@
             {% include "control_center/partials/_promo_field.html" with f=form.plan hint="Для дней подписки." %}
             {% include "control_center/partials/_promo_field.html" with f=form.days %}
             <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.item_name %}</div>
+            <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.effect_ref hint="Для «Оформление профиля». Такая награда есть только у тех, кто её выиграл: хороший приз «за участие» в конкретном мейджоре." %}</div>
             <div class="cc-field promo-checks cc-span-2">
                 <span>Выдача</span>
                 <label class="cc-field-check">{{ form.requires_approval }}<span>{{ form.requires_approval.label }}</span></label>

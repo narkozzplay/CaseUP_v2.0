@@ -52,7 +52,7 @@
         <article class="ops-panel mkt-lot__seller">
             <div class="ops-panel__head"><h2 class="ops-panel__title">Продавец</h2></div>
             <div class="ref-body">
-                {% include "control_center/partials/_user_cell.html" with u=listing.seller %}
+                {% include "profile_customization/_user_chip.html" with u=listing.seller %}
                 <dl class="biz-metrics">
                     <div><dt>На сайте с</dt><dd>{{ seller_stats.since|date:"d.m.Y" }}</dd></div>
                     <div><dt>Лотов на витрине</dt><dd>{{ seller_stats.active }}</dd></div>
