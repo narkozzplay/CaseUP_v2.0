@@ -57,17 +57,28 @@ class SimCaseForm(forms.ModelForm):
             "image": "Файл важнее ссылки. Без обеих берётся обложка из static/img/cases/<slug>.webp.",
         }
 
+    def _has_active_sessions(self) -> bool:
+        case = self.instance
+        return bool(case.pk) and case.terminal_sessions.filter(status=TerminalSession.Status.ACTIVE).exists()
+
     def clean_kind(self):
         kind = self.cleaned_data.get("kind")
-        case = self.instance
-        if (
-            case.pk
-            and case.kind == SimCase.Kind.TERMINAL
-            and kind != SimCase.Kind.TERMINAL
-            and case.terminal_sessions.filter(status=TerminalSession.Status.ACTIVE).exists()
-        ):
+        if self.instance.kind == SimCase.Kind.TERMINAL and kind != SimCase.Kind.TERMINAL and self._has_active_sessions():
             raise forms.ValidationError("У игроков есть незавершённые сессии терминала: тип можно сменить, когда они закончатся.")
         return kind
+
+    def clean_slug(self):
+        slug = self.cleaned_data.get("slug")
+        if self.instance.pk and slug != self.instance.slug and self._has_active_sessions():
+            raise forms.ValidationError("У игроков есть незавершённые сессии терминала: адрес можно сменить, когда они закончатся.")
+        return slug
+
+    def clean(self):
+        cleaned = super().clean()
+        key_price = cleaned.get("key_price")
+        if cleaned.get("kind") == SimCase.Kind.TERMINAL and key_price:
+            self.add_error("key_price", "У терминала нет ключа: оставьте 0, цена входа задаётся ценой кейса.")
+        return cleaned
 
     def _non_negative(self, name):
         value = self.cleaned_data.get(name)
@@ -132,7 +143,7 @@ class BaseSimCaseItemFormSet(BaseInlineFormSet):
         super().clean()
         if any(self.errors):
             return
-        alive = 0
+        alive = droppable = 0
         offered_ids = None
         for form in self.forms:
             if not getattr(form, "cleaned_data", None):
@@ -152,8 +163,13 @@ class BaseSimCaseItemFormSet(BaseInlineFormSet):
                         )
                 continue
             alive += 1
+            weight = form.cleaned_data.get("weight")
+            if weight is None or weight > 0:
+                droppable += 1
         if alive == 0 and self.instance.is_active:
             raise forms.ValidationError("В активном кейсе должен быть хотя бы один предмет.")
+        if alive and not droppable and self.instance.is_active:
+            raise forms.ValidationError("У всех предметов вес 0: из кейса ничего не сможет выпасть. Оставьте хотя бы одному вес больше 0 или пустой.")
 
 
     def _active_offer_item_ids(self) -> set[int]:

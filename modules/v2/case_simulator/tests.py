@@ -468,3 +468,19 @@ class ControlCenterCaseTests(TestCase):
         other = get_user_model().objects.create_user(username="no_session", password="pass12345")
         self.client.force_login(other)
         self.assertEqual(self.client.get(reverse("case_simulator:terminal", args=[terminal.slug])).status_code, 404)
+
+    def test_all_zero_weights_rejected(self):
+        count = self.case.items.count()
+        overrides = {f"items-{index}-weight": "0" for index in range(count)}
+        response = self.client.post(reverse("control_center:case_edit", args=[self.case.pk]), self._post_data(self.case, **overrides))
+        self.assertContains(response, "ничего не сможет выпасть")
+
+    def test_terminal_key_price_and_slug_guarded(self):
+        terminal = _make_case(slug="cc-term-guard", kind=SimCase.Kind.TERMINAL, key_price="0")
+        response = self.client.post(reverse("control_center:case_edit", args=[terminal.pk]), self._post_data(terminal, key_price="10"))
+        self.assertContains(response, "У терминала нет ключа")
+        TerminalSession.objects.create(user=self.admin, case=terminal, offers=[])
+        response = self.client.post(reverse("control_center:case_edit", args=[terminal.pk]), self._post_data(terminal, slug="renamed"))
+        self.assertContains(response, "адрес можно сменить")
+        terminal.refresh_from_db()
+        self.assertEqual(terminal.slug, "cc-term-guard")
