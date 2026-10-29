@@ -477,6 +477,26 @@ class EffectCollectionTests(TestCase):
         self.assertEqual(sync_achievements(self.regular), [])
         self.assertEqual(EffectGrant.objects.get(user=self.regular).source, "achievement:regular")
 
+    def test_hourly_sweep_only_recent_users(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from modules.v2.daily_bonus.models import DailyBonusState
+        from modules.v2.profiles.models import UserProfile
+
+        from .models import EffectGrant
+        from .services import sync_recent_achievements
+
+        other = _make_user("sweep_old")
+        for user in (self.regular, other):
+            DailyBonusState.objects.create(user=user, best_streak=8)
+        UserProfile.objects.filter(user=self.regular).update(last_seen_at=timezone.now())
+        UserProfile.objects.filter(user=other).update(last_seen_at=timezone.now() - timedelta(days=1))
+        self.assertEqual(sync_recent_achievements(), 1)
+        self.assertTrue(EffectGrant.objects.filter(user=self.regular, key="regular").exists())
+        self.assertFalse(EffectGrant.objects.filter(user=other).exists())
+
     def test_catalog_syncs_and_marks_new(self):
         from modules.v2.daily_bonus.models import DailyBonusState
 

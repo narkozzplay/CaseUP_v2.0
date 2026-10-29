@@ -109,5 +109,10 @@ def due_achievements(user, owned: set[tuple[str, str]]) -> list[Achievement]:
     return [a for a in ACHIEVEMENTS if (a.slot, a.effect_key) in have and have[(a.slot, a.effect_key)][0] >= a.need]
 
 
+# The hourly sweep looks only at people seen since a bit before the previous run: achievement data
+# changes through their own activity, and anyone else is checked when they open the catalog.
+SWEEP_WINDOW = timedelta(hours=2)
+
+
 def recently_active_cutoff():
-    return timezone.now() - timedelta(days=30)
+    return timezone.now() - SWEEP_WINDOW

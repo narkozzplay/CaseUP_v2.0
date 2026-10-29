@@ -366,13 +366,25 @@ def sync_achievements(user) -> list[EffectGrant]:
 
 
 def sync_recent_achievements() -> int:
-    """Hourly: achievements for everyone active lately, so the unlock notification comes on its own."""
+    """Hourly: achievements for people seen in the last two hours, so the unlock notification comes on its own.
+
+    Users who already own every achievement effect are skipped without running the counters.
+    """
     from django.contrib.auth import get_user_model
+    from django.db.models import Count, Q
 
-    from .achievements import recently_active_cutoff
+    from .achievements import ACHIEVEMENTS, recently_active_cutoff
 
+    refs = Q()
+    for achievement in ACHIEVEMENTS:
+        refs |= Q(effect_grants__slot=achievement.slot, effect_grants__key=achievement.effect_key)
+    total = len({(a.slot, a.effect_key) for a in ACHIEVEMENTS})
     granted = 0
-    users = get_user_model().objects.filter(profile_v2__last_seen_at__gte=recently_active_cutoff(), is_active=True)
+    users = (
+        get_user_model().objects.filter(profile_v2__last_seen_at__gte=recently_active_cutoff(), is_active=True)
+        .annotate(owned=Count("effect_grants", filter=refs, distinct=True))
+        .filter(owned__lt=total)
+    )
     for user in users.iterator():
         granted += len(sync_achievements(user))
     return granted

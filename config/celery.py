@@ -73,7 +73,7 @@ app.conf.beat_schedule = {
         "task": "daily_bonus.remind_streaks",
         "schedule": crontab(hour=18, minute=5),
     },
-    # Achievement rewards (profile titles and effects) for everyone seen in the last 30 days; the catalog page also checks on open.
+    # Achievement rewards (profile titles and effects) for people seen in the last two hours; the catalog page also checks on open.
     "profile-customization-achievements": {
         "task": "profile_customization.sync_achievements",
         "schedule": crontab(minute=40),
