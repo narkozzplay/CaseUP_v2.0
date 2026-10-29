@@ -220,7 +220,7 @@ def default_digest_time():
 
 
 class TelegramUserPrefs(models.Model):
-    """A user's Telegram bot settings: quiet hours, a daily cap on notices and the personal daily digest.
+    """A user's Telegram bot settings: quiet hours, a daily cap on notices, the personal daily digest and the weekly portfolio.
 
     Also keeps the day's notice counter, so the cap needs no extra table.
     """
@@ -234,6 +234,9 @@ class TelegramUserPrefs(models.Model):
     digest_enabled = models.BooleanField("Личная сводка", default=False)
     digest_time = models.TimeField("Время сводки", default=default_digest_time)
     digest_last_sent_on = models.DateField(null=True, blank=True)
+    # On Mondays at digest_time, for users with the investments analytics feature (portfolio_weekly.py).
+    weekly_portfolio_enabled = models.BooleanField("Недельная сводка по портфелю", default=True)
+    weekly_portfolio_last_sent_on = models.DateField(null=True, blank=True)
     counter_date = models.DateField(null=True, blank=True)
     counter_value = models.PositiveIntegerField(default=0)
     # The «limit reached» note is sent once a day.

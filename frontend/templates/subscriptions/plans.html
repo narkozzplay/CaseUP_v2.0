@@ -133,7 +133,11 @@
 
                     <ul class="plan-card__features">
                         {% for item in plan.ui_feature_list %}
-                            <li>{{ item }}</li>
+                            {% if item|slice:":6" == "Новое:" %}
+                                <li class="plan-card__feature--new"><span class="plan-card__new">Новое</span> {{ item|slice:"6:" }}</li>
+                            {% else %}
+                                <li>{{ item }}</li>
+                            {% endif %}
                         {% empty %}
                             <li>Описание тарифа будет заполнено в админке.</li>
                         {% endfor %}

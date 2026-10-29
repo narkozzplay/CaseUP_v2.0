@@ -294,7 +294,7 @@ class TelegramUserPrefsForm(forms.ModelForm):
 
     class Meta:
         model = TelegramUserPrefs
-        fields = ["quiet_enabled", "quiet_from", "quiet_to", "daily_limit", "digest_enabled", "digest_time"]
+        fields = ["quiet_enabled", "quiet_from", "quiet_to", "daily_limit", "digest_enabled", "digest_time", "weekly_portfolio_enabled"]
         widgets = {
             "quiet_from": forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
             "quiet_to": forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
@@ -308,10 +308,12 @@ class TelegramUserPrefsForm(forms.ModelForm):
             "daily_limit": "Алертов в день, не больше",
             "digest_enabled": "Сводка по избранному и портфелю раз в день",
             "digest_time": "Время сводки",
+            "weekly_portfolio_enabled": "Портфель за неделю: по понедельникам в это же время",
         }
         help_texts = {
             "quiet_enabled": "Алерты и напоминания в это время копятся и приходят одним сообщением утром. Сделки рынка приходят сразу, но без звука.",
             "daily_limit": "0 — без лимита. Сделки рынка и ответы поддержки в лимит не входят.",
+            "weekly_portfolio_enabled": "График стоимости, прибыль за неделю и что двигало портфель. Для тарифа Pro, если есть закупки.",
         }
 
     def clean_daily_limit(self):

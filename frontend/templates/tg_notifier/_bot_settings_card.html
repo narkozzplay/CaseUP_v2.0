@@ -25,6 +25,8 @@
                 <label for="{{ form.digest_time.id_for_label }}">{{ form.digest_time.label }}</label>
                 {{ form.digest_time }}
             </div>
+            <label class="cc-field-check">{{ form.weekly_portfolio_enabled }}<span>{{ form.weekly_portfolio_enabled.label }}</span></label>
+            <small class="text-muted">{{ form.weekly_portfolio_enabled.help_text }}</small>
             <button type="submit" class="btn btn-primary btn-block">Сохранить</button>
         </form>
     </div>

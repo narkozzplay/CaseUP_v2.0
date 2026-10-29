@@ -56,9 +56,12 @@
         dot.style.left = `${point.x}%`;
         dot.style.top = `${point.y}%`;
 
-        const change = point.change
-            ? `<span class="pc__tooltip-change pc__tooltip-change--${point.dir}">${point.change} к прошлой</span>`
-            : '';
+        let change = '';
+        if (point.note) {
+            change = `<span class="pc__tooltip-change pc__tooltip-change--${point.dir}">${point.note}</span>`;
+        } else if (point.change) {
+            change = `<span class="pc__tooltip-change pc__tooltip-change--${point.dir}">${point.change} к прошлой</span>`;
+        }
         tooltip.innerHTML = `<span class="pc__tooltip-price">${point.price} ${currency}</span><span class="pc__tooltip-date">${point.date}</span>${change}`;
 
         cursor.hidden = false;

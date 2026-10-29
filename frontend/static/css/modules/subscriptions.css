@@ -704,6 +704,21 @@ select.form-control option {
     transform: rotate(45deg);
 }
 
+.plan-card__features li.plan-card__feature--new { color: var(--text); }
+
+.plan-card__new {
+    display: inline-block;
+    margin-right: 4px;
+    padding: 1px 6px;
+    background: var(--plan-accent);
+    color: #0c0f14;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    vertical-align: 1px;
+}
+
 .plan-card__gates summary {
     cursor: pointer;
     font-family: var(--font-mono);
