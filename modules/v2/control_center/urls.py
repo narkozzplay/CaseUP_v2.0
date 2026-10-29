@@ -30,6 +30,10 @@ urlpatterns = [
     path("ads/", views.ads, name="ads"),
     path("ads/banners/new/", views.ads_banner_edit, name="ads_banner_create"),
     path("ads/banners/<int:banner_id>/", views.ads_banner_edit, name="ads_banner_edit"),
+    path("cases/", views.sim_cases, name="cases"),
+    path("cases/new/", views.sim_case_edit, name="case_create"),
+    path("cases/<int:case_id>/", views.sim_case_edit, name="case_edit"),
+
     path("majors/", views_majors.majors, name="majors"),
     path("majors/new/", views_majors.major_edit, name="major_create"),
     path("majors/<int:major_id>/", views_majors.major_edit, name="major_edit"),

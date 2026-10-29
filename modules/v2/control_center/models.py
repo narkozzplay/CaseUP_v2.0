@@ -32,6 +32,7 @@ class AuditAction(models.TextChoices):
     SETTINGS_UPDATE = "settings_update", "Settings updated"
     CACHE_CLEAR = "cache_clear", "Cache cleared"
     PAYMENT_RECHECK = "payment_recheck", "Payment rechecked"
+    CASE_SIM_UPDATE = "case_sim_update", "Case simulator updated"
 
 
 AUDIT_ACTION_LABELS_RU = {
@@ -61,6 +62,7 @@ AUDIT_ACTION_LABELS_RU = {
     AuditAction.SETTINGS_UPDATE: "Изменение настроек",
     AuditAction.CACHE_CLEAR: "Сброс кэша",
     AuditAction.PAYMENT_RECHECK: "Перепроверка платежа",
+    AuditAction.CASE_SIM_UPDATE: "Изменён кейс симулятора",
 }
 
 

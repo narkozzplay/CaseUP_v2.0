@@ -302,3 +302,201 @@ class InventorySellTests(TestCase):
         again = self.client.post(reverse("case_simulator:inventory_sell"), {"ids": [self.cheap.pk]}, HTTP_ACCEPT="application/json")
         self.assertEqual(again.status_code, 400)
         self.assertFalse(again.json()["ok"])
+
+
+class ControlCenterCaseTests(TestCase):
+    def setUp(self):
+        from modules.v2.profiles.models import UserRole
+
+        self.admin = get_user_model().objects.create_user(username="cc_admin", password="pass12345")
+        profile, _ = UserProfile.objects.get_or_create(user=self.admin)
+        profile.role = UserRole.ADMIN
+        profile.save(update_fields=["role"])
+        self.client.login(username="cc_admin", password="pass12345")
+        self.case = _make_case(slug="cc-case")
+
+    def _post_data(self, case, **overrides):
+        items = list(case.items.all()) if case else []
+        data = {
+            "name": case.name if case else "Новый",
+            "slug": case.slug if case else "new-case",
+            "kind": case.kind if case else SimCase.Kind.CUSTOM,
+            "collection_name": "",
+            "description": "",
+            "case_price": str(case.case_price) if case else "50",
+            "key_price": str(case.key_price) if case else "0",
+            "image_url": "",
+            "accent_color": "#f5a623",
+            "terminal_offers": "5",
+            "terminal_markup_percent": "10",
+            "is_active": "on",
+            "sort_order": "100",
+            "items-TOTAL_FORMS": str(len(items) + 1),
+            "items-INITIAL_FORMS": str(len(items)),
+            "items-MIN_NUM_FORMS": "0",
+            "items-MAX_NUM_FORMS": "1000",
+        }
+        for index, item in enumerate(items):
+            prefix = f"items-{index}-"
+            data.update({
+                prefix + "id": str(item.pk),
+                prefix + "name": item.name,
+                prefix + "weapon": item.weapon,
+                prefix + "rarity": item.rarity,
+                prefix + "value": str(item.value),
+                prefix + "weight": "",
+                prefix + "min_float": str(item.min_float),
+                prefix + "max_float": str(item.max_float),
+                prefix + "stattrak_allowed": "on",
+                prefix + "image_url": "",
+                prefix + "sort_order": "100",
+            })
+        # A blank extra row as the browser sends it, with the model defaults pre-filled.
+        blank = f"items-{len(items)}-"
+        data.update({blank + "rarity": "milspec", blank + "value": "0.00", blank + "sort_order": "100", blank + "stattrak_allowed": "on"})
+        data.update(overrides)
+        return data
+
+    def test_pages_render(self):
+        response = self.client.get(reverse("control_center:cases"))
+        self.assertContains(response, "cc-case")
+        self.assertContains(self.client.get(reverse("control_center:case_edit", args=[self.case.pk])), "Шансы выпадения")
+        self.assertEqual(self.client.get(reverse("control_center:case_create")).status_code, 200)
+
+    def test_forbidden_for_regular_user(self):
+        get_user_model().objects.create_user(username="plain_cc", password="pass12345")
+        self.client.login(username="plain_cc", password="pass12345")
+        self.assertEqual(self.client.get(reverse("control_center:cases")).status_code, 403)
+        self.assertEqual(self.client.get(reverse("control_center:case_edit", args=[self.case.pk])).status_code, 403)
+
+    def test_create_case_with_items(self):
+        data = self._post_data(None, **{
+            "items-0-name": "M4A4 | Test",
+            "items-0-rarity": "covert",
+            "items-0-value": "1000",
+            "items-0-weight": "2",
+            "items-0-sort_order": "100",
+        })
+        response = self.client.post(reverse("control_center:case_create"), data)
+        case = SimCase.objects.get(slug="new-case")
+        self.assertRedirects(response, reverse("control_center:case_edit", args=[case.pk]), fetch_redirect_response=False)
+        self.assertEqual(list(case.items.values_list("name", flat=True)), ["M4A4 | Test"])
+
+    def test_edit_price_and_add_item(self):
+        count = self.case.items.count()
+        data = self._post_data(self.case, case_price="77.50", **{
+            f"items-{count}-name": "Glock-18 | New",
+            f"items-{count}-rarity": "milspec",
+            f"items-{count}-value": "5",
+            f"items-{count}-sort_order": "100",
+        })
+        self.client.post(reverse("control_center:case_edit", args=[self.case.pk]), data)
+        self.case.refresh_from_db()
+        self.assertEqual(self.case.case_price, Decimal("77.50"))
+        self.assertEqual(self.case.items.count(), count + 1)
+        from modules.v2.control_center.models import AdminAuditLog, AuditAction
+
+        self.assertTrue(AdminAuditLog.objects.filter(action=AuditAction.CASE_SIM_UPDATE).exists())
+
+    def test_item_with_openings_cannot_be_deleted(self):
+        item = self.case.items.first()
+        SimOpening.objects.create(user=self.admin, case=self.case, item=item)
+        data = self._post_data(self.case, **{"items-0-DELETE": "on"})
+        response = self.client.post(reverse("control_center:case_edit", args=[self.case.pk]), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "уже выпадал игрокам, его нельзя удалить")
+        self.assertTrue(SimCaseItem.objects.filter(pk=item.pk).exists())
+
+    def test_float_range_validated(self):
+        data = self._post_data(self.case, **{"items-0-min_float": "0.9", "items-0-max_float": "0.1"})
+        response = self.client.post(reverse("control_center:case_edit", args=[self.case.pk]), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "мин ≤ макс")
+
+    def test_toggle_and_delete(self):
+        self.client.post(reverse("control_center:cases"), {"case_id": self.case.pk, "action": "toggle"})
+        self.case.refresh_from_db()
+        self.assertFalse(self.case.is_active)
+        SimOpening.objects.create(user=self.admin, case=self.case, item=self.case.items.first())
+        self.client.post(reverse("control_center:cases"), {"case_id": self.case.pk, "action": "delete"})
+        self.assertTrue(SimCase.objects.filter(pk=self.case.pk).exists())
+        empty = SimCase.objects.create(slug="empty-cc", name="Empty")
+        self.client.post(reverse("control_center:cases"), {"case_id": empty.pk, "action": "delete"})
+        self.assertFalse(SimCase.objects.filter(pk=empty.pk).exists())
+
+    def test_negative_price_rejected(self):
+        data = self._post_data(self.case, case_price="-10")
+        response = self.client.post(reverse("control_center:case_edit", args=[self.case.pk]), data)
+        self.assertContains(response, "не может быть отрицательной")
+        self.case.refresh_from_db()
+        self.assertGreater(self.case.case_price, 0)
+
+    def test_item_in_active_terminal_offer_cannot_be_deleted(self):
+        item = self.case.items.first()
+        TerminalSession.objects.create(user=self.admin, case=self.case, offers=[{"item_id": item.pk}])
+        data = self._post_data(self.case, **{"items-0-DELETE": "on"})
+        response = self.client.post(reverse("control_center:case_edit", args=[self.case.pk]), data)
+        self.assertContains(response, "открытого терминала")
+        self.assertTrue(SimCaseItem.objects.filter(pk=item.pk).exists())
+
+    def test_markup_limit_enforced(self):
+        data = self._post_data(self.case, terminal_markup_percent="1000")
+        response = self.client.post(reverse("control_center:case_edit", args=[self.case.pk]), data)
+        self.assertContains(response, "Не больше 500%")
+
+    def test_empty_case_cannot_be_enabled(self):
+        empty = SimCase.objects.create(slug="empty-off", name="Empty", is_active=False)
+        self.client.post(reverse("control_center:cases"), {"case_id": empty.pk, "action": "toggle"})
+        empty.refresh_from_db()
+        self.assertFalse(empty.is_active)
+
+    def test_terminal_kind_locked_while_sessions_active(self):
+        terminal = _make_case(slug="cc-terminal", kind=SimCase.Kind.TERMINAL, key_price="0")
+        TerminalSession.objects.create(user=self.admin, case=terminal, offers=[])
+        data = self._post_data(terminal, kind=SimCase.Kind.CUSTOM)
+        response = self.client.post(reverse("control_center:case_edit", args=[terminal.pk]), data)
+        self.assertContains(response, "незавершённые сессии терминала")
+        terminal.refresh_from_db()
+        self.assertEqual(terminal.kind, SimCase.Kind.TERMINAL)
+
+    def test_switched_off_terminal_reachable_with_active_session(self):
+        terminal = _make_case(slug="cc-term-off", kind=SimCase.Kind.TERMINAL, key_price="0")
+        TerminalSession.objects.create(user=self.admin, case=terminal, offers=[])
+        terminal.is_active = False
+        terminal.save(update_fields=["is_active"])
+        self.assertEqual(self.client.get(reverse("case_simulator:terminal", args=[terminal.slug])).status_code, 200)
+        other = get_user_model().objects.create_user(username="no_session", password="pass12345")
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(reverse("case_simulator:terminal", args=[terminal.slug])).status_code, 404)
+
+    def test_all_zero_weights_rejected(self):
+        count = self.case.items.count()
+        overrides = {f"items-{index}-weight": "0" for index in range(count)}
+        response = self.client.post(reverse("control_center:case_edit", args=[self.case.pk]), self._post_data(self.case, **overrides))
+        self.assertContains(response, "ничего не сможет выпасть")
+
+    def test_terminal_key_price_and_slug_guarded(self):
+        terminal = _make_case(slug="cc-term-guard", kind=SimCase.Kind.TERMINAL, key_price="0")
+        response = self.client.post(reverse("control_center:case_edit", args=[terminal.pk]), self._post_data(terminal, key_price="10"))
+        self.assertContains(response, "У терминала нет ключа")
+        TerminalSession.objects.create(user=self.admin, case=terminal, offers=[])
+        response = self.client.post(reverse("control_center:case_edit", args=[terminal.pk]), self._post_data(terminal, slug="renamed"))
+        self.assertContains(response, "адрес можно сменить")
+        terminal.refresh_from_db()
+        self.assertEqual(terminal.slug, "cc-term-guard")
+
+    def test_all_zero_weight_case_cannot_be_enabled(self):
+        self.case.items.update(weight=0)
+        self.case.is_active = False
+        self.case.save(update_fields=["is_active"])
+        self.client.post(reverse("control_center:cases"), {"case_id": self.case.pk, "action": "toggle"})
+        self.case.refresh_from_db()
+        self.assertFalse(self.case.is_active)
+
+    def test_case_used_by_daily_bonus_reward_cannot_be_deleted(self):
+        from modules.v2.daily_bonus.models import DailyBonusReward
+
+        empty = SimCase.objects.create(slug="reward-case", name="Reward")
+        DailyBonusReward.objects.update_or_create(day=7, defaults={"kind": DailyBonusReward.Kind.CASE, "case": empty})
+        self.client.post(reverse("control_center:cases"), {"case_id": empty.pk, "action": "delete"})
+        self.assertTrue(SimCase.objects.filter(pk=empty.pk).exists())

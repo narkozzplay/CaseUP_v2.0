@@ -1,0 +1,54 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Кейсы симулятора</h1>
+            <p class="ops-hero__text">Кейсы CS2, кейсы CaseUP и терминал: цены, содержимое и шансы выпадения. Выпавшие предметы виртуальные: их можно только продать обратно за баланс сайта, вывести в Steam нельзя.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Кейсов</dt><dd>{{ totals.active }} из {{ totals.all }}</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <article class="ops-panel">
+        <div class="ops-panel__head">
+            <h2 class="ops-panel__title">Кейсы</h2>
+            <a href="{% url 'control_center:case_create' %}" class="btn btn-primary btn-sm">Новый кейс</a>
+        </div>
+        <div class="cc-filters-chips">
+            <a href="?" class="cc-chip cc-chip--link{% if not kind %} is-active{% endif %}">Все</a>
+            {% for code, label in kind_options %}<a href="?kind={{ code }}" class="cc-chip cc-chip--link{% if kind == code %} is-active{% endif %}">{{ label }}</a>{% endfor %}
+        </div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead><tr><th></th><th>Кейс</th><th>Тип</th><th class="cc-num">Кейс, ₽</th><th class="cc-num">Ключ, ₽</th><th class="cc-num">Предметов</th><th class="cc-num">Открытий</th><th class="cc-num">Порядок</th><th>Статус</th><th></th></tr></thead>
+                <tbody>
+                    {% for case in cases %}
+                        <tr>
+                            <td>{% if case.cover_url %}<img src="{{ case.cover_url }}" alt="" class="cc-case-cover" loading="lazy">{% endif %}</td>
+                            <td><a href="{% url 'control_center:case_edit' case.pk %}"><b>{{ case.name }}</b></a><span class="cc-sub cc-mono">{{ case.slug }}</span>{% if case.collection_name %}<span class="cc-sub">{{ case.collection_name }}</span>{% endif %}</td>
+                            <td>{{ case.get_kind_display }}</td>
+                            <td class="cc-num">{{ case.case_price }}</td>
+                            <td class="cc-num">{% if case.has_key %}{{ case.key_price }}{% else %}—{% endif %}</td>
+                            <td class="cc-num">{{ case.items_count }}{% if not case.items_count %} <span class="cc-chip cc-chip--warn">пусто</span>{% endif %}</td>
+                            <td class="cc-num">{{ case.openings_count }}</td>
+                            <td class="cc-num">{{ case.sort_order }}</td>
+                            <td>{% if case.is_active %}<span class="cc-chip cc-chip--ok">показывается</span>{% else %}<span class="cc-chip cc-chip--fail">выключен</span>{% endif %}</td>
+                            <td class="cc-actions">
+                                <form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="case_id" value="{{ case.pk }}">
+                                    {% if case.is_active %}<a href="{% if case.is_terminal %}{% url 'case_simulator:terminal' case.slug %}{% else %}{% url 'case_simulator:detail' case.slug %}{% endif %}" class="btn btn-ghost btn-sm" target="_blank" rel="noopener" data-dashboard-nav="false">На сайте</a>{% endif %}
+                                    <button type="submit" name="action" value="toggle" class="btn btn-ghost btn-sm">{% if case.is_active %}Выключить{% else %}Включить{% endif %}</button>
+                                    {% if not case.openings_count and not case.free_count and not case.promo_count and not case.reward_count %}<button type="submit" name="action" value="delete" class="btn btn-ghost btn-sm" onclick="return confirm('Удалить кейс «{{ case.name|escapejs }}» вместе с содержимым?');">Удалить</button>{% endif %}
+                                </form>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="10" class="text-muted">Кейсов нет. Создайте первый или загрузите стандартные: <span class="cc-mono">python manage.py seed_case_simulator</span>.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+</section>
