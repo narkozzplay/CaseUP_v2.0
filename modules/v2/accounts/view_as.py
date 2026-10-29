@@ -2,7 +2,9 @@
 
 The session keeps one flag. While it is set, request.user is a copy of the admin with staff flags off
 and a profile copy with the plain user role; request.real_user is the admin. Nothing is written in
-this mode: unsafe requests are refused, except leaving the mode, logout and the language switch.
+this mode by the viewer: unsafe requests are refused, except leaving the mode, logout and the language
+switch. Pages that lazily create their viewer's own records on GET (a referral code, a profile) still
+do so for the admin's account, the same as on a normal visit.
 """
 
 from __future__ import annotations
