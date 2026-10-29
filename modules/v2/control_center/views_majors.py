@@ -175,7 +175,11 @@ def stage_edit(request, major_id: int | None = None, stage_id: int | None = None
                 messages.error(request, "На стадию уже есть прогнозы — удалить её нельзя.")
                 return redirect("control_center:stage_edit", stage_id=stage.pk)
             name = str(stage)
-            stage.delete()
+            try:
+                stage.delete()
+            except ProtectedError:
+                messages.error(request, "По наградам этой стадии уже есть выдачи — удалить её нельзя.")
+                return redirect("control_center:stage_edit", stage_id=stage.pk)
             _log(request, f"Стадия «{name}» удалена", major=major.pk)
             messages.success(request, f"Стадия «{name}» удалена.")
             return redirect("control_center:major_edit", major_id=major.pk)

@@ -245,3 +245,11 @@ class MajorsControlCenterTests(TestCase):
         self.assertEqual(post(record="3-0").status_code, 302)
         entry.refresh_from_db()
         self.assertEqual((entry.team_id, entry.record), (self.teams[0].pk, "3-0"))
+
+    def test_stage_with_granted_rewards_is_not_deleted(self):
+        stage = Stage.objects.create(major=self.major, order=1, name="Стадия 1", starts_at=timezone.now())
+        rule = RewardRule.objects.create(major=self.major, stage=stage, title="Стадия", condition=RewardRule.Condition.STAGE_PASSED, amount=Decimal("10"))
+        RewardGrant.objects.create(rule=rule, user=self.admin, scope=f"stage:{stage.pk}", stage=stage)
+        response = self.client.post(reverse("control_center:stage_edit", args=[stage.pk]), {"action": "delete"})
+        self.assertRedirects(response, reverse("control_center:stage_edit", args=[stage.pk]), fetch_redirect_response=False)
+        self.assertTrue(Stage.objects.filter(pk=stage.pk).exists())
