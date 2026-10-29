@@ -106,6 +106,9 @@ def create_bracket(stage: Stage, *, third_place: bool = False) -> int:
     if third_place:
         slots.append((R.THIRD_PLACE, 1))
     existing = set(stage.matches.values_list("round", "slot"))
+    if stage.bracket_picks.exists() and set(slots) - existing:
+        # Every match is a pick in the bracket: adding one after players picked changes their score.
+        raise PickemError("На сетку уже есть прогнозы — добавлять матчи нельзя.")
     missing = [Match(stage=stage, round=round_no, slot=slot) for round_no, slot in slots if (round_no, slot) not in existing]
     Match.objects.bulk_create(missing)
     return len(missing)
@@ -113,6 +116,8 @@ def create_bracket(stage: Stage, *, third_place: bool = False) -> int:
 
 def carry_over_teams(stage: Stage) -> int:
     """Add the teams that advanced from the previous stage, seeded by their record (3-0 first)."""
+    if stage.swiss_picks.exists():
+        raise PickemError("На стадию уже есть прогнозы — добавлять команды нельзя.")
     previous = stage.major.stages.filter(order__lt=stage.order).order_by("-order").first()
     if previous is None:
         return 0

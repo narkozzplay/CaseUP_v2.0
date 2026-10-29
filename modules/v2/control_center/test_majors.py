@@ -253,3 +253,33 @@ class MajorsControlCenterTests(TestCase):
         response = self.client.post(reverse("control_center:stage_edit", args=[stage.pk]), {"action": "delete"})
         self.assertRedirects(response, reverse("control_center:stage_edit", args=[stage.pk]), fetch_redirect_response=False)
         self.assertTrue(Stage.objects.filter(pk=stage.pk).exists())
+
+    def test_picked_stages_take_no_new_slots(self):
+        playoffs = Stage.objects.create(major=self.major, order=2, name="Плей-офф", kind=Stage.Kind.PLAYOFFS, starts_at=timezone.now())
+        self.client.post(reverse("control_center:stage_edit", args=[playoffs.pk]), {"action": "bracket"})
+        BracketPick.objects.create(user=self.admin, stage=playoffs, round=R.QUARTERFINAL, slot=1, team=self.teams[0])
+        self.client.post(reverse("control_center:stage_edit", args=[playoffs.pk]), {"action": "bracket", "third_place": "1"})
+        self.assertFalse(playoffs.matches.filter(round=R.THIRD_PLACE).exists())
+
+        first = Stage.objects.create(major=self.major, order=1, name="Стадия 1", starts_at=timezone.now())
+        StageTeam.objects.create(stage=first, team=self.teams[0], record="3-0")
+        second = Stage.objects.create(major=self.major, order=3, name="Стадия 2", starts_at=timezone.now())
+        SwissPick.objects.create(user=self.admin, stage=second, team=self.teams[1], pick="3-0")
+        self.client.post(reverse("control_center:stage_edit", args=[second.pk]), {"action": "carry_over"})
+        self.assertFalse(second.entries.exists())
+
+        data = {
+            "action": "save", "order": "3", "name": "Стадия 2", "kind": "swiss", "starts_at": _dt(second.starts_at), "pass_correct": "5",
+            **_management("teams", 1, 0), "teams-0-seed": "1", "teams-0-team": str(self.teams[2].pk), "teams-0-record": "",
+        }
+        self.assertContains(self.client.post(reverse("control_center:stage_edit", args=[second.pk]), data), "добавлять команды нельзя")
+
+    def test_reward_terms_freeze_once_granted(self):
+        rule = RewardRule.objects.create(major=self.major, title="Чемпион", condition=RewardRule.Condition.CHAMPION, amount=Decimal("100"))
+        RewardGrant.objects.create(rule=rule, user=self.admin)
+        url = reverse("control_center:reward_edit", args=[rule.pk])
+        base = {"action": "save", "title": "Чемпион", "condition": "champion", "kind": "balance", "amount": "100", "days": "0", "sort_order": "100", "is_active": "on"}
+        self.assertContains(self.client.post(url, {**base, "amount": "500"}), "условие и приз менять нельзя")
+        self.assertEqual(self.client.post(url, {**base, "title": "Угадан чемпион"}).status_code, 302)
+        rule.refresh_from_db()
+        self.assertEqual((rule.title, rule.amount), ("Угадан чемпион", Decimal("100.00")))

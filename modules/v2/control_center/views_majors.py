@@ -163,11 +163,19 @@ def stage_edit(request, major_id: int | None = None, stage_id: int | None = None
 
     if stage is not None and action in ("bracket", "carry_over", "delete"):
         if action == "bracket":
-            added = pickem.create_bracket(stage, third_place=bool(request.POST.get("third_place")))
+            try:
+                added = pickem.create_bracket(stage, third_place=bool(request.POST.get("third_place")))
+            except pickem.PickemError as exc:
+                messages.error(request, str(exc))
+                return redirect("control_center:stage_edit", stage_id=stage.pk)
             _log(request, f"{stage}: сетка плей-офф, добавлено матчей {added}", stage=stage.pk, added=added)
             messages.success(request, f"Добавлено матчей: {added}." if added else "Сетка уже заполнена.")
         elif action == "carry_over":
-            added = pickem.carry_over_teams(stage)
+            try:
+                added = pickem.carry_over_teams(stage)
+            except pickem.PickemError as exc:
+                messages.error(request, str(exc))
+                return redirect("control_center:stage_edit", stage_id=stage.pk)
             _log(request, f"{stage}: перенесены команды из прошлой стадии ({added})", stage=stage.pk, added=added)
             messages.success(request, f"Добавлено команд: {added}." if added else "Новых прошедших команд нет — проверьте итоги прошлой стадии.")
         else:

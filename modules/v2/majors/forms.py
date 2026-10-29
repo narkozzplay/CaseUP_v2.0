@@ -143,6 +143,9 @@ class _StageTeamFormSet(forms.BaseInlineFormSet):
                 raise forms.ValidationError("На стадию уже есть прогнозы — убирать команды нельзя.")
             if "team" in form.changed_data:
                 raise forms.ValidationError("На стадию уже есть прогнозы — заменять команды нельзя.")
+        for form in self.extra_forms:
+            if form.has_changed() and not (self.can_delete and self._should_delete_form(form)):
+                raise forms.ValidationError("На стадию уже есть прогнозы — добавлять команды нельзя.")
 
 
 StageTeamFormSet = forms.inlineformset_factory(Stage, StageTeam, form=StageTeamForm, formset=_StageTeamFormSet, extra=4, can_delete=True)
@@ -236,6 +239,18 @@ class RewardRuleForm(forms.ModelForm):
         self.fields["stage"].empty_label = "Любая стадия"
         if self.instance.item_id:
             self.initial.setdefault("item_name", self.instance.item.market_hash_name)
+
+    # What a player is promised: fixed once the rule has grants, since a grant is delivered by the rule as it is then.
+    FROZEN_WITH_GRANTS = ("condition", "stage", "min_correct", "kind", "amount", "plan", "days", "item_name")
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.instance.pk and self.instance.grants.exists():
+            changed = [name for name in self.FROZEN_WITH_GRANTS if name in self.changed_data]
+            if changed:
+                labels = ", ".join(str(self.fields[name].label) for name in changed)
+                raise forms.ValidationError(f"Награду уже выдавали — условие и приз менять нельзя ({labels}). Выключите её и создайте новую.")
+        return cleaned
 
     def add_error(self, field, error):
         # The model reports a missing skin on "item"; the form asks for it by name.
