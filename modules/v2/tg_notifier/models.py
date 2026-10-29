@@ -236,10 +236,12 @@ class TelegramUserPrefs(models.Model):
 
 
 class TelegramDeferredNotice(models.Model):
-    """A notice held back during quiet hours; all of a user's notices go out as one message when they end."""
+    """A notice held back during quiet hours; sent when they end."""
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="telegram_deferred_notices")
     text = models.TextField()
+    # The notice's buttons, sent with it when quiet hours end.
+    reply_markup = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:

@@ -35,8 +35,6 @@ logger = logging.getLogger(__name__)
 
 HTML = "HTML"
 SENT, DEFERRED, LIMITED, UNLINKED = "sent", "deferred", "limited", "unlinked"
-# Telegram cuts messages at 4096 characters.
-MESSAGE_LIMIT = 4000
 
 # Site notification kinds copied to Telegram: kind -> (urgent, button label).
 MIRRORED_KINDS = {
@@ -127,7 +125,7 @@ def deliver_notice(
         send_message(text=text, chat_id=chat_id, parse_mode=HTML, reply_markup=reply_markup, disable_notification=quiet)
         return SENT
     if quiet:
-        TelegramDeferredNotice.objects.create(user=user, text=text)
+        TelegramDeferredNotice.objects.create(user=user, text=text, reply_markup=reply_markup or {})
         return DEFERRED
     allowed, note = _take_slot(user, now=now)
     if not allowed:
@@ -141,8 +139,22 @@ def deliver_notice(
     return SENT
 
 
+def _reserve(user, wanted: int, *, now: datetime) -> int:
+    """Takes up to `wanted` slots of today's cap without the «cap reached» note; returns how many were granted."""
+    today = timezone.localdate(now)
+    with transaction.atomic():
+        prefs = TelegramUserPrefs.objects.select_for_update().get(user=user)
+        if prefs.counter_date != today:
+            prefs.counter_date, prefs.counter_value = today, 0
+        granted = wanted if not prefs.daily_limit else max(0, min(wanted, prefs.daily_limit - prefs.counter_value))
+        prefs.counter_value += granted
+        prefs.save(update_fields=["counter_date", "counter_value", "updated_at"])
+    return granted
+
+
 def flush_deferred(*, now: datetime | None = None) -> int:
-    """Sends what quiet hours held back, one message per user whose quiet hours are over. Returns users served."""
+    """Sends what quiet hours held back to users whose quiet hours are over: each notice with its buttons (only
+    the first one with sound), within the daily cap; the rest stay on the site. Returns users served."""
     now = now or timezone.now()
     config = get_telegram_notifier_config()
     if not is_enabled(config):
@@ -154,27 +166,24 @@ def flush_deferred(*, now: datetime | None = None) -> int:
             continue
         notices = list(TelegramDeferredNotice.objects.filter(user_id=prefs.user_id))
         chat_id = chat_id_of(prefs.user)
-        if chat_id:
-            try:
-                send_message(text=_join_deferred(notices), chat_id=chat_id, parse_mode=HTML)
-            except TelegramNotifierError:
-                logger.warning("tg_notifier: deferred notices to user %s failed", prefs.user_id, exc_info=True)
-                continue
+        if not chat_id:
+            TelegramDeferredNotice.objects.filter(pk__in=[notice.pk for notice in notices]).delete()
+            continue
+        granted = _reserve(prefs.user, len(notices), now=now)
+        done = []
+        try:
+            for index, notice in enumerate(notices[:granted]):
+                send_message(text=notice.text, chat_id=chat_id, parse_mode=HTML, reply_markup=notice.reply_markup or None, disable_notification=index > 0)
+                done.append(notice.pk)
+            if granted < len(notices):
+                done += [notice.pk for notice in notices[granted:]]
+                send_message(text=f"🌙 Ещё {len(notices) - granted} уведомл. за ночь не вошли в дневной лимит — они есть на сайте в колокольчике.", chat_id=chat_id, disable_notification=True)
+        except TelegramNotifierError:
+            logger.warning("tg_notifier: deferred notices to user %s failed", prefs.user_id, exc_info=True)
+        TelegramDeferredNotice.objects.filter(pk__in=done).delete()
+        if done:
             served += 1
-        TelegramDeferredNotice.objects.filter(pk__in=[notice.pk for notice in notices]).delete()
     return served
-
-
-def _join_deferred(notices: list[TelegramDeferredNotice]) -> str:
-    head = f"🌙 Пока шли тихие часы, пришло уведомлений: {len(notices)}"
-    parts, length = [head], len(head)
-    for index, notice in enumerate(notices):
-        if length + len(notice.text) + 2 > MESSAGE_LIMIT - 80:
-            parts.append(f"…и ещё {len(notices) - index} — они есть на сайте в колокольчике.")
-            break
-        parts.append(notice.text)
-        length += len(notice.text) + 2
-    return "\n\n".join(parts)
 
 
 # --------------------------------------------------------------------------- site notifications
@@ -275,17 +284,17 @@ def send_due_digests(*, now: datetime | None = None) -> int:
     for prefs in TelegramUserPrefs.objects.filter(digest_enabled=True, user_id__in=linked).select_related("user"):
         if not digest_due(prefs, now):
             continue
-        TelegramUserPrefs.objects.filter(pk=prefs.pk).update(digest_last_sent_on=timezone.localdate(now))
         text = build_personal_digest(prefs.user, now=now)
-        if not text:
-            continue
-        from .bot import main_keyboard
+        if text:
+            from .bot import main_keyboard
 
-        try:
-            send_message(text=text, chat_id=chat_id_of(prefs.user), parse_mode=HTML, reply_markup=main_keyboard())
-        except TelegramNotifierError:
-            logger.warning("tg_notifier: digest to user %s failed", prefs.user_id, exc_info=True)
-            continue
-        sent += 1
+            try:
+                send_message(text=text, chat_id=chat_id_of(prefs.user), parse_mode=HTML, reply_markup=main_keyboard())
+            except TelegramNotifierError:
+                # Not marked as sent: the next tick tries again.
+                logger.warning("tg_notifier: digest to user %s failed", prefs.user_id, exc_info=True)
+                continue
+            sent += 1
+        TelegramUserPrefs.objects.filter(pk=prefs.pk).update(digest_last_sent_on=timezone.localdate(now))
     return sent
 

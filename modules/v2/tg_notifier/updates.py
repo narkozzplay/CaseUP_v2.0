@@ -58,6 +58,9 @@ def handle_update(payload: dict[str, Any]) -> dict[str, Any]:
         return {"ok": True, "ignored": "no_chat_id"}
 
     start_token = extract_start_token_from_message_text(text)
+    if start_token and chat.get("type", "private") != "private":
+        # Personal notices (deals, payouts) must never land in a group the link was posted to.
+        return {"ok": True, "ignored": "not_private"}
     if start_token:
         try:
             bind_profile_by_telegram_start(

@@ -143,6 +143,13 @@ class CommandTests(BotTestCase):
         handle_update({"message": {"chat": {"id": -100, "type": "group"}, "text": "/price ak"}})
         self.assertEqual(self.sent(), [])
 
+    def test_a_group_cannot_be_linked(self):
+        from .services import issue_link_token_for_user
+
+        token = issue_link_token_for_user(self.user)
+        handle_update({"message": {"chat": {"id": -100, "type": "supergroup"}, "text": f"/start caseup_{token.token}"}})
+        self.assertEqual(UserProfile.objects.get(user=self.user).telegram_chat_id, CHAT)
+
     def test_polling_asks_for_button_presses(self):
         config = TelegramNotifierConfig.objects.get()
         with patch("modules.v2.tg_notifier.updates._telegram_api_request", side_effect=self._api):
@@ -249,15 +256,37 @@ class TargetAlertTests(BotTestCase):
 class DeliveryTests(BotTestCase):
     def test_quiet_hours_hold_regular_notices_and_flush_them_together(self):
         TelegramUserPrefs.objects.create(user=self.user, quiet_from=time(23), quiet_to=time(9))
-        self.assertEqual(delivery.deliver_notice(self.user, "первое", now=at_msk(2)), delivery.DEFERRED)
+        markup = {"inline_keyboard": [[{"text": "⏸ Выключить", "callback_data": "ax:1"}]]}
+        self.assertEqual(delivery.deliver_notice(self.user, "первое", reply_markup=markup, now=at_msk(2)), delivery.DEFERRED)
         self.assertEqual(delivery.deliver_notice(self.user, "второе", now=at_msk(3)), delivery.DEFERRED)
         self.assertEqual(self.sent(), [])
         self.assertEqual(delivery.flush_deferred(now=at_msk(8, 59)), 0)
         self.assertEqual(delivery.flush_deferred(now=at_msk(9, 1)), 1)
-        text = self.sent()[-1]["text"]
-        self.assertIn("первое", text)
-        self.assertIn("второе", text)
+        first, second = self.sent()
+        self.assertEqual((first["text"], first["reply_markup"]), ("первое", markup))  # buttons survive the night
+        self.assertNotIn("disable_notification", first)
+        self.assertEqual(second["text"], "второе")
+        self.assertTrue(second["disable_notification"])
         self.assertFalse(TelegramDeferredNotice.objects.exists())
+
+    def test_night_notices_count_towards_the_daily_cap(self):
+        TelegramUserPrefs.objects.create(user=self.user, daily_limit=2)
+        for index in range(4):
+            delivery.deliver_notice(self.user, f"n{index}", now=at_msk(2))
+        delivery.flush_deferred(now=at_msk(9, 5))
+        texts = [payload["text"] for payload in self.sent()]
+        self.assertEqual(texts[:2], ["n0", "n1"])
+        self.assertIn("Ещё 2", texts[2])
+        self.assertEqual(delivery.deliver_notice(self.user, "днём", now=at_msk(12)), delivery.LIMITED)
+
+    def test_digest_is_retried_after_a_failure(self):
+        from .services import TelegramNotifierError
+
+        TelegramUserPrefs.objects.create(user=self.user, digest_enabled=True, digest_time=time(10))
+        with patch("modules.v2.tg_notifier.delivery.build_personal_digest", return_value="сводка"):
+            with patch("modules.v2.tg_notifier.delivery.send_message", side_effect=TelegramNotifierError("502")):
+                self.assertEqual(delivery.send_due_digests(now=at_msk(10, 5)), 0)
+            self.assertEqual(delivery.send_due_digests(now=at_msk(10, 10)), 1)
 
     def test_urgent_notices_go_silently_at_night(self):
         TelegramUserPrefs.objects.create(user=self.user)
