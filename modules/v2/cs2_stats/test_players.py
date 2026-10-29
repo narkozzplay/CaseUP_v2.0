@@ -245,7 +245,7 @@ class PlayerViewsTests(TestCase):
             page = self.client.get(reverse("cs2_stats:player", args=[STEAM_ID]))
         self.assertContains(page, "s1mple-fan")
         self.assertContains(page, "VAC × 1")
-        self.assertContains(page, "1700 ELO")
+        self.assertContains(page, "<strong>1700</strong>", html=False)
         matches = self.client.get(reverse("cs2_stats:player_matches", args=[STEAM_ID]))
         self.assertContains(matches, "de_mirage".replace("de_", "").title())
         listing = self.client.get(reverse("cs2_stats:players"))
@@ -263,3 +263,22 @@ class PlayerViewsTests(TestCase):
     def test_login_required(self):
         self.client.logout()
         self.assertEqual(self.client.get(reverse("cs2_stats:players")).status_code, 302)
+
+
+class FaceitMapRowsTests(TestCase):
+    def test_keeps_real_maps_and_merges_duplicates(self):
+        from .players import faceit_map_rows
+
+        rows = faceit_map_rows([
+            {"map_code": "Overpass", "matches": 6, "wins": 6, "win_rate": 100, "kd": 1.2, "img": "https://img/o.jpg"},
+            {"map_code": "Overpass", "matches": 2, "wins": 0, "win_rate": 0, "kd": 0.6},
+            {"map_code": "Awp Lego 2", "matches": 1, "win_rate": 0, "kd": 0.3},
+            {"map_code": "de_mirage", "matches": 10, "wins": 5, "win_rate": 50, "kd": 1.0},
+        ])
+        self.assertEqual([r["map_code"] for r in rows], ["de_mirage", "de_overpass"])
+        overpass = rows[1]
+        self.assertEqual(overpass["matches"], 8)
+        self.assertEqual(overpass["win_rate"], 75)
+        self.assertEqual(overpass["kd"], 1.05)
+        self.assertEqual(overpass["img"], "https://img/o.jpg")
+        self.assertEqual(overpass["map_name"], "Overpass")

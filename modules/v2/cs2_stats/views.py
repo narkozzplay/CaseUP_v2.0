@@ -192,7 +192,7 @@ def player_search_view(request):
         "query": query,
         "error": error,
         "recent_players": TrackedPlayer.objects.exclude(last_synced_at=None).order_by("-last_viewed_at")[:12],
-        "top_players": TrackedPlayer.objects.filter(faceit_max_elo__gt=0).order_by("-faceit_max_elo")[:12],
+        "top_players": TrackedPlayer.objects.filter(faceit_elo__gt=0).order_by("-faceit_elo")[:12],
         "players_total": TrackedPlayer.objects.count(),
     }
     return render_dashboard_page(

@@ -354,6 +354,12 @@ class TrackedPlayer(models.Model):
     def has_faceit(self) -> bool:
         return bool(self.faceit_player_id)
 
+    @property
+    def faceit_level_icon(self) -> str:
+        from .services import faceit_level_icon_url
+
+        return faceit_level_icon_url(self.faceit_level)
+
 
 class FaceitMatch(models.Model):
     """One FACEIT CS2 match of a tracked player, with that player's numbers."""

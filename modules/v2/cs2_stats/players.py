@@ -279,6 +279,7 @@ def _parse_lifetime(payload: dict) -> tuple[dict, list[dict]]:
             "win_rate": _safe_float(stats.get("Win Rate %")),
             "kd": _safe_float(stats.get("Average K/D Ratio")),
             "hs_percent": _safe_float(stats.get("Average Headshots %")),
+            "img": segment.get("img_regular") or segment.get("img_small") or "",
         })
     maps.sort(key=lambda row: row["matches"], reverse=True)
     return lifetime, maps
@@ -648,19 +649,16 @@ def player_page_context(player: TrackedPlayer) -> dict:
     def map_info(code: str) -> dict:
         return CS2_MAPS.get(code, {"name": code.replace("de_", "").title(), "color": "#4A5568", "color2": "#2D3748"})
 
+    faceit_maps = faceit_map_rows(player.faceit_maps or [])
+    map_images = {row["map_code"]: row["img"] for row in faceit_maps}
     steam_maps = []
     for row in (player.steam_stats or {}).get("maps") or []:
         info = map_info(row.get("map_code", ""))
-        steam_maps.append({**row, "map_name": info["name"], "color": info["color"], "color2": info["color2"]})
-    faceit_maps = []
-    for row in player.faceit_maps or []:
-        info = map_info(row.get("map_code", ""))
-        faceit_maps.append({**row, "map_name": info["name"], "color": info["color"], "color2": info["color2"]})
+        steam_maps.append({
+            **row, "map_name": info["name"], "color": info["color"], "color2": info["color2"],
+            "img": map_images.get(row.get("map_code", ""), ""),
+        })
 
-    matches = list(player.faceit_matches.all()[:20])
-    caseup_profile = (
-        UserProfile.objects.select_related("user").filter(steam_id=player.steam_id, user__is_active=True).first()
-    )
     return {
         "player": player,
         "steam": player.steam_stats or {},
@@ -669,8 +667,48 @@ def player_page_context(player: TrackedPlayer) -> dict:
         "faceit_maps": faceit_maps,
         "faceit_level_icon": faceit_level_icon_url(player.faceit_level),
         "faceit_progress": faceit_level_progress(player.faceit_elo, player.faceit_level),
-        "recent_matches": matches,
+        "recent_matches": list(player.faceit_matches.all()[:20]),
         "stored_matches": player.faceit_matches.count(),
-        "caseup_profile": caseup_profile,
+        "caseup_profile": (
+            UserProfile.objects.select_related("user").filter(steam_id=player.steam_id, user__is_active=True).first()
+        ),
         "backfill_running": needs_backfill(player),
     }
+
+
+def _map_key(label: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", (label or "").lower().removeprefix("de_"))
+
+
+def faceit_map_rows(rows: list[dict]) -> list[dict]:
+    """FACEIT per-map segments: real 5v5 maps only, one row per map (5v5 and wingman merged)."""
+    from .models import CS2_MAPS
+
+    known = {_map_key(code): (code, info) for code, info in CS2_MAPS.items()}
+    merged: dict[str, dict] = {}
+    for row in rows:
+        entry = known.get(_map_key(row.get("map_code", "")))
+        if entry is None:
+            continue    # aim / awp / custom maps
+        code, info = entry
+        matches = row.get("matches") or 0
+        target = merged.setdefault(code, {
+            "map_code": code, "map_name": info["name"], "color": info["color"], "color2": info["color2"],
+            "matches": 0, "wins": 0, "_kd_sum": 0.0, "img": "",
+        })
+        target["img"] = target["img"] or row.get("img") or ""
+        target["matches"] += matches
+        target["wins"] += row.get("wins") or round(matches * (row.get("win_rate") or 0) / 100)
+        target["_kd_sum"] += (row.get("kd") or 0) * matches
+    result = []
+    for row in merged.values():
+        matches = row.pop("matches")
+        kd_sum = row.pop("_kd_sum")
+        row.update(
+            matches=matches,
+            win_rate=round(row["wins"] / matches * 100) if matches else 0,
+            kd=round(kd_sum / matches, 2) if matches else 0,
+        )
+        result.append(row)
+    result.sort(key=lambda r: r["matches"], reverse=True)
+    return result
