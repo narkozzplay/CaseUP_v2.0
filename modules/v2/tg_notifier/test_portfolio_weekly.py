@@ -98,3 +98,14 @@ class WeeklyPortfolioTests(TestCase):
         with patch("modules.v2.tg_notifier.portfolio_weekly.send_photo", side_effect=TelegramNotifierError("400")):
             self.assertEqual(portfolio_weekly.send_due_weekly(now=monday_at(10, 5)), 1)
         self.assertEqual(self.calls[-1][0], "sendMessage")
+
+    def test_retried_after_both_sends_fail(self):
+        from .services import TelegramNotifierError
+
+        self._pro()
+        TelegramUserPrefs.objects.create(user=self.user, digest_time=time(10))
+        with patch("modules.v2.tg_notifier.portfolio_weekly.send_photo", side_effect=TelegramNotifierError("502")), \
+                patch("modules.v2.tg_notifier.portfolio_weekly.send_message", side_effect=TelegramNotifierError("502")):
+            self.assertEqual(portfolio_weekly.send_due_weekly(now=monday_at(10, 5)), 0)
+        self.assertIsNone(TelegramUserPrefs.objects.get(user=self.user).weekly_portfolio_last_sent_on)
+        self.assertEqual(portfolio_weekly.send_due_weekly(now=monday_at(10, 10)), 1)

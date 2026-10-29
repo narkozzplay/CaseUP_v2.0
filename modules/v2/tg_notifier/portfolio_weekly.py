@@ -165,9 +165,9 @@ def send_due_weekly(*, now: datetime | None = None) -> int:
     now = now or timezone.now()
     if not is_enabled():
         return 0
-    sent = 0
     from modules.v2.steam_trading.models import SteamPurchase
 
+    sent = 0
     linked = UserProfile.objects.exclude(Q(telegram_chat_id__isnull=True) | Q(telegram_chat_id="")).values("user_id")
     investors = SteamPurchase.objects.filter(created_by_id__in=linked).values("created_by_id")
     # The summary is on by default, so investors who never saved bot settings get theirs now.
@@ -178,6 +178,14 @@ def send_due_weekly(*, now: datetime | None = None) -> int:
     )
     for prefs in TelegramUserPrefs.objects.filter(weekly_portfolio_enabled=True, user_id__in=investors).select_related("user"):
         if not weekly_due(prefs, now):
+            continue
+        today = timezone.localdate(now)
+        previous = prefs.weekly_portfolio_last_sent_on
+        # Claimed before sending, so a second worker on an overlapping tick skips this user.
+        claimed = TelegramUserPrefs.objects.filter(pk=prefs.pk, weekly_portfolio_last_sent_on=previous).update(
+            weekly_portfolio_last_sent_on=today
+        )
+        if not claimed:
             continue
         user = prefs.user
         built = build_weekly_portfolio(user, now=now) if _has_access(user) else None
@@ -193,9 +201,9 @@ def send_due_weekly(*, now: datetime | None = None) -> int:
                 try:
                     send_message(text=caption, chat_id=chat_id_of(user), parse_mode=HTML, reply_markup=markup)
                 except TelegramNotifierError:
-                    # Not marked as sent: the next tick tries again.
+                    # Released again: the next tick tries again.
                     logger.warning("tg_notifier: weekly portfolio to user %s failed", user.pk, exc_info=True)
+                    TelegramUserPrefs.objects.filter(pk=prefs.pk).update(weekly_portfolio_last_sent_on=previous)
                     continue
             sent += 1
-        TelegramUserPrefs.objects.filter(pk=prefs.pk).update(weekly_portfolio_last_sent_on=timezone.localdate(now))
     return sent
