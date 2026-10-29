@@ -322,6 +322,13 @@ def _payment_service_label() -> str:
     return PAYMENT_SERVICE_LABELS.get(getattr(provider, "code", ""), PAYMENT_SERVICE_LABELS["freekassa"])
 
 
+def _topup_fee_label() -> str:
+    """The configured top-up commission as the documents print it: «8,5», «10»."""
+    from modules.v2.payments.services import topup_fee_percent
+
+    return f"{topup_fee_percent().normalize():f}".replace(".", ",")
+
+
 def _render_legal_document(request, document, template_name: str):
     from django.conf import settings
 
@@ -335,6 +342,7 @@ def _render_legal_document(request, document, template_name: str):
             "legal_documents": LEGAL_DOCUMENTS,
             "site_base_url": (getattr(settings, "SITE_BASE_URL", "") or "").rstrip("/"),
             "payment_service": _payment_service_label(),
+            "topup_fee_percent": _topup_fee_label(),
         },
     )
 
