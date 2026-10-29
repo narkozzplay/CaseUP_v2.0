@@ -528,4 +528,28 @@ def telegram_webhook_view(request, webhook_secret: str):
     if not isinstance(payload, dict):
         return JsonResponse({"ok": False, "error": "invalid_payload"}, status=400)
 
+    from .bot import ensure_commands
+
+    ensure_commands()
     return JsonResponse(handle_update(payload))
+
+
+@login_required
+def bot_prefs_save(request):
+    """The «Telegram-бот» card on the profile settings page: quiet hours, daily cap, personal digest."""
+    from django.urls import reverse
+
+    from .delivery import get_prefs
+    from .forms import TelegramUserPrefsForm
+
+    target = f"{reverse('profiles:profile_settings')}#settings-telegram"
+    if request.method != "POST":
+        return redirect(target)
+    form = TelegramUserPrefsForm(request.POST, instance=get_prefs(request.user))
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Настройки Telegram-бота сохранены.")
+    else:
+        errors = "; ".join(f"{form.fields[name].label}: {' '.join(errs)}" if name in form.fields else " ".join(errs) for name, errs in form.errors.items())
+        messages.error(request, f"Не удалось сохранить настройки бота. {errors}")
+    return redirect(target)

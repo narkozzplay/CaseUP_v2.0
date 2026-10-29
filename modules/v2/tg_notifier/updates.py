@@ -1,4 +1,4 @@
-"""Incoming bot updates (users pressing Start to link Telegram).
+"""Incoming bot updates: Start with a link token, commands and button presses (answered in bot.py).
 
 Telegram reaches the site either by webhook (Telegram -> relay -> site) or, when incoming connections to the
 relay hosting are blocked, by polling: the site itself asks Telegram for new updates through the relay —
@@ -17,6 +17,7 @@ from django.utils import timezone
 
 from .models import TelegramNotifierConfig
 from .services import (
+    BOT_UPDATE_TYPES,
     TelegramNotifierError,
     _build_telegram_endpoint,
     _telegram_api_request,
@@ -41,6 +42,11 @@ POLL_GAP_MINUTES = 5
 
 
 def handle_update(payload: dict[str, Any]) -> dict[str, Any]:
+    from .bot import handle_callback, handle_message, main_keyboard, welcome_reply
+
+    if payload.get("callback_query"):
+        return handle_callback(payload["callback_query"])
+
     message = payload.get("message") or {}
     chat = message.get("chat") or {}
     from_user = message.get("from") or {}
@@ -71,11 +77,9 @@ def handle_update(payload: dict[str, Any]) -> dict[str, Any]:
             return {"ok": True, "bound": False, "error": str(exc)}
 
         warning = ""
+        welcome = welcome_reply()
         try:
-            send_message(
-                chat_id=chat_id,
-                text="✅ Telegram успешно подключен к вашему профилю CaseUP.",
-            )
+            send_message(chat_id=chat_id, text=welcome.text, reply_markup=main_keyboard())
         except TelegramNotifierError as exc:
             warning = str(exc)
 
@@ -84,7 +88,9 @@ def handle_update(payload: dict[str, Any]) -> dict[str, Any]:
         return {"ok": True, "bound": True}
 
     touch_profile_last_interaction_by_chat_id(chat_id)
-    return {"ok": True, "ignored": "no_start_token"}
+    if not text:
+        return {"ok": True, "ignored": "no_text"}
+    return handle_message(message)
 
 
 def _save_status(*, error: str, handled: int) -> None:
@@ -115,7 +121,7 @@ def poll_updates(config: TelegramNotifierConfig | None = None, *, long_poll: int
     if not bot_token:
         raise TelegramNotifierError("Bot token не настроен.")
 
-    payload = {"offset": config.polling_offset + 1, "timeout": long_poll, "allowed_updates": ["message"]}
+    payload = {"offset": config.polling_offset + 1, "timeout": long_poll, "allowed_updates": BOT_UPDATE_TYPES}
     try:
         data = _telegram_api_request(
             endpoint=_build_telegram_endpoint(bot_token, "getUpdates"),
@@ -136,6 +142,7 @@ def poll_updates(config: TelegramNotifierConfig | None = None, *, long_poll: int
     now = time.time()
     for update in data.get("result") or []:
         update_id = int(update.get("update_id") or 0)
+        # Button presses carry the date of the message they sit under, which may be old: only messages go stale.
         message_date = int((update.get("message") or {}).get("date") or 0)
         if message_date and now - message_date > STALE_UPDATE_SECONDS:
             logger.info("tg_notifier: skipped stale update %s", update_id)
@@ -156,6 +163,9 @@ def poll_once() -> tuple[bool, int]:
     config = get_telegram_notifier_config()
     if config.updates_mode != TelegramNotifierConfig.UpdatesMode.POLLING or not is_enabled(config) or not resolve_bot_token(config):
         return False, 0
+    from .bot import ensure_commands
+
+    ensure_commands()
     try:
         handled = poll_updates(config)
     except TelegramNotifierError as exc:

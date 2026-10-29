@@ -35,10 +35,14 @@
                     </div>
 
                     <dl class="alert-rule__facts">
+                        {% if rule.kind == "target" %}
+                        <div><dt>Цель</dt><dd>{% if rule.direction == "up" %}поднимется до{% else %}опустится до{% endif %} {% money rule.target_price_rub %}</dd></div>
+                        {% else %}
                         <div><dt>Порог</dt><dd>{% money rule.min_change_rub %} / {{ rule.min_change_percent }}%</dd></div>
                         <div><dt>Окно</dt><dd>{{ rule.get_window_kind_display }}: {{ rule.window_value }}</dd></div>
                         <div><dt>От чего</dt><dd>{{ rule.get_reference_point_display }}</dd></div>
                         <div><dt>Повтор</dt><dd>{{ rule.get_repeat_mode_display }}</dd></div>
+                        {% endif %}
                         <div><dt>Доставка</dt><dd>{{ rule.get_delivery_target_display }}</dd></div>
                     </dl>
 

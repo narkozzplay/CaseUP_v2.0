@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import secrets
-from datetime import timedelta
+from datetime import time, timedelta
 from decimal import Decimal
 
 from django.conf import settings
@@ -204,3 +204,46 @@ class ChannelDigestPost(models.Model):
 
     def __str__(self) -> str:
         return f"ChannelDigestPost({self.created_at:%Y-%m-%d %H:%M}, {self.status})"
+
+
+class TelegramUserPrefs(models.Model):
+    """A user's Telegram bot settings: quiet hours, a daily cap on notices and the personal daily digest.
+
+    Also keeps the day's notice counter, so the cap needs no extra table.
+    """
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="telegram_prefs")
+    quiet_enabled = models.BooleanField("Тихие часы", default=True)
+    quiet_from = models.TimeField("С", default=time(23, 0))
+    quiet_to = models.TimeField("До", default=time(9, 0))
+    # 0 means no cap.
+    daily_limit = models.PositiveSmallIntegerField("Уведомлений в день", default=30)
+    digest_enabled = models.BooleanField("Личная сводка", default=False)
+    digest_time = models.TimeField("Время сводки", default=time(10, 0))
+    digest_last_sent_on = models.DateField(null=True, blank=True)
+    counter_date = models.DateField(null=True, blank=True)
+    counter_value = models.PositiveIntegerField(default=0)
+    # The «limit reached» note is sent once a day.
+    limit_notice_on = models.DateField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Telegram bot settings"
+        verbose_name_plural = "Telegram bot settings"
+
+    def __str__(self) -> str:
+        return f"TelegramUserPrefs(user={self.user_id})"
+
+
+class TelegramDeferredNotice(models.Model):
+    """A notice held back during quiet hours; all of a user's notices go out as one message when they end."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="telegram_deferred_notices")
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+    def __str__(self) -> str:
+        return f"TelegramDeferredNotice(user={self.user_id})"

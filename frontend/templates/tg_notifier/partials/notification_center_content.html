@@ -62,7 +62,7 @@
             </div>
             <dl class="nc-facts">
                 <div><dt>Аккаунт</dt><dd>{% if profile.telegram_username %}@{{ profile.telegram_username }}{% elif profile.telegram_is_linked %}Привязан{% else %}—{% endif %}</dd></div>
-                <div><dt>Что приходит</dt><dd>Алерты цен, инвестиции, ферма, поддержка</dd></div>
+                <div><dt>Что приходит</dt><dd>Алерты цен, сделки рынка, бонус дня, инвестиции, ферма, поддержка</dd></div>
             </dl>
             {% if not telegram_available %}
                 <p class="nc-channel__note">Telegram-уведомления временно отключены на сайте. Остальные каналы работают.</p>

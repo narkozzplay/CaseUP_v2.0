@@ -8,7 +8,7 @@
     <div class="section-heading">
         <span class="eyebrow">Price alerts</span>
         <h1>{% if is_create %}Новое правило{% else %}Редактирование правила{% endif %}</h1>
-        <p class="text-muted">Уведомление придёт в Telegram, когда цена изменится сильнее порога.</p>
+        <p class="text-muted">Уведомление придёт, когда цена изменится сильнее порога или дойдёт до нужной.</p>
     </div>
 
     <form method="post" class="alert-form">
@@ -19,6 +19,7 @@
             <legend><span class="alert-form__step">01</span> Что отслеживаем</legend>
             <div class="alert-form__grid">
                 {% include "steam_catalog/partials/alert_field.html" with field=form.name extra_class="alert-form__field--wide" %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.kind %}
                 {% include "steam_catalog/partials/alert_field.html" with field=form.scope_type %}
                 {% include "steam_catalog/partials/alert_field.html" with field=form.item extra_class="alert-form__scope alert-form__scope--item" %}
                 {% include "steam_catalog/partials/alert_field.html" with field=form.family_name extra_class="alert-form__scope alert-form__scope--family" %}
@@ -30,16 +31,17 @@
             <legend><span class="alert-form__step">02</span> Условие срабатывания</legend>
             <div class="alert-form__grid">
                 {% include "steam_catalog/partials/alert_field.html" with field=form.direction %}
-                {% include "steam_catalog/partials/alert_field.html" with field=form.reference_point %}
-                {% include "steam_catalog/partials/alert_field.html" with field=form.window_kind %}
-                {% include "steam_catalog/partials/alert_field.html" with field=form.window_value %}
-                {% include "steam_catalog/partials/alert_field.html" with field=form.threshold_mode %}
-                {% include "steam_catalog/partials/alert_field.html" with field=form.min_change_rub %}
-                {% include "steam_catalog/partials/alert_field.html" with field=form.min_change_percent %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.target_price_rub extra_class="alert-form__target" %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.reference_point extra_class="alert-form__change" %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.window_kind extra_class="alert-form__change" %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.window_value extra_class="alert-form__change" %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.threshold_mode extra_class="alert-form__change" %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.min_change_rub extra_class="alert-form__change" %}
+                {% include "steam_catalog/partials/alert_field.html" with field=form.min_change_percent extra_class="alert-form__change" %}
             </div>
         </fieldset>
 
-        <fieldset class="alert-form__group">
+        <fieldset class="alert-form__group alert-form__change">
             <legend><span class="alert-form__step">03</span> Повтор</legend>
             <div class="alert-form__grid">
                 {% include "steam_catalog/partials/alert_field.html" with field=form.repeat_mode %}

@@ -20,3 +20,22 @@ def notify_admins_topup_task(entry_id: int) -> int:
     from .admin_events import notify_topup
 
     return notify_topup(entry_id)
+
+
+@shared_task(name="tg_notifier.mirror_notification", ignore_result=True)
+def mirror_notification_task(notification_id: int) -> str:
+    from .delivery import mirror_notification
+    from .services import TelegramNotifierError
+
+    try:
+        return mirror_notification(notification_id)
+    except TelegramNotifierError as exc:
+        return f"error: {exc}"
+
+
+@shared_task(name="tg_notifier.personal_tick", ignore_result=True)
+def personal_tick_task() -> str:
+    """Every few minutes: what quiet hours held back, and personal digests whose time has come."""
+    from .delivery import flush_deferred, send_due_digests
+
+    return f"deferred={flush_deferred()} digests={send_due_digests()}"

@@ -235,6 +235,8 @@ def send_message(
     chat_id: str | None = None,
     timeout: int = 15,
     parse_mode: str | None = None,
+    reply_markup: dict[str, Any] | None = None,
+    disable_notification: bool = False,
 ) -> TelegramSendResult:
     config = get_telegram_notifier_config()
 
@@ -256,6 +258,10 @@ def send_message(
     }
     if parse_mode:
         payload["parse_mode"] = parse_mode
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    if disable_notification:
+        payload["disable_notification"] = True
 
     response_payload = _request_with_retries(
         endpoint=_build_telegram_endpoint(bot_token, "sendMessage"), payload=payload, timeout=timeout
@@ -290,6 +296,17 @@ def send_photo(
         files={"photo": (filename, photo, content_type)},
     )
     return TelegramSendResult(chat_id=chat_id, payload=response_payload)
+
+
+def call_bot_api(method: str, payload: dict[str, Any], *, timeout: int = 15) -> dict[str, Any]:
+    """Any other Bot API call (editMessageText, answerCallbackQuery, setMyCommands, ...)."""
+    config = get_telegram_notifier_config()
+    if not is_enabled(config):
+        raise TelegramNotifierError("TG notifier выключен в настройках.")
+    bot_token = resolve_bot_token(config)
+    if not bot_token:
+        raise TelegramNotifierError("Bot token не настроен.")
+    return _telegram_api_request(endpoint=_build_telegram_endpoint(bot_token, method), payload=payload, timeout=timeout)
 
 
 def _request_with_retries(**kwargs) -> dict[str, Any]:
@@ -588,6 +605,10 @@ def touch_profile_last_interaction_by_chat_id(chat_id: str) -> None:
     )
 
 
+# Messages (commands) and button presses under bot messages.
+BOT_UPDATE_TYPES = ["message", "callback_query"]
+
+
 def build_webhook_url(config: TelegramNotifierConfig | None = None) -> str:
     """Where Telegram delivers bot updates: the site itself, or the relay that forwards them to the site."""
     config = config or get_telegram_notifier_config()
@@ -612,6 +633,7 @@ def register_webhook(config: TelegramNotifierConfig | None = None, timeout: int 
         "url": webhook_url,
         "drop_pending_updates": False,
         "secret_token": config.webhook_secret,
+        "allowed_updates": BOT_UPDATE_TYPES,
     }
     return _telegram_api_request(
         endpoint=_build_telegram_endpoint(bot_token, "setWebhook"),

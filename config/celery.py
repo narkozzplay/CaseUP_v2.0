@@ -122,6 +122,11 @@ app.conf.beat_schedule = {
         "task": "tg_notifier.post_channel_digest",
         "schedule": 300.0,
     },
+    # Personal bot notices: what users' quiet hours held back, and personal daily digests at their chosen time.
+    "tg-personal-tick": {
+        "task": "tg_notifier.personal_tick",
+        "schedule": 300.0,
+    },
     # New support tickets nobody took within 3 hours: one reminder to the team in Telegram.
     "support-escalate-stale-tickets": {
         "task": "support.escalate_stale_tickets",

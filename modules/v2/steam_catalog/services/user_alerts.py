@@ -197,6 +197,66 @@ def _iter_rule_items(rule, item_type):
     return list(qs.filter(item_type=item_type).order_by("id"))
 
 
+def _target_reached(rule: UserPriceAlertRule, price: Decimal) -> bool:
+    if rule.direction == UserPriceAlertRule.Direction.UP:
+        return price >= rule.target_price_rub
+    return price <= rule.target_price_rub
+
+
+def _evaluate_target_rule(rule: UserPriceAlertRule, item: SteamItem, trigger_source: str) -> bool:
+    """«Цена достигла X ₽»: fires when the price reaches the target, then switches the rule off.
+
+    The first time it fires as soon as the price is there. After that (the user switched it back on) only a new
+    crossing counts — the previous point on the other side of the target — so it does not fire again at once.
+    """
+    if not rule.target_price_rub:
+        return False
+    rows = list(
+        SteamItemPriceHistory.objects.filter(item=item).exclude(source=SWEEP_SOURCE).order_by("-created_at", "-id")[:2]
+    )[::-1]
+    if not rows or not _target_reached(rule, rows[-1].price_rub):
+        return False
+    current = rows[-1]
+    previous = rows[0] if len(rows) == 2 else current
+    last = rule.events.filter(item=item).order_by("-created_at", "-id").first()
+    if last is not None:
+        crossed = len(rows) == 2 and not _target_reached(rule, previous.price_rub)
+        if not crossed or current.created_at <= last.current_at:
+            return False
+    change = (current.price_rub - previous.price_rub).quantize(Decimal("0.01"))
+    percent = _quantize_percent(change / previous.price_rub * 100) if previous.price_rub else Decimal("0.00")
+    try:
+        with transaction.atomic():
+            UserPriceAlertEvent.objects.create(
+                rule=rule,
+                user=rule.user,
+                item=item,
+                transport=rule.transport,
+                delivery_target=rule.delivery_target,
+                delivery_status=UserPriceAlertEvent.Status.PENDING,
+                trigger_source=(trigger_source or "celery")[:16],
+                direction=rule.direction,
+                reference_point=rule.reference_point,
+                reference_at=previous.created_at,
+                current_at=current.created_at,
+                window_started_at=previous.created_at,
+                baseline_price_rub=previous.price_rub,
+                current_price_rub=current.price_rub,
+                change_rub=change,
+                change_percent=percent,
+                repeat_reason="target",
+                dedupe_key=f"{rule.id}:{item.id}:target:{current.created_at.isoformat()}",
+                payload={"kind": UserPriceAlertRule.Kind.TARGET, "target_price_rub": str(rule.target_price_rub)},
+            )
+            rule.status = UserPriceAlertRule.Status.DISABLED
+            rule.last_triggered_at = timezone.now()
+            rule.last_error_message = ""
+            rule.save(update_fields=["status", "last_triggered_at", "last_error_message", "updated_at"])
+    except Exception:
+        return False
+    return True
+
+
 def evaluate_user_price_alerts_for_item_type(item_type: str, *, trigger_source: str = "celery") -> int:
     created_count = 0
 
@@ -212,6 +272,11 @@ def evaluate_user_price_alerts_for_item_type(item_type: str, *, trigger_source: 
             continue
 
         if rule.scope_type == UserPriceAlertRule.ScopeType.ITEM and getattr(rule.item, "item_type", None) != item_type:
+            continue
+
+        if rule.kind == UserPriceAlertRule.Kind.TARGET:
+            for item in _iter_rule_items(rule, item_type):
+                created_count += int(_evaluate_target_rule(rule, item, trigger_source))
             continue
 
         directions = (
@@ -300,23 +365,29 @@ def _bot_link(url: str) -> str:
     return bot_utm_link(url, content="price_alert")
 
 
-def _build_user_price_alert_message(event: UserPriceAlertEvent) -> str:
-    direction_title = "Рост" if event.direction == UserPriceAlertRule.Direction.UP else "Падение"
+def _price(value: Decimal) -> str:
+    text = f"{value:,.2f}".replace(",", " ")
+    return (text[:-3] if text.endswith(".00") else text) + " ₽"
 
+
+def _build_user_price_alert_message(event: UserPriceAlertEvent) -> str:
+    rule, item = event.rule, event.item
+    link = html.escape(_bot_link(_build_item_absolute_url(item)), quote=True)
+    name = f"<a href=\"{link}\">{html.escape(item.market_hash_name)}</a>"
+    if (event.payload or {}).get("kind") == UserPriceAlertRule.Kind.TARGET:
+        target = Decimal((event.payload or {}).get("target_price_rub") or rule.target_price_rub or 0)
+        verb = "поднялась до" if event.direction == UserPriceAlertRule.Direction.UP else "опустилась до"
+        return (
+            f"🎯 <b>Цена {verb} {_price(target)}</b>\n{name}\n\n"
+            f"Сейчас: <b>{_price(event.current_price_rub)}</b>\n"
+            f"Алерт «{html.escape(rule.name)}» сработал и выключен — включите снова кнопкой ниже, если нужно."
+        )
+    arrow = "▲ Рост" if event.direction == UserPriceAlertRule.Direction.UP else "▼ Падение"
+    since = timezone.localtime(event.reference_at).strftime("%d.%m %H:%M")
     return (
-        f"<b>Price alert</b>\n\n"
-        f"<b>Правило:</b> {html.escape(event.rule.name)}\n"
-        f"<b>Предмет:</b> "
-        f"<a href=\"{html.escape(_bot_link(_build_item_absolute_url(event.item)), quote=True)}\">"
-        f"{html.escape(event.item.group_name)}</a>\n"
-        f"<b>Направление:</b> {direction_title}\n"
-        f"<b>Reference:</b> {html.escape(event.rule.get_reference_point_display())}\n"
-        f"<b>База:</b> {event.baseline_price_rub} ₽ "
-        f"({timezone.localtime(event.reference_at).strftime('%d.%m.%Y %H:%M')})\n"
-        f"<b>Текущая:</b> {event.current_price_rub} ₽ "
-        f"({timezone.localtime(event.current_at).strftime('%d.%m.%Y %H:%M')})\n"
-        f"<b>Изменение:</b> {event.change_rub:+.2f} ₽ ({event.change_percent:+.2f}%)\n"
-        f"<b>Шаг:</b> #{event.step_index} / {html.escape(event.repeat_reason or 'initial')}"
+        f"{arrow} <b>{event.change_percent:+.2f}%</b>\n{name}\n\n"
+        f"{_price(event.baseline_price_rub)} → <b>{_price(event.current_price_rub)}</b> ({event.change_rub:+.2f} ₽)\n"
+        f"С {since} МСК · алерт «{html.escape(rule.name)}»"
     )
 
 
@@ -341,16 +412,17 @@ def _notify_on_site(event: UserPriceAlertEvent) -> None:
     from modules.v2.steam_catalog.notifications import KIND_PRICE_ALERT
 
     arrow = "▲" if event.direction == UserPriceAlertRule.Direction.UP else "▼"
+    title = f"{arrow} {event.item.group_name}: {event.change_percent:+.2f}%"
+    body = f"{event.rule.name}: {event.baseline_price_rub} → {event.current_price_rub} ₽ ({event.change_rub:+.2f} ₽)"
+    if (event.payload or {}).get("kind") == UserPriceAlertRule.Kind.TARGET:
+        title = f"🎯 {event.item.group_name}: {event.current_price_rub} ₽"
+        body = f"{event.rule.name}: цена дошла до {event.payload.get('target_price_rub')} ₽. Алерт выключен."
     notify(
         event.user,
         KIND_PRICE_ALERT,
         object_id=event.pk,
         dedupe=False,
-        payload={
-            "title": f"{arrow} {event.item.group_name}: {event.change_percent:+.2f}%",
-            "body": f"{event.rule.name}: {event.baseline_price_rub} → {event.current_price_rub} ₽ ({event.change_rub:+.2f} ₽)",
-            "url": reverse("steam_catalog:detail", args=[event.item_id]),
-        },
+        payload={"title": title, "body": body, "url": reverse("steam_catalog:detail", args=[event.item_id])},
     )
 
 
@@ -361,7 +433,26 @@ def _deliver(event: UserPriceAlertEvent) -> tuple[str, str, dict]:
     if event.transport in (Transport.SITE, Transport.BOTH):
         _notify_on_site(event)
         sent_to.append("site")
-    if event.transport in (Transport.TELEGRAM, Transport.BOTH):
+    if event.transport in (Transport.TELEGRAM, Transport.BOTH) and event.delivery_target == UserPriceAlertRule.DeliveryTarget.USER_CHAT:
+        # The user's own chat: buttons under the notice, quiet hours and the daily cap.
+        from modules.v2.tg_notifier import delivery
+        from modules.v2.tg_notifier.bot import alert_markup
+
+        try:
+            markup = alert_markup(event.rule, event.item, active=event.rule.status == UserPriceAlertRule.Status.ACTIVE)
+            outcome = delivery.deliver_notice(event.user, _build_user_price_alert_message(event), reply_markup=markup)
+        except Exception as exc:  # noqa: BLE001 - recorded on the event and the rule
+            errors.append(str(exc))
+        else:
+            if outcome == delivery.SENT:
+                sent_to.append(_resolve_chat_id(event))
+            elif outcome == delivery.DEFERRED:
+                sent_to.append("telegram:quiet_hours")
+            elif outcome == delivery.LIMITED:
+                errors.append("Дневной лимит уведомлений в Telegram исчерпан.")
+            else:
+                errors.append("Telegram не привязан: chat id не настроен.")
+    elif event.transport in (Transport.TELEGRAM, Transport.BOTH):
         chat_id = _resolve_chat_id(event)
         if not chat_id:
             errors.append("Telegram не привязан: chat id не настроен.")
