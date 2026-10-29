@@ -393,14 +393,19 @@ def alert_markup(rule, item, *, active: bool = True) -> dict[str, Any]:
 # --------------------------------------------------------------------------- money
 
 
-def portfolio_summary(user) -> str | None:
-    """A few lines on the user's investments; None when they have none."""
+def portfolio_analytics(user):
+    """Investment analytics over all of the user's purchases (totals must not miss old ones); None without any."""
     from modules.v2.steam_trading.investment_services import build_investment_analytics, get_investment_purchase_queryset
 
-    purchases = list(get_investment_purchase_queryset(user=user)[:300])
-    if not purchases:
+    purchases = list(get_investment_purchase_queryset(user=user))
+    return build_investment_analytics(purchases) if purchases else None
+
+
+def portfolio_summary(user, analytics=None) -> str | None:
+    """A few lines on the user's investments; None when they have none."""
+    analytics = analytics or portfolio_analytics(user)
+    if analytics is None:
         return None
-    analytics = build_investment_analytics(purchases)
     kpi = analytics.kpi
     if not kpi.active_purchases_count:
         return f"Активных позиций нет. Зафиксировано продажами: {_signed(kpi.realized_pnl_sum)}"
@@ -419,16 +424,14 @@ def _signed(value: Decimal) -> str:
 
 
 def portfolio_reply(user) -> Reply:
-    from modules.v2.steam_trading.investment_services import build_investment_analytics, get_investment_purchase_queryset
-
     link = _link(reverse("steam_trading:investments"), "portfolio")
-    summary = portfolio_summary(user)
+    analytics = portfolio_analytics(user)
+    summary = portfolio_summary(user, analytics)
     if summary is None:
         add_link = _link(reverse("steam_trading:add"), "portfolio")
         markup = {"inline_keyboard": [[url_button("Добавить покупку", add_link)]]} if add_link else None
         return Reply("💼 В портфеле пока нет покупок. Добавьте их на сайте — я буду считать стоимость и прибыль.", markup)
     lines = ["💼 <b>Портфель</b>", summary]
-    analytics = build_investment_analytics(list(get_investment_purchase_queryset(user=user)[:300]))
     gainers = [row for row in analytics.top_gainers if row.unrealized_pnl_percent > 0][:3]
     losers = [row for row in analytics.top_losers if row.unrealized_pnl_percent < 0][:3]
     if gainers:
