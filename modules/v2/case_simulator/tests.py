@@ -438,3 +438,14 @@ class ControlCenterCaseTests(TestCase):
         response = self.client.post(reverse("control_center:case_edit", args=[self.case.pk]), data)
         self.assertContains(response, "открытого терминала")
         self.assertTrue(SimCaseItem.objects.filter(pk=item.pk).exists())
+
+    def test_markup_limit_enforced(self):
+        data = self._post_data(self.case, terminal_markup_percent="1000")
+        response = self.client.post(reverse("control_center:case_edit", args=[self.case.pk]), data)
+        self.assertContains(response, "Не больше 500%")
+
+    def test_empty_case_cannot_be_enabled(self):
+        empty = SimCase.objects.create(slug="empty-off", name="Empty", is_active=False)
+        self.client.post(reverse("control_center:cases"), {"case_id": empty.pk, "action": "toggle"})
+        empty.refresh_from_db()
+        self.assertFalse(empty.is_active)

@@ -69,6 +69,12 @@ class SimCaseForm(forms.ModelForm):
     def clean_key_price(self):
         return self._non_negative("key_price")
 
+    def clean_terminal_markup_percent(self):
+        value = self.cleaned_data.get("terminal_markup_percent") or 0
+        if value > 500:
+            raise forms.ValidationError("Не больше 500%.")
+        return value
+
     def clean_terminal_offers(self):
         value = self.cleaned_data.get("terminal_offers") or 0
         if not 1 <= value <= 20:
