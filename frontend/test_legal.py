@@ -103,3 +103,22 @@ class PaymentServiceNameTests(TestCase):
     def test_documents_follow_the_configured_provider(self):
         for name in ("frontend:agreement", "frontend:privacy"):
             self.assertContains(self.client.get(reverse(name)), "ЮKassa (ООО НКО «ЮМани»)")
+
+
+class CurrentTermsTests(TestCase):
+    def test_commission_follows_the_site_setting(self):
+        from decimal import Decimal
+
+        config = get_site_configuration()
+        config.topup_fee_percent = Decimal("10.00")
+        config.save()
+        response = self.client.get(reverse("frontend:agreement"))
+        self.assertContains(response, "текущий размер — 10%")
+        self.assertNotContains(response, "8,5%")
+
+    def test_telegram_bot_and_payouts_are_described(self):
+        self.assertContains(self.client.get(reverse("frontend:agreement")), "Telegram-бот")
+        privacy = self.client.get(reverse("frontend:privacy"))
+        self.assertContains(privacy, "Данные для выплат с Рыночного баланса")
+        self.assertContains(privacy, "привязка бота означает трансграничную передачу")
+        self.assertContains(self.client.get(reverse("frontend:pd_consent")), "при привязке Telegram-бота")
