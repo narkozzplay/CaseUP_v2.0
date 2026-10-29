@@ -78,6 +78,10 @@
     white-space: nowrap;
 }
 
+.ops-hero__view-as {
+    margin: 0;
+}
+
 .ops-live {
     display: inline-flex;
     align-items: center;

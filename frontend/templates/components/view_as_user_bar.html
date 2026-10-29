@@ -1,0 +1,12 @@
+{% if view_as_user_active %}
+<div class="view-as-bar" role="status">
+    <span class="view-as-bar__text">
+        {% include "components/icon.html" with name="eye" %}
+        {% if LANGUAGE_CODE == "ru" %}Вы смотрите сайт как обычный пользователь: без роли и подписки.{% else %}You are viewing the site as a regular user: no role, no subscription.{% endif %}
+    </span>
+    <form method="post" action="{% url 'control_center:view_as_user_exit' %}" class="view-as-bar__form">
+        {% csrf_token %}
+        <button type="submit" class="view-as-bar__exit">{% if LANGUAGE_CODE == "ru" %}Вернуться в админку{% else %}Back to admin view{% endif %}</button>
+    </form>
+</div>
+{% endif %}

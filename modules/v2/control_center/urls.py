@@ -1,11 +1,13 @@
 from django.urls import path
 
-from . import views
+from . import view_as, views
 
 app_name = "control_center"
 
 urlpatterns = [
     path("site/toggle/", views.site_toggle, name="site_toggle"),
+    path("view-as-user/", view_as.view_as_user_start, name="view_as_user_start"),
+    path("view-as-user/exit/", view_as.view_as_user_exit, name="view_as_user_exit"),
     path("users/", views.users_list, name="users"),
     path("users/export.csv", views.users_export, name="users_export"),
     path("users/<int:user_id>/", views.user_detail, name="user_detail"),

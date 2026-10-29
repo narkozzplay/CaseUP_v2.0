@@ -451,3 +451,63 @@
     color: var(--text-muted);
     font-size: 0.92rem;
 }
+
+/* «Смотреть как пользователь»: stays on screen until the admin goes back */
+.view-as-bar {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    z-index: 1000;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px 16px;
+    width: max-content;
+    max-width: calc(100vw - 32px);
+    padding: 10px 12px 10px 16px;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: var(--accent-ink);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    font-size: 0.86rem;
+    font-weight: 600;
+}
+
+.view-as-bar__text {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.view-as-bar__text .ui-icon {
+    width: 18px;
+    height: 18px;
+    flex: none;
+}
+
+.view-as-bar__form {
+    margin: 0;
+}
+
+.view-as-bar__exit {
+    min-height: 32px;
+    padding: 0 14px;
+    border: 0;
+    background: var(--accent-ink);
+    color: var(--accent);
+    cursor: pointer;
+    font-family: var(--font-display);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.view-as-bar__exit:hover {
+    color: var(--primary-hover);
+}
+
+body:has(.view-as-bar) {
+    padding-bottom: 72px;
+}

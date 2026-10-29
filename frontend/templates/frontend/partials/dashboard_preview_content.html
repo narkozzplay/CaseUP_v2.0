@@ -33,6 +33,15 @@
                 <dd class="ops-live"><span class="ops-live__dot" aria-hidden="true"></span>{{ online_total }}</dd>
             </div>
         </dl>
+        {% if can_view_as_user %}
+            <form method="post" action="{% url 'control_center:view_as_user_start' %}" class="ops-hero__view-as">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary btn-sm" title="{% if LANGUAGE_CODE == 'ru' %}Сайт откроется так, как его видит пользователь без роли и подписки. Вернуться можно кнопкой в жёлтой плашке внизу экрана.{% else %}Opens the site the way a user without a role or subscription sees it. Use the yellow bar at the bottom of the screen to come back.{% endif %}">
+                    {% include "components/icon.html" with name="eye" %}
+                    <span>{% if LANGUAGE_CODE == "ru" %}Смотреть как пользователь{% else %}View as a user{% endif %}</span>
+                </button>
+            </form>
+        {% endif %}
     </header>
     {% donation_widget "dashboard" %}
 

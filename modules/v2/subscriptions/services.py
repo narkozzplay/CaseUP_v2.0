@@ -193,6 +193,9 @@ def is_subscriptions_enabled() -> bool:
 def get_active_subscription(user, *, family: str | None = DEFAULT_SUBSCRIPTION_FAMILY) -> UserSubscription | None:
     if not getattr(user, "is_authenticated", False):
         return None
+    # An admin previewing the site as a regular user sees it without a subscription.
+    if getattr(user, "_caseup_view_as_user", False):
+        return None
 
     now = timezone.now()
     queryset = (

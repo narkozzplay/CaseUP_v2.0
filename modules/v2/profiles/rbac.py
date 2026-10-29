@@ -43,6 +43,10 @@ def get_user_role(user) -> RoleAccess:
     if not getattr(user, "is_authenticated", False):
         return RoleAccess(code=UserRole.USER, rank=ROLE_RANK[UserRole.USER])
 
+    # An admin previewing the site as a regular user (see view_as_user.py).
+    if getattr(user, "_caseup_view_as_user", False):
+        return RoleAccess(code=UserRole.USER, rank=ROLE_RANK[UserRole.USER])
+
     if getattr(user, "is_superuser", False):
         return RoleAccess(code=UserRole.SUPER_ADMIN, rank=ROLE_RANK[UserRole.SUPER_ADMIN])
 
