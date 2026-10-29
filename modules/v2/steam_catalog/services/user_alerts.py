@@ -450,7 +450,10 @@ def _deliver(event: UserPriceAlertEvent) -> tuple[str, str, dict]:
             elif outcome == delivery.DEFERRED:
                 sent_to.append("telegram:quiet_hours")
             elif outcome == delivery.LIMITED:
-                errors.append("Дневной лимит уведомлений в Telegram исчерпан.")
+                # Over today's Telegram cap the alert stays on the site.
+                if "site" not in sent_to:
+                    _notify_on_site(event)
+                    sent_to.append("site")
             else:
                 errors.append("Telegram не привязан: chat id не настроен.")
     elif event.transport in (Transport.TELEGRAM, Transport.BOTH):

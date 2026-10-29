@@ -255,6 +255,10 @@ class TelegramDeferredNotice(models.Model):
     text = models.TextField()
     # The notice's buttons, sent with it when quiet hours end.
     reply_markup = models.JSONField(default=dict, blank=True)
+    # The site notification it copies: once that is read (say, the bonus got claimed) the notice is dropped.
+    notification = models.ForeignKey("notifications.Notification", on_delete=models.CASCADE, null=True, blank=True, related_name="+")
+    # Dropped unsent after this moment (a «claim before midnight» reminder is no use next morning).
+    expires_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:

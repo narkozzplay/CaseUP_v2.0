@@ -109,10 +109,13 @@ def deliver_notice(
     urgent: bool = False,
     reply_markup: dict[str, Any] | None = None,
     now: datetime | None = None,
+    notification=None,
+    expires_at: datetime | None = None,
 ) -> str:
     """Sends an HTML notice to the user's linked chat, following their quiet hours and daily cap.
 
     Returns SENT, DEFERRED (held for the end of quiet hours), LIMITED (cap reached) or UNLINKED (no chat).
+    A deferred notice is dropped unsent once `notification` is read or `expires_at` passes.
     Raises TelegramNotifierError when Telegram refuses the message.
     """
     now = now or timezone.now()
@@ -125,7 +128,9 @@ def deliver_notice(
         send_message(text=text, chat_id=chat_id, parse_mode=HTML, reply_markup=reply_markup, disable_notification=quiet)
         return SENT
     if quiet:
-        TelegramDeferredNotice.objects.create(user=user, text=text, reply_markup=reply_markup or {})
+        TelegramDeferredNotice.objects.create(
+            user=user, text=text, reply_markup=reply_markup or {}, notification=notification, expires_at=expires_at
+        )
         return DEFERRED
     allowed, note = _take_slot(user, now=now)
     if not allowed:
@@ -135,7 +140,11 @@ def deliver_notice(
             except TelegramNotifierError:
                 logger.warning("tg_notifier: limit note to user %s failed", user.pk, exc_info=True)
         return LIMITED
-    send_message(text=text, chat_id=chat_id, parse_mode=HTML, reply_markup=reply_markup)
+    try:
+        send_message(text=text, chat_id=chat_id, parse_mode=HTML, reply_markup=reply_markup)
+    except TelegramNotifierError:
+        _reserve(user, -1, now=now)  # not delivered, so it does not count against the cap
+        raise
     return SENT
 
 
@@ -168,7 +177,12 @@ def flush_deferred(*, now: datetime | None = None) -> int:
     for prefs in TelegramUserPrefs.objects.filter(user_id__in=list(user_ids)).select_related("user"):
         if in_quiet_hours(prefs, now):
             continue
-        notices = list(TelegramDeferredNotice.objects.filter(user_id=prefs.user_id))
+        queued = TelegramDeferredNotice.objects.filter(user_id=prefs.user_id)
+        # Stale ones go unsent: past their deadline, or their site notification is already dealt with.
+        queued.filter(Q(expires_at__lte=now) | Q(notification__is_read=True)).delete()
+        notices = list(queued)
+        if not notices:
+            continue
         chat_id = chat_id_of(prefs.user)
         if not chat_id:
             TelegramDeferredNotice.objects.filter(pk__in=[notice.pk for notice in notices]).delete()
@@ -210,6 +224,10 @@ def mirror_notification(notification_id: int) -> str:
     if not is_enabled():
         return "disabled"
     urgent, button = MIRRORED_KINDS[notification.kind]
+    expires_at = None
+    if notification.kind == "daily_bonus_reminder":  # the bonus has to be claimed before midnight
+        local = timezone.localtime(notification.created_at)
+        expires_at = local.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
     view = render_notification(notification, "ru")
     text = f"<b>{html.escape(view.title)}</b>\n{html.escape(view.body)}"
     markup = None
@@ -218,7 +236,9 @@ def mirror_notification(notification_id: int) -> str:
             markup = {"inline_keyboard": [[url_button(button, site_link(view.url, content=notification.kind))]]}
         except TelegramNotifierError:
             markup = None
-    return deliver_notice(notification.recipient, text, urgent=urgent, reply_markup=markup)
+    return deliver_notice(
+        notification.recipient, text, urgent=urgent, reply_markup=markup, notification=notification, expires_at=expires_at
+    )
 
 
 def on_notification_saved(sender, instance, created, update_fields=None, **kwargs) -> None:
@@ -230,7 +250,20 @@ def on_notification_saved(sender, instance, created, update_fields=None, **kwarg
     from .tasks import mirror_notification_task
 
     notification_id = instance.pk
-    transaction.on_commit(lambda: mirror_notification_task.delay(notification_id))
+
+    def enqueue() -> None:
+        # Runs after the caller's transaction has committed: a broker outage must not turn their request into a
+        # 500, so the copy is sent inline instead.
+        try:
+            mirror_notification_task.delay(notification_id)
+        except Exception:  # noqa: BLE001
+            logger.warning("tg_notifier: queueing mirror of notification %s failed, sending inline", notification_id, exc_info=True)
+            try:
+                mirror_notification(notification_id)
+            except Exception:  # noqa: BLE001
+                logger.warning("tg_notifier: inline mirror of notification %s failed", notification_id, exc_info=True)
+
+    transaction.on_commit(enqueue)
 
 
 # --------------------------------------------------------------------------- personal digest

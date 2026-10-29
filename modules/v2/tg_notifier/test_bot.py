@@ -220,6 +220,24 @@ class AlertButtonTests(BotTestCase):
         self.assertEqual(rule.status, UserPriceAlertRule.Status.DISABLED)
         self.assertEqual(self.sent("editMessageReplyMarkup")[-1]["reply_markup"]["inline_keyboard"][0][1]["callback_data"], f"ae:{rule.pk}")
 
+    def test_over_the_cap_a_telegram_only_alert_stays_on_the_site(self):
+        from modules.v2.notifications.models import Notification
+        from modules.v2.steam_catalog.services.user_alerts import dispatch_pending_user_price_alerts
+
+        TelegramUserPrefs.objects.create(user=self.user, quiet_enabled=False)
+        rule = self.rule(transport=UserPriceAlertRule.Transport.TELEGRAM)
+        now = timezone.now()
+        event = UserPriceAlertEvent.objects.create(
+            rule=rule, user=self.user, item=self.item, transport=rule.transport, direction="down", reference_point=rule.reference_point,
+            reference_at=now - timedelta(hours=3), current_at=now, window_started_at=now - timedelta(hours=3),
+            baseline_price_rub=Decimal("1200"), current_price_rub=Decimal("1100"), change_rub=Decimal("-100"), change_percent=Decimal("-8.33"), dedupe_key="c1",
+        )
+        with patch("modules.v2.tg_notifier.delivery.deliver_notice", return_value=delivery.LIMITED):
+            self.assertEqual(dispatch_pending_user_price_alerts(), 1)
+        event.refresh_from_db()
+        self.assertEqual(event.delivery_status, UserPriceAlertEvent.Status.SENT)
+        self.assertTrue(Notification.objects.filter(recipient=self.user, object_id=event.pk).exists())
+
 
 class TargetAlertTests(BotTestCase):
     def test_fires_once_then_needs_a_new_crossing(self):
@@ -304,6 +322,49 @@ class DeliveryTests(BotTestCase):
         delivery.flush_deferred(now=at_msk(9, 10))
         self.assertEqual([payload["text"] for payload in self.sent()][-2:][0], "n1")
         self.assertFalse(TelegramDeferredNotice.objects.exists())
+
+    def test_a_failed_send_gives_its_slot_back(self):
+        from .services import TelegramNotifierError
+
+        TelegramUserPrefs.objects.create(user=self.user, quiet_enabled=False, daily_limit=5)
+        with patch("modules.v2.tg_notifier.delivery.send_message", side_effect=TelegramNotifierError("502")):
+            with self.assertRaises(TelegramNotifierError):
+                delivery.deliver_notice(self.user, "n", now=at_msk(12))
+        self.assertEqual(TelegramUserPrefs.objects.get(user=self.user).counter_value, 0)
+
+    def test_stale_bonus_reminders_are_not_sent_in_the_morning(self):
+        from modules.v2.notifications.models import Notification
+
+        TelegramUserPrefs.objects.create(user=self.user, quiet_from=time(18), quiet_to=time(9))
+        claimed = Notification.objects.create(recipient=self.user, kind="daily_bonus_reminder")
+        delivery.deliver_notice(self.user, "заберите бонус", notification=claimed, now=at_msk(18, 5))
+        claimed.is_read = True
+        claimed.save(update_fields=["is_read"])
+        delivery.deliver_notice(self.user, "до полуночи", expires_at=at_msk(0) + timedelta(days=1), now=at_msk(18, 5))
+        delivery.deliver_notice(self.user, "обычное", now=at_msk(18, 5))
+        delivery.flush_deferred(now=at_msk(9, 5) + timedelta(days=1))
+        self.assertEqual([payload["text"] for payload in self.sent()], ["обычное"])
+        self.assertFalse(TelegramDeferredNotice.objects.exists())
+
+    def test_bonus_reminder_copy_expires_at_midnight(self):
+        from modules.v2.notifications.models import Notification
+
+        notification = Notification.objects.create(recipient=self.user, kind="daily_bonus_reminder", payload={"day": 2, "streak": 1})
+        with patch("modules.v2.tg_notifier.delivery.deliver_notice", return_value=delivery.DEFERRED) as deliver:
+            delivery.mirror_notification(notification.pk)
+        expires_at = deliver.call_args.kwargs["expires_at"]
+        self.assertEqual(timezone.localtime(expires_at).time(), time(0))
+        self.assertEqual(timezone.localtime(expires_at).date(), timezone.localdate(notification.created_at) + timedelta(days=1))
+        self.assertEqual(deliver.call_args.kwargs["notification"], notification)
+
+    def test_broker_outage_does_not_break_the_request(self):
+        from modules.v2.notifications.services import notify
+
+        TelegramUserPrefs.objects.create(user=self.user, quiet_enabled=False)
+        with patch("modules.v2.tg_notifier.tasks.mirror_notification_task.delay", side_effect=ConnectionError("broker down")):
+            with self.captureOnCommitCallbacks(execute=True):
+                notify(self.user, "market_deal", object_id=1, payload={"event": "new", "code": "D-2", "name": "AK", "price": "1000.00", "deadline": "30.10 12:00"}, dedupe=False)
+        self.assertIn("D-2", self.sent()[-1]["text"])  # sent inline instead
 
     def test_digest_is_retried_after_a_failure(self):
         from .services import TelegramNotifierError
