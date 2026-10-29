@@ -17,6 +17,7 @@ class AuditAction(models.TextChoices):
     DAILY_BONUS_UPDATE = "daily_bonus_update", "Daily bonus settings updated"
     DONATION_UPDATE = "donation_update", "Donation goal updated"
     ADS_UPDATE = "ads_update", "Ads updated"
+    MAJOR_UPDATE = "major_update", "Major updated"
     MARKET_DISPUTE = "market_dispute", "Market dispute resolved"
     MARKET_PAYOUT = "market_payout", "Market payout processed"
     MULTI_ACCOUNT_DECISION = "multi_account_decision", "Multi-account decision"
@@ -46,6 +47,7 @@ AUDIT_ACTION_LABELS_RU = {
     AuditAction.DAILY_BONUS_UPDATE: "Изменён бонус дня",
     AuditAction.DONATION_UPDATE: "Изменён сбор донатов",
     AuditAction.ADS_UPDATE: "Изменена реклама",
+    AuditAction.MAJOR_UPDATE: "Изменён мейджор / Pick'em",
     AuditAction.MARKET_DISPUTE: "Решён спор на рынке",
     AuditAction.MARKET_PAYOUT: "Выплата продавцу рынка",
     AuditAction.MULTI_ACCOUNT_DECISION: "Решение по мульти-аккаунтам",

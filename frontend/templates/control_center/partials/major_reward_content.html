@@ -1,0 +1,49 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <a href="{% url 'control_center:major_edit' major.pk %}#rewards" class="back-link" data-dashboard-nav="true">← {{ major.name }}</a>
+            <span class="eyebrow">Control Center · Мейджоры · Pick'em</span>
+            <h1 class="cc-pagehead__title">{% if rule %}{{ rule.title }}{% else %}Новая награда{% endif %}</h1>
+            {% if rule %}<p class="ops-hero__text">{{ rule.reward_label }}</p>{% endif %}
+        </div>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <form method="post" class="ops-panel" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">За что</h2><span class="ops-panel__hint">изменения пишутся в журнал</span></div>
+        {% if form.non_field_errors %}<div class="tfa-alert" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+        <div class="cc-form-grid">
+            <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.title hint="Видно игроку, например «Пройдена стадия» или «Угадан чемпион»." %}</div>
+            {% include "control_center/partials/_promo_field.html" with f=form.condition %}
+            {% include "control_center/partials/_promo_field.html" with f=form.stage %}
+            {% include "control_center/partials/_promo_field.html" with f=form.min_correct %}
+            {% include "control_center/partials/_promo_field.html" with f=form.sort_order hint="Порядок в списке наград." %}
+        </div>
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Что получает</h2></div>
+        <div class="cc-form-grid">
+            {% include "control_center/partials/_promo_field.html" with f=form.kind %}
+            {% include "control_center/partials/_promo_field.html" with f=form.amount hint="Для бонуса на баланс." %}
+            {% include "control_center/partials/_promo_field.html" with f=form.plan hint="Для дней подписки." %}
+            {% include "control_center/partials/_promo_field.html" with f=form.days %}
+            <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.item_name %}</div>
+            <div class="cc-field promo-checks cc-span-2">
+                <span>Выдача</span>
+                <label class="cc-field-check">{{ form.requires_approval }}<span>{{ form.requires_approval.label }}</span></label>
+                <small class="cc-field__hint">{{ form.requires_approval.help_text }} Скины всегда ждут проверки.</small>
+                <label class="cc-field-check">{{ form.is_active }}<span>{{ form.is_active.label }}</span></label>
+            </div>
+        </div>
+        <div class="cc-form-actions">
+            <button type="submit" class="btn btn-primary btn-sm">{% if rule %}Сохранить{% else %}Создать награду{% endif %}</button>
+        </div>
+    </form>
+    {% if rule %}
+        <form method="post" class="ops-panel">
+            {% csrf_token %}
+            <div class="cc-form-actions"><button type="submit" name="action" value="delete" class="btn btn-ghost btn-sm" onclick="return confirm('Удалить награду?');">Удалить награду</button></div>
+        </form>
+    {% endif %}
+</section>

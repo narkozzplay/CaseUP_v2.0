@@ -2663,6 +2663,8 @@
 
 .cc-form-actions {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
     padding: 0 18px 18px;
 }
@@ -2978,3 +2980,12 @@
 .cc-items-table tr.has-errors td {
     background: rgba(255, 93, 93, 0.06);
 }
+
+/* Editable rows (majors: stage teams and playoff matches): the table scrolls instead of squeezing the inputs. */
+.cc-formset { min-width: 980px; }
+.cc-formset td { vertical-align: top; }
+.cc-formset select { min-width: 150px; }
+.cc-formset input[type="number"] { width: 80px; }
+.cc-formset input[type="text"] { width: 80px; }
+.cc-formset input[type="datetime-local"] { min-width: 200px; }
+.cc-nowrap { white-space: nowrap; }

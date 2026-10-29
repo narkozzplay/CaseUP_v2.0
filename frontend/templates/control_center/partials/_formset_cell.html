@@ -1,0 +1,2 @@
+{# expects: f (bound field of a formset row) #}
+<td{% if f.errors %} class="is-invalid"{% endif %}>{{ f }}{% for error in f.errors %}<small class="cc-field__error">{{ error }}</small>{% endfor %}</td>

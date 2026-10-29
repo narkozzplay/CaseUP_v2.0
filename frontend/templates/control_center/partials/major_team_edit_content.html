@@ -1,0 +1,31 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <a href="{% url 'control_center:major_teams' %}" class="back-link" data-dashboard-nav="true">← Команды</a>
+            <span class="eyebrow">Control Center · Мейджоры</span>
+            <h1 class="cc-pagehead__title">{% if team %}{{ team.name }}{% else %}Новая команда{% endif %}</h1>
+        </div>
+        {% if team.logo_url %}<img src="{{ team.logo_url }}" alt="" width="64" height="64" style="object-fit:contain">{% endif %}
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <form method="post" enctype="multipart/form-data" class="ops-panel" novalidate>
+        {% csrf_token %}
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Команда</h2><span class="ops-panel__hint">изменения пишутся в журнал</span></div>
+        {% if form.non_field_errors %}<div class="tfa-alert" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+        <div class="cc-form-grid">
+            {% include "control_center/partials/_promo_field.html" with f=form.name %}
+            {% include "control_center/partials/_promo_field.html" with f=form.slug %}
+            {% include "control_center/partials/_promo_field.html" with f=form.tag %}
+            {% include "control_center/partials/_promo_field.html" with f=form.region %}
+            {% include "control_center/partials/_promo_field.html" with f=form.logo %}
+            {% include "control_center/partials/_promo_field.html" with f=form.logo_static %}
+            <label class="cc-field-check cc-span-2">{{ form.is_active }}<span>Активна — видна в списках стадий и матчей</span></label>
+        </div>
+        <div class="cc-form-actions">
+            <button type="submit" class="btn btn-primary btn-sm">{% if team %}Сохранить{% else %}Добавить{% endif %}</button>
+            {% if not team %}<button type="submit" name="another" value="1" class="btn btn-ghost btn-sm">Добавить и ещё одну</button>{% endif %}
+        </div>
+    </form>
+</section>

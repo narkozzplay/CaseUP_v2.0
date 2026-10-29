@@ -1,0 +1,104 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <a href="{% url 'control_center:majors' %}" class="back-link" data-dashboard-nav="true">← Мейджоры</a>
+            <span class="eyebrow">Control Center · Мейджоры</span>
+            <h1 class="cc-pagehead__title">{% if major %}{{ major.name }}{% else %}Новый мейджор{% endif %}</h1>
+            {% if major %}<p class="ops-hero__text"><a href="{{ major.get_absolute_url }}" target="_blank" rel="noopener" data-dashboard-nav="false">Открыть страницу</a> · <a href="{% url 'majors:pickem' major.slug %}" target="_blank" rel="noopener" data-dashboard-nav="false">Pick'em</a> · <a href="{% url 'majors:leaderboard' major.slug %}" target="_blank" rel="noopener" data-dashboard-nav="false">таблица лидеров</a></p>{% endif %}
+        </div>
+        {% if major %}
+            <dl class="ops-hero__meta">
+                <div><dt>Статус</dt><dd class="{% if major.is_published %}metric-positive{% else %}metric-negative{% endif %}">{% if major.is_published %}опубликован{% else %}скрыт{% endif %}</dd></div>
+                <div><dt>Участников</dt><dd>{{ participants }}</dd></div>
+                <div><dt>Призов в очереди</dt><dd><a href="{% url 'control_center:majors' %}#prizes">{{ open_grants }}</a></dd></div>
+            </dl>
+        {% endif %}
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    {% if major %}
+        <form method="post" class="ops-panel">
+            {% csrf_token %}
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Действия</h2></div>
+            <div class="ref-body"><p class="ref-text">«Подвести итоги» начисляет награды по правилам ниже всем, кто уже их заслужил. Учитываются только стадии с галочкой «Итоги подведены» и решённые матчи плей-офф. Запускать можно сколько угодно раз: каждая награда выдаётся один раз.</p></div>
+            <div class="cc-form-actions">
+                <button type="submit" name="action" value="settle" class="btn btn-primary btn-sm" onclick="return confirm('Подвести итоги Pick\'em и выдать награды?');">Подвести итоги и выдать награды</button>
+                <button type="submit" name="action" value="publish" class="btn btn-ghost btn-sm">{% if major.is_published %}Скрыть с сайта{% else %}Опубликовать{% endif %}</button>
+            </div>
+        </form>
+
+        <article class="ops-panel" id="stages">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Стадии</h2><a href="{% url 'control_center:stage_create' major.pk %}" class="btn btn-primary btn-sm">Добавить стадию</a></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th class="cc-num">#</th><th>Стадия</th><th>Начало (прогнозы закрываются)</th><th class="cc-num">Команд</th><th class="cc-num">Матчей решено</th><th>Итоги</th></tr></thead>
+                    <tbody>
+                        {% for stage in stages %}
+                            <tr>
+                                <td class="cc-num">{{ stage.order }}</td>
+                                <td><a href="{% url 'control_center:stage_edit' stage.pk %}"><b>{{ stage.name }}</b></a><span class="cc-sub">{{ stage.get_kind_display }}</span></td>
+                                <td>{{ stage.starts_at|date:"d.m.Y H:i" }}{% if stage.is_locked %}<span class="cc-sub">прогнозы закрыты</span>{% endif %}</td>
+                                <td class="cc-num">{{ stage.teams_count }}</td>
+                                <td class="cc-num">{% if stage.is_swiss %}—{% else %}{{ stage.decided_count }} / {{ stage.matches_count }}{% endif %}</td>
+                                <td>{% if stage.is_settled %}<span class="cc-chip cc-chip--ok">подведены</span>{% else %}<span class="cc-chip">нет</span>{% endif %}</td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="6" class="text-muted">Стадий нет. Обычно это две швейцарские стадии и плей-офф.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+
+        <article class="ops-panel" id="rewards">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Награды Pick'em</h2><a href="{% url 'control_center:reward_create' major.pk %}" class="btn btn-primary btn-sm">Добавить награду</a></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Награда</th><th>Условие</th><th>Приз</th><th class="cc-num">Выдано</th><th>Статус</th></tr></thead>
+                    <tbody>
+                        {% for rule in rules %}
+                            <tr>
+                                <td><a href="{% url 'control_center:reward_edit' rule.pk %}"><b>{{ rule.title }}</b></a></td>
+                                <td>{{ rule.get_condition_display }}{% if rule.stage %}<span class="cc-sub">{{ rule.stage.name }}</span>{% endif %}{% if rule.min_correct is not None %}<span class="cc-sub">верных: {{ rule.min_correct }}</span>{% endif %}</td>
+                                <td>{{ rule.reward_label }}{% if rule.needs_approval %}<span class="cc-sub">после проверки</span>{% endif %}</td>
+                                <td class="cc-num">{{ rule.grants_count }}</td>
+                                <td>{% if rule.is_active %}<span class="cc-chip cc-chip--ok">активна</span>{% else %}<span class="cc-chip cc-chip--fail">выключена</span>{% endif %}</td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="5" class="text-muted">Наград нет — Pick'em идёт без призов.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="ops-panel" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Мейджор</h2><span class="ops-panel__hint">изменения пишутся в журнал</span></div>
+        {% if form.non_field_errors %}<div class="tfa-alert" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+        <div class="cc-form-grid">
+            {% include "control_center/partials/_promo_field.html" with f=form.name %}
+            {% include "control_center/partials/_promo_field.html" with f=form.slug %}
+            {% include "control_center/partials/_promo_field.html" with f=form.location %}
+            {% include "control_center/partials/_promo_field.html" with f=form.venue %}
+            {% include "control_center/partials/_promo_field.html" with f=form.starts_at %}
+            {% include "control_center/partials/_promo_field.html" with f=form.ends_on %}
+            {% include "control_center/partials/_promo_field.html" with f=form.prize_pool %}
+            {% include "control_center/partials/_promo_field.html" with f=form.items_keyword %}
+            <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.description %}</div>
+            <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.banner %}</div>
+            {% include "control_center/partials/_promo_field.html" with f=form.banner_video_mp4 %}
+            {% include "control_center/partials/_promo_field.html" with f=form.banner_video_webm %}
+            <div class="cc-field promo-checks cc-span-2">
+                <span>Доступ</span>
+                <label class="cc-field-check">{{ form.is_published }}<span>{{ form.is_published.label }}</span></label>
+                <label class="cc-field-check">{{ form.require_steam }}<span>{{ form.require_steam.label }}</span></label>
+            </div>
+        </div>
+        {% if major %}<div class="ref-body"><p class="ref-text">Предметы, добавленные вручную, и старые прогнозы игроков — <a href="{% url 'admin:majors_major_change' major.pk %}" target="_blank" rel="noopener" data-dashboard-nav="false">в Django</a>.</p></div>{% endif %}
+        <div class="cc-form-actions"><button type="submit" class="btn btn-primary btn-sm">{% if major %}Сохранить{% else %}Создать мейджор{% endif %}</button></div>
+    </form>
+</section>

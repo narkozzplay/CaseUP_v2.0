@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import views, views_majors
 
 app_name = "control_center"
 
@@ -33,6 +33,18 @@ urlpatterns = [
     path("cases/", views.sim_cases, name="cases"),
     path("cases/new/", views.sim_case_edit, name="case_create"),
     path("cases/<int:case_id>/", views.sim_case_edit, name="case_edit"),
+
+    path("majors/", views_majors.majors, name="majors"),
+    path("majors/new/", views_majors.major_edit, name="major_create"),
+    path("majors/<int:major_id>/", views_majors.major_edit, name="major_edit"),
+    path("majors/<int:major_id>/stages/new/", views_majors.stage_edit, name="stage_create"),
+    path("majors/stages/<int:stage_id>/", views_majors.stage_edit, name="stage_edit"),
+    path("majors/<int:major_id>/rewards/new/", views_majors.reward_edit, name="reward_create"),
+    path("majors/rewards/<int:rule_id>/", views_majors.reward_edit, name="reward_edit"),
+    path("majors/grants/<int:grant_id>/", views_majors.major_grant_action, name="major_grant_action"),
+    path("majors/teams/", views_majors.teams, name="major_teams"),
+    path("majors/teams/new/", views_majors.team_edit, name="team_create"),
+    path("majors/teams/<int:team_id>/", views_majors.team_edit, name="team_edit"),
     path("market/", views.market_deals, name="market"),
     path("market/payout/<str:code>/", views.market_payout_process, name="market_payout"),
     path("promo/new/", views.promo_code_edit, name="promo_create"),

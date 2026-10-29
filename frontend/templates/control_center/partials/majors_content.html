@@ -1,0 +1,78 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Мейджоры</h1>
+            <p class="ops-hero__text">Мейджоры CS2 и Pick'em: стадии, команды, результаты матчей, награды и очередь призов. На сайте показывается последний опубликованный мейджор.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>На сайте</dt><dd>{% if current %}<a href="{{ current.get_absolute_url }}" target="_blank" rel="noopener" data-dashboard-nav="false">{{ current.name }}</a>{% else %}ничего{% endif %}</dd></div>
+            <div><dt>Команд</dt><dd><a href="{% url 'control_center:major_teams' %}">{{ teams_count }}</a></dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <div class="ops-kpis">
+        <div class="ops-kpi"><span class="ops-kpi__icon">{% include "components/icon.html" with name="clock" %}</span><div class="ops-kpi__body"><span class="ops-kpi__label">Ждут проверки</span><strong class="ops-kpi__value">{{ totals.pending }}</strong><span class="ops-kpi__meta">крупные призы и скины</span></div></div>
+        <div class="ops-kpi"><span class="ops-kpi__icon">{% include "components/icon.html" with name="send" %}</span><div class="ops-kpi__body"><span class="ops-kpi__label">Скины к отправке</span><strong class="ops-kpi__value">{{ totals.to_send }}</strong><span class="ops-kpi__meta">включая тех, кто без трейд-ссылки</span></div></div>
+        <div class="ops-kpi"><span class="ops-kpi__icon">{% include "components/icon.html" with name="check" %}</span><div class="ops-kpi__body"><span class="ops-kpi__label">Выдано наград</span><strong class="ops-kpi__value">{{ totals.granted }}</strong><span class="ops-kpi__meta">за все мейджоры</span></div></div>
+    </div>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Мейджоры</h2><span class="cc-actions"><a href="{% url 'control_center:major_teams' %}" class="btn btn-ghost btn-sm">Команды</a> <a href="{% url 'control_center:major_create' %}" class="btn btn-primary btn-sm">Новый мейджор</a></span></div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead><tr><th>Мейджор</th><th>Даты</th><th class="cc-num">Стадий</th><th class="cc-num">Наград</th><th class="cc-num">Участников</th><th>Статус</th></tr></thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            <td><a href="{% url 'control_center:major_edit' row.major.pk %}"><b>{{ row.major.name }}</b></a><span class="cc-sub">{{ row.major.location|default:"—" }}{% if row.major.prize_pool %} · {{ row.major.prize_pool }}{% endif %}</span></td>
+                            <td>{{ row.major.starts_at|date:"d.m.Y" }} — {{ row.major.ends_on|date:"d.m.Y" }}</td>
+                            <td class="cc-num">{{ row.major.stages_count }}</td>
+                            <td class="cc-num">{{ row.major.rules_count }}</td>
+                            <td class="cc-num">{{ row.participants }}</td>
+                            <td>
+                                {% if not row.major.is_published %}<span class="cc-chip cc-chip--fail">скрыт</span>
+                                {% elif row.major.is_finished %}<span class="cc-chip">завершён</span>
+                                {% elif row.major.has_started %}<span class="cc-chip cc-chip--ok">идёт</span>
+                                {% else %}<span class="cc-chip cc-chip--info">скоро</span>{% endif %}
+                                {% if current and current.pk == row.major.pk %}<span class="cc-sub">на сайте</span>{% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6" class="text-muted">Мейджоров пока нет.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <article class="ops-panel" id="prizes">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Очередь призов</h2><span class="ops-panel__hint">решения пишутся в журнал</span></div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead><tr><th>Игрок</th><th>Награда</th><th>Статус</th><th>Трейд</th><th></th></tr></thead>
+                <tbody>
+                    {% for row in queue %}{% with grant=row.grant %}
+                        <tr>
+                            <td>{% include "control_center/partials/_user_cell.html" with u=grant.user %}</td>
+                            <td><b>{{ grant.rule.title }}</b><span class="cc-sub">{{ grant.rule.reward_label }} · {{ grant.rule.major.name }}{% if grant.stage %} · {{ grant.stage.name }}{% endif %}</span>{% if grant.rule.needs_tax_data %}<span class="cc-sub metric-negative">приз дороже 4000 ₽: нужны ФИО и ИНН</span>{% endif %}</td>
+                            <td><span class="cc-chip{% if grant.status == 'pending' %} cc-chip--warn{% else %} cc-chip--info{% endif %}">{{ grant.get_status_display }}</span><span class="cc-sub">{{ grant.created_at|date:"d.m.Y H:i" }}</span></td>
+                            <td>{% if row.trade_url %}<a href="{{ row.trade_url }}" target="_blank" rel="noopener" data-dashboard-nav="false">открыть</a>{% elif grant.rule.kind == 'item' %}<span class="text-muted">нет ссылки</span>{% else %}—{% endif %}</td>
+                            <td class="cc-actions">
+                                <form method="post" action="{% url 'control_center:major_grant_action' grant.pk %}" class="inline-form">{% csrf_token %}
+                                    {% if grant.status == 'pending' %}<button type="submit" name="decision" value="approve" class="btn btn-primary btn-sm">Одобрить</button>{% endif %}
+                                    {% if grant.status == 'to_send' or grant.status == 'needs_trade_url' %}<button type="submit" name="decision" value="sent" class="btn btn-primary btn-sm" onclick="return confirm('Скин отправлен трейдом?');">Отправлен</button>{% endif %}
+                                    <button type="submit" name="decision" value="reject" class="btn btn-ghost btn-sm" onclick="return confirm('Отклонить награду?');">Отклонить</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endwith %}{% empty %}
+                        <tr><td colspan="5" class="text-muted">Очередь пуста.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+</section>
