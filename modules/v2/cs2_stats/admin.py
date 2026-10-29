@@ -7,6 +7,8 @@ from .models import (
     Cs2MatchRecord,
     Cs2MatchSyncConfig,
     FACEITExtendedStats,
+    FaceitMatch,
+    TrackedPlayer,
 )
 
 
@@ -71,3 +73,18 @@ class Cs2MatchPlayerStatAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(TrackedPlayer)
+class TrackedPlayerAdmin(admin.ModelAdmin):
+    list_display = ("steam_id", "persona_name", "faceit_nickname", "faceit_elo", "faceit_max_elo", "faceit_max_elo_source", "lookup_count", "last_viewed_at", "last_synced_at")
+    search_fields = ("steam_id", "persona_name", "faceit_nickname", "faceit_player_id")
+    list_filter = ("faceit_max_elo_source", "faceit_history_complete", "is_public")
+    raw_id_fields = ("added_by",)
+
+
+@admin.register(FaceitMatch)
+class FaceitMatchAdmin(admin.ModelAdmin):
+    list_display = ("player", "played_at", "map_name", "won", "kills", "deaths", "kd_ratio", "elo")
+    search_fields = ("match_id", "player__steam_id", "player__faceit_nickname")
+    raw_id_fields = ("player",)

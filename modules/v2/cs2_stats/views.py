@@ -169,3 +169,101 @@ def cs2_stats_user_view(request, user_id: int):
         page_title=build_page_title(f"CS2 — {ctx['display_name']}"),
         active_menu_key="cs2_stats",
     )
+
+
+# ---------------------------------------------------------------------------
+# Any player's stats, like csstats: search by Steam / FACEIT link
+# ---------------------------------------------------------------------------
+
+@login_required
+def player_search_view(request):
+    from .models import TrackedPlayer
+    from .players import lookup_player
+
+    query = (request.GET.get("q") or "").strip()
+    error = ""
+    if query:
+        result = lookup_player(query, user=request.user)
+        if result.ok:
+            return redirect("cs2_stats:player", steam_id=result.player.steam_id)
+        error = result.message
+
+    ctx = {
+        "query": query,
+        "error": error,
+        "recent_players": TrackedPlayer.objects.exclude(last_synced_at=None).order_by("-last_viewed_at")[:12],
+        "top_players": TrackedPlayer.objects.filter(faceit_max_elo__gt=0).order_by("-faceit_max_elo")[:12],
+        "players_total": TrackedPlayer.objects.count(),
+    }
+    return render_dashboard_page(
+        request,
+        full_template="cs2_stats/players.html",
+        partial_template="cs2_stats/partials/players_content.html",
+        context=ctx,
+        page_title=build_page_title("CS2 — Поиск игрока"),
+        active_menu_key="cs2_players",
+    )
+
+
+def _tracked_player_or_404(request, steam_id: str):
+    from django.http import Http404
+
+    from .players import is_steam_id64, open_player
+
+    if not is_steam_id64(steam_id):
+        raise Http404
+    result = open_player(steam_id, user=request.user)
+    if not result.ok:
+        return None, result.message
+    return result.player, ""
+
+
+@login_required
+def player_detail_view(request, steam_id: str):
+    from .players import manual_refresh, player_page_context
+
+    if request.method == "POST":
+        from .models import TrackedPlayer
+
+        player = get_object_or_404(TrackedPlayer, steam_id=steam_id)
+        result = manual_refresh(player)
+        (messages.success if result.ok else messages.error)(request, result.message)
+        return redirect("cs2_stats:player", steam_id=steam_id)
+
+    player, error = _tracked_player_or_404(request, steam_id)
+    if player is None:
+        messages.error(request, error)
+        return redirect("cs2_stats:players")
+    ctx = player_page_context(player)
+    return render_dashboard_page(
+        request,
+        full_template="cs2_stats/player_detail.html",
+        partial_template="cs2_stats/partials/player_detail_content.html",
+        context=ctx,
+        page_title=build_page_title(f"CS2 — {player.display_name}"),
+        active_menu_key="cs2_players",
+    )
+
+
+@login_required
+def player_matches_view(request, steam_id: str):
+    from django.core.paginator import Paginator
+
+    from .models import TrackedPlayer
+
+    player = get_object_or_404(TrackedPlayer, steam_id=steam_id)
+    page_obj = Paginator(player.faceit_matches.all(), 50).get_page(request.GET.get("page") or 1)
+    ctx = {
+        "player": player,
+        "page_obj": page_obj,
+        "matches": page_obj.object_list,
+        "stored_matches": page_obj.paginator.count,
+    }
+    return render_dashboard_page(
+        request,
+        full_template="cs2_stats/player_matches.html",
+        partial_template="cs2_stats/partials/player_matches_content.html",
+        context=ctx,
+        page_title=build_page_title(f"FACEIT — {player.display_name}"),
+        active_menu_key="cs2_players",
+    )

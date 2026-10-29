@@ -94,6 +94,8 @@ class UserProfile(models.Model):
     faceit_avatar_url = models.URLField(blank=True, default="")
     faceit_skill_level = models.PositiveSmallIntegerField(default=0)
     faceit_elo = models.PositiveIntegerField(default=0)
+    # Best ELO ever: from the FACEIT match history when available, otherwise the highest seen by CaseUP.
+    faceit_max_elo = models.PositiveIntegerField(default=0)
     faceit_level_image_url = models.URLField(blank=True, default="")
     faceit_last_sync_at = models.DateTimeField(null=True, blank=True)
     faceit_last_error = models.TextField(blank=True, default="")

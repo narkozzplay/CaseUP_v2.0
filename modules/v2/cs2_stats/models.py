@@ -278,3 +278,117 @@ class FACEITExtendedStats(models.Model):
 
     def __str__(self) -> str:
         return f"FACEITExtended({self.user_id})"
+
+
+class TrackedPlayer(models.Model):
+    """Any CS2 player somebody looked up (or a CaseUP user with Steam linked).
+
+    Every lookup is kept, and the auto-update task refreshes the stats, so the
+    player base grows with each search.
+    """
+
+    class MaxEloSource(models.TextChoices):
+        NONE = "", "—"
+        HISTORY = "history", "FACEIT match history"
+        TRACKED = "tracked", "Seen by CaseUP"
+
+    steam_id = models.CharField(max_length=20, unique=True)
+
+    # Steam profile
+    persona_name = models.CharField(max_length=128, blank=True, default="")
+    avatar_url = models.URLField(max_length=500, blank=True, default="")
+    profile_url = models.URLField(max_length=500, blank=True, default="")
+    country = models.CharField(max_length=8, blank=True, default="")
+    is_public = models.BooleanField(default=False)
+    steam_created_at = models.DateTimeField(null=True, blank=True)
+    vac_bans = models.PositiveSmallIntegerField(default=0)
+    game_bans = models.PositiveSmallIntegerField(default=0)
+    days_since_last_ban = models.PositiveIntegerField(default=0)
+    playtime_hours = models.PositiveIntegerField(default=0)
+    # Lifetime matchmaking numbers + per-map rows; empty when game details are private.
+    steam_stats = models.JSONField(default=dict, blank=True)
+    steam_error = models.CharField(max_length=300, blank=True, default="")
+
+    # FACEIT
+    faceit_player_id = models.CharField(max_length=64, blank=True, default="", db_index=True)
+    faceit_nickname = models.CharField(max_length=128, blank=True, default="", db_index=True)
+    faceit_avatar_url = models.URLField(max_length=500, blank=True, default="")
+    faceit_country = models.CharField(max_length=8, blank=True, default="")
+    faceit_level = models.PositiveSmallIntegerField(default=0)
+    faceit_elo = models.PositiveIntegerField(default=0)
+    faceit_max_elo = models.PositiveIntegerField(default=0, db_index=True)
+    faceit_max_elo_at = models.DateTimeField(null=True, blank=True)
+    faceit_max_elo_source = models.CharField(max_length=10, choices=MaxEloSource.choices, blank=True, default="")
+    faceit_lifetime = models.JSONField(default=dict, blank=True)
+    faceit_maps = models.JSONField(default=list, blank=True)
+    faceit_error = models.CharField(max_length=300, blank=True, default="")
+    # Match import: the backfill walks the whole history once, later runs fetch only new matches.
+    faceit_history_complete = models.BooleanField(default=False)
+    faceit_elo_history_checked_at = models.DateTimeField(null=True, blank=True)
+
+    added_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    lookup_count = models.PositiveIntegerField(default=0)
+    first_seen_at = models.DateTimeField(auto_now_add=True)
+    last_viewed_at = models.DateTimeField(null=True, blank=True)
+    last_synced_at = models.DateTimeField(null=True, blank=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Tracked CS2 player"
+        verbose_name_plural = "Tracked CS2 players"
+        ordering = ["-last_viewed_at"]
+
+    def __str__(self) -> str:
+        return f"{self.display_name} ({self.steam_id})"
+
+    @property
+    def display_name(self) -> str:
+        return self.persona_name or self.faceit_nickname or self.steam_id
+
+    @property
+    def has_faceit(self) -> bool:
+        return bool(self.faceit_player_id)
+
+
+class FaceitMatch(models.Model):
+    """One FACEIT CS2 match of a tracked player, with that player's numbers."""
+
+    player = models.ForeignKey(TrackedPlayer, on_delete=models.CASCADE, related_name="faceit_matches")
+    match_id = models.CharField(max_length=64)
+    played_at = models.DateTimeField(null=True, blank=True)
+    map_name = models.CharField(max_length=64, blank=True, default="")
+    won = models.BooleanField(null=True)
+    score = models.CharField(max_length=16, blank=True, default="")
+    kills = models.SmallIntegerField(default=0)
+    deaths = models.SmallIntegerField(default=0)
+    assists = models.SmallIntegerField(default=0)
+    headshots_percent = models.FloatField(default=0.0)
+    kd_ratio = models.FloatField(default=0.0)
+    kr_ratio = models.FloatField(default=0.0)
+    adr = models.FloatField(default=0.0)
+    mvps = models.SmallIntegerField(default=0)
+    # ELO after the match: only known from FACEIT's site history, not from the Data API.
+    elo = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "FACEIT match"
+        verbose_name_plural = "FACEIT matches"
+        ordering = ["-played_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["player", "match_id"], name="faceit_match_player_uniq"),
+        ]
+        indexes = [
+            models.Index(fields=["player", "-played_at"], name="faceit_match_player_played"),
+        ]
+
+    def __str__(self) -> str:
+        return f"FaceitMatch({self.match_id}, {self.player_id})"
+
+    @property
+    def map_display(self) -> str:
+        return CS2_MAPS.get(self.map_name, {}).get("name", self.map_name.replace("de_", "").title())

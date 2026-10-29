@@ -74,7 +74,7 @@
                     <span class="status-pill">
                         FACEIT:
                         {% if profile.faceit_skill_level %}
-                            {{ profile.faceit_skill_level }} / {{ profile.faceit_elo }}
+                            {{ profile.faceit_skill_level }} / {{ profile.faceit_elo }}{% if profile.faceit_max_elo > profile.faceit_elo %} · max {{ profile.faceit_max_elo }}{% endif %}
                         {% else %}
                             —
                         {% endif %}
@@ -338,6 +338,16 @@
                             </div>
                         </div>
                         <dl class="details-list details-list--compact" style="margin-top:.5rem">
+                            <div>
+                                <dt>{% if LANGUAGE_CODE == "ru" %}Макс. ELO{% else %}Max ELO{% endif %}</dt>
+                                <dd><strong>{% if profile.faceit_max_elo %}{{ profile.faceit_max_elo }}{% else %}{{ profile.faceit_elo|default:"—" }}{% endif %}</strong></dd>
+                            </div>
+                            {% if profile.steam_id %}
+                            <div>
+                                <dt>{% if LANGUAGE_CODE == "ru" %}Все матчи{% else %}All matches{% endif %}</dt>
+                                <dd><a href="{% url 'cs2_stats:player' profile.steam_id %}" data-dashboard-nav="true">{% if LANGUAGE_CODE == "ru" %}Статистика игрока{% else %}Player stats{% endif %}</a></dd>
+                            </div>
+                            {% endif %}
                             <div>
                                 <dt>{% if LANGUAGE_CODE == "ru" %}Последний sync{% else %}Last sync{% endif %}</dt>
                                 <dd>
