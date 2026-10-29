@@ -451,3 +451,39 @@
     color: var(--text-muted);
     font-size: 0.92rem;
 }
+
+/* «Смотреть как пользователь» banner */
+
+.view-as-banner {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px 16px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--accent);
+    background: rgba(245, 166, 35, 0.16);
+    color: var(--text);
+    font-size: 0.88rem;
+    backdrop-filter: blur(6px);
+}
+
+.view-as-banner__text {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.view-as-banner__text .ui-icon {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    color: var(--accent);
+}
+
+.view-as-banner__form {
+    margin: 0;
+}

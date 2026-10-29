@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LogoutView
+from django.http import HttpResponseForbidden
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -14,7 +15,7 @@ from modules.v2.control_center.services.activity import log_activity
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
 
-from . import two_factor
+from . import two_factor, view_as
 from .consent import store_login_consent, user_has_current_consent
 from .devices import DEVICE_LABELS
 from .forms import SteamLoginConsentForm
@@ -58,6 +59,24 @@ def _safe_next(request) -> str:
 
 class UserLogoutView(LogoutView):
     next_page = reverse_lazy("frontend:home")
+
+
+@require_POST
+@login_required
+def view_as_user_enter_view(request):
+    if not view_as.can_view_as_user(getattr(request, "real_user", request.user)):
+        return HttpResponseForbidden("Режим просмотра доступен только администраторам.")
+    request.session[view_as.SESSION_KEY] = True
+    log_activity(category=ActivityCategory.ADMIN, event="admin.view_as_user_on", summary="Включён просмотр сайта от лица пользователя", user=getattr(request, "real_user", request.user))
+    return redirect(_safe_next(request) or "frontend:dashboard_preview")
+
+
+@require_POST
+def view_as_user_exit_view(request):
+    real_user = getattr(request, "real_user", request.user)
+    if request.session.pop(view_as.SESSION_KEY, None) and getattr(real_user, "is_authenticated", False):
+        log_activity(category=ActivityCategory.ADMIN, event="admin.view_as_user_off", summary="Выключен просмотр сайта от лица пользователя", user=real_user)
+    return redirect(_safe_next(request) or "frontend:dashboard_preview")
 
 
 class RegisterDisabledView(View):
