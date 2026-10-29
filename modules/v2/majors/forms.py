@@ -95,6 +95,14 @@ class StageForm(forms.ModelForm):
         if not self.instance.pk:
             self.initial.setdefault("order", (major.stages.order_by("-order").values_list("order", flat=True).first() or 0) + 1)
 
+    def clean_kind(self):
+        kind = self.cleaned_data["kind"]
+        stage = self.instance
+        if stage.pk and kind != stage.kind and (stage.swiss_picks.exists() or stage.bracket_picks.exists()):
+            # Picks are stored in the format of the stage; switching it would silently drop them from scoring.
+            raise forms.ValidationError("На стадию уже есть прогнозы — формат менять нельзя.")
+        return kind
+
     def clean_order(self):
         order = self.cleaned_data["order"]
         if self.major.stages.exclude(pk=self.instance.pk).filter(order=order).exists():
@@ -152,7 +160,20 @@ class MatchForm(forms.ModelForm):
         self.fields["starts_at"].input_formats = _DT_INPUTS
 
 
-MatchFormSet = forms.inlineformset_factory(Stage, Match, form=MatchForm, extra=0, can_delete=True)
+class _MatchFormSet(forms.BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        if not self.instance.pk or not self.instance.bracket_picks.exists():
+            return
+        # Bracket picks point at (round, slot): with picks made, a match can neither go away nor move.
+        for form in self.initial_forms:
+            if self.can_delete and self._should_delete_form(form):
+                raise forms.ValidationError("На сетку уже есть прогнозы — удалять матчи нельзя.")
+            if {"round", "slot"} & set(form.changed_data):
+                raise forms.ValidationError("На сетку уже есть прогнозы — раунд и номер матча менять нельзя.")
+
+
+MatchFormSet = forms.inlineformset_factory(Stage, Match, form=MatchForm, formset=_MatchFormSet, extra=0, can_delete=True)
 
 
 class TeamForm(_SlugFromNameMixin, forms.ModelForm):

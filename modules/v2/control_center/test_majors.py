@@ -7,7 +7,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from modules.v2.majors.models import Major, Match, RewardGrant, RewardRule, Stage, StageTeam, SwissPick, Team
+from modules.v2.majors.models import BracketPick, Major, Match, RewardGrant, RewardRule, Stage, StageTeam, SwissPick, Team
 from modules.v2.profiles.models import UserProfile, UserRole
 
 from .models import AdminAuditLog, AuditAction
@@ -202,3 +202,28 @@ class MajorsControlCenterTests(TestCase):
         self.client.post(reverse("control_center:team_create"), {"name": "Test Squad", "slug": "", "tag": "TSQ", "region": "cis", "is_active": "on"})
         team = Team.objects.get(name="Test Squad")
         self.assertEqual(team.slug, "test-squad")
+
+    def _playoff_post(self, stage, match, **overrides) -> dict:
+        row = {"id": match.pk, "stage": stage.pk, "round": match.round, "slot": match.slot, "team_a": match.team_a_id, "team_b": match.team_b_id, "winner": "", "score": "", "starts_at": ""}
+        row.update(overrides)
+        data = {"action": "save", "order": str(stage.order), "name": stage.name, "kind": stage.kind, "starts_at": _dt(stage.starts_at), "pass_correct": "5", **_management("teams", 0, 0), **_management("matches", 1, 1)}
+        data.update({f"matches-0-{key}": "" if value is None else str(value) for key, value in row.items()})
+        return data
+
+    def test_picked_bracket_keeps_its_matches_and_format(self):
+        stage = Stage.objects.create(major=self.major, order=2, name="Плей-офф", kind=Stage.Kind.PLAYOFFS, starts_at=timezone.now())
+        match = Match.objects.create(stage=stage, round=R.QUARTERFINAL, slot=1, team_a=self.teams[0], team_b=self.teams[1])
+        BracketPick.objects.create(user=self.admin, stage=stage, round=R.QUARTERFINAL, slot=1, team=self.teams[0])
+        url = reverse("control_center:stage_edit", args=[stage.pk])
+
+        self.assertContains(self.client.post(url, self._playoff_post(stage, match, DELETE="on")), "удалять матчи нельзя")
+        self.assertContains(self.client.post(url, self._playoff_post(stage, match, slot=2)), "менять нельзя")
+        self.assertContains(self.client.post(url, {**self._playoff_post(stage, match), "kind": "swiss"}), "формат менять нельзя")
+        match.refresh_from_db()
+        stage.refresh_from_db()
+        self.assertEqual((match.slot, stage.kind), (1, Stage.Kind.PLAYOFFS))
+
+        # Entering the result is still fine.
+        self.assertEqual(self.client.post(url, self._playoff_post(stage, match, winner=self.teams[0].pk)).status_code, 302)
+        match.refresh_from_db()
+        self.assertEqual(match.winner_id, self.teams[0].pk)
