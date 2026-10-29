@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib import admin, messages
 from django.utils.html import format_html
 
@@ -27,8 +28,23 @@ class StageInline(admin.TabularInline):
     show_change_link = True
 
 
+class RewardRuleInlineForm(forms.ModelForm):
+    effect_ref = forms.ChoiceField(label="Оформление", required=False)
+
+    class Meta:
+        model = RewardRule
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from modules.v2.profile_customization.effects import reward_choices
+
+        self.fields["effect_ref"].choices = [("", "—"), *reward_choices()]
+
+
 class RewardRuleInline(admin.TabularInline):
     model = RewardRule
+    form = RewardRuleInlineForm
     extra = 0
     fields = ("sort_order", "title", "condition", "stage", "min_correct", "kind", "amount", "plan", "days", "item", "effect_ref", "requires_approval", "is_active")
     raw_id_fields = ("item",)
