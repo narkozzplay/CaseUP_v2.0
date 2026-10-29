@@ -57,6 +57,18 @@ class SimCaseForm(forms.ModelForm):
             "image": "Файл важнее ссылки. Без обеих берётся обложка из static/img/cases/<slug>.webp.",
         }
 
+    def clean_kind(self):
+        kind = self.cleaned_data.get("kind")
+        case = self.instance
+        if (
+            case.pk
+            and case.kind == SimCase.Kind.TERMINAL
+            and kind != SimCase.Kind.TERMINAL
+            and case.terminal_sessions.filter(status=TerminalSession.Status.ACTIVE).exists()
+        ):
+            raise forms.ValidationError("У игроков есть незавершённые сессии терминала: тип можно сменить, когда они закончатся.")
+        return kind
+
     def _non_negative(self, name):
         value = self.cleaned_data.get(name)
         if value is not None and value < 0:

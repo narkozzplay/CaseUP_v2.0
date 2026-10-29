@@ -449,3 +449,12 @@ class ControlCenterCaseTests(TestCase):
         self.client.post(reverse("control_center:cases"), {"case_id": empty.pk, "action": "toggle"})
         empty.refresh_from_db()
         self.assertFalse(empty.is_active)
+
+    def test_terminal_kind_locked_while_sessions_active(self):
+        terminal = _make_case(slug="cc-terminal", kind=SimCase.Kind.TERMINAL, key_price="0")
+        TerminalSession.objects.create(user=self.admin, case=terminal, offers=[])
+        data = self._post_data(terminal, kind=SimCase.Kind.CUSTOM)
+        response = self.client.post(reverse("control_center:case_edit", args=[terminal.pk]), data)
+        self.assertContains(response, "незавершённые сессии терминала")
+        terminal.refresh_from_db()
+        self.assertEqual(terminal.kind, SimCase.Kind.TERMINAL)
