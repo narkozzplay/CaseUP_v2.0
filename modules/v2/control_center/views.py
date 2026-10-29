@@ -1809,6 +1809,7 @@ def _case_economy(case, items) -> dict:
 def sim_cases(request):
     from modules.v2.case_simulator.models import SimCase, SimCaseItem, SimOpening
     from modules.v2.daily_bonus.models import DailyFreeCase
+    from modules.v2.promo.models import PromoCode
 
     role_access = _admin_access(request)
     if role_access is None:
@@ -1825,8 +1826,8 @@ def sim_cases(request):
             case.save(update_fields=["is_active", "updated_at"])
             summary = f"Кейс «{case.name}» {'включён' if case.is_active else 'выключен'}"
         elif action == "delete":
-            if case.openings.exists() or case.terminal_sessions.exists() or case.daily_free_cases.exists():
-                messages.error(request, f"Кейс «{case.name}» уже открывали или выдавали бесплатно, удалить его нельзя. Выключите его.")
+            if case.openings.exists() or case.terminal_sessions.exists() or case.daily_free_cases.exists() or case.promo_codes.exists():
+                messages.error(request, f"Кейс «{case.name}» уже открывали, выдавали бесплатно или он привязан к промокоду, удалить его нельзя. Выключите его.")
                 return redirect("control_center:cases")
             summary = f"Кейс «{case.name}» удалён"
             case.delete()
@@ -1847,6 +1848,7 @@ def sim_cases(request):
         "items_count": SimCaseItem.objects.filter(case_id__in=ids),
         "openings_count": SimOpening.objects.filter(case_id__in=ids),
         "free_count": DailyFreeCase.objects.filter(case_id__in=ids),
+        "promo_count": PromoCode.objects.filter(case_id__in=ids),
     }
     for attr, rows in counters.items():
         counts = dict(rows.values("case_id").annotate(n=Count("id")).values_list("case_id", "n"))

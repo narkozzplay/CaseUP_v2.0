@@ -193,7 +193,11 @@ def _terminal_state(session: TerminalSession | None, *, user) -> dict:
 
 @login_required
 def terminal_page(request, slug: str):
-    case = get_object_or_404(SimCase.objects.prefetch_related("items"), slug=slug, is_active=True, kind=SimCase.Kind.TERMINAL)
+    # A switched-off terminal stays reachable for players who still have an unfinished (already paid) session in it.
+    cases = SimCase.objects.prefetch_related("items").filter(
+        Q(is_active=True) | Q(terminal_sessions__user=request.user, terminal_sessions__status=TerminalSession.Status.ACTIVE)
+    )
+    case = get_object_or_404(cases.distinct(), slug=slug, kind=SimCase.Kind.TERMINAL)
     session = TerminalSession.objects.filter(user=request.user, case=case, status=TerminalSession.Status.ACTIVE).first()
     history = list(
         TerminalSession.objects.filter(user=request.user, case=case)

@@ -458,3 +458,13 @@ class ControlCenterCaseTests(TestCase):
         self.assertContains(response, "незавершённые сессии терминала")
         terminal.refresh_from_db()
         self.assertEqual(terminal.kind, SimCase.Kind.TERMINAL)
+
+    def test_switched_off_terminal_reachable_with_active_session(self):
+        terminal = _make_case(slug="cc-term-off", kind=SimCase.Kind.TERMINAL, key_price="0")
+        TerminalSession.objects.create(user=self.admin, case=terminal, offers=[])
+        terminal.is_active = False
+        terminal.save(update_fields=["is_active"])
+        self.assertEqual(self.client.get(reverse("case_simulator:terminal", args=[terminal.slug])).status_code, 200)
+        other = get_user_model().objects.create_user(username="no_session", password="pass12345")
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(reverse("case_simulator:terminal", args=[terminal.slug])).status_code, 404)
