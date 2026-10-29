@@ -237,12 +237,15 @@ class TargetAlertTests(BotTestCase):
         rule.refresh_from_db()
         self.assertEqual(rule.status, UserPriceAlertRule.Status.DISABLED)
 
+        # While switched off the price went back up and crossed down again: that crossing does not count.
+        self.history(self.item, "1050", timedelta(minutes=90))
+        self.history(self.item, "980", timedelta(minutes=60))
         rule.status = UserPriceAlertRule.Status.ACTIVE
         rule.save()
-        self.history(self.item, "980", timedelta(hours=1))
-        self.assertEqual(evaluate_user_price_alerts_for_item_type("skin"), 0)  # still below: no new crossing
-        self.history(self.item, "1050", timedelta(minutes=30))
-        self.history(self.item, "995", timedelta(minutes=10))
+        self.assertEqual(evaluate_user_price_alerts_for_item_type("skin"), 0)
+        # A new crossing after switching on does.
+        self.history(self.item, "1050", -timedelta(minutes=1))
+        self.history(self.item, "995", -timedelta(minutes=2))
         self.assertEqual(evaluate_user_price_alerts_for_item_type("skin"), 1)
 
     def test_validation(self):
@@ -278,6 +281,29 @@ class DeliveryTests(BotTestCase):
         self.assertEqual(texts[:2], ["n0", "n1"])
         self.assertIn("Ещё 2", texts[2])
         self.assertEqual(delivery.deliver_notice(self.user, "днём", now=at_msk(12)), delivery.LIMITED)
+
+    def test_a_failed_flush_keeps_the_rest_and_their_slots(self):
+        from .services import TelegramNotifierError
+
+        TelegramUserPrefs.objects.create(user=self.user, daily_limit=2)
+        for index in range(3):
+            delivery.deliver_notice(self.user, f"n{index}", now=at_msk(2))
+        failing = [None, TelegramNotifierError("502")]
+        real = delivery.send_message
+
+        def flaky(**kwargs):
+            outcome = failing.pop(0) if failing else None
+            if outcome:
+                raise outcome
+            return real(**kwargs)
+
+        with patch("modules.v2.tg_notifier.delivery.send_message", side_effect=flaky):
+            delivery.flush_deferred(now=at_msk(9, 5))
+        self.assertEqual(TelegramDeferredNotice.objects.count(), 2)
+        self.assertEqual(TelegramUserPrefs.objects.get(user=self.user).counter_value, 1)
+        delivery.flush_deferred(now=at_msk(9, 10))
+        self.assertEqual([payload["text"] for payload in self.sent()][-2:][0], "n1")
+        self.assertFalse(TelegramDeferredNotice.objects.exists())
 
     def test_digest_is_retried_after_a_failure(self):
         from .services import TelegramNotifierError

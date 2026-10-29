@@ -140,13 +140,17 @@ def deliver_notice(
 
 
 def _reserve(user, wanted: int, *, now: datetime) -> int:
-    """Takes up to `wanted` slots of today's cap without the «cap reached» note; returns how many were granted."""
+    """Takes up to `wanted` slots of today's cap without the «cap reached» note (a negative number gives slots
+    back); returns how many were taken."""
     today = timezone.localdate(now)
     with transaction.atomic():
         prefs = TelegramUserPrefs.objects.select_for_update().get(user=user)
         if prefs.counter_date != today:
             prefs.counter_date, prefs.counter_value = today, 0
-        granted = wanted if not prefs.daily_limit else max(0, min(wanted, prefs.daily_limit - prefs.counter_value))
+        if wanted < 0:  # giving slots back
+            granted = -min(-wanted, prefs.counter_value)
+        else:
+            granted = wanted if not prefs.daily_limit else max(0, min(wanted, prefs.daily_limit - prefs.counter_value))
         prefs.counter_value += granted
         prefs.save(update_fields=["counter_date", "counter_value", "updated_at"])
     return granted
@@ -170,16 +174,22 @@ def flush_deferred(*, now: datetime | None = None) -> int:
             TelegramDeferredNotice.objects.filter(pk__in=[notice.pk for notice in notices]).delete()
             continue
         granted = _reserve(prefs.user, len(notices), now=now)
-        done = []
+        done, sent = [], 0
         try:
             for index, notice in enumerate(notices[:granted]):
                 send_message(text=notice.text, chat_id=chat_id, parse_mode=HTML, reply_markup=notice.reply_markup or None, disable_notification=index > 0)
                 done.append(notice.pk)
+                sent += 1
             if granted < len(notices):
                 done += [notice.pk for notice in notices[granted:]]
                 send_message(text=f"🌙 Ещё {len(notices) - granted} уведомл. за ночь не вошли в дневной лимит — они есть на сайте в колокольчике.", chat_id=chat_id, disable_notification=True)
         except TelegramNotifierError:
             logger.warning("tg_notifier: deferred notices to user %s failed", prefs.user_id, exc_info=True)
+            if sent < granted:
+                # Unsent notices stay queued for the next tick and get their slots back; the over-cap ones are
+                # left queued too, so the next tick decides about them again.
+                _reserve(prefs.user, -(granted - sent), now=now)
+                done = done[:sent]
         TelegramDeferredNotice.objects.filter(pk__in=done).delete()
         if done:
             served += 1

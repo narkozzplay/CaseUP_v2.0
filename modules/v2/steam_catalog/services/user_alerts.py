@@ -220,8 +220,9 @@ def _evaluate_target_rule(rule: UserPriceAlertRule, item: SteamItem, trigger_sou
     previous = rows[0] if len(rows) == 2 else current
     last = rule.events.filter(item=item).order_by("-created_at", "-id").first()
     if last is not None:
+        # Switching the rule back on (or editing it) re-arms it: crossings from before that do not count.
         crossed = len(rows) == 2 and not _target_reached(rule, previous.price_rub)
-        if not crossed or current.created_at <= last.current_at:
+        if not crossed or current.created_at <= max(last.current_at, rule.updated_at):
             return False
     change = (current.price_rub - previous.price_rub).quantize(Decimal("0.01"))
     percent = _quantize_percent(change / previous.price_rub * 100) if previous.price_rub else Decimal("0.00")
