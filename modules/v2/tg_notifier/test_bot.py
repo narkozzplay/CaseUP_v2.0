@@ -150,6 +150,16 @@ class CommandTests(BotTestCase):
         handle_update({"message": {"chat": {"id": -100, "type": "supergroup"}, "text": f"/start caseup_{token.token}"}})
         self.assertEqual(UserProfile.objects.get(user=self.user).telegram_chat_id, CHAT)
 
+    def test_linking_sends_a_formatted_welcome(self):
+        from .services import issue_link_token_for_user
+
+        stranger = User.objects.create_user(username="newbie", password="x")
+        token = issue_link_token_for_user(stranger)
+        handle_update({"message": {"chat": {"id": 777, "type": "private"}, "text": f"/start caseup_{token.token}"}})
+        welcome = self.sent()[-1]
+        self.assertIn("Telegram подключён", welcome["text"])
+        self.assertEqual(welcome["parse_mode"], "HTML")
+
     def test_polling_asks_for_button_presses(self):
         config = TelegramNotifierConfig.objects.get()
         with patch("modules.v2.tg_notifier.updates._telegram_api_request", side_effect=self._api):
