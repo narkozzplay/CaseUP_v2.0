@@ -379,16 +379,19 @@ def _build_user_price_alert_message(event: UserPriceAlertEvent) -> str:
         target = Decimal((event.payload or {}).get("target_price_rub") or rule.target_price_rub or 0)
         verb = "поднялась до" if event.direction == UserPriceAlertRule.Direction.UP else "опустилась до"
         return (
-            f"🎯 <b>Цена {verb} {_price(target)}</b>\n{name}\n\n"
-            f"Сейчас: <b>{_price(event.current_price_rub)}</b>\n"
-            f"Алерт «{html.escape(rule.name)}» сработал и выключен — включите снова кнопкой ниже, если нужно."
+            f"🎯 <b>Цель достигнута!</b>\n{name}\n\n"
+            f"<blockquote>Цена {verb} <b>{_price(target)}</b>\n"
+            f"Сейчас: <b>{_price(event.current_price_rub)}</b></blockquote>\n\n"
+            f"🔕 <i>Алерт «{html.escape(rule.name)}» сработал и выключен — включите снова кнопкой ниже, если нужно.</i>"
         )
-    arrow = "▲ Рост" if event.direction == UserPriceAlertRule.Direction.UP else "▼ Падение"
-    since = timezone.localtime(event.reference_at).strftime("%d.%m %H:%M")
+    up = event.direction == UserPriceAlertRule.Direction.UP
+    sign = "+" if up else "−"
+    since = timezone.localtime(event.reference_at).strftime("%d.%m в %H:%M")
     return (
-        f"{arrow} <b>{event.change_percent:+.2f}%</b>\n{name}\n\n"
-        f"{_price(event.baseline_price_rub)} → <b>{_price(event.current_price_rub)}</b> ({event.change_rub:+.2f} ₽)\n"
-        f"С {since} МСК · алерт «{html.escape(rule.name)}»"
+        f"{'📈' if up else '📉'} <b>{'Рост' if up else 'Падение'} {sign}{abs(event.change_percent):.2f}%</b>\n{name}\n\n"
+        f"<blockquote>{'🟢' if up else '🔴'} {_price(event.baseline_price_rub)} → <b>{_price(event.current_price_rub)}</b>\n"
+        f"└ {sign}{_price(abs(event.change_rub))} с {since} МСК</blockquote>\n\n"
+        f"🔔 <i>Алерт «{html.escape(rule.name)}»</i>"
     )
 
 

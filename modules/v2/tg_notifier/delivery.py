@@ -37,6 +37,7 @@ HTML = "HTML"
 SENT, DEFERRED, LIMITED, UNLINKED = "sent", "deferred", "limited", "unlinked"
 
 # Site notification kinds copied to Telegram: kind -> (urgent, button label).
+MIRROR_ICONS = {"market_deal": "🤝", "market_payout": "💸", "market_listing_missing": "⚠️", "daily_bonus_reminder": "🎁"}
 MIRRORED_KINDS = {
     "market_deal": (True, "Открыть сделку"),
     "market_payout": (True, "Открыть выплаты"),
@@ -96,10 +97,11 @@ def _limit_note(prefs: TelegramUserPrefs) -> str:
     except TelegramNotifierError:
         link = ""
     text = (
-        f"⏸ На сегодня пришло {prefs.daily_limit} уведомлений — это ваш дневной лимит. "
-        "До полуночи алерты будут только на сайте, сделки рынка по-прежнему приходят сюда."
+        f"⏸ <b>Дневной лимит исчерпан</b> · {prefs.daily_limit} в день\n\n"
+        "<blockquote>До полуночи алерты будут только на сайте, в колокольчике.\n"
+        "Сделки рынка по-прежнему приходят сюда.</blockquote>"
     )
-    return f"{text}\n\nИзменить лимит: {link}" if link else text
+    return f"{text}\n\n⚙️ <a href=\"{html.escape(link, quote=True)}\">Изменить лимит</a>" if link else text
 
 
 def deliver_notice(
@@ -136,7 +138,7 @@ def deliver_notice(
     if not allowed:
         if note:
             try:
-                send_message(text=_limit_note(prefs), chat_id=chat_id)
+                send_message(text=_limit_note(prefs), chat_id=chat_id, parse_mode=HTML)
             except TelegramNotifierError:
                 logger.warning("tg_notifier: limit note to user %s failed", user.pk, exc_info=True)
         return LIMITED
@@ -196,7 +198,10 @@ def flush_deferred(*, now: datetime | None = None) -> int:
                 sent += 1
             if granted < len(notices):
                 done += [notice.pk for notice in notices[granted:]]
-                send_message(text=f"🌙 Ещё {len(notices) - granted} уведомл. за ночь не вошли в дневной лимит — они есть на сайте в колокольчике.", chat_id=chat_id, disable_notification=True)
+                send_message(
+                    text=f"🌙 <b>Ещё {len(notices) - granted}</b> уведомл. за ночь не вошли в дневной лимит — <i>они есть на сайте в колокольчике.</i>",
+                    chat_id=chat_id, parse_mode=HTML, disable_notification=True,
+                )
         except TelegramNotifierError:
             logger.warning("tg_notifier: deferred notices to user %s failed", prefs.user_id, exc_info=True)
             if sent < granted:
@@ -229,7 +234,7 @@ def mirror_notification(notification_id: int) -> str:
         local = timezone.localtime(notification.created_at)
         expires_at = local.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
     view = render_notification(notification, "ru")
-    text = f"<b>{html.escape(view.title)}</b>\n{html.escape(view.body)}"
+    text = f"{MIRROR_ICONS.get(notification.kind, '🔔')} <b>{html.escape(view.title)}</b>\n\n<blockquote>{html.escape(view.body)}</blockquote>"
     markup = None
     if view.url:
         try:
@@ -280,10 +285,10 @@ def build_personal_digest(user, *, now: datetime | None = None) -> str | None:
     """Favorites moved over the day, the portfolio total and the day's alerts; None when there is nothing to say."""
     from modules.v2.steam_catalog.models import SteamItemFavorite, UserPriceAlertEvent
 
-    from .bot import change_since, fmt_change, fmt_price, portfolio_summary
+    from .bot import change_since, item_row, portfolio_summary, quote
 
     now = now or timezone.now()
-    lines = [f"☀️ <b>Сводка CaseUP · {timezone.localtime(now):%d.%m}</b>"]
+    lines = [f"☀️ <b>Сводка CaseUP</b>\n<i>{timezone.localtime(now):%d.%m} · что изменилось за сутки</i>"]
     has_content = False
 
     favorites = list(SteamItemFavorite.objects.filter(user=user).select_related("item")[:50])
@@ -296,24 +301,24 @@ def build_personal_digest(user, *, now: datetime | None = None) -> str | None:
     moves.sort(key=lambda row: row[0], reverse=True)
     if moves:
         has_content = True
-        lines.append("\n<b>Избранное за сутки</b>")
-        for _abs, item, change in moves[:10]:
-            lines.append(f"• {html.escape(item.display_name)} — {fmt_price(item.price_rub)} ({fmt_change(change)})")
+        lines.append("\n⭐ <b>Избранное</b>")
+        rows = [item_row(index, item.display_name, item.price_rub, change[1]) for index, (_abs, item, change) in enumerate(moves[:10], start=1)]
         if len(moves) > 10:
-            lines.append(f"…и ещё {len(moves) - 10}")
+            rows.append(f"<i>…и ещё {len(moves) - 10}</i>")
+        lines.append(quote(rows))
     elif favorites:
-        lines.append("\nЦены в избранном за сутки не изменились.")
+        lines.append("\n⭐ <i>Цены в избранном за сутки не изменились.</i>")
 
     portfolio = portfolio_summary(user)
     if portfolio is not None:
         has_content = True
-        lines.append("\n<b>Портфель</b>")
+        lines.append("\n💼 <b>Портфель</b>")
         lines.append(portfolio)
 
     alerts = UserPriceAlertEvent.objects.filter(user=user, created_at__gte=now - timedelta(days=1)).count()
     if alerts:
         has_content = True
-        lines.append(f"\n🔔 Сработало алертов за сутки: {alerts}")
+        lines.append(f"\n🔔 Сработало алертов за сутки: <b>{alerts}</b>")
 
     return "\n".join(lines) if has_content else None
 

@@ -31,7 +31,9 @@ SEARCH_LIMIT = 8
 COMMANDS_PER_MINUTE = 20
 AWAIT_PRICE_SECONDS = 5 * 60
 TOP_CACHE_SECONDS = 5 * 60
-CHANGE_PERIODS = (("24 ч", timedelta(days=1)), ("7 д", timedelta(days=7)), ("30 д", timedelta(days=30)))
+CHANGE_PERIODS = (("За сутки", timedelta(days=1)), ("За неделю", timedelta(days=7)), ("За месяц", timedelta(days=30)))
+TYPE_NAMES = {"skin": "Скины", "case": "Кейсы", "sticker": "Наклейки", "graffiti": "Граффити", "charm": "Брелоки", "other": "Другое"}
+TYPE_ICONS = {"skin": "🔫", "case": "📦", "sticker": "🏷", "graffiti": "🎨", "charm": "🧿"}
 
 BTN_PRICE = "🔎 Цена"
 BTN_FAVORITES = "⭐ Избранное"
@@ -53,14 +55,17 @@ BOT_COMMANDS = [
 COMMANDS_CACHE_KEY = "tg_notifier:bot_commands:v1"
 
 HELP_TEXT = (
-    "Я бот CaseUP: цены CS2, алерты и уведомления о сделках.\n\n"
-    "/price название — цена предмета и изменение за сутки, неделю и месяц\n"
-    "/favorites — избранное с ценами\n"
-    "/alerts — алерты: включить, выключить, удалить\n"
-    "/portfolio — стоимость портфеля и прибыль\n"
-    "/balance — баланс\n"
-    "/top — кто сильнее всего вырос и упал за сутки\n\n"
-    "Алерты создаются на сайте, тихие часы и лимит уведомлений — в настройках профиля."
+    "🤖 <b>Бот CaseUP</b>\n"
+    "<i>Цены CS2, алерты и сделки рынка — прямо в Telegram.</i>\n\n"
+    "<b>Что я умею</b>\n"
+    "<blockquote>🔎 /price название — цена и как она менялась\n"
+    "⭐ /favorites — избранное с ценами\n"
+    "🔔 /alerts — алерты: включить, выключить, удалить\n"
+    "💼 /portfolio — стоимость портфеля и прибыль\n"
+    "💰 /balance — баланс\n"
+    "📈 /top — кто вырос и упал за сутки</blockquote>\n\n"
+    "💡 <i>Кнопки внизу экрана делают то же самое. Алерты создаются на сайте, "
+    "тихие часы и лимит уведомлений — в настройках профиля.</i>"
 )
 
 
@@ -83,10 +88,46 @@ def fmt_price(value: Decimal | None) -> str:
     return (text[:-3] if text.endswith(".00") else text) + " ₽"
 
 
+MINUS = "−"
+
+
+def _sign(value: Decimal) -> str:
+    return "+" if value > 0 else MINUS if value < 0 else ""
+
+
+def trend(value: Decimal | None) -> str:
+    """A coloured dot for a price move: green up, red down, white flat or unknown."""
+    if not value:
+        return "⚪"
+    return "🟢" if value > 0 else "🔴"
+
+
+def fmt_percent(percent: Decimal) -> str:
+    return f"{_sign(percent)}{abs(percent)}%"
+
+
+def fmt_signed_price(value: Decimal) -> str:
+    return _sign(value) + fmt_price(abs(value))
+
+
 def fmt_change(change: tuple[Decimal, Decimal]) -> str:
     rub, percent = change
-    sign = "+" if rub > 0 else ""
-    return f"{sign}{percent}%, {sign}{fmt_price(rub)}"
+    return f"{fmt_percent(percent)} · {fmt_signed_price(rub)}"
+
+
+def quote(lines: list[str]) -> str:
+    """A block with a coloured bar on the left, to set a group of lines apart."""
+    return "<blockquote>" + "\n".join(lines) + "</blockquote>"
+
+
+def item_row(index: int, name: str, price: Decimal | None, percent: Decimal | None = None) -> str:
+    """A numbered list line with the price (and its move) on a second, indented line."""
+    tail = f"{trend(percent)} <b>{fmt_percent(percent)}</b> · {fmt_price(price)}" if percent is not None else f"💰 {fmt_price(price)}"
+    return f"<b>{index}.</b> {html.escape(name)}\n     └ {tail}"
+
+
+def title(icon: str, text: str, note: str = "") -> str:
+    return f"{icon} <b>{text}</b>" + (f"\n<i>{note}</i>" if note else "")
 
 
 def change_since(item, delta: timedelta, *, now: datetime | None = None) -> tuple[Decimal, Decimal] | None:
@@ -192,16 +233,23 @@ def market_button(item) -> dict[str, str] | None:
 def item_card(user, item) -> Reply:
     from modules.v2.steam_catalog.services.browse import is_favorite
 
-    lines = [f"<b>{html.escape(item.market_hash_name)}</b>"]
+    icon = TYPE_ICONS.get(item.item_type, "🎯")
+    lines = [f"{icon} <b>{html.escape(item.market_hash_name)}</b>"]
     if item.name_ru and item.name_ru != item.market_hash_name:
-        lines.append(html.escape(item.name_ru))
-    lines.append(f"\n💰 Цена Steam: <b>{fmt_price(item.price_rub)}</b>")
+        lines.append(f"<i>{html.escape(item.name_ru)}</i>")
+    lines.append(f"\n💰 <b>{fmt_price(item.price_rub)}</b>  ·  цена в Steam")
     if item.price_rub is not None:
+        rows = []
         for label, delta in CHANGE_PERIODS:
             change = change_since(item, delta)
-            lines.append(f"{label}: {fmt_change(change) if change else 'нет данных'}")
+            if change:
+                rows.append(f"{trend(change[1])} {label}: <b>{fmt_percent(change[1])}</b> · {fmt_signed_price(change[0])}")
+            else:
+                rows.append(f"⚪ {label}: нет данных")
+        lines.append("\n📊 <b>Как менялась цена</b>")
+        lines.append(quote(rows))
     if item.price_checked_at:
-        lines.append(f"\n<i>Проверено {timezone.localtime(item.price_checked_at):%d.%m %H:%M} МСК</i>")
+        lines.append(f"\n🕒 <i>Обновлено {timezone.localtime(item.price_checked_at):%d.%m в %H:%M} МСК</i>")
     return Reply("\n".join(lines), _card_markup(item, favorite=is_favorite(user, item)))
 
 
@@ -217,14 +265,17 @@ def cmd_price(user, query: str, chat_id: str) -> Reply:
     query = query.strip()
     if not query:
         cache.set(_await_key(chat_id), True, AWAIT_PRICE_SECONDS)
-        return Reply("Напишите название предмета, например: <code>AK-47 Redline</code>")
+        return Reply("🔎 <b>Какой предмет ищем?</b>\n\nНапишите название, как в Steam, например: <code>AK-47 Redline</code>")
     items, more = search_items(query)
     if not items:
-        return Reply(f"Ничего не нашёл по запросу «{html.escape(query)}». Попробуйте название как в Steam, на английском.")
+        return Reply(
+            f"🤷 <b>Ничего не нашёл</b> по запросу «{html.escape(query)}».\n\n"
+            "<i>Попробуйте название как в Steam, на английском: например, <code>AWP Asiimov</code>.</i>"
+        )
     if len(items) == 1:
         return item_card(user, items[0])
     rows = [[_button(_short(f"{item.market_hash_name} — {fmt_price(item.price_rub)}"), f"it:{item.pk}")] for item in items]
-    text = f"Нашёл несколько вариантов по запросу «{html.escape(query)}». Выберите:"
+    text = f"🔎 <b>Нашёл несколько вариантов</b> по запросу «{html.escape(query)}».\n\n👇 Выберите нужный:"
     if more:
         text += "\n<i>Показаны первые 8 — уточните запрос, если нужного нет.</i>"
     return Reply(text, {"inline_keyboard": rows})
@@ -249,17 +300,22 @@ def favorites_page(user, page: int = 1) -> Reply:
     if not total:
         link = _link(reverse("steam_catalog:list"), "favorites")
         markup = {"inline_keyboard": [[url_button("Открыть каталог", link)]]} if link else None
-        return Reply("В избранном пока пусто. Добавьте предмет кнопкой «⭐ В избранное» под ответом /price или звёздочкой в каталоге.", markup)
+        return Reply(
+            "⭐ <b>В избранном пока пусто</b>\n\n"
+            "<i>Добавьте предмет кнопкой «⭐ В избранное» под ответом /price или звёздочкой в каталоге.</i>",
+            markup,
+        )
     pages = (total + PAGE_SIZE - 1) // PAGE_SIZE
     page = min(max(page, 1), pages)
     start = (page - 1) * PAGE_SIZE
     favorites = list(qs[start:start + PAGE_SIZE])
-    lines = [f"⭐ <b>Избранное</b> · {total}" + (f" · стр. {page}/{pages}" if pages > 1 else "")]
+    note = f"{total} {_plural(total, 'предмет', 'предмета', 'предметов')} · изменение за сутки" + (f" · стр. {page}/{pages}" if pages > 1 else "")
+    rows_text = []
     for index, favorite in enumerate(favorites, start=start + 1):
         item = favorite.item
         change = change_since(item, timedelta(days=1))
-        tail = f" ({fmt_change(change)} за сутки)" if change and change[0] else ""
-        lines.append(f"{index}. {html.escape(favorite.family_key)} — {fmt_price(item.price_rub)}{tail}")
+        rows_text.append(item_row(index, favorite.family_key, item.price_rub, change[1] if change else None))
+    lines = [title("⭐", "Избранное", note), "", quote(rows_text), "", "👇 <i>Нажмите номер, чтобы открыть карточку.</i>"]
     rows = _numbered_buttons([favorite.item_id for favorite in favorites], "it", start=start + 1)
     nav = _nav_row("fl", page, pages)
     if nav:
@@ -274,18 +330,22 @@ def top_reply() -> Reply:
     from .channel_digest import collect_digest
 
     digest = collect_digest(config=get_telegram_notifier_config())
-    lines, ids = ["📈 <b>Цены CS2 за сутки</b>"], []
+    from .models import ChannelDigestSection
+
+    lines, ids = [title("📈", "Цены CS2 за сутки", f"На {timezone.localtime():%d.%m, %H:%M} МСК")], []
     for block in digest.blocks:
         if not block.moves:
             continue
-        lines.append(f"\n<b>{html.escape(block.section.title)}</b>")
+        icon = "🚀" if block.section.direction == ChannelDigestSection.Direction.UP else "🔻"
+        rows = []
         for move in block.moves:
             ids.append(move.item.pk)
-            lines.append(f"{len(ids)}. {html.escape(move.item.market_hash_name)} — {move.current_text} ({move.change_text})")
+            rows.append(item_row(len(ids), move.item.market_hash_name, move.current_price, move.change_percent))
+        lines += ["", f"{icon} <b>{html.escape(block.section.title)}</b>", quote(rows)]
     if not ids:
-        return Reply("За сутки цены почти не двигались — заметных изменений нет.")
+        return Reply("😴 <b>Рынок спит</b>\n\n<i>За сутки цены почти не двигались — заметных изменений нет.</i>")
     markup = {"inline_keyboard": _numbered_buttons(ids, "it")}
-    text = "\n".join(lines) + "\n\n<i>Нажмите номер, чтобы открыть карточку.</i>"
+    text = "\n".join(lines) + "\n\n👇 <i>Нажмите номер, чтобы открыть карточку.</i>"
     cache.set("tg_notifier:bot_top", (text, markup), TOP_CACHE_SECONDS)
     return Reply(text, markup)
 
@@ -296,11 +356,11 @@ def top_reply() -> Reply:
 def describe_rule(rule) -> str:
     from modules.v2.steam_catalog.models import UserPriceAlertRule as Rule
 
-    target = (rule.item.market_hash_name if rule.item_id else "") or rule.family_name or rule.get_item_type_display()
+    target = (rule.item.market_hash_name if rule.item_id else "") or rule.family_name or TYPE_NAMES.get(rule.item_type, rule.get_item_type_display())
     if rule.kind == Rule.Kind.TARGET:
         verb = "поднимется до" if rule.direction == Rule.Direction.UP else "опустится до"
-        return f"{html.escape(target)}: цена {verb} {fmt_price(rule.target_price_rub)}"
-    arrow = {"up": "▲ рост", "down": "▼ падение"}.get(rule.direction, "▲▼ рост или падение")
+        return f"{html.escape(target)}: 🎯 цена {verb} {fmt_price(rule.target_price_rub)}"
+    arrow = {"up": "📈 рост", "down": "📉 падение"}.get(rule.direction, "↕️ рост или падение")
     parts = []
     if rule.min_change_percent > 0 and rule.threshold_mode != Rule.ThresholdMode.RUB:
         parts.append(f"{rule.min_change_percent.normalize():f}%")
@@ -322,7 +382,8 @@ def alerts_page(user, page: int = 1) -> Reply:
     create_row = [url_button("➕ Создать на сайте", create_link)] if create_link else []
     if not total:
         return Reply(
-            "Алертов пока нет. Создайте правило на сайте — пришлю сообщение, когда цена изменится или дойдёт до нужной.",
+            "🔔 <b>Алертов пока нет</b>\n\n"
+            "<i>Создайте правило на сайте — пришлю сообщение, когда цена изменится или дойдёт до нужной.</i>",
             {"inline_keyboard": [create_row]} if create_row else None,
         )
     active = qs.filter(status=Rule.Status.ACTIVE).count()
@@ -331,12 +392,12 @@ def alerts_page(user, page: int = 1) -> Reply:
     page = min(max(page, 1), pages)
     start = (page - 1) * PAGE_SIZE
     rules = list(qs[start:start + PAGE_SIZE])
-    quota = f"активных {active} из {limit} по тарифу" if limit is not None else f"активных {active}"
-    lines = [f"🔔 <b>Мои алерты</b> · {quota}" + (f" · стр. {page}/{pages}" if pages > 1 else "")]
+    quota = f"Работает {active} из {limit} по тарифу" if limit is not None else f"Работает {active}"
+    lines = [title("🔔", "Мои алерты", quota + (f" · стр. {page}/{pages}" if pages > 1 else ""))]
     rows = []
     for index, rule in enumerate(rules, start=start + 1):
-        mark = "✅" if rule.status == Rule.Status.ACTIVE else "⏸"
-        lines.append(f"\n{index}. {mark} <b>{html.escape(rule.name)}</b>\n{describe_rule(rule)}")
+        state = "🟢 работает" if rule.status == Rule.Status.ACTIVE else "⏸ на паузе"
+        lines += ["", quote([f"<b>{index}. {html.escape(rule.name)}</b>  ·  {state}", f"└ {describe_rule(rule)}"])]
         toggle = _button(f"{index}. ⏸ Выключить", f"at:{rule.pk}:{page}") if rule.status == Rule.Status.ACTIVE else _button(f"{index}. ▶ Включить", f"at:{rule.pk}:{page}")
         rows.append([toggle, _button(f"{index}. 🗑 Удалить", f"ad:{rule.pk}:{page}")])
     nav = _nav_row("al", page, pages)
@@ -408,19 +469,22 @@ def portfolio_summary(user, analytics=None) -> str | None:
         return None
     kpi = analytics.kpi
     if not kpi.active_purchases_count:
-        return f"Активных позиций нет. Зафиксировано продажами: {_signed(kpi.realized_pnl_sum)}"
+        return quote(["📭 Активных позиций нет", f"💵 Заработано продажами: <b>{fmt_signed_price(kpi.realized_pnl_sum)}</b>"])
     percent = (kpi.unrealized_pnl_sum / kpi.active_cost_basis_sum * 100).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP) if kpi.active_cost_basis_sum else Decimal("0")
-    sign = "+" if percent > 0 else ""
-    return (
-        f"Вложено: {fmt_price(kpi.active_cost_basis_sum)}\n"
-        f"Стоимость сейчас: {fmt_price(kpi.current_active_value_sum)}\n"
-        f"Прибыль: <b>{_signed(kpi.unrealized_pnl_sum)} ({sign}{percent}%)</b>\n"
-        f"Позиций: {kpi.active_purchases_count}"
-    )
+    return quote([
+        f"💵 Вложено: <b>{fmt_price(kpi.active_cost_basis_sum)}</b>",
+        f"📦 Стоит сейчас: <b>{fmt_price(kpi.current_active_value_sum)}</b>",
+        f"{trend(kpi.unrealized_pnl_sum)} Прибыль: <b>{fmt_signed_price(kpi.unrealized_pnl_sum)} ({fmt_percent(percent)})</b>",
+        f"🎒 Позиций: <b>{kpi.active_purchases_count}</b>",
+    ])
 
 
-def _signed(value: Decimal) -> str:
-    return ("+" if value > 0 else "") + fmt_price(value)
+def _plural(number: int, one: str, few: str, many: str) -> str:
+    if number % 10 == 1 and number % 100 != 11:
+        return one
+    if 2 <= number % 10 <= 4 and not 12 <= number % 100 <= 14:
+        return few
+    return many
 
 
 def portfolio_reply(user) -> Reply:
@@ -430,26 +494,33 @@ def portfolio_reply(user) -> Reply:
     if summary is None:
         add_link = _link(reverse("steam_trading:add"), "portfolio")
         markup = {"inline_keyboard": [[url_button("Добавить покупку", add_link)]]} if add_link else None
-        return Reply("💼 В портфеле пока нет покупок. Добавьте их на сайте — я буду считать стоимость и прибыль.", markup)
-    lines = ["💼 <b>Портфель</b>", summary]
+        return Reply(
+            "💼 <b>В портфеле пока нет покупок</b>\n\n<i>Добавьте их на сайте — я буду считать стоимость и прибыль.</i>", markup
+        )
+    lines = [title("💼", "Портфель"), "", summary]
+
+    def mover(row) -> str:
+        percent = Decimal(row.unrealized_pnl_percent).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+        return f"{trend(percent)} <b>{fmt_percent(percent)}</b>  {html.escape(row.purchase.item.market_hash_name)}"
+
     gainers = [row for row in analytics.top_gainers if row.unrealized_pnl_percent > 0][:3]
     losers = [row for row in analytics.top_losers if row.unrealized_pnl_percent < 0][:3]
     if gainers:
-        lines.append("\n<b>Лучшие</b>")
-        lines += [f"▲ {html.escape(row.purchase.item.market_hash_name)} {row.unrealized_pnl_percent:+.1f}%" for row in gainers]
+        lines += ["", "🏆 <b>Лучшие</b>", quote([mover(row) for row in gainers])]
     if losers:
-        lines.append("\n<b>Худшие</b>")
-        lines += [f"▼ {html.escape(row.purchase.item.market_hash_name)} {row.unrealized_pnl_percent:+.1f}%" for row in losers]
-    lines.append("\n<i>По текущим ценам Steam, без комиссии 15%.</i>")
+        lines += ["", "🥀 <b>Худшие</b>", quote([mover(row) for row in losers])]
+    lines.append("\nℹ️ <i>По текущим ценам Steam, без комиссии 15%.</i>")
     markup = {"inline_keyboard": [[url_button("Открыть портфель на сайте", link)]]} if link else None
     return Reply("\n".join(lines), markup)
 
 
 def balance_reply(user) -> Reply:
     profile, _ = UserProfile.objects.get_or_create(user=user)
-    lines = [f"💰 Баланс: <b>{fmt_price(profile.balance_coins)}</b>"]
+    rows = [f"💳 Основной: <b>{fmt_price(profile.balance_coins)}</b>"]
     if profile.market_balance_coins:
-        lines.append(f"🏪 С продаж на рынке: <b>{fmt_price(profile.market_balance_coins)}</b> (можно вывести)")
+        rows.append(f"🏪 С продаж на рынке: <b>{fmt_price(profile.market_balance_coins)}</b>")
+        rows.append("<i>└ эти деньги можно вывести</i>")
+    lines = [title("💰", "Баланс"), "", quote(rows)]
     row = []
     topup = _link(reverse("payments:topup"), "balance")
     if topup:
@@ -472,8 +543,9 @@ def _user_for_chat(chat_id: str):
 def _unlinked_reply() -> Reply:
     link = _link(reverse("profiles:profile"), "link")
     text = (
-        "Бот работает для пользователей CaseUP. Чтобы пользоваться им, привяжите Telegram: "
-        "откройте профиль на сайте и нажмите «Подключить Telegram»."
+        "👋 <b>Это бот CaseUP</b>\n\n"
+        "Чтобы пользоваться им, привяжите Telegram к аккаунту:\n"
+        "<blockquote>1. Откройте профиль на сайте\n2. Нажмите «Подключить Telegram»</blockquote>"
     )
     return Reply(text, {"inline_keyboard": [[url_button("Открыть профиль", link)]]} if link else None)
 
@@ -493,7 +565,7 @@ def _rate_limited(chat_id: str) -> tuple[bool, bool]:
 
 
 def welcome_reply() -> Reply:
-    return Reply("✅ Telegram подключён к вашему профилю CaseUP.\n\n" + HELP_TEXT, main_keyboard())
+    return Reply("✅ <b>Telegram подключён к вашему профилю CaseUP!</b>\n\n" + HELP_TEXT, main_keyboard())
 
 
 KEYBOARD_COMMANDS = {
@@ -528,7 +600,7 @@ def reply_to_message(chat_id: str, text: str) -> Reply | None:
         if cache.get(_await_key(chat_id)):
             cache.delete(_await_key(chat_id))
             return cmd_price(user, text, chat_id)
-        return Reply("Чтобы узнать цену, нажмите «🔎 Цена» или напишите /price и название. Все команды — /help.", main_keyboard())
+        return Reply("💡 Чтобы узнать цену, нажмите «🔎 Цена» или напишите <code>/price название</code>.\nВсе команды — /help.", main_keyboard())
     name, argument = command
     cache.delete(_await_key(chat_id))
     if name == "price":
@@ -545,7 +617,7 @@ def reply_to_message(chat_id: str, text: str) -> Reply | None:
         return top_reply()
     if name in ("start", "help", "menu"):
         return Reply(HELP_TEXT, main_keyboard())
-    return Reply("Такой команды нет. Список команд — /help.", main_keyboard())
+    return Reply("🤔 Такой команды нет. Список команд — /help.", main_keyboard())
 
 
 def handle_message(message: dict[str, Any]) -> dict[str, Any]:
@@ -624,7 +696,11 @@ def reply_to_callback(chat_id: str, data: str) -> tuple[Reply | None, str]:
         if rule is None:
             return Reply("", toast="Алерт не найден."), "toast"
         markup = {"inline_keyboard": [[_button("🗑 Да, удалить", f"aD:{rule.pk}:{numbers[1]}"), _button("Отмена", f"al:{numbers[1]}")]]}
-        return Reply(f"Удалить алерт <b>{html.escape(rule.name)}</b>?\n{describe_rule(rule)}\n\nИстория его срабатываний тоже удалится.", markup), "edit"
+        return Reply(
+            f"🗑 <b>Удалить алерт «{html.escape(rule.name)}»?</b>\n\n{quote([describe_rule(rule)])}\n\n"
+            "<i>История его срабатываний тоже удалится.</i>",
+            markup,
+        ), "edit"
     if kind == "aD" and len(numbers) == 2:
         from modules.v2.steam_catalog.models import UserPriceAlertRule as Rule
 
