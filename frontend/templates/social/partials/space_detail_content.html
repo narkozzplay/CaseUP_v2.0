@@ -1,3 +1,4 @@
+{% load profile_looks %}
 <section class="section section--compact chat-page chat-room">
     <div class="chat-room__layout">
         <article class="chat-room__main social-messages">
@@ -66,11 +67,13 @@
             </header>
 
                 <div class="social-message-list" id="social-msg-list">
+                    {% pfx_prime social_messages "author_user_id" %}
                     {% for message in social_messages %}
+                        {% pfx_look message.author_user_id as look %}
                         <div class="social-message {% if message.is_own %}social-message--own{% endif %}">
                             {# Avatar — кликабелен, hover показывает мини-профиль #}
                             <div class="user-hover-wrap presence-avatar-wrap presence-avatar-wrap--sm social-message__avatar-wrap {% if message.is_own %}social-message__avatar-wrap--own{% endif %}">
-                                <a href="{{ message.author_profile_url }}" data-dashboard-nav="true" tabindex="-1" aria-hidden="true">
+                                <a href="{{ message.author_profile_url }}" data-dashboard-nav="true" tabindex="-1" aria-hidden="true"{% if look.frame %} class="pfx-frame pfx-frame--compact {{ look.frame }}"{% endif %}>
                                     <img src="{{ message.author_avatar_url }}" alt="{{ message.author_display_name }}" class="social-message__avatar">
                                 </a>
                                 <span class="presence-indicator {% if message.author_is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" aria-label="{% if message.author_is_online %}Online{% else %}Offline{% endif %}"></span>
@@ -78,7 +81,7 @@
                                     <div class="user-mini-card__head">
                                         <img src="{{ message.author_avatar_url }}" class="user-mini-card__avatar" alt="">
                                         <div class="user-mini-card__info">
-                                            <span class="user-mini-card__name">{{ message.author_display_name }}{% if message.author_verification_badge %}{% include "components/verification_badge.html" with badge=message.author_verification_badge %}{% endif %}</span>
+                                            <span class="user-mini-card__name">{% include "profile_customization/_fx_name.html" with name=message.author_display_name show_title=True %}{% if message.author_verification_badge %}{% include "components/verification_badge.html" with badge=message.author_verification_badge %}{% endif %}</span>
                                             <span class="user-mini-card__online {% if message.author_is_online %}user-mini-card__online--on{% else %}user-mini-card__online--off{% endif %}">
                                                 {% if message.author_is_online %}● Online{% else %}○ Offline{% endif %}
                                             </span>
@@ -94,7 +97,7 @@
                             <div class="social-message__bubble">
                                 <div class="social-message__meta">
                                     <strong>
-                                        {{ message.author_display_name }}{% if message.author_verification_badge %}{% include "components/verification_badge.html" with badge=message.author_verification_badge %}{% endif %}
+                                        {% include "profile_customization/_fx_name.html" with name=message.author_display_name %}{% if message.author_verification_badge %}{% include "components/verification_badge.html" with badge=message.author_verification_badge %}{% endif %}
                                     </strong>
                                     <time datetime="{{ message.created_at|date:'c' }}" title="{{ message.created_at|date:'d.m.Y H:i' }}">
                                         {{ message.created_at|date:"H:i" }}

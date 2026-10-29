@@ -1,10 +1,47 @@
-<p class="pcz-fx-intro">{% if LANGUAGE_CODE == "ru" %}Анимации, которых нет в Steam: только на CaseUP. Рамка, ник и шапка выбираются отдельно и складываются вместе.{% else %}Animations you won't find on Steam, CaseUP only. Frame, nickname and header are picked separately and stack together.{% endif %}</p>
+<p class="pcz-fx-intro">{% if LANGUAGE_CODE == "ru" %}Анимации, которых нет в Steam: только на CaseUP. Рамка, ник, титул, шапка и цвет выбираются отдельно и складываются вместе. Награды привязаны к аккаунту: их нельзя продать или передать.{% else %}Animations you won't find on Steam, CaseUP only. Frame, nickname, title, header and color are picked separately and stack together. Rewards are bound to your account and cannot be sold or traded.{% endif %}</p>
+
+{# ===== KITS ===== #}
+<section class="pcz-fx-group">
+    <div class="pcz-fx-group__head">
+        <h2 class="ops-panel__title">{% if LANGUAGE_CODE == "ru" %}Комплекты{% else %}Kits{% endif %}</h2>
+        <span class="ops-panel__hint">{% if LANGUAGE_CODE == "ru" %}Готовый образ в один клик{% else %}A ready look in one click{% endif %}</span>
+    </div>
+    <div class="pcz-kits">
+        {% for row in kits %}
+            <article class="pcz-kit{% if row.is_current %} is-current{% endif %}{% if not row.is_open %} is-locked{% endif %}">
+                <div class="pcz-kit__demo pfx-accent pfx-accent--{{ row.kit.parts.accent|default:'' }}">
+                    {% if row.kit.parts.hero %}<span class="pfx-hero pfx-hero--{{ row.kit.parts.hero }}" aria-hidden="true"></span>{% endif %}
+                    <span class="pfx-frame pfx-frame--compact pfx-frame--{{ row.kit.parts.frame }}"><img src="{{ current_avatar_url }}" alt="" class="pcz-kit__avatar" loading="lazy"></span>
+                    <span class="pcz-kit__who">
+                        <span class="pfx-name pfx-name--{{ row.kit.parts.name }}" data-text="{{ preview_display_name }}">{{ preview_display_name }}</span>
+                    </span>
+                </div>
+                <div class="pcz-kit__foot">
+                    <strong>{% if LANGUAGE_CODE == "ru" %}{{ row.kit.title_ru }}{% else %}{{ row.kit.title_en }}{% endif %}</strong>
+                    <span class="pcz-kit__parts">
+                        {% for fx, ok in row.parts %}<span class="pcz-chip pcz-chip--{{ fx.rarity }}{% if not ok %} is-locked{% endif %}" title="{% if ok %}{% if LANGUAGE_CODE == 'ru' %}Доступно{% else %}Unlocked{% endif %}{% elif fx.is_pro %}Pro{% else %}{{ fx.how_ru }}{% endif %}">{% if not ok %}🔒 {% endif %}{% if LANGUAGE_CODE == "ru" %}{{ fx.title_ru }}{% else %}{{ fx.title_en }}{% endif %}</span>{% endfor %}
+                    </span>
+                    {% if row.is_current %}
+                        <span class="pcz-card__state">✓ {% if LANGUAGE_CODE == "ru" %}Надет{% else %}On{% endif %}</span>
+                    {% elif row.is_open %}
+                        <form method="post" action="{% url 'profile_customization:apply_kit' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="kit" value="{{ row.kit.key }}">
+                            <input type="hidden" name="next" value="{{ request.path }}?tab=effects">
+                            <button type="submit" class="btn btn-primary btn-sm">{% if LANGUAGE_CODE == "ru" %}Надеть комплект{% else %}Put on{% endif %}</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+</section>
 
 {% for group in effect_groups %}
     <section class="pcz-fx-group">
         <div class="pcz-fx-group__head">
-            <h2 class="ops-panel__title">{% if LANGUAGE_CODE == "ru" %}{{ group.title_ru }}{% else %}{{ group.title_en }}{% endif %}</h2>
-            {% if group.current and can_customize %}
+            <h2 class="ops-panel__title">{% if LANGUAGE_CODE == "ru" %}{{ group.title_ru }}{% else %}{{ group.title_en }}{% endif %}<span class="pcz-fx-group__count">{{ group.open_count }}/{{ group.tiles|length }}</span></h2>
+            {% if group.current %}
                 <form method="post" action="{% url 'profile_customization:select_effect' group.slot %}">
                     {% csrf_token %}
                     <input type="hidden" name="key" value="">
@@ -13,11 +50,14 @@
                 </form>
             {% endif %}
         </div>
-        <div class="pcz-grid pcz-grid--fx" data-pcz-grid>
-            {% for fx in group.effects %}
-                <article class="pcz-card pcz-card--fx{% if group.current.key == fx.key %} is-current{% endif %}"
-                         data-pcz-item data-kind="fx" data-slot="{{ fx.slot }}" data-fx-class="{{ fx.css_class }}"
+        <div class="pcz-grid pcz-grid--fx{% if group.slot == 'accent' or group.slot == 'title' %} pcz-grid--compact{% endif %}" data-pcz-grid>
+            {% for tile in group.tiles %}
+                {% with fx=tile.fx %}
+                <article class="pcz-card pcz-card--fx{% if tile.is_current %} is-current{% endif %}{% if tile.state != 'open' %} is-locked{% endif %}"
+                         data-pcz-item data-kind="fx" data-slot="{{ fx.slot }}" data-state="{{ tile.state }}"
+                         data-fx-class="{% if fx.slot == 'title' %}pfx-title--{{ fx.rarity }}{% else %}{{ fx.css_class }}{% endif %}"
                          data-key="{{ fx.key }}" data-name="{% if LANGUAGE_CODE == 'ru' %}{{ fx.title_ru }}{% else %}{{ fx.title_en }}{% endif %}"
+                         data-how="{% if LANGUAGE_CODE == 'ru' %}{{ fx.how_ru }}{% else %}{{ fx.how_en }}{% endif %}{% if tile.need %} ({{ tile.have }}/{{ tile.need }}){% endif %}"
                          data-title="{{ fx.title_ru|lower }} {{ fx.title_en|lower }}"
                          data-select-url="{% url 'profile_customization:select_effect' fx.slot %}">
                     <button type="button" class="pcz-card__media pcz-fx-demo pcz-fx-demo--{{ fx.slot }}" data-pcz-preview aria-label="{% if LANGUAGE_CODE == 'ru' %}Примерить{% else %}Try on{% endif %}: {% if LANGUAGE_CODE == 'ru' %}{{ fx.title_ru }}{% else %}{{ fx.title_en }}{% endif %}">
@@ -25,11 +65,17 @@
                             <span class="pfx-frame {{ fx.css_class }}"><img src="{{ current_avatar_url }}" alt="" class="pcz-fx-demo__avatar" loading="lazy"></span>
                         {% elif fx.slot == "name" %}
                             <span class="pcz-fx-demo__name"><span class="pfx-name {{ fx.css_class }}" data-text="{{ preview_display_name }}">{{ preview_display_name }}</span></span>
+                        {% elif fx.slot == "title" %}
+                            <span class="pcz-fx-demo__title"><span class="pfx-title pfx-title--{{ fx.rarity }}">{% if LANGUAGE_CODE == "ru" %}{{ fx.title_ru }}{% else %}{{ fx.title_en }}{% endif %}</span></span>
+                        {% elif fx.slot == "accent" %}
+                            <span class="pcz-fx-demo__accent pfx-accent {{ fx.css_class }}"><span class="pcz-fx-demo__swatch"></span><span class="pcz-fx-demo__pill">{% if LANGUAGE_CODE == "ru" %}Профиль{% else %}Profile{% endif %}</span></span>
                         {% else %}
                             <span class="pfx-hero {{ fx.css_class }}"></span>
                         {% endif %}
                         <span class="pcz-card__flags">
-                            {% if group.current.key == fx.key %}<span class="pcz-flag pcz-flag--current">{% if LANGUAGE_CODE == "ru" %}Стоит{% else %}Current{% endif %}</span>{% endif %}
+                            {% if tile.is_current %}<span class="pcz-flag pcz-flag--current">{% if LANGUAGE_CODE == "ru" %}Стоит{% else %}Current{% endif %}</span>{% endif %}
+                            {% if tile.is_new %}<span class="pcz-flag pcz-flag--new">{% if LANGUAGE_CODE == "ru" %}Новое{% else %}New{% endif %}</span>{% endif %}
+                            {% if fx.is_free %}<span class="pcz-flag">{% if LANGUAGE_CODE == "ru" %}Бесплатно{% else %}Free{% endif %}</span>{% elif fx.is_reward %}<span class="pcz-flag pcz-flag--reward">{% if LANGUAGE_CODE == "ru" %}Награда{% else %}Reward{% endif %}</span>{% endif %}
                         </span>
                         <span class="pcz-card__hint">{% if LANGUAGE_CODE == "ru" %}Примерить{% else %}Try on{% endif %}</span>
                     </button>
@@ -37,21 +83,32 @@
                         <div class="pcz-card__text">
                             <strong class="pcz-card__title">{% if LANGUAGE_CODE == "ru" %}{{ fx.title_ru }}{% else %}{{ fx.title_en }}{% endif %}</strong>
                             <span class="pcz-chip pcz-chip--{{ fx.rarity }}">{% if LANGUAGE_CODE == "ru" %}{{ fx.rarity_label_ru }}{% else %}{{ fx.rarity_label_en }}{% endif %}</span>
+                            {% if tile.state == "reward" %}
+                                <span class="pcz-card__how">{% if LANGUAGE_CODE == "ru" %}{{ fx.how_ru }}{% else %}{{ fx.how_en }}{% endif %}</span>
+                                {% if tile.need %}<span class="pcz-progress" title="{{ tile.have }}/{{ tile.need }}"><span style="width: {{ tile.percent }}%"></span></span><span class="pcz-card__how">{{ tile.have }}/{{ tile.need }}</span>{% endif %}
+                            {% elif tile.grant.note %}
+                                <span class="pcz-card__how">{{ tile.grant.note }}</span>
+                            {% endif %}
                         </div>
                         <div class="pcz-card__actions">
-                            {% if group.current.key == fx.key %}
+                            {% if tile.is_current %}
                                 <span class="pcz-card__state">✓ {% if LANGUAGE_CODE == "ru" %}Стоит{% else %}In use{% endif %}</span>
-                            {% elif can_customize %}
+                            {% elif tile.state == "open" %}
                                 <form method="post" action="{% url 'profile_customization:select_effect' fx.slot %}">
                                     {% csrf_token %}
                                     <input type="hidden" name="key" value="{{ fx.key }}">
                                     <input type="hidden" name="next" value="{{ request.path }}?tab=effects">
                                     <button type="submit" class="btn btn-primary btn-sm">{% if LANGUAGE_CODE == "ru" %}Применить{% else %}Apply{% endif %}</button>
                                 </form>
+                            {% elif tile.state == "pro" %}
+                                <a href="{% url 'subscriptions:plans' %}" class="pcz-card__lock" data-dashboard-nav="false">🔒 Pro</a>
+                            {% else %}
+                                <span class="pcz-card__lock">🔒</span>
                             {% endif %}
                         </div>
                     </div>
                 </article>
+                {% endwith %}
             {% endfor %}
         </div>
     </section>

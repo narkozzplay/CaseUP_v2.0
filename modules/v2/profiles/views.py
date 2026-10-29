@@ -24,6 +24,7 @@ from modules.v2.profile_customization.services import (
     can_customize_profile,
     get_or_create_customization,
     get_profile_effect_classes,
+    showcase_for,
 )
 from modules.v2.social.services import build_space_url, get_or_create_direct_space
 from modules.v2.social_friends.forms import PrivacySettingsForm as SocialPrivacySettingsForm
@@ -225,6 +226,7 @@ def _build_profile_context(*, request, target_user):
         "effective_bg_static": effective_bg_static,
         "effective_bg_video": effective_bg_video,
         "profile_effects": get_profile_effect_classes(target_user),
+        "profile_showcase": showcase_for(target_user),
         "profile_verification_badge": profile_verification_badge,
         "active_telegram_connect_url": active_telegram_connect_url,
         "profile_subscription_context": target_site_subscription_context,

@@ -37,12 +37,12 @@
             </div>
 
             <div class="right-social-sidebar__user">
-                <span class="presence-avatar-wrap presence-avatar-wrap--sm">
+                <span class="presence-avatar-wrap presence-avatar-wrap--sm{% if current_user_effects.frame %} pfx-frame pfx-frame--compact {{ current_user_effects.frame }}{% endif %}">
                     <img src="{{ current_user_avatar_url }}" alt="Profile avatar" class="right-social-sidebar__avatar">
                     <span class="presence-indicator {% if current_user_is_online %}presence-indicator--online{% else %}presence-indicator--offline{% endif %}" title="{% if current_user_is_online %}{% if LANGUAGE_CODE == 'ru' %}Онлайн{% else %}Online{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Оффлайн{% else %}Offline{% endif %}{% endif %}" aria-label="{% if current_user_is_online %}Online{% else %}Offline{% endif %}"></span>
                 </span>
                 <div>
-                    <strong>{{ current_user_display_name|default:request.user.username }}</strong>
+                    <strong>{% include "profile_customization/_fx_name.html" with look=current_user_effects name=current_user_display_name|default:request.user.username %}</strong>
                     <p>
                         {% if current_user_is_online %}
                             {% if LANGUAGE_CODE == "ru" %}Сейчас онлайн{% else %}Online now{% endif %}

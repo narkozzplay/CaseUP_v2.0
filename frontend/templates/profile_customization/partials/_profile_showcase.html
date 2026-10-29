@@ -1,0 +1,25 @@
+{# Skins pinned to the profile. Expects profile_showcase (list of {item, price, change}) and is_owner_profile. #}
+<article class="card profile-card-accent pfx-showcase">
+    <div class="card-body">
+        <div class="section-head-inline">
+            <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Витрина{% else %}Showcase{% endif %}</h2>
+            {% if is_owner_profile %}<a href="{% url 'profile_customization:catalog' %}?tab=showcase" class="btn btn-ghost btn-sm" data-dashboard-nav="true">{% if profile_showcase %}{% if LANGUAGE_CODE == "ru" %}Изменить{% else %}Edit{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}Собрать витрину{% else %}Build a showcase{% endif %}{% endif %}</a>{% endif %}
+        </div>
+        {% if profile_showcase %}
+            <div class="pfx-showcase__grid">
+                {% for row in profile_showcase %}
+                    <a href="{{ row.item.get_absolute_url }}" class="pfx-showcase__item" data-dashboard-nav="true">
+                        <span class="pfx-showcase__media">{% if row.item.icon_url %}<img src="{{ row.item.icon_cdn }}" alt="" loading="lazy">{% endif %}</span>
+                        <span class="pfx-showcase__name">{{ row.item.display_name }}</span>
+                        <span class="pfx-showcase__price">
+                            {% if row.price is not None %}<strong>{{ row.price|floatformat:"2u" }} ₽</strong>{% else %}<strong>—</strong>{% endif %}
+                            {% if row.change is not None %}<span class="pfx-showcase__change {% if row.change > 0 %}is-up{% elif row.change < 0 %}is-down{% endif %}" title="{% if LANGUAGE_CODE == 'ru' %}За 7 дней{% else %}Over 7 days{% endif %}">{% if row.change > 0 %}+{% endif %}{{ row.change }}%</span>{% endif %}
+                        </span>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted">{% if LANGUAGE_CODE == "ru" %}Закрепите до четырёх скинов, за которыми следите: гости увидят цену и изменение за неделю.{% else %}Pin up to four skins you follow: visitors see the price and the weekly change.{% endif %}</p>
+        {% endif %}
+    </div>
+</article>

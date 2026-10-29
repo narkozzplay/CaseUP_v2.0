@@ -275,6 +275,28 @@ class ScoringAndRewardTests(MajorTestCase):
         self.assertEqual((again.granted, again.pending), (0, 0))
         self.assertEqual(balance(self.user), Decimal("300.00"))
 
+    def test_profile_effect_rewards(self):
+        from modules.v2.profile_customization.models import EffectGrant
+
+        RewardRule.objects.create(major=self.major, title="Участник", condition=RewardRule.Condition.PARTICIPATED, kind=RewardRule.Kind.EFFECT, effect_ref="title:pickem_player")
+        champion = RewardRule.objects.create(major=self.major, title="Чемпион угадан", condition=RewardRule.Condition.CHAMPION, kind=RewardRule.Kind.EFFECT, effect_ref="frame:champion")
+        self.assertEqual(champion.reward_label, "Оформление «Чемпион мейджора»")
+        self.settle_everything()
+        services.settle_major(self.major)
+        self.assertEqual(
+            set(EffectGrant.objects.filter(user=self.user).values_list("slot", "key")),
+            {("title", "pickem_player"), ("frame", "champion")},
+        )
+        self.assertEqual(list(EffectGrant.objects.filter(user=self.rival).values_list("key", flat=True)), ["pickem_player"])
+        self.assertTrue(EffectGrant.objects.get(user=self.user, key="champion").source.startswith("pickem:"))
+
+    def test_effect_reward_needs_a_reward_effect(self):
+        from django.core.exceptions import ValidationError
+
+        rule = RewardRule(major=self.major, title="x", condition=RewardRule.Condition.CHAMPION, kind=RewardRule.Kind.EFFECT, effect_ref="frame:neon")
+        with self.assertRaises(ValidationError):
+            rule.full_clean()
+
     def test_big_rewards_wait_for_approval(self):
         self.settle_everything()
         services.settle_major(self.major)

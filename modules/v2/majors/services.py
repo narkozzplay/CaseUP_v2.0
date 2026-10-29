@@ -392,6 +392,8 @@ def achieved_scopes(rule: RewardRule, summary: UserSummary, results: MajorResult
     C = RewardRule.Condition
     if condition == C.ALL_STAGES:
         return [("", None)] if all_settled and all(score.passed for score in stages) else []
+    if condition == C.PARTICIPATED:
+        return [("", None)] if summary.picks and all_settled else []
     if condition == C.PERFECT:
         return [("", None)] if all_settled and all(score.perfect for score in stages) else []
     if condition == C.STAGE_PASSED:
@@ -431,6 +433,14 @@ def _deliver(grant: RewardGrant) -> None:
         from modules.v2.subscriptions.services import grant_bonus_days
 
         grant_bonus_days(user=grant.user, plan=rule.plan, days=rule.days, note=f"Pick'em {rule.major.name}: {rule.title}")
+    elif rule.kind == RewardRule.Kind.EFFECT:
+        from modules.v2.profile_customization.effects import get_effect_by_ref
+        from modules.v2.profile_customization.services import grant_effect
+
+        effect = get_effect_by_ref(rule.effect_ref)
+        if effect is not None:
+            # The Pick'em notification below tells about it; no second one from the catalog.
+            grant_effect(grant.user, effect.slot, effect.key, source=f"pickem:{grant.pk}", note=f"Pick'em {rule.major.name}: {rule.title}", send_notification=False)
     # A skin is sent by hand with a Steam trade; the grant waits in the admin until it is marked as sent.
     if rule.kind == RewardRule.Kind.ITEM:
         grant.status = RewardGrant.Status.TO_SEND if trade_url(grant.user) else RewardGrant.Status.NEEDS_TRADE_URL

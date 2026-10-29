@@ -416,7 +416,7 @@ def connect_activity_receivers() -> None:
     post_save.connect(_safe(_on_user_saved), sender=get_user_model(), weak=False, dispatch_uid="activity_user_saved")
 
     _track("profiles.VerificationRequest", "status")
-    _track("profile_customization.UserCustomization", "selected_background", "selected_avatar", "avatar_frame", "name_effect", "hero_effect")
+    _track("profile_customization.UserCustomization", "selected_background", "selected_avatar", "avatar_frame", "name_effect", "hero_effect", "title_effect", "accent_effect")
     _track("social_friends.UserPrivacySettings", "who_can_send_friend_request", "who_can_send_direct", "who_can_see_online", "who_can_see_profile")
     _track("payments.Payment", "status")
     _track("case_simulator.SimOpening", "sold_at")

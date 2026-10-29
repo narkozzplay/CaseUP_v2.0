@@ -13,13 +13,17 @@ from modules.v2.profiles.rbac import get_user_role
 from modules.v2.system.dashboard_shell import render_dashboard_page
 from modules.v2.system.services import build_page_title
 
-from .effects import SLOT_FRAME, SLOT_HERO, SLOT_NAME, SLOTS, effects_for_slot, get_effect
+from .achievements import progress as achievement_progress
+from .effects import KITS, SLOT_LABELS, SLOTS, effects_for_slot, get_effect
 from .forms import AddAvatarForm, AddBackgroundForm
-from .models import UserCustomization
+from .models import EffectGrant, ShowcaseItem, UserCustomization
 from .services import (
+    EFFECT_FIELDS,
     add_avatar,
     add_background,
+    apply_kit,
     can_customize_profile,
+    can_wear,
     clear_avatar,
     clear_background,
     delete_avatar,
@@ -27,15 +31,69 @@ from .services import (
     get_or_create_customization,
     list_avatars,
     list_backgrounds,
+    mark_grants_seen,
     restore_avatar,
     restore_background,
     set_avatar,
     set_background,
     set_effect,
+    set_showcase,
+    showcase_candidates,
+    sync_achievements,
 )
 
 
-CATALOG_TABS = ("effects", "backgrounds", "avatars", "hidden")
+CATALOG_TABS = ("effects", "showcase", "backgrounds", "avatars", "hidden")
+FX_SLOT_ORDER = ("frame", "name", "title", "hero", "accent")
+
+
+def _effect_groups(user, customization: UserCustomization, can_customize: bool) -> tuple[list, dict, list]:
+    """Effect tiles grouped by slot, each with its state for this user, plus the kits."""
+    grants = {(g.slot, g.key): g for g in EffectGrant.objects.filter(user=user)}
+    owned = set(grants)
+    have_need = achievement_progress(user, owned)
+    current = {slot: get_effect(slot, getattr(customization, field)) for slot, field in EFFECT_FIELDS.items()}
+    groups = []
+    for slot in FX_SLOT_ORDER:
+        tiles = []
+        for fx in effects_for_slot(slot):
+            wearable = can_wear(user, fx, can_customize=can_customize, owned=owned)
+            if wearable:
+                state = "open"
+            elif fx.is_pro:
+                state = "pro"
+            else:
+                state = "reward"
+            grant = grants.get((fx.slot, fx.key))
+            have, need = have_need.get((fx.slot, fx.key), (0, 0))
+            tiles.append({
+                "fx": fx,
+                "state": state,
+                "is_current": current[slot] is not None and current[slot].key == fx.key,
+                "is_new": bool(grant and grant.seen_at is None),
+                "grant": grant,
+                "have": have,
+                "need": need,
+                "percent": int(have * 100 / need) if need else 0,
+            })
+        groups.append({
+            "slot": slot,
+            "title_ru": SLOT_LABELS[slot][0],
+            "title_en": SLOT_LABELS[slot][1],
+            "tiles": tiles,
+            "current": current[slot],
+            "open_count": sum(1 for tile in tiles if tile["state"] == "open"),
+        })
+    kits = []
+    for kit in KITS:
+        parts = [(fx, can_wear(user, fx, can_customize=can_customize, owned=owned)) for fx in kit.effects]
+        kits.append({
+            "kit": kit,
+            "parts": parts,
+            "is_open": all(ok for _fx, ok in parts),
+            "is_current": all(current[fx.slot] is not None and current[fx.slot].key == fx.key for fx, _ok in parts),
+        })
+    return groups, current, kits
 
 
 def _redirect_back(request, *, tab: str = ""):
@@ -77,27 +135,18 @@ def catalog_view(request):
     current_bg_static = selected_bg.static_url if selected_bg else str(getattr(profile, "steam_profile_background", "") or "")
     current_bg_video = selected_bg.video_url if selected_bg else str(getattr(profile, "steam_profile_background_video", "") or "")
 
-    current_effects = {
-        SLOT_FRAME: get_effect(SLOT_FRAME, customization.avatar_frame),
-        SLOT_NAME: get_effect(SLOT_NAME, customization.name_effect),
-        SLOT_HERO: get_effect(SLOT_HERO, customization.hero_effect),
-    }
-    effect_groups = [
-        {
-            "slot": slot,
-            "title_ru": title_ru,
-            "title_en": title_en,
-            "effects": effects_for_slot(slot),
-            "current": current_effects[slot],
-        }
-        for slot, title_ru, title_en in (
-            (SLOT_FRAME, "Рамка аватарки", "Avatar frame"),
-            (SLOT_NAME, "Ник", "Nickname"),
-            (SLOT_HERO, "Шапка профиля", "Profile header"),
-        )
-    ]
+    new_grants = sync_achievements(user)
+    for grant in new_grants:
+        effect = get_effect(grant.slot, grant.key)
+        if effect:
+            messages.success(request, f"Открыто новое оформление: «{effect.title_ru}».")
+    effect_groups, current_effects, kits = _effect_groups(user, customization, can_customize)
+    new_count = sum(1 for group in effect_groups for tile in group["tiles"] if tile["is_new"])
 
-    return render_dashboard_page(
+    showcase_ids = list(ShowcaseItem.objects.filter(user=user).order_by("position", "id").values_list("item_id", flat=True))
+    candidates = showcase_candidates(user) if tab == "showcase" else []
+
+    response = render_dashboard_page(
         request,
         full_template="profile_customization/catalog.html",
         partial_template="profile_customization/partials/catalog_content.html",
@@ -105,7 +154,13 @@ def catalog_view(request):
             "active_tab": tab,
             "effect_groups": effect_groups,
             "current_effects": current_effects,
-            "effects_count": sum(len(group["effects"]) for group in effect_groups),
+            "effects_count": sum(len(group["tiles"]) for group in effect_groups),
+            "open_effects_count": sum(group["open_count"] for group in effect_groups),
+            "new_effects_count": new_count,
+            "kits": kits,
+            "showcase_ids": showcase_ids,
+            "showcase_candidates": candidates,
+            "showcase_max": ShowcaseItem.MAX_ITEMS,
             "backgrounds": backgrounds,
             "avatars": avatars,
             "hidden_backgrounds": hidden_backgrounds,
@@ -128,6 +183,9 @@ def catalog_view(request):
         page_title=build_page_title("Оформление профиля"),
         active_menu_key="customization_catalog",
     )
+    if tab == "effects" and new_count:
+        mark_grants_seen(user)
+    return response
 
 
 @login_required
@@ -300,3 +358,27 @@ def select_effect_view(request, slot: str):
     except (ValueError, PermissionError) as exc:
         messages.error(request, str(exc))
     return _redirect_back(request, tab="effects")
+
+
+@login_required
+def apply_kit_view(request):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    try:
+        apply_kit(request.user, request.POST.get("kit", ""))
+        messages.success(request, "Комплект надет.")
+    except (ValueError, PermissionError) as exc:
+        messages.error(request, str(exc))
+    return _redirect_back(request, tab="effects")
+
+
+@login_required
+def save_showcase_view(request):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    try:
+        rows = set_showcase(request.user, request.POST.getlist("items"))
+        messages.success(request, "Витрина сохранена." if rows else "Витрина очищена.")
+    except (ValueError, PermissionError) as exc:
+        messages.error(request, str(exc))
+    return _redirect_back(request, tab="showcase")

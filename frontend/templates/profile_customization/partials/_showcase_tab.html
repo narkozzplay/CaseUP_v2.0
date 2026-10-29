@@ -1,0 +1,29 @@
+<p class="pcz-fx-intro">{% if LANGUAGE_CODE == "ru" %}Закрепите до {{ showcase_max }} предметов на своём профиле: гости увидят текущую цену и изменение за неделю. Выбирать можно из избранного каталога, уведомлений о цене и инвестиций. Витрина бесплатна для всех.{% else %}Pin up to {{ showcase_max }} items to your profile: visitors see the current price and the weekly change. Pick from catalog favorites, price alerts and investments. The showcase is free for everyone.{% endif %}</p>
+
+{% if showcase_candidates %}
+    <form method="post" action="{% url 'profile_customization:save_showcase' %}" class="pcz-showcase-form" data-pcz-showcase data-max="{{ showcase_max }}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}?tab=showcase">
+        <div class="pcz-grid pcz-grid--showcase" data-pcz-grid>
+            {% for item in showcase_candidates %}
+                <label class="pcz-card pcz-showcase-pick{% if item.pk in showcase_ids %} is-current{% endif %}" data-pcz-item data-title="{{ item.display_name|lower }} {{ item.market_hash_name|lower }}">
+                    <input type="checkbox" name="items" value="{{ item.pk }}"{% if item.pk in showcase_ids %} checked{% endif %}>
+                    <span class="pcz-showcase-pick__media">{% if item.icon_url %}<img src="{{ item.icon_cdn }}" alt="" loading="lazy">{% endif %}</span>
+                    <span class="pcz-showcase-pick__name">{{ item.display_name }}</span>
+                    <span class="pcz-showcase-pick__price">{% if item.price_rub is not None %}{{ item.price_rub|floatformat:"2u" }} ₽{% else %}—{% endif %}</span>
+                </label>
+            {% endfor %}
+        </div>
+        <p class="pcz-empty" data-pcz-filter-empty hidden>{% if LANGUAGE_CODE == "ru" %}Ничего не нашлось.{% else %}Nothing found.{% endif %}</p>
+        <div class="pcz-showcase-form__actions">
+            <span class="pcz-showcase-form__count" data-pcz-showcase-count>{{ showcase_ids|length }}/{{ showcase_max }}</span>
+            <button type="submit" class="btn btn-primary btn-sm">{% if LANGUAGE_CODE == "ru" %}Сохранить витрину{% else %}Save showcase{% endif %}</button>
+            <a href="{% url 'profiles:profile' %}" class="btn btn-ghost btn-sm" data-dashboard-nav="true">{% if LANGUAGE_CODE == "ru" %}Посмотреть в профиле{% else %}See on profile{% endif %}</a>
+        </div>
+    </form>
+{% else %}
+    <div class="pcz-empty">
+        {% if LANGUAGE_CODE == "ru" %}Пока нечего закрепить. Добавьте предметы в избранное в каталоге или настройте уведомление о цене, и они появятся здесь.{% else %}Nothing to pin yet. Star items in the catalog or set a price alert and they show up here.{% endif %}
+        <a href="{% url 'steam_catalog:list' %}" class="btn btn-primary btn-sm" data-dashboard-nav="true">{% if LANGUAGE_CODE == "ru" %}Открыть каталог{% else %}Open catalog{% endif %}</a>
+    </div>
+{% endif %}
