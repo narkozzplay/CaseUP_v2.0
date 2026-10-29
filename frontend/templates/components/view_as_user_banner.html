@@ -1,0 +1,15 @@
+<div class="view-as-user-bar" role="status">
+    <span class="view-as-user-bar__icon">{% include "components/icon.html" with name="eye" %}</span>
+    <p class="view-as-user-bar__text">
+        {% if LANGUAGE_CODE == "ru" %}
+            <strong>Вы смотрите сайт глазами обычного пользователя</strong> без роли и подписки. Действия отключены.
+        {% else %}
+            <strong>You are viewing the site as a regular user</strong> with no role or subscription. Actions are disabled.
+        {% endif %}
+    </p>
+    <form method="post" action="{% url 'accounts:view_as_user_exit' %}" class="view-as-user-bar__form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="btn btn-primary btn-sm">{% if LANGUAGE_CODE == "ru" %}Выйти из режима{% else %}Exit{% endif %}</button>
+    </form>
+</div>
