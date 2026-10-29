@@ -1,0 +1,106 @@
+{% load l10n %}
+{% with chart=portfolio_chart week=portfolio_week %}
+<div class="inv-history" id="portfolio-chart">
+    <article class="card dashboard-panel inv-history__chart">
+        <div class="card-body">
+            <div class="inv-history__head">
+                <div>
+                    <h2 class="inv-side__title">Стоимость портфеля</h2>
+                    <p class="inv-history__summary">
+                        <strong>{% money chart.last.value_rub %}</strong>
+                        <span class="{% if chart.period_change_rub > 0 %}is-up{% elif chart.period_change_rub < 0 %}is-down{% endif %}">{% money chart.period_change_rub signed=True %} за период</span>
+                    </p>
+                </div>
+                <div class="inv-history__controls">
+                    <nav class="price-panel__ranges" aria-label="Период">
+                        {% for item in portfolio_range_links %}
+                            <a href="{{ item.url }}" class="price-chart__range-btn{% if item.is_active %} is-active{% endif %}"{% if item.is_active %} aria-current="true"{% endif %}>{{ item.label }}</a>
+                        {% endfor %}
+                    </nav>
+                    <a href="{{ portfolio_fee_toggle_url }}" class="inv-fee-toggle{% if portfolio_after_fee %} is-on{% endif %}" role="switch" aria-checked="{% if portfolio_after_fee %}true{% else %}false{% endif %}" title="Steam оставляет себе 15% от цены покупателя">
+                        <span class="inv-fee-toggle__box" aria-hidden="true"></span> С учётом комиссии Steam
+                    </a>
+                </div>
+            </div>
+
+            {% localize off %}
+            <div class="pc inv-pc" data-price-chart data-currency="₽">
+                {{ chart.points_json|json_script:"portfolio-chart-data" }}
+                <div class="pc__plot" data-price-chart-plot>
+                    <svg class="pc__svg" viewBox="0 0 {{ chart.view_width }} {{ chart.view_height }}" preserveAspectRatio="none" aria-label="Стоимость портфеля и вложенная сумма по дням" role="img">
+                        <defs>
+                            <linearGradient id="inv-pc-fill" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#f5a623" stop-opacity="0.28"></stop>
+                                <stop offset="100%" stop-color="#f5a623" stop-opacity="0"></stop>
+                            </linearGradient>
+                        </defs>
+                        {% for tick in chart.y_ticks %}
+                            <line x1="0" x2="{{ chart.view_width }}" y1="{% widthratio tick.y 100 chart.view_height %}" y2="{% widthratio tick.y 100 chart.view_height %}" class="pc__grid"></line>
+                        {% endfor %}
+                        <path d="{{ chart.area_path }}" class="pc__area" fill="url(#inv-pc-fill)"></path>
+                        <path d="{{ chart.invested_path }}" class="inv-pc__invested"></path>
+                        <path d="{{ chart.value_path }}" class="pc__line{% if chart.is_single %} pc__line--single{% endif %}"></path>
+                    </svg>
+                    <span class="pc__last" style="left: {{ chart.last_point.x }}%; top: {{ chart.last_point.y }}%;"></span>
+                    {% if chart.is_single %}
+                        <div class="pc__single-note">
+                            <strong>Пока один день</strong>
+                            <span>График начнётся с первой покупки и будет расти каждый день.</span>
+                        </div>
+                    {% endif %}
+                    <div class="pc__cursor" data-price-chart-cursor hidden></div>
+                    <span class="pc__cursor-dot" data-price-chart-cursor-dot hidden></span>
+                    <div class="pc__tooltip" data-price-chart-tooltip hidden></div>
+                </div>
+                <div class="pc__yaxis" aria-hidden="true">
+                    {% for tick in chart.y_ticks %}<span style="top: {{ tick.y }}%;">{{ tick.label }}</span>{% endfor %}
+                    <span class="pc__price-tag" style="top: {{ chart.last_point.y }}%;">{{ chart.last_point.label }}</span>
+                </div>
+                <div class="pc__xaxis" aria-hidden="true">
+                    {% for tick in chart.x_ticks %}<span class="is-{{ tick.align }}" style="left: {{ tick.x }}%;">{{ tick.label }}</span>{% endfor %}
+                </div>
+            </div>
+            {% endlocalize %}
+            <p class="inv-history__legend">
+                <span class="inv-legend inv-legend--value">стоимость</span>
+                <span class="inv-legend inv-legend--invested">вложено</span>
+                <span class="text-muted">Разница между линиями — прибыль, если продать в тот день. График в рублях. {% if portfolio_after_fee %}Цены уменьшены на комиссию Steam.{% else %}По ценам Steam, без комиссии.{% endif %}</span>
+            </p>
+        </div>
+    </article>
+
+    {% if week %}
+    <article class="card dashboard-panel inv-week">
+        <div class="card-body">
+            <h2 class="inv-side__title">За неделю <small>{{ week.start|date:"d.m" }}–{{ week.end|date:"d.m" }}</small></h2>
+            <p class="inv-week__total {% if week.change_rub > 0 %}is-up{% elif week.change_rub < 0 %}is-down{% endif %}">
+                <strong>{% money week.change_rub signed=True %}</strong>
+                {% if week.change_percent is not None %}<span>{% if week.change_percent > 0 %}+{% endif %}{{ week.change_percent|floatformat:1 }}%</span>{% endif %}
+            </p>
+            <p class="inv-week__hint">рост цен и прибыль с продаж, без новых вложений</p>
+
+            {% if week.gainers %}
+                <p class="inv-rank__divider">Больше всего подняли портфель</p>
+                <ul class="inv-rank">
+                    {% for mover in week.gainers %}<li class="is-up"><span>{{ mover.name }} <em>×{{ mover.quantity }}</em></span><strong>{% money mover.change_rub signed=True %}</strong><small>+{{ mover.change_percent|floatformat:1 }}%</small></li>{% endfor %}
+                </ul>
+            {% endif %}
+            {% if week.losers %}
+                <p class="inv-rank__divider">Больше всего уронили</p>
+                <ul class="inv-rank">
+                    {% for mover in week.losers %}<li class="is-down"><span>{{ mover.name }} <em>×{{ mover.quantity }}</em></span><strong>{% money mover.change_rub %}</strong><small>{{ mover.change_percent|floatformat:1 }}%</small></li>{% endfor %}
+                </ul>
+            {% endif %}
+            {% if not week.gainers and not week.losers %}<p class="inv-side__empty">Цены позиций за неделю не изменились.</p>{% endif %}
+
+            <dl class="inv-week__facts">
+                <div><dt>Продано</dt><dd>{% if week.sold_quantity %}{{ week.sold_quantity }} шт. на {% money week.sold_total_rub %} · прибыль {% money week.sold_profit_rub signed=True %}{% else %}ничего{% endif %}</dd></div>
+                {% with soon=analytics.upcoming_unlocks %}
+                <div><dt>Разблокируется за 7 дней</dt><dd>{% with total=soon.today|length|add:soon.tomorrow|length %}{{ total|add:soon.next_7_days|length }} поз.{% endwith %}</dd></div>
+                {% endwith %}
+            </dl>
+        </div>
+    </article>
+    {% endif %}
+</div>
+{% endwith %}

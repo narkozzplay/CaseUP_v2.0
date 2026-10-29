@@ -50,3 +50,12 @@ def money_value(context, value):
 def brand(context):
     site_settings = context.get("site_settings")
     return getattr(site_settings, "site_name", "") or "CaseUP"
+
+
+@register.filter
+def get_key(mapping, key):
+    """{{ mapping|get_key:key }}: a dict lookup by a variable key; None when it is missing."""
+    try:
+        return mapping.get(key)
+    except AttributeError:
+        return None

@@ -28,6 +28,7 @@ from .investment_services import (
     build_investment_dashboard,
     get_investment_purchase_queryset,
 )
+from . import portfolio_history
 from .forms import CASE_ITEM_QUERYSET, SteamPurchaseForm, SteamPurchaseSaleForm
 from .models import SteamPurchase
 from .services import (
@@ -222,6 +223,10 @@ def investments_dashboard(request):
         for code, label in STATUS_FILTER_OPTIONS
     ]
 
+    history_context = {}
+    if advanced_analytics_access.is_available and purchases:
+        history_context = _portfolio_history_context(request, purchases)
+
     return render_dashboard_page(
         request,
         full_template="steam_trading/investments.html",
@@ -243,14 +248,48 @@ def investments_dashboard(request):
             "investment_tg_access_state": tg_feature_access,
             "investment_status_tabs": status_tabs,
             "investment_unrealized_percent": unrealized_percent,
+            "investment_value_after_fee": portfolio_history.after_steam_fee(kpi.current_active_value_sum),
             "investment_has_purchases": bool(purchases),
             # Only real gainers/losers: with few positions the raw top lists overlap.
             "investment_gainers": [row for row in dashboard.analytics.top_gainers if row.unrealized_pnl_rub > 0][:5],
             "investment_losers": [row for row in dashboard.analytics.top_losers if row.unrealized_pnl_rub < 0][:5],
+            **history_context,
         },
         page_title=build_page_title("Инвестиции"),
         active_menu_key="steam_investments",
     )
+
+
+def _portfolio_history_context(request, purchases) -> dict:
+    """The chart, the week block and the 7-day column, over the same purchases as the KPI cards."""
+    range_code = portfolio_history.normalize_range(request.GET.get("range", ""))
+    after_fee = request.GET.get("fee") == "1"
+    days = portfolio_history.cached_portfolio_days(request.user, purchases, range_code=range_code, after_fee=after_fee)
+    params = request.GET.copy()
+    params.pop("range", None)
+    params.pop("fee", None)
+
+    def link(**changes) -> str:
+        query = params.copy()
+        for key, value in changes.items():
+            if value:
+                query[key] = value
+        encoded = query.urlencode()
+        return f"?{encoded}#portfolio-chart" if encoded else "?#portfolio-chart"
+
+    fee_value = "1" if after_fee else ""
+    return {
+        "portfolio_chart": portfolio_history.build_portfolio_chart(days),
+        "portfolio_week": portfolio_history.cached_week_summary(request.user, purchases, after_fee=after_fee),
+        "portfolio_item_week": portfolio_history.cached_item_week_changes(request.user, purchases),
+        "portfolio_range": range_code,
+        "portfolio_after_fee": after_fee,
+        "portfolio_range_links": [
+            {"code": code, "label": label, "url": link(range=code, fee=fee_value), "is_active": code == range_code}
+            for code, label in portfolio_history.RANGE_CHOICES
+        ],
+        "portfolio_fee_toggle_url": link(range=range_code, fee="" if after_fee else "1"),
+    }
 
 
 @login_required

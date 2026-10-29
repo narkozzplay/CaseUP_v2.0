@@ -37,5 +37,6 @@ def mirror_notification_task(notification_id: int) -> str:
 def personal_tick_task() -> str:
     """Every few minutes: what quiet hours held back, and personal digests whose time has come."""
     from .delivery import flush_deferred, send_due_digests
+    from .portfolio_weekly import send_due_weekly
 
-    return f"deferred={flush_deferred()} digests={send_due_digests()}"
+    return f"deferred={flush_deferred()} digests={send_due_digests()} weekly={send_due_weekly()}"

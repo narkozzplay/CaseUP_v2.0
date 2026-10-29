@@ -278,6 +278,7 @@ def send_photo(
     filename: str = "digest.jpg",
     content_type: str = "image/jpeg",
     timeout: int = 30,
+    reply_markup: dict[str, Any] | None = None,
 ) -> TelegramSendResult:
     config = get_telegram_notifier_config()
     if not is_enabled(config):
@@ -289,6 +290,8 @@ def send_photo(
     payload = {"chat_id": chat_id, "caption": caption}
     if parse_mode:
         payload["parse_mode"] = parse_mode
+    if reply_markup:
+        payload["reply_markup"] = json.dumps(reply_markup)
     response_payload = _request_with_retries(
         endpoint=_build_telegram_endpoint(bot_token, "sendPhoto"),
         payload=payload,

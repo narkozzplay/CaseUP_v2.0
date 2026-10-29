@@ -47,7 +47,7 @@
             <article class="inv-kpi">
                 <span class="inv-kpi__label">Стоит сейчас</span>
                 <strong class="inv-kpi__value">{% money analytics.kpi.current_active_value_sum %}</strong>
-                <span class="inv-kpi__hint">по текущим ценам каталога</span>
+                <span class="inv-kpi__hint">по текущим ценам каталога · на руки после комиссии Steam ≈ {% money investment_value_after_fee %}</span>
             </article>
             <article class="inv-kpi {% if analytics.kpi.unrealized_pnl_sum > 0 %}is-up{% elif analytics.kpi.unrealized_pnl_sum < 0 %}is-down{% endif %}">
                 <span class="inv-kpi__label">Прибыль, если продать сейчас</span>
@@ -60,6 +60,16 @@
                 <span class="inv-kpi__hint">прибыль с уже проданных предметов</span>
             </article>
         </div>
+
+        {% if portfolio_chart.has_data %}
+            {% include "steam_trading/partials/portfolio_chart.html" %}
+        {% endif %}
+    {% else %}
+        <article class="card dashboard-panel inv-chart-locked">
+            <div class="card-body">
+                {% include "subscriptions/partials/upgrade_card.html" with access_state=investment_analytics_access_state title="График портфеля и недельная сводка" description="Как менялась стоимость портфеля день за днём, сколько он заработал за неделю и какие предметы его двигали. Сводка по понедельникам приходит и в Telegram." compact=True %}
+            </div>
+        </article>
     {% endif %}
 
     {% if analytics.kpi.ready_count or analytics.kpi.nearest_unlock_at %}
@@ -133,6 +143,12 @@
                                             <dt>Вложено → сейчас</dt>
                                             <dd>{% money row.invested_active_rub %} → {% money row.current_value_rub %}<small>цена сейчас {% money row.current_price_rub %}</small></dd>
                                         </div>
+                                        {% with week=portfolio_item_week|get_key:row.purchase.item_id %}
+                                        <div class="{% if week.0 > 0 %}is-up{% elif week.0 < 0 %}is-down{% endif %}">
+                                            <dt>Цена за 7 дней</dt>
+                                            <dd>{% if week %}{% if week.0 > 0 %}▲{% elif week.0 < 0 %}▼{% else %}•{% endif %} {% money week.0 signed=True %}<small>{% if week.1 > 0 %}+{% endif %}{{ week.1|floatformat:1 }}%</small>{% else %}—<small>нет истории</small>{% endif %}</dd>
+                                        </div>
+                                        {% endwith %}
                                         <div class="{% if row.unrealized_pnl_rub > 0 %}is-up{% elif row.unrealized_pnl_rub < 0 %}is-down{% endif %}">
                                             <dt>Прибыль</dt>
                                             <dd>{% if row.unrealized_pnl_rub > 0 %}+{% endif %}{% money row.unrealized_pnl_rub %}<small>{% if row.unrealized_pnl_percent > 0 %}+{% endif %}{{ row.unrealized_pnl_percent|floatformat:1 }}%</small></dd>
