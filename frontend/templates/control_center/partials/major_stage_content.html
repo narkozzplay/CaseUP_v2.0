@@ -1,0 +1,102 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <a href="{% url 'control_center:major_edit' major.pk %}#stages" class="back-link" data-dashboard-nav="true">← {{ major.name }}</a>
+            <span class="eyebrow">Control Center · Мейджоры</span>
+            <h1 class="cc-pagehead__title">{% if stage %}{{ stage.name }}{% else %}Новая стадия{% endif %}</h1>
+            {% if stage %}<p class="ops-hero__text">{% if stage.is_swiss %}Швейцарская стадия: внесите итог каждой команды (3-0 … 0-3), затем отметьте «Итоги подведены».{% else %}Плей-офф: укажите победителя каждого матча — победители сами переходят в следующий раунд.{% endif %}</p>{% endif %}
+        </div>
+        {% if stage %}
+            <dl class="ops-hero__meta">
+                <div><dt>Прогнозы</dt><dd>{% if stage.is_locked %}закрыты{% else %}открыты до {{ stage.starts_at|date:"d.m H:i" }}{% endif %}</dd></div>
+                <div><dt>Игроков</dt><dd>{{ picks_count }}</dd></div>
+                <div><dt>Итоги</dt><dd class="{% if stage.is_settled %}metric-positive{% endif %}">{% if stage.is_settled %}подведены{% else %}нет{% endif %}</dd></div>
+            </dl>
+        {% endif %}
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <form method="post" class="ops-panel" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Стадия</h2><span class="ops-panel__hint">изменения пишутся в журнал</span></div>
+        {% if form.non_field_errors %}<div class="tfa-alert" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+        <div class="cc-form-grid">
+            {% include "control_center/partials/_promo_field.html" with f=form.name %}
+            {% include "control_center/partials/_promo_field.html" with f=form.kind %}
+            {% include "control_center/partials/_promo_field.html" with f=form.order %}
+            {% include "control_center/partials/_promo_field.html" with f=form.pass_correct %}
+            {% include "control_center/partials/_promo_field.html" with f=form.starts_at %}
+            {% include "control_center/partials/_promo_field.html" with f=form.ends_on %}
+            <label class="cc-field-check cc-span-2">{{ form.is_settled }}<span>{{ form.is_settled.label }} — {{ form.is_settled.help_text }}</span></label>
+        </div>
+
+        <div class="ops-panel__head" id="teams"><h2 class="ops-panel__title">Команды{% if stage and not stage.is_swiss %} <small class="text-muted">(для плей-офф необязательно)</small>{% endif %}</h2><a href="{% url 'control_center:team_create' %}" class="ops-panel__hint">новая команда</a></div>
+        {{ teams_formset.management_form }}
+        {% if teams_formset.non_form_errors %}<div class="tfa-alert" role="alert">{{ teams_formset.non_form_errors|join:" " }}</div>{% endif %}
+        <div class="table-wrap">
+            <table class="table cc-table cc-formset">
+                <thead><tr><th>Посев</th><th>Команда</th><th>Итог</th><th>Убрать</th></tr></thead>
+                <tbody>
+                    {% for row in teams_formset %}
+                        <tr>
+                            {% for hidden in row.hidden_fields %}{{ hidden }}{% endfor %}
+                            {% include "control_center/partials/_formset_cell.html" with f=row.seed %}
+                            {% include "control_center/partials/_formset_cell.html" with f=row.team %}
+                            {% include "control_center/partials/_formset_cell.html" with f=row.record %}
+                            <td>{% if row.instance.pk %}{{ row.DELETE }}{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="ref-body"><p class="ref-text">Пустые строки внизу — для новых команд; после сохранения появятся ещё четыре.</p></div>
+
+        {% if matches_formset is not None %}
+            <div class="ops-panel__head" id="matches"><h2 class="ops-panel__title">Матчи плей-офф</h2></div>
+            {{ matches_formset.management_form }}
+            {% if matches_formset.non_form_errors %}<div class="tfa-alert" role="alert">{{ matches_formset.non_form_errors|join:" " }}</div>{% endif %}
+            <div class="table-wrap">
+                <table class="table cc-table cc-formset">
+                    <thead><tr><th>Раунд</th><th>№</th><th>Команда A</th><th>Команда B</th><th>Победитель</th><th>Счёт</th><th>Начало</th><th>Убрать</th></tr></thead>
+                    <tbody>
+                        {% for row in matches_formset %}
+                            <tr>
+                                {% for hidden in row.hidden_fields %}{{ hidden }}{% endfor %}
+                                {% include "control_center/partials/_formset_cell.html" with f=row.round %}
+                                {% include "control_center/partials/_formset_cell.html" with f=row.slot %}
+                                {% include "control_center/partials/_formset_cell.html" with f=row.team_a %}
+                                {% include "control_center/partials/_formset_cell.html" with f=row.team_b %}
+                                {% include "control_center/partials/_formset_cell.html" with f=row.winner %}
+                                {% include "control_center/partials/_formset_cell.html" with f=row.score %}
+                                {% include "control_center/partials/_formset_cell.html" with f=row.starts_at %}
+                                <td>{{ row.DELETE }}</td>
+                            </tr>
+                            {% if row.non_field_errors %}<tr><td colspan="8"><small class="cc-field__error">{{ row.non_field_errors|join:" " }}</small></td></tr>{% endif %}
+                        {% empty %}
+                            <tr><td colspan="8" class="text-muted">Матчей нет — создайте сетку кнопкой ниже.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="ref-body"><p class="ref-text">В четвертьфиналах команды ставятся вручную; полуфиналы, финал и матч за 3-е место заполняются победителями сами. Если поменять результат, следующие матчи сбросятся.</p></div>
+        {% endif %}
+        <div class="cc-form-actions"><button type="submit" class="btn btn-primary btn-sm">{% if stage %}Сохранить{% else %}Создать стадию{% endif %}</button></div>
+    </form>
+
+    {% if stage %}
+        <form method="post" class="ops-panel">
+            {% csrf_token %}
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Быстрые действия</h2></div>
+            <div class="cc-form-actions">
+                {% if has_previous %}<button type="submit" name="action" value="carry_over" class="btn btn-ghost btn-sm">Добавить прошедших из прошлой стадии</button>{% endif %}
+                {% if not stage.is_swiss %}
+                    <label class="cc-field-check cc-nowrap"><input type="checkbox" name="third_place" value="1"><span>с матчем за 3-е место</span></label>
+                    <button type="submit" name="action" value="bracket" class="btn btn-ghost btn-sm">Создать сетку (4 → 2 → финал)</button>
+                {% endif %}
+                <button type="submit" name="action" value="delete" class="btn btn-ghost btn-sm" onclick="return confirm('Удалить стадию «{{ stage.name|escapejs }}» со всеми командами и матчами?');">Удалить стадию</button>
+            </div>
+        </form>
+    {% endif %}
+</section>

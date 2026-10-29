@@ -1,0 +1,37 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <a href="{% url 'control_center:majors' %}" class="back-link" data-dashboard-nav="true">← Мейджоры</a>
+            <span class="eyebrow">Control Center · Мейджоры</span>
+            <h1 class="cc-pagehead__title">Команды</h1>
+            <p class="ops-hero__text">Команды для стадий и матчей. В выпадающих списках стадий есть только активные команды.</p>
+        </div>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <article class="ops-panel">
+        <div class="ops-panel__head">
+            <form method="get" class="inline-form"><input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Название или тег"> <button type="submit" class="btn btn-ghost btn-sm">Найти</button></form>
+            <a href="{% url 'control_center:team_create' %}" class="btn btn-primary btn-sm">Новая команда</a>
+        </div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead><tr><th>Лого</th><th>Команда</th><th>Регион</th><th class="cc-num">Стадий</th><th>Статус</th></tr></thead>
+                <tbody>
+                    {% for team in teams %}
+                        <tr>
+                            <td>{% if team.logo_url %}<img src="{{ team.logo_url }}" alt="" width="32" height="32" style="object-fit:contain">{% else %}—{% endif %}</td>
+                            <td><a href="{% url 'control_center:team_edit' team.pk %}"><b>{{ team.name }}</b></a>{% if team.tag %}<span class="cc-sub">{{ team.tag }}</span>{% endif %}</td>
+                            <td>{{ team.get_region_display|default:"—" }}</td>
+                            <td class="cc-num">{{ team.stages_count }}</td>
+                            <td>{% if team.is_active %}<span class="cc-chip cc-chip--ok">активна</span>{% else %}<span class="cc-chip">скрыта</span>{% endif %}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="5" class="text-muted">Команд нет.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+</section>
