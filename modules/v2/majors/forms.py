@@ -132,7 +132,20 @@ class StageTeamForm(forms.ModelForm):
         self.fields["team"].queryset = teams.distinct()
 
 
-StageTeamFormSet = forms.inlineformset_factory(Stage, StageTeam, form=StageTeamForm, extra=4, can_delete=True)
+class _StageTeamFormSet(forms.BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        if not self.instance.pk or not self.instance.swiss_picks.exists():
+            return
+        # Swiss picks point at teams: with picks made, a team can neither leave the stage nor be swapped. Records stay editable.
+        for form in self.initial_forms:
+            if self.can_delete and self._should_delete_form(form):
+                raise forms.ValidationError("На стадию уже есть прогнозы — убирать команды нельзя.")
+            if "team" in form.changed_data:
+                raise forms.ValidationError("На стадию уже есть прогнозы — заменять команды нельзя.")
+
+
+StageTeamFormSet = forms.inlineformset_factory(Stage, StageTeam, form=StageTeamForm, formset=_StageTeamFormSet, extra=4, can_delete=True)
 
 
 class MatchForm(forms.ModelForm):

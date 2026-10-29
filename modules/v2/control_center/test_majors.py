@@ -227,3 +227,21 @@ class MajorsControlCenterTests(TestCase):
         self.assertEqual(self.client.post(url, self._playoff_post(stage, match, winner=self.teams[0].pk)).status_code, 302)
         match.refresh_from_db()
         self.assertEqual(match.winner_id, self.teams[0].pk)
+
+    def test_picked_swiss_stage_keeps_its_teams(self):
+        stage = Stage.objects.create(major=self.major, order=1, name="Стадия 1", starts_at=timezone.now())
+        entry = StageTeam.objects.create(stage=stage, team=self.teams[0], seed=1)
+        SwissPick.objects.create(user=self.admin, stage=stage, team=self.teams[0], pick="3-0")
+        url = reverse("control_center:stage_edit", args=[stage.pk])
+
+        def post(**row):
+            fields = {"id": entry.pk, "stage": stage.pk, "seed": 1, "team": self.teams[0].pk, "record": "", **row}
+            data = {"action": "save", "order": "1", "name": stage.name, "kind": "swiss", "starts_at": _dt(stage.starts_at), "pass_correct": "5", **_management("teams", 1, 1)}
+            data.update({f"teams-0-{key}": str(value) for key, value in fields.items()})
+            return self.client.post(url, data)
+
+        self.assertContains(post(DELETE="on"), "убирать команды нельзя")
+        self.assertContains(post(team=self.teams[1].pk), "заменять команды нельзя")
+        self.assertEqual(post(record="3-0").status_code, 302)
+        entry.refresh_from_db()
+        self.assertEqual((entry.team_id, entry.record), (self.teams[0].pk, "3-0"))
