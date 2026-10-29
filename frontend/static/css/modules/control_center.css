@@ -2934,3 +2934,47 @@
         flex-direction: column;
     }
 }
+
+/* Case simulator management */
+.cc-case-cover {
+    width: 56px;
+    height: 42px;
+    object-fit: contain;
+    border: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.cc-rarity {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cc-rarity::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    background: var(--rarity, var(--text-muted));
+}
+
+.cc-rarity.rarity--gold { --rarity: #ffd24a; }
+
+.cc-items-table td {
+    vertical-align: top;
+}
+
+.cc-items-table .form-control {
+    min-width: 0;
+    padding: 6px 8px;
+    font-size: 0.82rem;
+}
+
+.cc-items-table .form-control { width: 100%; min-width: 110px; }
+.cc-items-table__name .form-control { min-width: 230px; }
+.cc-items-table__num .form-control { min-width: 92px; }
+.cc-items-table select.form-control { min-width: 150px; }
+.cc-items-table input[type="checkbox"] { min-width: 0; width: auto; }
+
+.cc-items-table tr.has-errors td {
+    background: rgba(255, 93, 93, 0.06);
+}

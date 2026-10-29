@@ -1,0 +1,103 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <a href="{% url 'control_center:cases' %}" class="back-link" data-dashboard-nav="true">← Кейсы</a>
+            <span class="eyebrow">Control Center · Кейсы</span>
+            <h1 class="cc-pagehead__title">{% if case %}{{ case.name }}{% else %}Новый кейс{% endif %}</h1>
+        </div>
+        {% if case %}
+            <dl class="ops-hero__meta">
+                <div><dt>Открытие</dt><dd>{{ case.open_price }} ₽</dd></div>
+                <div><dt>Средний дроп</dt><dd>{{ economy.expected }} ₽</dd></div>
+                <div><dt>Возврат</dt><dd>{% if economy.return_percent is not None %}{{ economy.return_percent }}%{% else %}—{% endif %}</dd></div>
+                <div><dt>Открытий</dt><dd>{{ openings_count }}</dd></div>
+            </dl>
+        {% endif %}
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        <div class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Кейс</h2><span class="ops-panel__hint">изменения пишутся в журнал</span></div>
+            {% if form.non_field_errors %}<div class="tfa-alert" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+            <div class="cc-form-grid">
+                {% include "control_center/partials/_promo_field.html" with f=form.name %}
+                {% include "control_center/partials/_promo_field.html" with f=form.slug %}
+                {% include "control_center/partials/_promo_field.html" with f=form.kind hint="Терминал не открывается, а показывает цепочку предложений по одному." %}
+                {% include "control_center/partials/_promo_field.html" with f=form.collection_name %}
+                <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.description %}</div>
+                {% include "control_center/partials/_promo_field.html" with f=form.case_price %}
+                {% include "control_center/partials/_promo_field.html" with f=form.key_price %}
+                {% include "control_center/partials/_promo_field.html" with f=form.terminal_offers hint="Только для терминала." %}
+                {% include "control_center/partials/_promo_field.html" with f=form.terminal_markup_percent hint="Только для терминала: наценка к стоимости предмета." %}
+                {% include "control_center/partials/_promo_field.html" with f=form.image %}
+                {% include "control_center/partials/_promo_field.html" with f=form.image_url %}
+                {% include "control_center/partials/_promo_field.html" with f=form.accent_color %}
+                {% include "control_center/partials/_promo_field.html" with f=form.sort_order hint="Меньше — выше в списке." %}
+                <label class="cc-field-check cc-span-2">{{ form.is_active }}<span>{{ form.is_active.label }}</span></label>
+            </div>
+        </div>
+
+        <div class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Содержимое</h2><span class="ops-panel__hint">пустой вес — шанс по редкости, как в CS2</span></div>
+            {{ formset.management_form }}
+            {% if formset.non_form_errors %}<div class="tfa-alert" role="alert">{{ formset.non_form_errors|join:" " }}</div>{% endif %}
+            <div class="table-wrap">
+                <table class="table cc-table cc-items-table">
+                    <thead><tr><th>Предмет</th><th>Оружие</th><th>Редкость</th><th class="cc-num">Цена, ₽</th><th class="cc-num">Вес</th><th class="cc-num">Float от</th><th class="cc-num">Float до</th><th>ST</th><th>Картинка (ссылка)</th><th class="cc-num">Порядок</th><th>Удалить</th></tr></thead>
+                    <tbody>
+                        {% for item_form in formset %}
+                            <tr{% if item_form.errors %} class="has-errors"{% endif %}>
+                                <td class="cc-items-table__name">{% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}{{ item_form.name }}
+                                    {% for error in item_form.non_field_errors %}<small class="cc-field__error">{{ error }}</small>{% endfor %}
+                                    {% for field in item_form.visible_fields %}{% for error in field.errors %}<small class="cc-field__error">{{ field.label }}: {{ error }}</small>{% endfor %}{% endfor %}
+                                </td>
+                                <td>{{ item_form.weapon }}</td>
+                                <td>{{ item_form.rarity }}</td>
+                                <td class="cc-items-table__num">{{ item_form.value }}</td>
+                                <td class="cc-items-table__num">{{ item_form.weight }}</td>
+                                <td class="cc-items-table__num">{{ item_form.min_float }}</td>
+                                <td class="cc-items-table__num">{{ item_form.max_float }}</td>
+                                <td>{{ item_form.stattrak_allowed }}</td>
+                                <td>{{ item_form.image_url }}</td>
+                                <td class="cc-items-table__num">{{ item_form.sort_order }}</td>
+                                <td>{% if item_form.instance.pk %}{{ item_form.DELETE }}{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="ref-body"><p class="ref-text">Пустые строки внизу — для новых предметов, незаполненные пропускаются. Чтобы добавить больше, сохраните кейс: появятся ещё три пустые строки. Предмет, который уже выпадал игрокам, удалить нельзя; поставьте ему вес 0.</p></div>
+        </div>
+
+        <div class="cc-form-actions">
+            <button type="submit" class="btn btn-primary btn-sm">{% if case %}Сохранить{% else %}Создать кейс{% endif %}</button>
+        </div>
+    </form>
+
+    {% if case %}
+        <article class="ops-panel">
+            <div class="ops-panel__head"><h2 class="ops-panel__title">Шансы выпадения</h2><span class="ops-panel__hint">{% if economy.has_custom_weights %}есть свои веса{% else %}по редкости, как в CS2{% endif %} · после сохранения</span></div>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Предмет</th><th>Редкость</th><th class="cc-num">Цена, ₽</th><th class="cc-num">Шанс</th></tr></thead>
+                    <tbody>
+                        {% for row in economy.rows %}
+                            <tr>
+                                <td>{{ row.item.name }}</td>
+                                <td><span class="cc-rarity rarity--{{ row.item.rarity }}">{{ row.item.get_rarity_display }}</span></td>
+                                <td class="cc-num">{{ row.item.value }}</td>
+                                <td class="cc-num">{{ row.chance }}%</td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="4" class="text-muted">В кейсе нет предметов.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="ref-body"><p class="ref-text">«Средний дроп» — сколько в среднем стоит выпавший предмет без учёта StatTrak и износа. «Возврат» — средний дроп к цене открытия (кейс + ключ).</p></div>
+        </article>
+    {% endif %}
+</section>

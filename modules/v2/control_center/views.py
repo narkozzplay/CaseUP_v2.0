@@ -1782,6 +1782,127 @@ def ads_banner_edit(request, banner_id: int | None = None):
     return _render(request, partial="control_center/partials/ads_banner_edit_content.html", context=context, title=title, tab="ads")
 
 
+# --------------------------------------------------------------------------- case simulator
+
+
+def _case_economy(case, items) -> dict:
+    """Drop chances per item and the expected value of one opening (what a player gets back on average)."""
+    from modules.v2.case_simulator.services import RARITY_ORDER, item_weights
+
+    weights = item_weights(items)
+    order = {rarity: index for index, rarity in enumerate(RARITY_ORDER)}
+    rows = sorted(
+        ({"item": item, "chance": (weight * 100).quantize(Decimal("0.001"))} for item, weight in weights),
+        key=lambda row: (order.get(row["item"].rarity, 99), -row["item"].value, row["item"].name),
+    )
+    expected = sum((weight * (item.value or 0) for item, weight in weights), Decimal("0")).quantize(Decimal("0.01"))
+    price = case.open_price
+    return {
+        "rows": rows,
+        "expected": expected,
+        "return_percent": (expected * 100 / price).quantize(Decimal("0.1")) if price else None,
+        "has_custom_weights": any(item.weight is not None for item in items),
+    }
+
+
+@login_required
+def sim_cases(request):
+    from modules.v2.case_simulator.models import SimCase
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    if request.method == "POST":
+        action = request.POST.get("action") or ""
+        raw_id = str(request.POST.get("case_id") or "")
+        case = get_object_or_404(SimCase, pk=int(raw_id) if raw_id.isdigit() else 0)
+        if action == "toggle":
+            case.is_active = not case.is_active
+            case.save(update_fields=["is_active", "updated_at"])
+            summary = f"Кейс «{case.name}» {'включён' if case.is_active else 'выключен'}"
+        elif action == "delete":
+            if case.openings.exists() or case.terminal_sessions.exists():
+                messages.error(request, f"Кейс «{case.name}» уже открывали, удалить его нельзя: выпавшие предметы лежат в инвентарях. Выключите его.")
+                return redirect("control_center:cases")
+            summary = f"Кейс «{case.name}» удалён"
+            case.delete()
+        else:
+            return redirect("control_center:cases")
+        log_admin_action(actor=request.user, action=AuditAction.CASE_SIM_UPDATE, summary=summary[:255], payload={"case": raw_id, "action": action}, request=request)
+        messages.success(request, summary + ".")
+        return redirect("control_center:cases")
+
+    kind = (request.GET.get("kind") or "").strip()
+    qs = SimCase.objects.annotate(items_count=Count("items", distinct=True), openings_count=Count("openings", distinct=True))
+    if kind in SimCase.Kind.values:
+        qs = qs.filter(kind=kind)
+    cases = list(qs.order_by("kind", "sort_order", "id"))
+    context = {
+        "role_access": role_access,
+        "cases": cases,
+        "kind": kind,
+        "kind_options": SimCase.Kind.choices,
+        "totals": {
+            "all": SimCase.objects.count(),
+            "active": SimCase.objects.filter(is_active=True).count(),
+        },
+    }
+    return _render(request, partial="control_center/partials/cases_content.html", context=context, title="Кейсы · Control Center", tab="cases")
+
+
+@login_required
+def sim_case_edit(request, case_id: int | None = None):
+    from django.db import transaction
+
+    from modules.v2.case_simulator.forms import SimCaseForm, SimCaseItemFormSet
+    from modules.v2.case_simulator.models import SimCase
+
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    case = get_object_or_404(SimCase, pk=case_id) if case_id else None
+    instance = case or SimCase()
+    form = SimCaseForm(request.POST or None, request.FILES or None, instance=instance)
+    formset = SimCaseItemFormSet(request.POST or None, instance=instance, prefix="items")
+    if request.method == "POST":
+        # The case form goes first: it copies is_active onto the instance the formset checks.
+        form_ok = form.is_valid()
+        if form_ok and formset.is_valid():
+            is_new = case is None
+            with transaction.atomic():
+                saved = form.save()
+                formset.instance = saved
+                formset.save()
+            changed = sorted(form.changed_data)
+            items_changed = len(formset.new_objects) + len(formset.changed_objects) + len(formset.deleted_objects)
+            log_admin_action(
+                actor=request.user,
+                action=AuditAction.CASE_SIM_UPDATE,
+                summary=(f"Кейс «{saved.name}» {'создан' if is_new else 'изменён'}" + (f", предметов изменено: {items_changed}" if items_changed else ""))[:255],
+                payload={
+                    "case": saved.pk,
+                    "changed": changed,
+                    "items_added": len(formset.new_objects),
+                    "items_changed": len(formset.changed_objects),
+                    "items_deleted": len(formset.deleted_objects),
+                },
+                request=request,
+            )
+            messages.success(request, f"Кейс «{saved.name}» {'создан' if is_new else 'сохранён'}.")
+            return redirect("control_center:case_edit", case_id=saved.pk)
+        messages.error(request, "Проверьте поля формы.")
+    context = {
+        "role_access": role_access,
+        "form": form,
+        "formset": formset,
+        "case": case,
+        "economy": _case_economy(case, list(case.items.all())) if case else None,
+        "openings_count": case.openings.count() if case else 0,
+    }
+    title = f"{case.name} · Кейсы" if case else "Новый кейс"
+    return _render(request, partial="control_center/partials/case_edit_content.html", context=context, title=title, tab="cases")
+
+
 # --------------------------------------------------------------------------- market
 
 
