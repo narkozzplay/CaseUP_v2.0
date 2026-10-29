@@ -1819,8 +1819,8 @@ def sim_cases(request):
         raw_id = str(request.POST.get("case_id") or "")
         case = get_object_or_404(SimCase, pk=int(raw_id) if raw_id.isdigit() else 0)
         if action == "toggle":
-            if not case.is_active and not case.items.exists():
-                messages.error(request, f"В кейсе «{case.name}» нет предметов: добавьте их, прежде чем включать.")
+            if not case.is_active and not case.items.filter(Q(weight__isnull=True) | Q(weight__gt=0)).exists():
+                messages.error(request, f"В кейсе «{case.name}» нет предметов, которые могут выпасть: добавьте их или задайте вес больше 0, прежде чем включать.")
                 return redirect("control_center:cases")
             case.is_active = not case.is_active
             case.save(update_fields=["is_active", "updated_at"])

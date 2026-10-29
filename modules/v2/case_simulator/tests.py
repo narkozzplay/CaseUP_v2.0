@@ -484,3 +484,11 @@ class ControlCenterCaseTests(TestCase):
         self.assertContains(response, "адрес можно сменить")
         terminal.refresh_from_db()
         self.assertEqual(terminal.slug, "cc-term-guard")
+
+    def test_all_zero_weight_case_cannot_be_enabled(self):
+        self.case.items.update(weight=0)
+        self.case.is_active = False
+        self.case.save(update_fields=["is_active"])
+        self.client.post(reverse("control_center:cases"), {"case_id": self.case.pk, "action": "toggle"})
+        self.case.refresh_from_db()
+        self.assertFalse(self.case.is_active)
