@@ -206,6 +206,19 @@ class ChannelDigestPost(models.Model):
         return f"ChannelDigestPost({self.created_at:%Y-%m-%d %H:%M}, {self.status})"
 
 
+# Callables: a fixed time() default trips Django's W161 check when it happens to be close to the current time.
+def default_quiet_from():
+    return time(23, 0)
+
+
+def default_quiet_to():
+    return time(9, 0)
+
+
+def default_digest_time():
+    return time(10, 0)
+
+
 class TelegramUserPrefs(models.Model):
     """A user's Telegram bot settings: quiet hours, a daily cap on notices and the personal daily digest.
 
@@ -214,12 +227,12 @@ class TelegramUserPrefs(models.Model):
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="telegram_prefs")
     quiet_enabled = models.BooleanField("Тихие часы", default=True)
-    quiet_from = models.TimeField("С", default=time(23, 0))
-    quiet_to = models.TimeField("До", default=time(9, 0))
+    quiet_from = models.TimeField("С", default=default_quiet_from)
+    quiet_to = models.TimeField("До", default=default_quiet_to)
     # 0 means no cap.
     daily_limit = models.PositiveSmallIntegerField("Уведомлений в день", default=30)
     digest_enabled = models.BooleanField("Личная сводка", default=False)
-    digest_time = models.TimeField("Время сводки", default=time(10, 0))
+    digest_time = models.TimeField("Время сводки", default=default_digest_time)
     digest_last_sent_on = models.DateField(null=True, blank=True)
     counter_date = models.DateField(null=True, blank=True)
     counter_value = models.PositiveIntegerField(default=0)
