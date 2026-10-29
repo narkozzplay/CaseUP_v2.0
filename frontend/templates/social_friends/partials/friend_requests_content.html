@@ -12,7 +12,7 @@
     <h2 class="friends-section-title">{% if LANGUAGE_CODE == "ru" %}Входящие{% else %}Incoming{% endif %} <span>{{ incoming_count }}</span></h2>
     {% if incoming_rows %}
         <div class="chat-list">
-            {% for row in incoming_rows %}
+            {% load profile_looks %}{% pfx_prime incoming_rows "user_id" %}{% for row in incoming_rows %}
                 {% if LANGUAGE_CODE == "ru" %}{% include "social_friends/partials/_person_row.html" with highlight=True subtitle="Хочет добавить вас в друзья" row_actions="social_friends/partials/_incoming_actions.html" %}{% else %}{% include "social_friends/partials/_person_row.html" with highlight=True subtitle="Wants to be your friend" row_actions="social_friends/partials/_incoming_actions.html" %}{% endif %}
             {% endfor %}
         </div>
@@ -23,7 +23,7 @@
     <h2 class="friends-section-title">{% if LANGUAGE_CODE == "ru" %}Исходящие{% else %}Outgoing{% endif %} <span>{{ outgoing_count }}</span></h2>
     {% if outgoing_rows %}
         <div class="chat-list">
-            {% for row in outgoing_rows %}
+            {% load profile_looks %}{% pfx_prime outgoing_rows "user_id" %}{% for row in outgoing_rows %}
                 {% if LANGUAGE_CODE == "ru" %}{% include "social_friends/partials/_person_row.html" with subtitle="Ждёт ответа" row_actions="social_friends/partials/_outgoing_actions.html" %}{% else %}{% include "social_friends/partials/_person_row.html" with subtitle="Waiting for reply" row_actions="social_friends/partials/_outgoing_actions.html" %}{% endif %}
             {% endfor %}
         </div>
