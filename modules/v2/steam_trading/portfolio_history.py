@@ -13,10 +13,10 @@ from datetime import date, datetime, time, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.core.cache import cache
-from django.db.models import Max
+from django.db.models import Max, OuterRef, Subquery
 from django.utils import timezone
 
-from modules.v2.steam_catalog.models import SWEEP_SOURCE, SteamItemPriceHistory
+from modules.v2.steam_catalog.models import SWEEP_SOURCE, SteamItem, SteamItemPriceHistory
 
 from .models import SteamPurchase, SteamPurchaseSale
 from .services import quantize_money
@@ -100,18 +100,21 @@ class _PriceBook:
         self._prices: dict[int, list[Decimal]] = {}
         start_at = _day_end(start - timedelta(days=1))
         rows = defaultdict(list)
-        for item_id in items:
-            # The last median and the last sweep price before the range, so the first day is not empty.
-            earlier = SteamItemPriceHistory.objects.filter(item_id=item_id, created_at__lt=start_at).order_by("-created_at", "-id")
-            fields = ("created_at", "price_rub", "source")
-            before = [
-                row
-                for row in (
-                    earlier.exclude(source=SWEEP_SOURCE).values_list(*fields).first(),
-                    earlier.filter(source=SWEEP_SOURCE).values_list(*fields).first(),
-                )
-                if row
-            ]
+        # The last median and the last sweep price before the range, so the first day is not empty: one query.
+        earlier = SteamItemPriceHistory.objects.filter(item_id=OuterRef("pk"), created_at__lt=start_at).order_by("-created_at", "-id")
+        medians, sweeps = earlier.exclude(source=SWEEP_SOURCE), earlier.filter(source=SWEEP_SOURCE)
+        for item_id, *values in SteamItem.objects.filter(pk__in=list(items)).annotate(
+            median_at=Subquery(medians.values("created_at")[:1]),
+            median_price=Subquery(medians.values("price_rub")[:1]),
+            sweep_at=Subquery(sweeps.values("created_at")[:1]),
+            sweep_price=Subquery(sweeps.values("price_rub")[:1]),
+        ).values_list("pk", "median_at", "median_price", "sweep_at", "sweep_price"):
+            median_at, median_price, sweep_at, sweep_price = values
+            before = []
+            if median_at:
+                before.append((median_at, median_price, "median"))
+            if sweep_at:
+                before.append((sweep_at, sweep_price, SWEEP_SOURCE))
             rows[item_id].extend(sorted(before, key=lambda row: row[0]))
         for item_id, created_at, price, source in (
             SteamItemPriceHistory.objects.filter(item_id__in=list(items), created_at__gte=start_at)
@@ -136,11 +139,15 @@ class _PriceBook:
         return self._prices[item_id][index] if index >= 0 else None
 
 
-def _sales_by_purchase(purchases) -> dict[int, list[tuple[datetime, int, Decimal, Decimal]]]:
+def _sales_by_purchase(purchases, *, after_fee: bool = False) -> dict[int, list[tuple[datetime, int, Decimal, Decimal]]]:
+    """{purchase id: [(sold at, quantity, total, profit)]}; after_fee takes Steam's cut off the sale price as well."""
     sales = defaultdict(list)
-    for purchase_id, sold_at, quantity, total, profit in SteamPurchaseSale.objects.filter(
+    for purchase_id, sold_at, quantity, total, profit, cost in SteamPurchaseSale.objects.filter(
         purchase_id__in=[purchase.pk for purchase in purchases]
-    ).values_list("purchase_id", "sold_at", "quantity", "total_sale_rub", "profit_rub"):
+    ).values_list("purchase_id", "sold_at", "quantity", "total_sale_rub", "profit_rub", "cost_basis_rub"):
+        if after_fee:
+            total = total / STEAM_FEE_DIVISOR
+            profit = total - cost
         sales[purchase_id].append((sold_at, int(quantity), total, profit))
     return sales
 
@@ -168,7 +175,7 @@ def build_portfolio_days(purchases, *, days: int | None, now: datetime | None = 
     today = timezone.localtime(now).date()
     start = _first_day(purchases, days, today)
     book = _PriceBook(purchases, start=start, today=today)
-    sales = _sales_by_purchase(purchases)
+    sales = _sales_by_purchase(purchases, after_fee=after_fee)
 
     result = []
     day = start
@@ -220,7 +227,7 @@ def build_week_summary(purchases, *, now: datetime | None = None, after_fee: boo
 
     # Movers: what each item's price did to the units on hand, since the week start or since it was bought.
     book = _PriceBook(purchases, start=week_start, today=today)
-    sales = _sales_by_purchase(purchases)
+    sales = _sales_by_purchase(purchases, after_fee=after_fee)
     since = _day_end(week_start)
     per_item: dict[int, dict] = {}
     for purchase in purchases:

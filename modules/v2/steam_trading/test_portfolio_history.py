@@ -81,6 +81,26 @@ class PortfolioHistoryTests(TestCase):
         days = build_portfolio_days(self._purchases(), days=3)
         self.assertEqual(days[0].value_rub, Decimal("400.00"))
 
+    def test_after_fee_also_applies_to_sales(self):
+        purchase = self._buy(days_ago=10)
+        SteamPurchaseSale(purchase=purchase, sold_at=_local(2), quantity=4, sale_price_rub=Decimal("57.50")).save()
+        days = build_portfolio_days(self._purchases(), days=7, after_fee=True)
+        # 4 × 57.50 / 1.15 − 4 × 40
+        self.assertEqual(days[-1].realized_rub, Decimal("40.00"))
+
+    def test_baseline_takes_few_queries_for_many_items(self):
+        for index in range(12):
+            item = SteamItem.objects.create(
+                market_hash_name=f"Case {index}", family_name=f"Case {index}", name=f"Case {index}",
+                item_type=SteamItem.ItemType.CASE, price_rub=Decimal("10.00"), is_active=True,
+            )
+            self._buy(days_ago=5, item=item)
+            self._price(item, "9.00", 30)
+        purchases = self._purchases()
+        with self.assertNumQueries(3):  # baselines, history in range, sales
+            days = build_portfolio_days(purchases, days=3)
+        self.assertEqual(days[0].value_rub, Decimal("1080.00"))
+
     def test_after_fee_divides_prices(self):
         self._buy(days_ago=2)
         days = build_portfolio_days(self._purchases(), days=7, after_fee=True)

@@ -1,5 +1,5 @@
 {% load l10n %}
-{% with chart=portfolio_chart week=portfolio_week currency=site_settings.site_currency_symbol|default:"₽" %}
+{% with chart=portfolio_chart week=portfolio_week %}
 <div class="inv-history" id="portfolio-chart">
     <article class="card dashboard-panel inv-history__chart">
         <div class="card-body">
@@ -24,7 +24,7 @@
             </div>
 
             {% localize off %}
-            <div class="pc inv-pc" data-price-chart data-currency="{{ currency }}">
+            <div class="pc inv-pc" data-price-chart data-currency="₽">
                 {{ chart.points_json|json_script:"portfolio-chart-data" }}
                 <div class="pc__plot" data-price-chart-plot>
                     <svg class="pc__svg" viewBox="0 0 {{ chart.view_width }} {{ chart.view_height }}" preserveAspectRatio="none" aria-label="Стоимость портфеля и вложенная сумма по дням" role="img">
@@ -64,7 +64,7 @@
             <p class="inv-history__legend">
                 <span class="inv-legend inv-legend--value">стоимость</span>
                 <span class="inv-legend inv-legend--invested">вложено</span>
-                <span class="text-muted">Разница между линиями — прибыль, если продать в тот день. {% if portfolio_after_fee %}Цены уменьшены на комиссию Steam.{% else %}По ценам Steam, без комиссии.{% endif %}</span>
+                <span class="text-muted">Разница между линиями — прибыль, если продать в тот день. График в рублях. {% if portfolio_after_fee %}Цены уменьшены на комиссию Steam.{% else %}По ценам Steam, без комиссии.{% endif %}</span>
             </p>
         </div>
     </article>
