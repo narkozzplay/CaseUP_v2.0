@@ -84,8 +84,8 @@ class CommandTests(BotTestCase):
         self.message(f"/price {self.item.market_hash_name}")
         reply = self.sent()[-1]
         self.assertIn("1 100 ₽", reply["text"])
-        self.assertIn("24 ч: +10.0%, +100 ₽", reply["text"])
-        self.assertIn("30 д: нет данных", reply["text"])
+        self.assertIn("🟢 За сутки: <b>+10.0%</b> · +100 ₽", reply["text"])
+        self.assertIn("За месяц: нет данных", reply["text"])
         buttons = [button for row in reply["reply_markup"]["inline_keyboard"] for button in row]
         self.assertEqual(buttons[0]["callback_data"], f"fv:{self.item.pk}")
         self.assertIn("от 1 050 ₽", buttons[1]["text"])
@@ -121,7 +121,7 @@ class CommandTests(BotTestCase):
     def test_favorites_and_balance(self):
         SteamItemFavorite.objects.create(user=self.user, family_key="AK-47 | Redline", item=self.item)
         self.message("/favorites")
-        self.assertIn("1. AK-47 | Redline — 1 100 ₽", self.sent()[-1]["text"])
+        self.assertIn("<b>1.</b> AK-47 | Redline\n     └ 💰 1 100 ₽", self.sent()[-1]["text"])
         UserProfile.objects.filter(user=self.user).update(balance_coins=Decimal("250.50"), market_balance_coins=Decimal("90"))
         self.message(bot.BTN_BALANCE)
         reply = self.sent()[-1]
@@ -150,6 +150,16 @@ class CommandTests(BotTestCase):
         handle_update({"message": {"chat": {"id": -100, "type": "supergroup"}, "text": f"/start caseup_{token.token}"}})
         self.assertEqual(UserProfile.objects.get(user=self.user).telegram_chat_id, CHAT)
 
+    def test_linking_sends_a_formatted_welcome(self):
+        from .services import issue_link_token_for_user
+
+        stranger = User.objects.create_user(username="newbie", password="x")
+        token = issue_link_token_for_user(stranger)
+        handle_update({"message": {"chat": {"id": 777, "type": "private"}, "text": f"/start caseup_{token.token}"}})
+        welcome = self.sent()[-1]
+        self.assertIn("Telegram подключён", welcome["text"])
+        self.assertEqual(welcome["parse_mode"], "HTML")
+
     def test_polling_asks_for_button_presses(self):
         config = TelegramNotifierConfig.objects.get()
         with patch("modules.v2.tg_notifier.updates._telegram_api_request", side_effect=self._api):
@@ -170,7 +180,7 @@ class AlertButtonTests(BotTestCase):
         self.message("/alerts")
         reply = self.sent()[-1]
         self.assertIn("Редлайн вниз", reply["text"])
-        self.assertIn("▼ падение на 5%", reply["text"])
+        self.assertIn("📉 падение на 5%", reply["text"])
         self.press(f"at:{rule.pk}:1")
         rule.refresh_from_db()
         self.assertEqual(rule.status, UserPriceAlertRule.Status.DISABLED)
@@ -211,7 +221,7 @@ class AlertButtonTests(BotTestCase):
         )
         self.assertEqual(dispatch_pending_user_price_alerts(), 1)
         reply = self.sent()[-1]
-        self.assertIn("▼ Падение", reply["text"])
+        self.assertIn("📉 <b>Падение −8.33%</b>", reply["text"])
         rows = reply["reply_markup"]["inline_keyboard"]
         self.assertEqual(rows[0][1]["callback_data"], f"ax:{rule.pk}")
         self.assertIn(f"/alerts/rules/{rule.pk}/edit/", rows[1][0]["url"])
@@ -386,7 +396,7 @@ class DeliveryTests(BotTestCase):
         self.assertEqual(results, [delivery.SENT, delivery.SENT, delivery.LIMITED, delivery.LIMITED])
         texts = [payload["text"] for payload in self.sent()]
         self.assertEqual(len(texts), 3)  # two notices and one «cap reached» note
-        self.assertIn("дневной лимит", texts[-1])
+        self.assertIn("Дневной лимит исчерпан", texts[-1])
         self.assertEqual(delivery.deliver_notice(self.user, "завтра", now=at_msk(12) + timedelta(days=1)), delivery.SENT)
 
     def test_market_notifications_are_copied_to_telegram(self):

@@ -82,7 +82,7 @@ def handle_update(payload: dict[str, Any]) -> dict[str, Any]:
         warning = ""
         welcome = welcome_reply()
         try:
-            send_message(chat_id=chat_id, text=welcome.text, reply_markup=main_keyboard())
+            send_message(chat_id=chat_id, text=welcome.text, parse_mode="HTML", reply_markup=main_keyboard())
         except TelegramNotifierError as exc:
             warning = str(exc)
 
