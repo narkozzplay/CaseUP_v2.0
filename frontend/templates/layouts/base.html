@@ -30,7 +30,8 @@
         <link rel="stylesheet" href="{% static runtime_module_css_file %}" data-user-runtime-module-css="{{ runtime_module_css_file }}">
     {% endfor %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}{% endblock %}{% if viewing_as_user %} is-viewing-as-user{% endif %}">
+    {% if viewing_as_user %}{% include "components/view_as_user_banner.html" %}{% endif %}
     {% block page %}{% endblock %}
     {% include "components/cookie_consent_bar.html" %}
     <script src="{% static 'js/info_banners.js' %}" defer></script>
