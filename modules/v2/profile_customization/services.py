@@ -382,7 +382,7 @@ def mark_grants_seen(user) -> None:
     EffectGrant.objects.filter(user=user, seen_at__isnull=True).update(seen_at=timezone.now())
 
 
-def _compute_look(customization: UserCustomization | None, *, owned: set | None = None) -> dict:
+def _compute_look(customization: UserCustomization | None, *, owned: set | None = None, has_pro: bool | None = None) -> dict:
     """{slot: key} of the effects the profile may show right now."""
     if customization is None:
         return {}
@@ -392,7 +392,12 @@ def _compute_look(customization: UserCustomization | None, *, owned: set | None 
         return {}
     user = customization.user
     if any(effect.is_pro or effect.is_reward for effect in picked.values()):
-        can_customize = can_customize_profile(user) if any(effect.is_pro for effect in picked.values()) else False
+        if not any(effect.is_pro for effect in picked.values()):
+            can_customize = False
+        elif has_pro:
+            can_customize = True
+        else:
+            can_customize = can_customize_profile(user)
         if owned is None:
             owned = owned_effects(user) if any(effect.is_reward for effect in picked.values()) else set()
         picked = {
@@ -412,6 +417,34 @@ def _look_keys(user_id) -> dict:
         .first()
     )
     return _compute_look(customization)
+
+
+def _users_with_pro_plan(user_ids) -> set[int]:
+    """Users with an active plan (any family) that includes profile customization, in one query.
+
+    Only a positive answer is trusted; everyone else still goes through can_customize_profile,
+    which also covers staff, store authors and lapsed plans.
+    """
+    from django.db.models import Q
+
+    from modules.v2.subscriptions.models import UserSubscription
+
+    ids = set(user_ids)
+    if not ids:
+        return set()
+    now = timezone.now()
+    return set(
+        UserSubscription.objects.filter(
+            user_id__in=ids,
+            status=UserSubscription.Status.ACTIVE,
+            plan__is_active=True,
+            plan__features__code=PROFILE_CUSTOMIZATION,
+            plan__features__is_active=True,
+        )
+        .filter(Q(starts_at__isnull=True) | Q(starts_at__lte=now))
+        .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+        .values_list("user_id", flat=True)
+    )
 
 
 def prime_looks(user_ids) -> None:
@@ -434,12 +467,18 @@ def prime_looks(user_ids) -> None:
         c.user_id: c
         for c in UserCustomization.objects.filter(user_id__in=ids).select_related("user", "user__profile_v2")
     }
+    pro_ids = _users_with_pro_plan(
+        c.user_id for c in customizations.values()
+        if any((effect := get_effect(slot, getattr(c, field))) and effect.is_pro for slot, field in EFFECT_FIELDS.items())
+    )
     grants: dict[int, set] = {}
     for user_id, slot, effect_key in EffectGrant.objects.filter(user_id__in=customizations.keys()).values_list("user_id", "slot", "key"):
         grants.setdefault(user_id, set()).add((slot, effect_key))
     for uid in ids:
         customization = customizations.get(uid)
-        memo[key(uid)] = _compute_look(customization, owned=grants.get(uid, set())) if customization else {}
+        memo[key(uid)] = (
+            _compute_look(customization, owned=grants.get(uid, set()), has_pro=uid in pro_ids) if customization else {}
+        )
 
 
 def get_profile_look(user_or_id) -> dict:

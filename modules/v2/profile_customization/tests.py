@@ -610,3 +610,23 @@ class PrimeLooksTests(TestCase):
             _request_cache.reset(token)
         self.assertTrue(all(look["name"] == "pfx-name--milspec" for look in looks))
         self.assertEqual(looks[0]["title"].key, "veteran")
+
+    def test_pro_looks_are_batched_too(self):
+        from modules.v2.system.request_cache import _request_cache
+
+        from .services import get_profile_look, prime_looks, set_effect
+
+        plan = SubscriptionPlan.objects.get(code="site_pro")
+        users = [_make_user(f"prime_pro_{index}") for index in range(5)]
+        for user in users:
+            UserSubscription.objects.create(user=user, plan=plan, family="site")
+            set_effect(user, "frame", "doppler")
+        token = _request_cache.set({})
+        try:
+            with self.assertNumQueries(3):
+                prime_looks([user.pk for user in users])
+            with self.assertNumQueries(0):
+                looks = [get_profile_look(user.pk) for user in users]
+        finally:
+            _request_cache.reset(token)
+        self.assertTrue(all(look["frame"] == "pfx-frame--doppler" for look in looks))
