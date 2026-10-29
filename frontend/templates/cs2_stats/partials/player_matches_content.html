@@ -1,0 +1,26 @@
+<section class="section section--compact cs2-player-page">
+    <div class="dashboard-hero card">
+        <div class="card-body dashboard-hero__body">
+            <span class="eyebrow">FACEIT CS2</span>
+            <h1 class="page-title page-title--sm">{% if LANGUAGE_CODE == "ru" %}Все матчи{% else %}All matches{% endif %}: {{ player.display_name }}</h1>
+            <p class="text-muted">{% if LANGUAGE_CODE == "ru" %}В базе {{ stored_matches }} матчей{% if not player.faceit_history_complete %}, история ещё загружается{% endif %}.{% else %}{{ stored_matches }} matches stored{% if not player.faceit_history_complete %}, history is still loading{% endif %}.{% endif %}</p>
+            <a href="{% url 'cs2_stats:player' player.steam_id %}" class="cs2-history-action-btn cs2-history-action-btn--back" data-dashboard-nav="true"><span>{% if LANGUAGE_CODE == "ru" %}← К статистике{% else %}← Back to stats{% endif %}</span></a>
+        </div>
+    </div>
+    <article class="card">
+        <div class="card-body">
+            {% if matches %}
+                {% include "cs2_stats/partials/_faceit_match_table.html" with matches=matches %}
+                {% if page_obj.has_other_pages %}
+                <nav class="cs2-pager">
+                    {% if page_obj.has_previous %}<a class="btn btn-ghost btn-sm" href="?page={{ page_obj.previous_page_number }}" data-dashboard-nav="true">←</a>{% endif %}
+                    <span class="text-muted">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                    {% if page_obj.has_next %}<a class="btn btn-ghost btn-sm" href="?page={{ page_obj.next_page_number }}" data-dashboard-nav="true">→</a>{% endif %}
+                </nav>
+                {% endif %}
+            {% else %}
+                <p class="text-muted empty-state">{% if LANGUAGE_CODE == "ru" %}Матчей пока нет.{% else %}No matches yet.{% endif %}</p>
+            {% endif %}
+        </div>
+    </article>
+</section>

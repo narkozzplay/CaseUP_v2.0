@@ -47,6 +47,13 @@ def _save_faceit_error(profile: UserProfile, message: str) -> FaceitSyncResult:
     return FaceitSyncResult(False, message, {})
 
 
+def _tracked_max_elo(steam_id: str) -> int:
+    """Best ELO from the FACEIT match history the player search stored for this Steam account."""
+    from modules.v2.cs2_stats.models import TrackedPlayer
+
+    return TrackedPlayer.objects.filter(steam_id=steam_id).values_list("faceit_max_elo", flat=True).first() or 0
+
+
 def sync_faceit_profile(profile: UserProfile) -> FaceitSyncResult:
     from modules.v2.system.services import get_integration_secret
 
@@ -85,6 +92,7 @@ def sync_faceit_profile(profile: UserProfile) -> FaceitSyncResult:
     profile.faceit_avatar_url = payload.get("avatar", "") or ""
     profile.faceit_skill_level = skill_level
     profile.faceit_elo = elo
+    profile.faceit_max_elo = max(profile.faceit_max_elo or 0, elo, _tracked_max_elo(steam_id))
     profile.faceit_level_image_url = build_faceit_level_image_url(skill_level) if skill_level > 0 else ""
     profile.faceit_last_sync_at = timezone.now()
     profile.faceit_last_error = ""
@@ -95,6 +103,7 @@ def sync_faceit_profile(profile: UserProfile) -> FaceitSyncResult:
             "faceit_avatar_url",
             "faceit_skill_level",
             "faceit_elo",
+            "faceit_max_elo",
             "faceit_level_image_url",
             "faceit_last_sync_at",
             "faceit_last_error",

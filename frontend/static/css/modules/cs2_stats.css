@@ -830,3 +830,25 @@
     .cs2-headline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .cs2-faceit-badge { margin-left: 0; width: 100%; }
 }
+
+/* ===== Player lookup (any player, like csstats) ===== */
+.cs2-player-search { display: flex; gap: .5rem; margin-top: .75rem; flex-wrap: wrap; }
+.cs2-player-search .form-control { flex: 1 1 260px; min-width: 0; }
+.cs2-player-search .btn { display: inline-flex; align-items: center; gap: .4rem; }
+.cs2-player-search__note { margin-top: .5rem; font-size: .85rem; }
+.cs2-players-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+.cs2-player-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
+.cs2-player-chip { display: flex; align-items: center; gap: .6rem; padding: .35rem .5rem; border-radius: 8px; color: inherit; text-decoration: none; }
+.cs2-player-chip:hover { background: rgba(255, 255, 255, .05); }
+.cs2-player-chip img, .cs2-player-chip__ph { width: 32px; height: 32px; border-radius: 6px; flex: none; background: rgba(255, 255, 255, .08); }
+.cs2-player-chip__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs2-player-chip__elo { font-weight: 700; white-space: nowrap; }
+.cs2-player-chip__elo small { font-weight: 400; opacity: .6; }
+.cs2-player-pills { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .5rem; }
+.cs2-ban-pill { display: inline-flex; align-items: center; padding: .15rem .5rem; border-radius: 999px; font-size: .75rem; font-weight: 700; color: #fff; background: #c0392b; }
+.cs2-recent-results { display: inline-flex; gap: .2rem; }
+.cs2-result-dot { display: inline-flex; align-items: center; justify-content: center; width: 1.4rem; height: 1.4rem; border-radius: 4px; font-style: normal; font-size: .7rem; font-weight: 700; color: #fff; background: #6b7280; }
+.cs2-result-dot--win { background: #2e9e5b; }
+.cs2-result-dot--loss { background: #c0392b; }
+.cs2-faceit-matches td, .cs2-faceit-matches th { white-space: nowrap; }
+.cs2-pager { display: flex; align-items: center; justify-content: center; gap: .75rem; margin-top: .75rem; }

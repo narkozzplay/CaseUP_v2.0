@@ -137,6 +137,11 @@ app.conf.beat_schedule = {
         "task": "support.escalate_stale_tickets",
         "schedule": 600.0,
     },
+    # Every player somebody looked up: fresh Steam/FACEIT stats, new FACEIT matches, full history backfill.
+    "cs2-refresh-tracked-players": {
+        "task": "cs2_stats.refresh_tracked_players",
+        "schedule": float(settings.CELERY_BEAT_CS2_TRACKED_PLAYERS_SECONDS),
+    },
     "auto-sync-cs2-faceit-stats": {
         "task": "celery_tasks.auto_sync_cs2_faceit_stats",
         "schedule": float(settings.CELERY_BEAT_CS2_FACEIT_STATS_SYNC_SECONDS),

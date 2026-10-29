@@ -1,0 +1,43 @@
+<section class="section section--compact cs2-players-page">
+    <div class="dashboard-hero card">
+        <div class="card-body dashboard-hero__body">
+            <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Статистика CS2{% else %}CS2 stats{% endif %}</span>
+            <h1 class="page-title page-title--sm">{% if LANGUAGE_CODE == "ru" %}Поиск игрока{% else %}Player lookup{% endif %}</h1>
+            <p class="text-muted">{% if LANGUAGE_CODE == "ru" %}Вставьте ссылку на профиль Steam, SteamID или ссылку/ник FACEIT. Покажем статистику CS2, уровень и ELO FACEIT, максимальный ELO и все матчи FACEIT.{% else %}Paste a Steam profile link, SteamID or a FACEIT link/nickname to see CS2 stats, FACEIT level and ELO, best ELO and every FACEIT match.{% endif %}</p>
+            <form method="get" action="{% url 'cs2_stats:players' %}" class="cs2-player-search">
+                <input type="text" name="q" value="{{ query }}" class="form-control" autocomplete="off" required
+                       placeholder="https://steamcommunity.com/id/… · 7656119… · faceit.com/ru/players/…">
+                <button type="submit" class="btn btn-primary">{% include "components/icon.html" with name="search" %}<span>{% if LANGUAGE_CODE == "ru" %}Найти{% else %}Search{% endif %}</span></button>
+            </form>
+            {% if error %}<p class="faceit-error">{{ error }}</p>{% endif %}
+            <p class="text-muted cs2-player-search__note">{% if LANGUAGE_CODE == "ru" %}Игроков в базе CaseUP: {{ players_total }}. Статистика найденных игроков обновляется автоматически.{% else %}Players in the CaseUP base: {{ players_total }}. Their stats update automatically.{% endif %}</p>
+        </div>
+    </div>
+
+    <div class="cs2-players-columns">
+        {% if top_players %}
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Лучший ELO FACEIT в базе{% else %}Top FACEIT ELO in the base{% endif %}</h2>
+                <ol class="cs2-player-list">
+                    {% for p in top_players %}
+                    <li>{% include "cs2_stats/partials/_player_chip.html" with p=p value=p.faceit_max_elo %}</li>
+                    {% endfor %}
+                </ol>
+            </div>
+        </article>
+        {% endif %}
+        {% if recent_players %}
+        <article class="card">
+            <div class="card-body">
+                <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Недавно искали{% else %}Recently searched{% endif %}</h2>
+                <ul class="cs2-player-list">
+                    {% for p in recent_players %}
+                    <li>{% include "cs2_stats/partials/_player_chip.html" with p=p value=p.faceit_elo %}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </article>
+        {% endif %}
+    </div>
+</section>

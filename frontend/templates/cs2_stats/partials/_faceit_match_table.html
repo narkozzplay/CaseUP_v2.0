@@ -1,0 +1,30 @@
+<div class="table-wrap">
+    <table class="table table--dark cs2-faceit-matches">
+        <thead>
+            <tr>
+                <th>{% if LANGUAGE_CODE == "ru" %}Дата{% else %}Date{% endif %}</th>
+                <th>{% if LANGUAGE_CODE == "ru" %}Карта{% else %}Map{% endif %}</th>
+                <th>{% if LANGUAGE_CODE == "ru" %}Итог{% else %}Result{% endif %}</th>
+                <th>K / D / A</th>
+                <th>K/D</th>
+                <th>HS %</th>
+                <th>ADR</th>
+                <th>ELO</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in matches %}
+            <tr>
+                <td><a href="https://www.faceit.com/ru/cs2/room/{{ m.match_id }}" target="_blank" rel="noopener nofollow" class="table-link">{{ m.played_at|date:"d.m.Y H:i"|default:"—" }}</a></td>
+                <td>{{ m.map_display|default:"—" }}</td>
+                <td>{% if m.won is None %}—{% else %}<i class="cs2-result-dot{% if m.won %} cs2-result-dot--win{% else %} cs2-result-dot--loss{% endif %}">{% if m.won %}W{% else %}L{% endif %}</i>{% endif %} {{ m.score }}</td>
+                <td>{{ m.kills }} / {{ m.deaths }} / {{ m.assists }}</td>
+                <td>{{ m.kd_ratio|floatformat:2 }}</td>
+                <td>{{ m.headshots_percent|floatformat:0 }}%</td>
+                <td>{% if m.adr %}{{ m.adr|floatformat:1 }}{% else %}—{% endif %}</td>
+                <td>{{ m.elo|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -806,6 +806,15 @@ class DashboardMenuItem(models.Model):
                 "sort_order": 55,
             },
             {
+                "key": "cs2_players",
+                "label_ru": "Поиск игрока CS2",
+                "label_en": "CS2 player lookup",
+                "url_name": "cs2_stats:players",
+                "group": cls.Group.OVERVIEW,
+                "visibility_condition": cls.Visibility.AUTHENTICATED,
+                "sort_order": 54,
+            },
+            {
                 "key": "cs2_match_history",
                 "label_ru": "CS2 История матчей",
                 "label_en": "CS2 Match History",

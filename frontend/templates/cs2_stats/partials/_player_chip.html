@@ -1,0 +1,6 @@
+<a href="{% url 'cs2_stats:player' p.steam_id %}" class="cs2-player-chip" data-dashboard-nav="true">
+    {% if p.avatar_url %}<img src="{{ p.avatar_url }}" alt="" width="32" height="32" loading="lazy">{% else %}<span class="cs2-player-chip__ph"></span>{% endif %}
+    <span class="cs2-player-chip__name">{{ p.display_name }}</span>
+    {% if p.vac_bans or p.game_bans %}<span class="cs2-ban-pill">BAN</span>{% endif %}
+    {% if p.faceit_level %}<span class="cs2-player-chip__elo">{% if value %}{{ value }}{% else %}—{% endif %} <small>ELO</small></span>{% endif %}
+</a>

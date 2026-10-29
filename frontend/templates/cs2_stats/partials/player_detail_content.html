@@ -1,0 +1,189 @@
+<section class="section section--compact cs2-stats-page cs2-player-page">
+    <div class="dashboard-hero card cs2-stats-hero">
+        <div class="card-body dashboard-hero__body">
+            <div class="cs2-stats-hero__main">
+                <div class="cs2-stats-hero__identity">
+                    {% if player.avatar_url %}<img src="{{ player.avatar_url }}" alt="{{ player.display_name }}" class="cs2-stats-hero__avatar">{% endif %}
+                    <div>
+                        <span class="eyebrow">{% if LANGUAGE_CODE == "ru" %}Статистика CS2{% else %}CS2 stats{% endif %}{% if player.country %} · {{ player.country }}{% endif %}</span>
+                        <h1 class="page-title page-title--sm cs2-stats-hero__name">{{ player.display_name }}</h1>
+                        <div class="cs2-stats-hero__meta text-muted">
+                            <span>SteamID <strong>{{ player.steam_id }}</strong></span>
+                            {% if player.playtime_hours %}<span>{% if LANGUAGE_CODE == "ru" %}Часов в CS2:{% else %}Hours:{% endif %} <strong>{{ player.playtime_hours }}</strong></span>{% endif %}
+                            {% if player.steam_created_at %}<span>{% if LANGUAGE_CODE == "ru" %}Аккаунт с{% else %}Since{% endif %} <strong>{{ player.steam_created_at|date:"Y" }}</strong></span>{% endif %}
+                        </div>
+                        <div class="cs2-player-pills">
+                            {% if player.vac_bans or player.game_bans %}
+                                <span class="cs2-ban-pill">{% if player.vac_bans %}VAC × {{ player.vac_bans }}{% endif %}{% if player.vac_bans and player.game_bans %} · {% endif %}{% if player.game_bans %}{% if LANGUAGE_CODE == "ru" %}игровой бан{% else %}game ban{% endif %} × {{ player.game_bans }}{% endif %}{% if player.days_since_last_ban %} · {{ player.days_since_last_ban }} {% if LANGUAGE_CODE == "ru" %}дн. назад{% else %}days ago{% endif %}{% endif %}</span>
+                            {% else %}
+                                <span class="status-pill">{% if LANGUAGE_CODE == "ru" %}Банов нет{% else %}No bans{% endif %}</span>
+                            {% endif %}
+                            {% if player.profile_url %}<a class="status-pill" href="{{ player.profile_url }}" target="_blank" rel="noopener nofollow">Steam ↗</a>{% endif %}
+                            {% if player.faceit_nickname %}<a class="status-pill" href="https://www.faceit.com/ru/players/{{ player.faceit_nickname|urlencode }}" target="_blank" rel="noopener nofollow">FACEIT ↗</a>{% endif %}
+                            {% if caseup_profile %}<a class="status-pill" href="{% url 'profiles:profile_detail' caseup_profile.user_id %}" data-dashboard-nav="true">{% if LANGUAGE_CODE == "ru" %}Профиль в CaseUP{% else %}CaseUP profile{% endif %}</a>{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {% if player.faceit_level %}
+                    <div class="cs2-faceit-badge cs2-faceit-badge--l{{ player.faceit_level }}" title="FACEIT">
+                        {% if faceit_level_icon %}<img class="cs2-faceit-badge__icon" src="{{ faceit_level_icon }}" alt="FACEIT {{ player.faceit_level }}" width="52" height="52" onerror="this.hidden=true;this.nextElementSibling.hidden=false">{% endif %}
+                        <span class="cs2-faceit-badge__level"{% if faceit_level_icon %} hidden{% endif %}>{{ player.faceit_level }}</span>
+                        <span class="cs2-faceit-badge__meta">
+                            <b>{{ player.faceit_elo }} ELO</b>
+                            {% if faceit_progress %}
+                                <span class="cs2-faceit-badge__bar"><span style="width: {{ faceit_progress.percent }}%;"></span></span>
+                                <small>{% if faceit_progress.next_level %}{% if LANGUAGE_CODE == "ru" %}до {{ faceit_progress.next_level }} уровня {{ faceit_progress.elo_to_next }} ELO{% else %}{{ faceit_progress.elo_to_next }} ELO to level {{ faceit_progress.next_level }}{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}максимальный уровень{% else %}max level{% endif %}{% endif %}</small>
+                            {% endif %}
+                        </span>
+                    </div>
+                {% endif %}
+
+                <form method="post" action="{% url 'cs2_stats:player' player.steam_id %}" class="inline-form">
+                    {% csrf_token %}
+                    <button type="submit" class="cs2-history-action-btn cs2-history-action-btn--sync">
+                        {% include "components/icon.html" with name="refresh" %}
+                        <span>{% if LANGUAGE_CODE == "ru" %}Обновить{% else %}Refresh{% endif %}</span>
+                    </button>
+                </form>
+                <a href="{% url 'cs2_stats:players' %}" class="cs2-history-action-btn cs2-history-action-btn--back" data-dashboard-nav="true">
+                    {% include "components/icon.html" with name="search" %}
+                    <span>{% if LANGUAGE_CODE == "ru" %}Другой игрок{% else %}Another player{% endif %}</span>
+                </a>
+            </div>
+            {% if player.last_synced_at %}<p class="text-muted cs2-player-search__note">{% if LANGUAGE_CODE == "ru" %}Обновлено{% else %}Updated{% endif %} {{ player.last_synced_at|date:"d.m.Y H:i" }}</p>{% endif %}
+        </div>
+    </div>
+
+    {% if player.faceit_player_id %}
+    <div class="cs2-headline">
+        <div class="cs2-headline__tile cs2-headline__tile--accent">
+            <span class="cs2-headline__label">{% if LANGUAGE_CODE == "ru" %}Макс. ELO{% else %}Max ELO{% endif %}</span>
+            <strong class="cs2-headline__value">{{ player.faceit_max_elo|default:player.faceit_elo }}</strong>
+            <span class="cs2-headline__source">{% if player.faceit_max_elo_source == "history" %}{% if LANGUAGE_CODE == "ru" %}за всё время{% else %}all time{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}по данным CaseUP{% else %}seen by CaseUP{% endif %}{% endif %}{% if player.faceit_max_elo_at %} · {{ player.faceit_max_elo_at|date:"d.m.Y" }}{% endif %}</span>
+        </div>
+        <div class="cs2-headline__tile">
+            <span class="cs2-headline__label">K/D</span>
+            <strong class="cs2-headline__value">{{ faceit.kd|default:0|floatformat:"-2" }}</strong>
+            <span class="cs2-headline__source">FACEIT</span>
+        </div>
+        <div class="cs2-headline__tile">
+            <span class="cs2-headline__label">{% if LANGUAGE_CODE == "ru" %}Винрейт{% else %}Win rate{% endif %}</span>
+            <strong class="cs2-headline__value">{{ faceit.win_rate|default:0|floatformat:"-1" }}%</strong>
+            <span class="cs2-headline__source">FACEIT</span>
+        </div>
+        <div class="cs2-headline__tile">
+            <span class="cs2-headline__label">{% if LANGUAGE_CODE == "ru" %}Матчей{% else %}Matches{% endif %}</span>
+            <strong class="cs2-headline__value">{{ faceit.matches|default:0 }}</strong>
+            <span class="cs2-headline__source">FACEIT</span>
+        </div>
+    </div>
+
+    <article class="card">
+        <div class="card-body">
+            <div class="section-head-inline">
+                <h2 class="section-title">FACEIT CS2</h2>
+                {% if player.faceit_nickname %}<span class="status-pill">{{ player.faceit_nickname }}</span>{% endif %}
+                {% if faceit.recent_results %}<span class="cs2-recent-results">{% for r in faceit.recent_results %}<i class="cs2-result-dot{% if r == '1' %} cs2-result-dot--win{% else %} cs2-result-dot--loss{% endif %}">{% if r == '1' %}W{% else %}L{% endif %}</i>{% endfor %}</span>{% endif %}
+            </div>
+            <div class="cs2-details-grid">
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="K/D" label_en="K/D" value=faceit.kd highlight=True %}
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="HS %" label_en="HS %" value=faceit.hs_percent unit="%" %}
+                {% if faceit.adr %}{% include "cs2_stats/partials/_big_stat.html" with label_ru="ADR" label_en="ADR" value=faceit.adr %}{% endif %}
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="Побед" label_en="Wins" value=faceit.wins %}
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="Лучшая серия" label_en="Best streak" value=faceit.longest_win_streak %}
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="Текущая серия" label_en="Current streak" value=faceit.current_win_streak %}
+            </div>
+        </div>
+    </article>
+
+    {% if faceit_maps %}
+    <article class="card">
+        <div class="card-body">
+            <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}FACEIT по картам{% else %}FACEIT per map{% endif %}</h2>
+            <div class="cs2-map-grid">
+                {% for row in faceit_maps %}
+                <div class="cs2-map-card" data-map="{{ row.map_code }}" style="--map-c1: {{ row.color }}; --map-c2: {{ row.color2 }};">
+                    <div class="cs2-map-card__bg"></div>
+                    <div class="cs2-map-card__overlay"></div>
+                    <div class="cs2-map-card__body">
+                        <strong class="cs2-map-card__name">{{ row.map_name }}</strong>
+                        <div class="cs2-map-card__winrate">
+                            <span class="cs2-map-card__wr-value">{{ row.win_rate|floatformat:0 }}<small>%</small></span>
+                            <span class="cs2-map-card__wr-label">WR</span>
+                        </div>
+                        <div class="cs2-map-card__stats"><span>{{ row.matches }} {% if LANGUAGE_CODE == "ru" %}матчей{% else %}matches{% endif %}</span></div>
+                        <div class="cs2-map-card__kd text-muted">K/D {{ row.kd|floatformat:2 }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </article>
+    {% endif %}
+
+    <article class="card">
+        <div class="card-body">
+            <div class="section-head-inline">
+                <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Последние матчи FACEIT{% else %}Latest FACEIT matches{% endif %}</h2>
+                {% if stored_matches %}<a href="{% url 'cs2_stats:player_matches' player.steam_id %}" class="status-pill" data-dashboard-nav="true">{% if LANGUAGE_CODE == "ru" %}Все матчи ({{ stored_matches }}){% else %}All matches ({{ stored_matches }}){% endif %}</a>{% endif %}
+            </div>
+            {% if backfill_running %}<p class="text-muted">{% if LANGUAGE_CODE == "ru" %}Загружаем всю историю матчей и ELO в фоне, обновите страницу через пару минут.{% else %}Loading the full match and ELO history in the background, refresh in a couple of minutes.{% endif %}</p>{% endif %}
+            {% if recent_matches %}
+                {% include "cs2_stats/partials/_faceit_match_table.html" with matches=recent_matches %}
+            {% else %}
+                <p class="text-muted empty-state">{% if LANGUAGE_CODE == "ru" %}Матчей пока нет.{% else %}No matches yet.{% endif %}</p>
+            {% endif %}
+        </div>
+    </article>
+    {% elif player.faceit_error == "no_account" %}
+    <p class="cs2-steam-hint">{% if LANGUAGE_CODE == "ru" %}У этого игрока нет аккаунта FACEIT для CS2.{% else %}This player has no FACEIT CS2 account.{% endif %}</p>
+    {% endif %}
+
+    {% if steam.matches or steam.kills %}
+    <article class="card">
+        <div class="card-body">
+            <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Steam — вся статистика CS2{% else %}Steam — lifetime CS2 stats{% endif %}</h2>
+            <div class="cs2-details-grid">
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="Убийства" label_en="Kills" value=steam.kills %}
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="Смерти" label_en="Deaths" value=steam.deaths %}
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="K/D" label_en="K/D" value=steam.kd highlight=True %}
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="HS %" label_en="HS %" value=steam.hs_percent unit="%" %}
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="Матчей" label_en="Matches" value=steam.matches %}
+                {% if steam.matches_won %}{% include "cs2_stats/partials/_big_stat.html" with label_ru="Побед в матчах" label_en="Matches won" value=steam.matches_won %}{% endif %}
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="Round %" label_en="Round %" value=steam.rounds_won_percent unit="%" %}
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="MVPs" label_en="MVPs" value=steam.mvps %}
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="Точность" label_en="Accuracy" value=steam.accuracy unit="%" %}
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="Бомб заложено" label_en="Bombs planted" value=steam.bombs_planted %}
+                {% include "cs2_stats/partials/_big_stat.html" with label_ru="Бомб обезврежено" label_en="Bombs defused" value=steam.bombs_defused %}
+            </div>
+        </div>
+    </article>
+    {% if steam_maps %}
+    <article class="card">
+        <div class="card-body">
+            <h2 class="section-title">{% if LANGUAGE_CODE == "ru" %}Steam по картам{% else %}Steam per map{% endif %}</h2>
+            <div class="cs2-map-grid">
+                {% for row in steam_maps %}
+                <div class="cs2-map-card" data-map="{{ row.map_code }}" style="--map-c1: {{ row.color }}; --map-c2: {{ row.color2 }};">
+                    <div class="cs2-map-card__bg"></div>
+                    <div class="cs2-map-card__overlay"></div>
+                    <div class="cs2-map-card__body">
+                        <strong class="cs2-map-card__name">{{ row.map_name }}</strong>
+                        <div class="cs2-map-card__winrate">
+                            <span class="cs2-map-card__wr-value">{{ row.win_rate|floatformat:1 }}<small>%</small></span>
+                            <span class="cs2-map-card__wr-label">WR</span>
+                        </div>
+                        <div class="cs2-map-card__stats"><span>{{ row.wins }}W</span><span class="text-muted">/</span><span>{{ row.rounds_played }}R</span></div>
+                        <div class="cs2-map-card__kd text-muted">K/D {{ row.kd_ratio|floatformat:2 }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </article>
+    {% endif %}
+    {% elif player.steam_error == "private" %}
+    <p class="cs2-steam-hint">{% if LANGUAGE_CODE == "ru" %}Профиль Steam или игровые данные скрыты, поэтому Steam не отдаёт статистику матчмейкинга и часы.{% else %}The Steam profile or game details are private, so Steam does not share matchmaking stats and hours.{% endif %}</p>
+    {% endif %}
+</section>
