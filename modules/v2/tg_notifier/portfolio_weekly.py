@@ -160,8 +160,6 @@ def build_weekly_portfolio(user, *, now: datetime | None = None):
 
 
 def send_due_weekly(*, now: datetime | None = None) -> int:
-    from .bot import _link
-
     now = now or timezone.now()
     if not is_enabled():
         return 0
@@ -187,23 +185,29 @@ def send_due_weekly(*, now: datetime | None = None) -> int:
         )
         if not claimed:
             continue
-        user = prefs.user
-        built = build_weekly_portfolio(user, now=now) if _has_access(user) else None
-        if built:
-            caption, picture = built
-            link = _link(reverse("steam_trading:investments"), "portfolio_weekly")
-            markup = {"inline_keyboard": [[url_button("Открыть портфель", link)]]} if link else None
-            try:
-                send_photo(photo=picture, chat_id=chat_id_of(user), caption=caption, parse_mode=HTML,
-                           filename="portfolio.png", content_type="image/png", reply_markup=markup)
-            except TelegramNotifierError:
-                logger.warning("tg_notifier: weekly portfolio picture to user %s failed, sending text", user.pk, exc_info=True)
-                try:
-                    send_message(text=caption, chat_id=chat_id_of(user), parse_mode=HTML, reply_markup=markup)
-                except TelegramNotifierError:
-                    # Released again: the next tick tries again.
-                    logger.warning("tg_notifier: weekly portfolio to user %s failed", user.pk, exc_info=True)
-                    TelegramUserPrefs.objects.filter(pk=prefs.pk).update(weekly_portfolio_last_sent_on=previous)
-                    continue
-            sent += 1
+        try:
+            sent += _send_weekly(prefs.user, now=now)
+        except Exception:
+            # Released again whatever broke (the chart, the data, Telegram): the next tick tries again.
+            logger.warning("tg_notifier: weekly portfolio to user %s failed", prefs.user_id, exc_info=True)
+            TelegramUserPrefs.objects.filter(pk=prefs.pk).update(weekly_portfolio_last_sent_on=previous)
     return sent
+
+
+def _send_weekly(user, *, now: datetime) -> int:
+    """1 when the summary went out, 0 when the user has nothing to get; raises when sending failed."""
+    from .bot import _link
+
+    built = build_weekly_portfolio(user, now=now) if _has_access(user) else None
+    if not built:
+        return 0
+    caption, picture = built
+    link = _link(reverse("steam_trading:investments"), "portfolio_weekly")
+    markup = {"inline_keyboard": [[url_button("Открыть портфель", link)]]} if link else None
+    try:
+        send_photo(photo=picture, chat_id=chat_id_of(user), caption=caption, parse_mode=HTML,
+                   filename="portfolio.png", content_type="image/png", reply_markup=markup)
+    except TelegramNotifierError:
+        logger.warning("tg_notifier: weekly portfolio picture to user %s failed, sending text", user.pk, exc_info=True)
+        send_message(text=caption, chat_id=chat_id_of(user), parse_mode=HTML, reply_markup=markup)
+    return 1

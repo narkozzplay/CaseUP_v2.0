@@ -109,3 +109,10 @@ class WeeklyPortfolioTests(TestCase):
             self.assertEqual(portfolio_weekly.send_due_weekly(now=monday_at(10, 5)), 0)
         self.assertIsNone(TelegramUserPrefs.objects.get(user=self.user).weekly_portfolio_last_sent_on)
         self.assertEqual(portfolio_weekly.send_due_weekly(now=monday_at(10, 10)), 1)
+
+    def test_released_when_the_chart_breaks(self):
+        self._pro()
+        TelegramUserPrefs.objects.create(user=self.user, digest_time=time(10))
+        with patch("modules.v2.tg_notifier.portfolio_weekly.render_week_chart", side_effect=OSError("font")):
+            self.assertEqual(portfolio_weekly.send_due_weekly(now=monday_at(10, 5)), 0)
+        self.assertIsNone(TelegramUserPrefs.objects.get(user=self.user).weekly_portfolio_last_sent_on)
