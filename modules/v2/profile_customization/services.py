@@ -382,7 +382,7 @@ def mark_grants_seen(user) -> None:
     EffectGrant.objects.filter(user=user, seen_at__isnull=True).update(seen_at=timezone.now())
 
 
-def _compute_look(customization: UserCustomization | None) -> dict:
+def _compute_look(customization: UserCustomization | None, *, owned: set | None = None) -> dict:
     """{slot: key} of the effects the profile may show right now."""
     if customization is None:
         return {}
@@ -393,7 +393,8 @@ def _compute_look(customization: UserCustomization | None) -> dict:
     user = customization.user
     if any(effect.is_pro or effect.is_reward for effect in picked.values()):
         can_customize = can_customize_profile(user) if any(effect.is_pro for effect in picked.values()) else False
-        owned = owned_effects(user) if any(effect.is_reward for effect in picked.values()) else set()
+        if owned is None:
+            owned = owned_effects(user) if any(effect.is_reward for effect in picked.values()) else set()
         picked = {
             slot: effect
             for slot, effect in picked.items()
@@ -411,6 +412,34 @@ def _look_keys(user_id) -> dict:
         .first()
     )
     return _compute_look(customization)
+
+
+def prime_looks(user_ids) -> None:
+    """Load the looks of many users in two queries, for lists (chat messages, friends, leaderboards).
+
+    Fills the per-request memo of _look_keys, so the template tag finds them ready. Outside a
+    request there is no memo and this does nothing.
+    """
+    from modules.v2.system.request_cache import _request_cache
+
+    memo = _request_cache.get()
+    if memo is None:
+        return
+    ids = {int(uid) for uid in user_ids if uid}
+    key = lambda uid: (_look_keys.__module__, _look_keys.__qualname__, (uid,), ())  # noqa: E731 - same key as request_memoize
+    ids = {uid for uid in ids if key(uid) not in memo}
+    if not ids:
+        return
+    customizations = {
+        c.user_id: c
+        for c in UserCustomization.objects.filter(user_id__in=ids).select_related("user", "user__profile_v2")
+    }
+    grants: dict[int, set] = {}
+    for user_id, slot, effect_key in EffectGrant.objects.filter(user_id__in=customizations.keys()).values_list("user_id", "slot", "key"):
+        grants.setdefault(user_id, set()).add((slot, effect_key))
+    for uid in ids:
+        customization = customizations.get(uid)
+        memo[key(uid)] = _compute_look(customization, owned=grants.get(uid, set())) if customization else {}
 
 
 def get_profile_look(user_or_id) -> dict:

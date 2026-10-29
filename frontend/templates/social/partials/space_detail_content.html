@@ -67,6 +67,7 @@
             </header>
 
                 <div class="social-message-list" id="social-msg-list">
+                    {% pfx_prime social_messages "author_user_id" %}
                     {% for message in social_messages %}
                         {% pfx_look message.author_user_id as look %}
                         <div class="social-message {% if message.is_own %}social-message--own{% endif %}">

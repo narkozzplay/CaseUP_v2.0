@@ -587,3 +587,26 @@ class ShowcaseTests(TestCase):
         self.assertContains(resp, "data-pcz-showcase")
         client.post(reverse("profile_customization:save_showcase"), {})
         self.assertFalse(ShowcaseItem.objects.filter(user=self.user).exists())
+
+
+class PrimeLooksTests(TestCase):
+    def test_many_users_in_a_fixed_number_of_queries(self):
+        from modules.v2.system.request_cache import _request_cache
+
+        from .services import get_profile_look, grant_effect, prime_looks, set_effect
+
+        users = [_make_user(f"prime_{index}") for index in range(5)]
+        for user in users:
+            set_effect(user, "name", "milspec")
+        grant_effect(users[0], "title", "veteran", send_notification=False)
+        set_effect(users[0], "title", "veteran")
+        token = _request_cache.set({})
+        try:
+            with self.assertNumQueries(2):
+                prime_looks([user.pk for user in users])
+            with self.assertNumQueries(0):
+                looks = [get_profile_look(user.pk) for user in users]
+        finally:
+            _request_cache.reset(token)
+        self.assertTrue(all(look["name"] == "pfx-name--milspec" for look in looks))
+        self.assertEqual(looks[0]["title"].key, "veteran")

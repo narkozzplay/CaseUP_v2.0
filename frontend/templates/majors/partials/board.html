@@ -1,6 +1,7 @@
 {% load profile_looks %}<table class="mj-board">
     <thead><tr><th>#</th><th>Игрок</th><th class="mj-board__num">Верных</th><th class="mj-board__num">Стадий</th>{% if show_stages %}{% for stage in stages %}<th class="mj-board__num mj-board__stage">{{ stage.name }}</th>{% endfor %}{% endif %}</tr></thead>
     <tbody>
+        {% pfx_prime board "user" %}
         {% for row in board %}
             <tr{% if request.user.is_authenticated and row.user.pk == request.user.pk %} class="is-me"{% endif %}>
                 <td class="mj-board__place">{{ row.place }}</td>

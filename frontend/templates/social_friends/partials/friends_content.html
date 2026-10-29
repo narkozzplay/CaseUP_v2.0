@@ -11,6 +11,7 @@
 
     {% if friend_rows %}
         <div class="chat-list">
+            {% load profile_looks %}{% pfx_prime friend_rows "user_id" %}
             {% for row in friend_rows %}
                 {% include "social_friends/partials/_person_row.html" with row_actions="social_friends/partials/_friend_actions.html" %}
             {% endfor %}
