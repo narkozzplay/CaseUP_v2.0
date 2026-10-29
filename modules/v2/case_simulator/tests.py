@@ -351,6 +351,9 @@ class ControlCenterCaseTests(TestCase):
                 prefix + "image_url": "",
                 prefix + "sort_order": "100",
             })
+        # A blank extra row as the browser sends it, with the model defaults pre-filled.
+        blank = f"items-{len(items)}-"
+        data.update({blank + "rarity": "milspec", blank + "value": "0.00", blank + "sort_order": "100", blank + "stattrak_allowed": "on"})
         data.update(overrides)
         return data
 
@@ -401,7 +404,7 @@ class ControlCenterCaseTests(TestCase):
         data = self._post_data(self.case, **{"items-0-DELETE": "on"})
         response = self.client.post(reverse("control_center:case_edit", args=[self.case.pk]), data)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "уже выпадал")
+        self.assertContains(response, "уже выпадал игрокам, его нельзя удалить")
         self.assertTrue(SimCaseItem.objects.filter(pk=item.pk).exists())
 
     def test_float_range_validated(self):
@@ -420,3 +423,18 @@ class ControlCenterCaseTests(TestCase):
         empty = SimCase.objects.create(slug="empty-cc", name="Empty")
         self.client.post(reverse("control_center:cases"), {"case_id": empty.pk, "action": "delete"})
         self.assertFalse(SimCase.objects.filter(pk=empty.pk).exists())
+
+    def test_negative_price_rejected(self):
+        data = self._post_data(self.case, case_price="-10")
+        response = self.client.post(reverse("control_center:case_edit", args=[self.case.pk]), data)
+        self.assertContains(response, "не может быть отрицательной")
+        self.case.refresh_from_db()
+        self.assertGreater(self.case.case_price, 0)
+
+    def test_item_in_active_terminal_offer_cannot_be_deleted(self):
+        item = self.case.items.first()
+        TerminalSession.objects.create(user=self.admin, case=self.case, offers=[{"item_id": item.pk}])
+        data = self._post_data(self.case, **{"items-0-DELETE": "on"})
+        response = self.client.post(reverse("control_center:case_edit", args=[self.case.pk]), data)
+        self.assertContains(response, "открытого терминала")
+        self.assertTrue(SimCaseItem.objects.filter(pk=item.pk).exists())

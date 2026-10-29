@@ -3,7 +3,7 @@ from __future__ import annotations
 from django import forms
 from django.forms import BaseInlineFormSet, inlineformset_factory
 
-from .models import SimCase, SimCaseItem
+from .models import SimCase, SimCaseItem, TerminalSession
 
 
 def _text(**attrs):
@@ -57,6 +57,18 @@ class SimCaseForm(forms.ModelForm):
             "image": "Файл важнее ссылки. Без обеих берётся обложка из static/img/cases/<slug>.webp.",
         }
 
+    def _non_negative(self, name):
+        value = self.cleaned_data.get(name)
+        if value is not None and value < 0:
+            raise forms.ValidationError("Цена не может быть отрицательной.")
+        return value
+
+    def clean_case_price(self):
+        return self._non_negative("case_price")
+
+    def clean_key_price(self):
+        return self._non_negative("key_price")
+
     def clean_terminal_offers(self):
         value = self.cleaned_data.get("terminal_offers") or 0
         if not 1 <= value <= 20:
@@ -103,6 +115,7 @@ class BaseSimCaseItemFormSet(BaseInlineFormSet):
         if any(self.errors):
             return
         alive = 0
+        offered_ids = None
         for form in self.forms:
             if not getattr(form, "cleaned_data", None):
                 continue
@@ -112,10 +125,22 @@ class BaseSimCaseItemFormSet(BaseInlineFormSet):
                     raise forms.ValidationError(
                         f"«{item.name}» уже выпадал игрокам, его нельзя удалить. Поставьте вес 0, чтобы он больше не выпадал."
                     )
+                if item.pk:
+                    if offered_ids is None:
+                        offered_ids = self._active_offer_item_ids()
+                    if item.pk in offered_ids:
+                        raise forms.ValidationError(
+                            f"«{item.name}» сейчас в предложениях открытого терминала, удалить его нельзя. Поставьте вес 0."
+                        )
                 continue
             alive += 1
         if alive == 0 and self.instance.is_active:
             raise forms.ValidationError("В активном кейсе должен быть хотя бы один предмет.")
+
+
+    def _active_offer_item_ids(self) -> set[int]:
+        sessions = TerminalSession.objects.filter(case=self.instance, status=TerminalSession.Status.ACTIVE)
+        return {offer.get("item_id") for offers in sessions.values_list("offers", flat=True) for offer in offers or []}
 
 
 SimCaseItemFormSet = inlineformset_factory(
