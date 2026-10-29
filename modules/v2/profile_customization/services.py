@@ -441,12 +441,17 @@ get_profile_effect_classes = get_profile_look
 # ---------------------------------------------------------------------------
 
 def showcase_candidates(user, *, limit: int = 60) -> list:
-    """Items the user follows: favorites, price alerts and investments, newest first."""
+    """Items already pinned, then those the user follows: favorites, price alerts and investments.
+
+    Pinned items stay in the list even after the favorite or alert behind them is gone,
+    so they can always be unpinned.
+    """
     from modules.v2.steam_catalog.models import SteamItem, SteamItemFavorite, UserPriceAlertRule
     from modules.v2.steam_trading.models import SteamPurchase
 
     ids: list[int] = []
     for qs in (
+        ShowcaseItem.objects.filter(user=user).order_by("position", "id").values_list("item_id", flat=True),
         SteamItemFavorite.objects.filter(user=user).order_by("-created_at").values_list("item_id", flat=True),
         UserPriceAlertRule.objects.filter(user=user, item__isnull=False).order_by("-id").values_list("item_id", flat=True),
         SteamPurchase.objects.filter(created_by=user).order_by("-purchased_at").values_list("item_id", flat=True),

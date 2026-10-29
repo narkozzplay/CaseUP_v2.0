@@ -7,7 +7,7 @@ from django.urls import reverse
 from modules.v2.profiles.models import UserProfile
 from modules.v2.subscriptions.models import SubscriptionPlan, UserSubscription
 
-from .models import SteamAvatar, SteamBackground, UserCustomization
+from .models import ShowcaseItem, SteamAvatar, SteamBackground, UserCustomization
 from .services import (
     add_avatar,
     add_background,
@@ -575,3 +575,15 @@ class ShowcaseTests(TestCase):
         resp = client.get(reverse("profiles:profile"), **PARTIAL_HEADERS)
         self.assertContains(resp, "pfx-showcase__item")
         self.assertContains(resp, "Item 2")
+
+    def test_pinned_item_can_be_cleared_after_its_favorite_is_gone(self):
+        from modules.v2.steam_catalog.models import SteamItemFavorite
+
+        client = Client()
+        client.force_login(self.user)
+        client.post(reverse("profile_customization:save_showcase"), {"items": [self.items[0].pk]})
+        SteamItemFavorite.objects.filter(user=self.user).delete()
+        resp = client.get(reverse("profile_customization:catalog") + "?tab=showcase", **PARTIAL_HEADERS)
+        self.assertContains(resp, "data-pcz-showcase")
+        client.post(reverse("profile_customization:save_showcase"), {})
+        self.assertFalse(ShowcaseItem.objects.filter(user=self.user).exists())
