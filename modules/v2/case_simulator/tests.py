@@ -492,3 +492,11 @@ class ControlCenterCaseTests(TestCase):
         self.client.post(reverse("control_center:cases"), {"case_id": self.case.pk, "action": "toggle"})
         self.case.refresh_from_db()
         self.assertFalse(self.case.is_active)
+
+    def test_case_used_by_daily_bonus_reward_cannot_be_deleted(self):
+        from modules.v2.daily_bonus.models import DailyBonusReward
+
+        empty = SimCase.objects.create(slug="reward-case", name="Reward")
+        DailyBonusReward.objects.update_or_create(day=7, defaults={"kind": DailyBonusReward.Kind.CASE, "case": empty})
+        self.client.post(reverse("control_center:cases"), {"case_id": empty.pk, "action": "delete"})
+        self.assertTrue(SimCase.objects.filter(pk=empty.pk).exists())

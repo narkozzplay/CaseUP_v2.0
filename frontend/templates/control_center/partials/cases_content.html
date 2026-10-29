@@ -40,7 +40,7 @@
                                 <form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="case_id" value="{{ case.pk }}">
                                     {% if case.is_active %}<a href="{% if case.is_terminal %}{% url 'case_simulator:terminal' case.slug %}{% else %}{% url 'case_simulator:detail' case.slug %}{% endif %}" class="btn btn-ghost btn-sm" target="_blank" rel="noopener" data-dashboard-nav="false">На сайте</a>{% endif %}
                                     <button type="submit" name="action" value="toggle" class="btn btn-ghost btn-sm">{% if case.is_active %}Выключить{% else %}Включить{% endif %}</button>
-                                    {% if not case.openings_count and not case.free_count and not case.promo_count %}<button type="submit" name="action" value="delete" class="btn btn-ghost btn-sm" onclick="return confirm('Удалить кейс «{{ case.name|escapejs }}» вместе с содержимым?');">Удалить</button>{% endif %}
+                                    {% if not case.openings_count and not case.free_count and not case.promo_count and not case.reward_count %}<button type="submit" name="action" value="delete" class="btn btn-ghost btn-sm" onclick="return confirm('Удалить кейс «{{ case.name|escapejs }}» вместе с содержимым?');">Удалить</button>{% endif %}
                                 </form>
                             </td>
                         </tr>
