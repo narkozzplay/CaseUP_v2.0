@@ -75,6 +75,11 @@ class WeeklyPortfolioTests(TestCase):
         self.assertIn("Fracture Case ×10", payload["caption"])
         self.assertEqual(json.loads(payload["reply_markup"])["inline_keyboard"][0][0]["text"], "Открыть портфель")
 
+    def test_sent_to_investors_who_never_saved_bot_settings(self):
+        self._pro()
+        self.assertEqual(portfolio_weekly.send_due_weekly(now=monday_at(10, 5)), 1)
+        self.assertTrue(TelegramUserPrefs.objects.get(user=self.user).weekly_portfolio_enabled)
+
     def test_not_sent_without_pro(self):
         TelegramUserPrefs.objects.create(user=self.user, digest_time=time(10))
         self.assertEqual(portfolio_weekly.send_due_weekly(now=monday_at(10, 5)), 0)

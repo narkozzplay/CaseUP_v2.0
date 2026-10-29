@@ -225,7 +225,7 @@ def investments_dashboard(request):
 
     history_context = {}
     if advanced_analytics_access.is_available and purchases:
-        history_context = _portfolio_history_context(request)
+        history_context = _portfolio_history_context(request, purchases)
 
     return render_dashboard_page(
         request,
@@ -260,12 +260,11 @@ def investments_dashboard(request):
     )
 
 
-def _portfolio_history_context(request) -> dict:
-    """The chart, the week block and the 7-day column; over all purchases, not only the 300 listed."""
-    all_purchases = list(get_investment_purchase_queryset(user=request.user))
+def _portfolio_history_context(request, purchases) -> dict:
+    """The chart, the week block and the 7-day column, over the same purchases as the KPI cards."""
     range_code = portfolio_history.normalize_range(request.GET.get("range", ""))
     after_fee = request.GET.get("fee") == "1"
-    days = portfolio_history.cached_portfolio_days(request.user, all_purchases, range_code=range_code, after_fee=after_fee)
+    days = portfolio_history.cached_portfolio_days(request.user, purchases, range_code=range_code, after_fee=after_fee)
     params = request.GET.copy()
     params.pop("range", None)
     params.pop("fee", None)
@@ -281,8 +280,8 @@ def _portfolio_history_context(request) -> dict:
     fee_value = "1" if after_fee else ""
     return {
         "portfolio_chart": portfolio_history.build_portfolio_chart(days),
-        "portfolio_week": portfolio_history.cached_week_summary(request.user, all_purchases, after_fee=after_fee),
-        "portfolio_item_week": portfolio_history.cached_item_week_changes(request.user, all_purchases),
+        "portfolio_week": portfolio_history.cached_week_summary(request.user, purchases, after_fee=after_fee),
+        "portfolio_item_week": portfolio_history.cached_item_week_changes(request.user, purchases),
         "portfolio_range": range_code,
         "portfolio_after_fee": after_fee,
         "portfolio_range_links": [

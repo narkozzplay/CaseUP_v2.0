@@ -166,8 +166,17 @@ def send_due_weekly(*, now: datetime | None = None) -> int:
     if not is_enabled():
         return 0
     sent = 0
+    from modules.v2.steam_trading.models import SteamPurchase
+
     linked = UserProfile.objects.exclude(Q(telegram_chat_id__isnull=True) | Q(telegram_chat_id="")).values("user_id")
-    for prefs in TelegramUserPrefs.objects.filter(weekly_portfolio_enabled=True, user_id__in=linked).select_related("user"):
+    investors = SteamPurchase.objects.filter(created_by_id__in=linked).values("created_by_id")
+    # The summary is on by default, so investors who never saved bot settings get theirs now.
+    TelegramUserPrefs.objects.bulk_create(
+        [TelegramUserPrefs(user_id=user_id) for user_id in set(investors.values_list("created_by_id", flat=True))
+         .difference(TelegramUserPrefs.objects.values_list("user_id", flat=True))],
+        ignore_conflicts=True,
+    )
+    for prefs in TelegramUserPrefs.objects.filter(weekly_portfolio_enabled=True, user_id__in=investors).select_related("user"):
         if not weekly_due(prefs, now):
             continue
         user = prefs.user
