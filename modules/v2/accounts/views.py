@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LogoutView
+from django.http import HttpResponseForbidden
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -58,6 +59,26 @@ def _safe_next(request) -> str:
 
 class UserLogoutView(LogoutView):
     next_page = reverse_lazy("frontend:home")
+
+
+@login_required
+@require_POST
+def view_as_user_start(request):
+    from modules.v2.profiles.view_as_user import SESSION_KEY, can_view_as_user
+
+    if not can_view_as_user(request.user):
+        return HttpResponseForbidden("Режим «глазами пользователя» доступен только команде.")
+    request.session[SESSION_KEY] = True
+    return redirect(_safe_next(request) or "frontend:dashboard_preview")
+
+
+@login_required
+@require_POST
+def view_as_user_exit(request):
+    from modules.v2.profiles.view_as_user import SESSION_KEY
+
+    request.session.pop(SESSION_KEY, None)
+    return redirect(_safe_next(request) or "frontend:dashboard_preview")
 
 
 class RegisterDisabledView(View):

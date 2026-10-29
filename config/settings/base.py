@@ -116,6 +116,7 @@ MIDDLEWARE = [
     "modules.v2.control_center.middleware.ActivityContextMiddleware",
     "modules.v2.accounts.middleware.UserSessionMiddleware",
     "modules.v2.accounts.middleware.TwoFactorMiddleware",
+    "modules.v2.profiles.view_as_user.ViewAsUserMiddleware",
     "modules.v2.system.middleware.MaintenanceModeMiddleware",
     "modules.v2.system.middleware.ModuleAccessMiddleware",
     "modules.v2.profiles.middleware.UserLastSeenMiddleware",

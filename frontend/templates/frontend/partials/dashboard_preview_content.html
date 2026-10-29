@@ -18,6 +18,13 @@
                     Project metrics, who is online, quick links and the latest changes on one screen.
                 {% endif %}
             </p>
+            {% if can_view_as_user %}
+                <form method="post" action="{% url 'accounts:view_as_user_start' %}" class="ops-hero__actions">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn btn-secondary btn-sm" title="{% if LANGUAGE_CODE == 'ru' %}Сайт откроется так, как его видит обычный пользователь без подписки. Выйти можно в любой момент по кнопке сверху.{% else %}See the site as a regular user without a subscription. Exit any time from the bar at the top.{% endif %}">{% include "components/icon.html" with name="eye" %}{% if LANGUAGE_CODE == "ru" %}Смотреть как пользователь{% else %}View as user{% endif %}</button>
+                </form>
+            {% endif %}
         </div>
         <dl class="ops-hero__meta">
             <div>
