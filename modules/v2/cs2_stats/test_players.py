@@ -280,5 +280,5 @@ class FaceitMapRowsTests(TestCase):
         self.assertEqual(overpass["matches"], 8)
         self.assertEqual(overpass["win_rate"], 75)
         self.assertEqual(overpass["kd"], 1.05)
-        self.assertEqual(overpass["img"], "https://img/o.jpg")
+        self.assertTrue(overpass["img"].endswith("img/maps/de_overpass.webp"))
         self.assertEqual(overpass["map_name"], "Overpass")
