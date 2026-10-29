@@ -11,6 +11,7 @@
     <a href="{% url 'control_center:daily_bonus' %}" class="cc-tab{% if cc_tab == 'daily_bonus' %} is-active{% endif %}">{% include "components/icon.html" with name="daily_bonus" %}<span>Бонус дня</span></a>
     <a href="{% url 'control_center:donations' %}" class="cc-tab{% if cc_tab == 'donations' %} is-active{% endif %}">{% include "components/icon.html" with name="donations" %}<span>Донаты</span></a>
     <a href="{% url 'control_center:ads' %}" class="cc-tab{% if cc_tab == 'ads' %} is-active{% endif %}">{% include "components/icon.html" with name="promo" %}<span>Реклама</span></a>
+    <a href="{% url 'control_center:majors' %}" class="cc-tab{% if cc_tab == 'majors' %} is-active{% endif %}">{% include "components/icon.html" with name="majors" %}<span>Мейджоры</span></a>
     <a href="{% url 'control_center:moderation' %}" class="cc-tab{% if cc_tab == 'moderation' %} is-active{% endif %}">{% include "components/icon.html" with name="cc_moderation" %}<span>Модерация</span></a>
     <a href="{% url 'control_center:audit' %}" class="cc-tab{% if cc_tab == 'audit' %} is-active{% endif %}">{% include "components/icon.html" with name="cc_audit" %}<span>Журнал</span></a>
     <a href="{% url 'control_center:activity' %}" class="cc-tab{% if cc_tab == 'activity' %} is-active{% endif %}">{% include "components/icon.html" with name="clock" %}<span>Логи</span></a>

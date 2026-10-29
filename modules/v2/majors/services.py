@@ -100,6 +100,35 @@ def advance_winners(stage: Stage) -> None:
             match.save()
 
 
+def create_bracket(stage: Stage, *, third_place: bool = False) -> int:
+    """Add the empty playoff matches that are missing: 4 quarterfinals, 2 semifinals, the final and, if asked, 3rd place."""
+    slots = [(R.QUARTERFINAL, s) for s in range(1, 5)] + [(R.SEMIFINAL, 1), (R.SEMIFINAL, 2), (R.FINAL, 1)]
+    if third_place:
+        slots.append((R.THIRD_PLACE, 1))
+    existing = set(stage.matches.values_list("round", "slot"))
+    missing = [Match(stage=stage, round=round_no, slot=slot) for round_no, slot in slots if (round_no, slot) not in existing]
+    Match.objects.bulk_create(missing)
+    return len(missing)
+
+
+def carry_over_teams(stage: Stage) -> int:
+    """Add the teams that advanced from the previous stage, seeded by their record (3-0 first)."""
+    previous = stage.major.stages.filter(order__lt=stage.order).order_by("-order").first()
+    if previous is None:
+        return 0
+    order = {StageTeam.Record.R30: 0, StageTeam.Record.R31: 1, StageTeam.Record.R32: 2}
+    advanced = sorted((entry for entry in previous.entries.all() if entry.advanced), key=lambda entry: (order.get(entry.record, 9), entry.seed))
+    present = set(stage.entries.values_list("team_id", flat=True))
+    next_seed = (stage.entries.order_by("-seed").values_list("seed", flat=True).first() or 0) + 1
+    added = 0
+    for entry in advanced:
+        if entry.team_id in present:
+            continue
+        StageTeam.objects.create(stage=stage, team_id=entry.team_id, seed=next_seed + added)
+        added += 1
+    return added
+
+
 # --------------------------------------------------------------------------- saving picks
 
 
