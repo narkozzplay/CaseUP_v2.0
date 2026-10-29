@@ -8,16 +8,12 @@ from urllib.parse import urlencode
 
 import requests
 from django.conf import settings
-from django.utils import timezone
 
 from .base import BasePaymentProvider, PaymentProviderError, ProviderPayment
 
 
 PAY_URL = "https://pay.fk.money/"
 API_URL = "https://api.fk.life/v1"
-
-# A payment nobody paid within this time is closed (FreeKassa keeps no expiry of its own we could read).
-UNPAID_TTL_SECONDS = 24 * 60 * 60
 
 # https://docs.freekassa.net: order status in the API (0 new, 1 paid, 8 error, 9 canceled).
 API_STATUS_MAP = {
@@ -131,15 +127,7 @@ class FreeKassaProvider(BasePaymentProvider):
                         raw=payload,
                     )
 
-        age = (timezone.now() - payment.created_at).total_seconds() if payment.created_at else 0
-        if age > UNPAID_TTL_SECONDS:
-            return ProviderPayment(
-                external_id=payment.external_id,
-                status="canceled",
-                error_message="Платёж не был оплачен.",
-                is_test=payment.is_test,
-                raw=payload,
-            )
+        # FreeKassa keeps no expiry of its own; reconciliation cancels it after the site's payment timeout.
         return ProviderPayment(external_id=payment.external_id, status="pending", is_test=payment.is_test, raw=payload)
 
     def _api_signature(self, data: dict) -> str:

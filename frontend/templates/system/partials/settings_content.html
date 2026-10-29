@@ -58,6 +58,8 @@
                     <label class="cc-field form-field cc-span-2"><span>Реквизиты владельца</span>{{ form.legal_owner_details }}{{ form.legal_owner_details.errors }}</label>
                     <label class="cc-field form-field"><span>Комиссия при пополнении, %</span>{{ form.topup_fee_percent }}
                         <small class="cc-help">Добавляется к сумме пополнения: комиссия платёжной системы + сервисный сбор. Внутренние покупки на сайте без комиссии.</small>{{ form.topup_fee_percent.errors }}</label>
+                    <label class="cc-field form-field"><span>Срок оплаты пополнения, мин</span>{{ form.payment_unpaid_timeout_minutes }}
+                        <small class="cc-help">Неоплаченный за это время платёж отменяется при автосверке. Если оплата всё же придёт позже, деньги зачислятся.</small>{{ form.payment_unpaid_timeout_minutes.errors }}</label>
                 </div>
             </article>
 

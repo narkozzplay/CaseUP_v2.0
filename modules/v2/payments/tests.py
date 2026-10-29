@@ -612,16 +612,92 @@ class FreeKassaFlowTests(TestCase):
         response = self.client.get(reverse("payments:freekassa_return"), {"MERCHANT_ORDER_ID": "not-a-uuid"})
         self.assertRedirects(response, reverse("payments:topup"), fetch_redirect_response=False)
 
-    def test_unpaid_payment_is_closed_after_a_day(self):
+    def _age(self, payment, minutes):
         from datetime import timedelta
 
         from django.utils import timezone
 
-        _response, payment = self._start()
-        Payment.objects.filter(pk=payment.pk).update(created_at=timezone.now() - timedelta(days=2))
+        Payment.objects.filter(pk=payment.pk).update(created_at=timezone.now() - timedelta(minutes=minutes))
         payment.refresh_from_db()
 
-        self.assertEqual(sync_payment(payment).status, Payment.Status.CANCELED)
+    def test_unpaid_payment_is_canceled_after_the_timeout_from_settings(self):
+        from modules.v2.system.services import get_site_configuration
+
+        from .services import reconcile_pending_payments
+
+        config = get_site_configuration()
+        config.payment_unpaid_timeout_minutes = 15
+        config.save(update_fields=["payment_unpaid_timeout_minutes"])
+        _response, payment = self._start()
+        self._age(payment, 10)
+
+        reconcile_pending_payments()
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.PENDING)
+
+        self._age(payment, 16)
+        stats = reconcile_pending_payments()
+        payment.refresh_from_db()
+        self.assertEqual(stats["expired"], 1)
+        self.assertEqual(payment.status, Payment.Status.CANCELED)
+        self.assertIn("15 мин", payment.error_message)
+
+    def test_late_notification_still_credits_a_canceled_payment(self):
+        from .services import reconcile_pending_payments
+
+        _response, payment = self._start()
+        self._age(payment, 31)
+        reconcile_pending_payments()
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.CANCELED)
+
+        # The payer comes back without paying: the payment stays canceled.
+        sync_payment(payment)
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.CANCELED)
+
+        response = self._notify(_freekassa_notification(payment))
+
+        self.assertEqual(response.content, b"YES")
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.SUCCEEDED)
+        self.user.profile_v2.refresh_from_db()
+        self.assertEqual(self.user.profile_v2.balance_coins, Decimal("300.00"))
+
+    @override_settings(FREEKASSA_API_KEY="api-key")
+    @mock.patch("modules.v2.payments.providers.freekassa.requests.post")
+    def test_payment_is_checked_with_the_api_before_it_is_canceled(self, post_mock):
+        from .services import reconcile_pending_payments
+
+        _response, payment = self._start()
+        self._age(payment, 45)
+        post_mock.return_value = mock.Mock(status_code=200)
+        post_mock.return_value.json.return_value = {
+            "type": "success",
+            "orders": [{"merchant_order_id": str(payment.public_id), "amount": 300, "currency": "RUB", "status": 1}],
+        }
+
+        stats = reconcile_pending_payments()
+
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.SUCCEEDED)
+        self.assertEqual((stats["credited"], stats["expired"]), (1, 0))
+
+    @override_settings(FREEKASSA_API_KEY="api-key")
+    @mock.patch("modules.v2.payments.providers.freekassa.requests.post")
+    def test_payment_is_not_canceled_while_the_api_is_down(self, post_mock):
+        import requests
+
+        from .services import reconcile_pending_payments
+
+        _response, payment = self._start()
+        self._age(payment, 45)
+        post_mock.side_effect = requests.ConnectionError()
+
+        reconcile_pending_payments()
+
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.PENDING)
 
     @override_settings(FREEKASSA_API_KEY="api-key")
     @mock.patch("modules.v2.payments.providers.freekassa.requests.post")
