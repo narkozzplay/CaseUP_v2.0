@@ -756,6 +756,10 @@
 
 .alert-form:has(#id_repeat_mode option[value="step"]:not(:checked)) .alert-form__repeat-step { display: none; }
 
+/* «Цена достигла X ₽» needs only the price; the change thresholds and repeats are for the other kind */
+.alert-form:has(#id_kind option[value="target"]:checked) .alert-form__change { display: none; }
+.alert-form:has(#id_kind option[value="change"]:checked) .alert-form__target { display: none; }
+
 /* ===== Steam Market search / add ===== */
 .add-item-layout {
     display: grid;

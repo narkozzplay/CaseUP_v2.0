@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import secrets
-from datetime import timedelta
+from datetime import time, timedelta
 from decimal import Decimal
 
 from django.conf import settings
@@ -204,3 +204,65 @@ class ChannelDigestPost(models.Model):
 
     def __str__(self) -> str:
         return f"ChannelDigestPost({self.created_at:%Y-%m-%d %H:%M}, {self.status})"
+
+
+# Callables: a fixed time() default trips Django's W161 check when it happens to be close to the current time.
+def default_quiet_from():
+    return time(23, 0)
+
+
+def default_quiet_to():
+    return time(9, 0)
+
+
+def default_digest_time():
+    return time(10, 0)
+
+
+class TelegramUserPrefs(models.Model):
+    """A user's Telegram bot settings: quiet hours, a daily cap on notices and the personal daily digest.
+
+    Also keeps the day's notice counter, so the cap needs no extra table.
+    """
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="telegram_prefs")
+    quiet_enabled = models.BooleanField("Тихие часы", default=True)
+    quiet_from = models.TimeField("С", default=default_quiet_from)
+    quiet_to = models.TimeField("До", default=default_quiet_to)
+    # 0 means no cap.
+    daily_limit = models.PositiveSmallIntegerField("Уведомлений в день", default=30)
+    digest_enabled = models.BooleanField("Личная сводка", default=False)
+    digest_time = models.TimeField("Время сводки", default=default_digest_time)
+    digest_last_sent_on = models.DateField(null=True, blank=True)
+    counter_date = models.DateField(null=True, blank=True)
+    counter_value = models.PositiveIntegerField(default=0)
+    # The «limit reached» note is sent once a day.
+    limit_notice_on = models.DateField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Telegram bot settings"
+        verbose_name_plural = "Telegram bot settings"
+
+    def __str__(self) -> str:
+        return f"TelegramUserPrefs(user={self.user_id})"
+
+
+class TelegramDeferredNotice(models.Model):
+    """A notice held back during quiet hours; sent when they end."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="telegram_deferred_notices")
+    text = models.TextField()
+    # The notice's buttons, sent with it when quiet hours end.
+    reply_markup = models.JSONField(default=dict, blank=True)
+    # The site notification it copies: once that is read (say, the bonus got claimed) the notice is dropped.
+    notification = models.ForeignKey("notifications.Notification", on_delete=models.CASCADE, null=True, blank=True, related_name="+")
+    # Dropped unsent after this moment (a «claim before midnight» reminder is no use next morning).
+    expires_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+    def __str__(self) -> str:
+        return f"TelegramDeferredNotice(user={self.user_id})"

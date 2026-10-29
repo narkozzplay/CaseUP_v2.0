@@ -1,0 +1,32 @@
+{% with form=telegram_prefs_form %}
+<article class="card profile-card-accent" id="settings-telegram">
+    <div class="card-body">
+        <h2 class="section-title">Telegram-бот</h2>
+        {% if profile.telegram_is_linked %}
+            <p class="text-muted" style="margin-bottom:.75rem;">Бот{% if telegram_bot_username %} <a href="https://t.me/{{ telegram_bot_username }}" target="_blank" rel="noopener noreferrer">@{{ telegram_bot_username }}</a>{% endif %} присылает алерты цен, сделки рынка и напоминание о бонусе дня, а ещё отвечает на команды: /price, /favorites, /alerts, /portfolio, /balance, /top.</p>
+        {% else %}
+            <p class="text-muted" style="margin-bottom:.75rem;">Telegram не привязан — настройки заработают после привязки. Подключить можно <a href="{% url 'profiles:profile' %}">в профиле</a>.</p>
+        {% endif %}
+        <form method="post" action="{% url 'tg_notifier_public:bot_prefs' %}" class="form-stack">
+            {% csrf_token %}
+            <label class="cc-field-check">{{ form.quiet_enabled }}<span>{{ form.quiet_enabled.label }}</span></label>
+            <div class="form-row" style="display:flex; gap:.75rem;">
+                <div class="form-field" style="flex:1;"><label for="{{ form.quiet_from.id_for_label }}">{{ form.quiet_from.label }}</label>{{ form.quiet_from }}</div>
+                <div class="form-field" style="flex:1;"><label for="{{ form.quiet_to.id_for_label }}">{{ form.quiet_to.label }}</label>{{ form.quiet_to }}</div>
+            </div>
+            <small class="text-muted">{{ form.quiet_enabled.help_text }}</small>
+            <div class="form-field">
+                <label for="{{ form.daily_limit.id_for_label }}">{{ form.daily_limit.label }}</label>
+                {{ form.daily_limit }}
+                <small class="text-muted">{{ form.daily_limit.help_text }}</small>
+            </div>
+            <label class="cc-field-check">{{ form.digest_enabled }}<span>{{ form.digest_enabled.label }}</span></label>
+            <div class="form-field">
+                <label for="{{ form.digest_time.id_for_label }}">{{ form.digest_time.label }}</label>
+                {{ form.digest_time }}
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Сохранить</button>
+        </form>
+    </div>
+</article>
+{% endwith %}

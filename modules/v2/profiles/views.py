@@ -424,6 +424,12 @@ def profile_settings_view(request):
     from modules.v2.webpush.services import settings_context as push_settings_context
 
     context["push_settings"] = push_settings_context(request.user)
+    from modules.v2.tg_notifier.delivery import get_prefs
+    from modules.v2.tg_notifier.forms import TelegramUserPrefsForm
+    from modules.v2.tg_notifier.services import get_telegram_notifier_config
+
+    context["telegram_prefs_form"] = TelegramUserPrefsForm(instance=get_prefs(request.user))
+    context["telegram_bot_username"] = (get_telegram_notifier_config().bot_username or "").strip().lstrip("@")
     profile_display_name = context["profile_display_name"]
     return render_dashboard_page(
         request,

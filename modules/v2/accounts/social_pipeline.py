@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from social_core.exceptions import AuthForbidden
+from social_core.exceptions import AuthPolicyError
 
 from modules.v2.system.services import is_registration_enabled
 
@@ -98,7 +98,7 @@ def enforce_registration_enabled(backend: Any, user: Any = None, *args, **kwargs
     if is_registration_enabled():
         return
 
-    raise AuthForbidden(backend, "Steam registration is disabled")
+    raise AuthPolicyError(backend, "Steam registration is disabled")
 
 
 def require_legal_consent(strategy, backend: Any, user: Any = None, *args, **kwargs):

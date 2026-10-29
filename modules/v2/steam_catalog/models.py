@@ -285,6 +285,10 @@ class PriceDropAlertEvent(models.Model):
 
 
 class UserPriceAlertRule(models.Model):
+    class Kind(models.TextChoices):
+        CHANGE = "change", "Цена изменилась сильнее порога"
+        TARGET = "target", "Цена достигла заданной"
+
     class ScopeType(models.TextChoices):
         ITEM = "item", "Конкретный предмет"
         FAMILY = "family", "Группа / family"
@@ -336,6 +340,9 @@ class UserPriceAlertRule(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="steam_price_alert_rules")
     name = models.CharField(max_length=255)
+    kind = models.CharField(max_length=8, choices=Kind.choices, default=Kind.CHANGE)
+    # Kind.TARGET: the price to reach — from below for Direction.UP, from above for Direction.DOWN.
+    target_price_rub = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     scope_type = models.CharField(max_length=16, choices=ScopeType.choices, default=ScopeType.ITEM_TYPE, db_index=True)
     item = models.ForeignKey(SteamItem, on_delete=models.CASCADE, related_name="user_alert_rules", null=True, blank=True)
     family_name = models.CharField(max_length=255, blank=True, default="", db_index=True)
@@ -377,6 +384,14 @@ class UserPriceAlertRule(models.Model):
             raise ValidationError({"family_name": "Укажите family/group name."})
         if self.scope_type == self.ScopeType.ITEM_TYPE and not (self.item_type or "").strip():
             raise ValidationError({"item_type": "Укажите тип предмета."})
+        if self.kind == self.Kind.TARGET:
+            if self.scope_type != self.ScopeType.ITEM:
+                raise ValidationError({"scope_type": "Цель по цене ставится на конкретный предмет."})
+            if not self.target_price_rub or self.target_price_rub <= Decimal("0"):
+                raise ValidationError({"target_price_rub": "Укажите цену больше нуля."})
+            if self.direction == self.Direction.BOTH:
+                raise ValidationError({"direction": "Выберите, ждём рост до цены или падение до неё."})
+            return
         if self.window_value <= 0:
             raise ValidationError({"window_value": "Значение окна должно быть больше 0."})
         if self.min_change_rub <= Decimal("0") and self.min_change_percent <= Decimal("0"):

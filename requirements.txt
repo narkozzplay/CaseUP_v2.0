@@ -1,6 +1,6 @@
 Django>=5.2,<5.3
-social-auth-app-django>=6.1,<7.0
-social-auth-core>=5.2,<6.0
+social-auth-app-django>=7.0,<8.0
+social-auth-core>=6.2,<7.0
 psycopg[binary]>=3.2,<4.0
 celery[redis]>=5.4,<6.0
 gunicorn>=23.0,<24.0

@@ -15,7 +15,7 @@ from modules.v2.profiles.models import UserProfile, UserRole
 from modules.v2.profiles.services.balance import adjust_balance
 from modules.v2.subscriptions.models import SubscriptionFeature, SubscriptionPlan, UserSubscription
 from modules.v2.system.services import update_module_states
-from modules.v2.tg_notifier.models import TelegramNotifierConfig
+from modules.v2.tg_notifier.models import TelegramNotifierConfig, TelegramUserPrefs
 from .models import (
     PriceDropAlertEvent,
     PriceDropAlertRule,
@@ -1136,6 +1136,8 @@ class UserPriceAlertRuleTests(TestCase):
             dedupe_key="dispatch-test",
         )
         TelegramNotifierConfig.objects.create(singleton_key=1, is_enabled=True, bot_token="123456:ABCDEF", default_chat_id="-100555", investment_message_template="Предмет: {{ item_name }}")
+        # Quiet hours would hold the notice back at night.
+        TelegramUserPrefs.objects.create(user=self.user, quiet_enabled=False)
         with patch("modules.v2.tg_notifier.services._telegram_api_request") as api_mock:
             api_mock.return_value = {"ok": True, "result": {"message_id": 1}}
             sent = dispatch_pending_user_price_alerts(limit=10)

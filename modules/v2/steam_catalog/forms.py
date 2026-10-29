@@ -104,13 +104,15 @@ class UserPriceAlertRuleForm(forms.ModelForm):
     class Meta:
         model = UserPriceAlertRule
         fields = [
-            "name", "scope_type", "item", "family_name", "item_type", "direction", "reference_point",
+            "name", "kind", "target_price_rub", "scope_type", "item", "family_name", "item_type", "direction", "reference_point",
             "threshold_mode", "window_kind", "window_value", "min_change_rub", "min_change_percent",
             "cooldown_minutes", "repeat_step_rub", "repeat_step_percent", "repeat_mode",
             "transport", "delivery_target", "status",
         ]
         widgets = {field: forms.TextInput(attrs={"class": "form-control"}) for field in ["name", "family_name"]}
         widgets.update({
+            "kind": forms.Select(attrs={"class": "form-control"}),
+            "target_price_rub": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0.01"}),
             "scope_type": forms.Select(attrs={"class": "form-control"}),
             "item": forms.Select(attrs={"class": "form-control"}),
             "item_type": forms.Select(attrs={"class": "form-control"}),
@@ -131,6 +133,8 @@ class UserPriceAlertRuleForm(forms.ModelForm):
         })
         labels = {
             "name": "Название правила",
+            "kind": "Когда уведомить",
+            "target_price_rub": "Цена, ₽",
             "scope_type": "Что отслеживаем",
             "item": "Предмет",
             "family_name": "Семейство",
@@ -152,6 +156,7 @@ class UserPriceAlertRuleForm(forms.ModelForm):
         }
         help_texts = {
             "family_name": "Например, AK-47 | Redline. Сработает на любой износ.",
+            "target_price_rub": "Направление «Рост» — ждём, когда цена поднимется до неё, «Падение» — опустится. Сработает один раз и выключится.",
             "window_value": "Число часов, дней или точек истории.",
             "repeat_step_rub": "Для режима «Повторно по шагам».",
         }
@@ -163,9 +168,14 @@ class UserPriceAlertRuleForm(forms.ModelForm):
         self.fields["item"].required = False
         self.fields["family_name"].required = False
         self.fields["item_type"].required = False
+        # Forms posted before the «Цена достигла» kind existed keep meaning «price changed».
+        self.fields["kind"].required = False
         if user is not None:
             self.instance.user = user
         self._was_active = bool(self.instance.pk) and self.instance.status == UserPriceAlertRule.Status.ACTIVE
+
+    def clean_kind(self):
+        return self.cleaned_data.get("kind") or UserPriceAlertRule.Kind.CHANGE
 
     def clean(self):
         cleaned_data = super().clean()

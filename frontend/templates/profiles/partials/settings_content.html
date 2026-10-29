@@ -41,6 +41,7 @@
 
         {# ===== ПУШ-УВЕДОМЛЕНИЯ (owner only) ===== #}
         {% if is_owner_profile and push_settings %}{% include "webpush/_settings_card.html" %}{% endif %}
+        {% if is_owner_profile and telegram_prefs_form %}{% include "tg_notifier/_bot_settings_card.html" %}{% endif %}
 
         {# ===== АВАТАРКА (owner only) ===== #}
         {% if is_owner_profile and avatar_upload_form %}

@@ -4,7 +4,7 @@ import re
 
 from django import forms
 
-from .models import DEFAULT_INVESTMENT_MESSAGE_TEMPLATE, ChannelDigestSection, TelegramNotifierConfig
+from .models import DEFAULT_INVESTMENT_MESSAGE_TEMPLATE, ChannelDigestSection, TelegramNotifierConfig, TelegramUserPrefs
 
 
 UTM_VALUE_RE = re.compile(r"^[A-Za-z0-9_.-]*$")
@@ -287,3 +287,35 @@ ChannelDigestSectionFormSet = forms.modelformset_factory(
     extra=1,
     can_delete=True,
 )
+
+
+class TelegramUserPrefsForm(forms.ModelForm):
+    """The user's own bot settings, on the profile settings page."""
+
+    class Meta:
+        model = TelegramUserPrefs
+        fields = ["quiet_enabled", "quiet_from", "quiet_to", "daily_limit", "digest_enabled", "digest_time"]
+        widgets = {
+            "quiet_from": forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
+            "quiet_to": forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
+            "digest_time": forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
+            "daily_limit": forms.NumberInput(attrs={"min": 0, "max": 500}),
+        }
+        labels = {
+            "quiet_enabled": "Тихие часы",
+            "quiet_from": "С",
+            "quiet_to": "До",
+            "daily_limit": "Алертов в день, не больше",
+            "digest_enabled": "Сводка по избранному и портфелю раз в день",
+            "digest_time": "Время сводки",
+        }
+        help_texts = {
+            "quiet_enabled": "Алерты и напоминания в это время копятся и приходят одним сообщением утром. Сделки рынка приходят сразу, но без звука.",
+            "daily_limit": "0 — без лимита. Сделки рынка и ответы поддержки в лимит не входят.",
+        }
+
+    def clean_daily_limit(self):
+        value = self.cleaned_data["daily_limit"]
+        if value > 500:
+            raise forms.ValidationError("Не больше 500.")
+        return value
