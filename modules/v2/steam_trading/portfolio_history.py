@@ -101,13 +101,18 @@ class _PriceBook:
         start_at = _day_end(start - timedelta(days=1))
         rows = defaultdict(list)
         for item_id in items:
-            # The last price before the range, so the first day is not empty.
-            before = list(
-                SteamItemPriceHistory.objects.filter(item_id=item_id, created_at__lt=start_at)
-                .order_by("-created_at", "-id")
-                .values_list("created_at", "price_rub", "source")[:20]
-            )
-            rows[item_id].extend(reversed(before))
+            # The last median and the last sweep price before the range, so the first day is not empty.
+            earlier = SteamItemPriceHistory.objects.filter(item_id=item_id, created_at__lt=start_at).order_by("-created_at", "-id")
+            fields = ("created_at", "price_rub", "source")
+            before = [
+                row
+                for row in (
+                    earlier.exclude(source=SWEEP_SOURCE).values_list(*fields).first(),
+                    earlier.filter(source=SWEEP_SOURCE).values_list(*fields).first(),
+                )
+                if row
+            ]
+            rows[item_id].extend(sorted(before, key=lambda row: row[0]))
         for item_id, created_at, price, source in (
             SteamItemPriceHistory.objects.filter(item_id__in=list(items), created_at__gte=start_at)
             .order_by("created_at", "id")

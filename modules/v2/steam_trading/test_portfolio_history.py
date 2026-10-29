@@ -73,6 +73,14 @@ class PortfolioHistoryTests(TestCase):
         days = build_portfolio_days(self._purchases(), days=30)
         self.assertEqual(days[2].value_rub, Decimal("400.00"))
 
+    def test_old_median_wins_over_many_later_sweep_rows(self):
+        self._buy(days_ago=5)
+        self._price(self.case, "40.00", 40)
+        for days_ago in range(39, 9, -1):
+            self._price(self.case, "10.00", days_ago, source=SWEEP_SOURCE)
+        days = build_portfolio_days(self._purchases(), days=3)
+        self.assertEqual(days[0].value_rub, Decimal("400.00"))
+
     def test_after_fee_divides_prices(self):
         self._buy(days_ago=2)
         days = build_portfolio_days(self._purchases(), days=7, after_fee=True)
