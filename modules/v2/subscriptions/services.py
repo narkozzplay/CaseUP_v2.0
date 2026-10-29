@@ -11,6 +11,7 @@ from django.db.models import Prefetch, Q
 from django.utils import timezone
 
 from modules.v2.profiles.models import LedgerReason, UserProfile
+from modules.v2.accounts.view_as import is_view_as_user
 from modules.v2.profiles.rbac import get_user_role
 from modules.v2.profiles.services.balance import BalanceError, adjust_balance
 from modules.v2.system.request_cache import request_memoize
@@ -191,7 +192,7 @@ def is_subscriptions_enabled() -> bool:
 
 
 def get_active_subscription(user, *, family: str | None = DEFAULT_SUBSCRIPTION_FAMILY) -> UserSubscription | None:
-    if not getattr(user, "is_authenticated", False):
+    if not getattr(user, "is_authenticated", False) or is_view_as_user(user):
         return None
 
     now = timezone.now()

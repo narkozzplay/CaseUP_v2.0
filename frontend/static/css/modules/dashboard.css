@@ -844,3 +844,7 @@
     .ud-feed__who b { max-width: 22ch; }
     .ud-feed .ops-row__side time { white-space: nowrap; font-size: 0.68rem; }
 }
+
+.ops-hero__actions {
+    margin: 14px 0 0;
+}

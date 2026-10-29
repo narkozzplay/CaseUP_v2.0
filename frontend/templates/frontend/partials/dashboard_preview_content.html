@@ -18,6 +18,12 @@
                     Project metrics, who is online, quick links and the latest changes on one screen.
                 {% endif %}
             </p>
+            {% if role_access.is_admin_plus %}
+                <form method="post" action="{% url 'accounts:view_as_user_enter' %}" class="ops-hero__actions">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-secondary btn-sm" title="{% if LANGUAGE_CODE == 'ru' %}Сайт как у обычного пользователя без подписки, только просмотр{% else %}The site as a regular user without a subscription, read-only{% endif %}">{% include "components/icon.html" with name="profile" %}{% if LANGUAGE_CODE == "ru" %}Смотреть как пользователь{% else %}View as user{% endif %}</button>
+                </form>
+            {% endif %}
         </div>
         <dl class="ops-hero__meta">
             <div>

@@ -1,0 +1,15 @@
+<div class="view-as-banner" role="status">
+    <span class="view-as-banner__text">
+        {% include "components/icon.html" with name="profile" %}
+        {% if LANGUAGE_CODE == "ru" %}
+            <b>Вы смотрите сайт как обычный пользователь.</b> Права админа и подписки скрыты, действия отключены.
+        {% else %}
+            <b>You are viewing the site as a regular user.</b> Admin rights and subscriptions are hidden, actions are off.
+        {% endif %}
+    </span>
+    <form method="post" action="{% url 'accounts:view_as_user_exit' %}" class="view-as-banner__form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="btn btn-primary btn-sm">{% if LANGUAGE_CODE == "ru" %}Вернуться в режим админа{% else %}Back to admin view{% endif %}</button>
+    </form>
+</div>
