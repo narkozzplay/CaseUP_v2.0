@@ -650,13 +650,12 @@ def player_page_context(player: TrackedPlayer) -> dict:
         return CS2_MAPS.get(code, {"name": code.replace("de_", "").title(), "color": "#4A5568", "color2": "#2D3748"})
 
     faceit_maps = faceit_map_rows(player.faceit_maps or [])
-    map_images = {row["map_code"]: row["img"] for row in faceit_maps}
     steam_maps = []
     for row in (player.steam_stats or {}).get("maps") or []:
         info = map_info(row.get("map_code", ""))
         steam_maps.append({
             **row, "map_name": info["name"], "color": info["color"], "color2": info["color2"],
-            "img": map_images.get(row.get("map_code", ""), ""),
+            "img": map_image_url(row.get("map_code", "")),
         })
 
     return {
@@ -674,6 +673,15 @@ def player_page_context(player: TrackedPlayer) -> dict:
         ),
         "backfill_running": needs_backfill(player),
     }
+
+
+def map_image_url(code: str) -> str:
+    """Map preview shipped with the site (static/img/maps/<code>.webp) for every map in CS2_MAPS."""
+    from django.templatetags.static import static
+
+    from .models import CS2_MAPS
+
+    return static(f"img/maps/{code}.webp") if code in CS2_MAPS else ""
 
 
 def _map_key(label: str) -> str:
@@ -694,9 +702,8 @@ def faceit_map_rows(rows: list[dict]) -> list[dict]:
         matches = row.get("matches") or 0
         target = merged.setdefault(code, {
             "map_code": code, "map_name": info["name"], "color": info["color"], "color2": info["color2"],
-            "matches": 0, "wins": 0, "_kd_sum": 0.0, "img": "",
+            "matches": 0, "wins": 0, "_kd_sum": 0.0, "img": map_image_url(code),
         })
-        target["img"] = target["img"] or row.get("img") or ""
         target["matches"] += matches
         target["wins"] += row.get("wins") or round(matches * (row.get("win_rate") or 0) / 100)
         target["_kd_sum"] += (row.get("kd") or 0) * matches

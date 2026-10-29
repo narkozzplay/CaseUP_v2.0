@@ -923,6 +923,7 @@
 .cs2-fc__level, .cs2-fc__peak { padding: 1rem 1.1rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
 .cs2-fc__level { display: flex; align-items: center; gap: 1rem; border-left: 3px solid var(--lvl, var(--accent)); }
 .cs2-fc__level img { flex: none; }
+.cs2-fc__lvlnum[hidden] { display: none; }
 .cs2-fc__lvlnum { width: 56px; height: 56px; flex: none; display: grid; place-items: center; border-radius: 50%; border: 3px solid var(--lvl, var(--accent)); font-weight: 700; font-size: 1.4rem; }
 .cs2-fc__elo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .2rem; }
 .cs2-fc__label { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
