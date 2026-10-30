@@ -101,8 +101,15 @@ class PromoCodeForm(forms.ModelForm):
             elif amount > Decimal("100000"):
                 self.add_error("amount", "Слишком большая сумма.")
         elif kind == PromoCode.Kind.TOPUP_BONUS:
-            if not percent or not 1 <= percent <= 100:
-                self.add_error("percent", "Процент от 1 до 100.")
+            if percent and amount:
+                self.add_error("amount", "Укажите либо процент, либо сумму, не оба сразу.")
+            elif amount:
+                if amount <= 0:
+                    self.add_error("amount", "Сумма бонуса больше нуля.")
+                elif amount > Decimal("100000"):
+                    self.add_error("amount", "Слишком большая сумма.")
+            elif not percent or not 1 <= percent <= 100:
+                self.add_error("percent", "Процент от 1 до 100 или фиксированная сумма бонуса.")
         elif kind == PromoCode.Kind.SUBSCRIPTION_DISCOUNT:
             if not percent or not 1 <= percent <= 90:
                 self.add_error("percent", "Скидка от 1 до 90%.")
@@ -117,8 +124,11 @@ class PromoCodeForm(forms.ModelForm):
         promo = super().save(commit=False)
         promo.owner = self.cleaned_data.get("owner_username")
         # Fields that do not belong to the chosen kind are cleared, so the code does exactly what it says.
-        if promo.kind != PromoCode.Kind.BALANCE_BONUS:
+        if promo.kind not in (PromoCode.Kind.BALANCE_BONUS, PromoCode.Kind.TOPUP_BONUS):
             promo.amount = None
+        if promo.kind == PromoCode.Kind.TOPUP_BONUS and promo.amount:
+            promo.percent = None
+            promo.max_bonus = None
         if promo.kind not in (PromoCode.Kind.TOPUP_BONUS, PromoCode.Kind.SUBSCRIPTION_DISCOUNT):
             promo.percent = None
         if promo.kind != PromoCode.Kind.TOPUP_BONUS:

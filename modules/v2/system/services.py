@@ -210,6 +210,7 @@ INTEGRATION_ENV_SETTINGS = {
     "steam_api_key": "SOCIAL_AUTH_STEAM_API_KEY",
     "faceit_api_key": "FACEIT_API_KEY",
     "telegram_bot_token": "TELEGRAM_BOT_TOKEN",
+    "pandascore_api_key": "PANDASCORE_API_KEY",
 }
 
 
@@ -226,14 +227,16 @@ def get_integration_secret(name: str) -> str:
 
 def save_external_service_integration(*, payload: dict[str, object]) -> ExternalServiceIntegration:
     integration = get_external_service_integration()
-    health_fields = {"steam_health_mode", "faceit_health_mode", "telegram_health_mode"}
+    health_fields = {"steam_health_mode", "faceit_health_mode", "telegram_health_mode", "pandascore_health_mode"}
     for field in (
         "steam_api_key",
         "faceit_api_key",
         "telegram_bot_token",
+        "pandascore_api_key",
         "steam_health_mode",
         "faceit_health_mode",
         "telegram_health_mode",
+        "pandascore_health_mode",
         "degraded_stub_message",
         "down_stub_message",
     ):
@@ -259,6 +262,7 @@ def get_masked_integration_secrets() -> dict[str, str]:
         "steam_api_key": _mask_secret(integration.steam_api_key),
         "faceit_api_key": _mask_secret(integration.faceit_api_key),
         "telegram_bot_token": _mask_secret(integration.telegram_bot_token),
+        "pandascore_api_key": _mask_secret(integration.pandascore_api_key),
     }
 
 
@@ -275,6 +279,7 @@ def get_external_service_health() -> list[ExternalServiceHealth]:
         ("steam", "Steam API", get_integration_secret("steam_api_key"), integration.steam_health_mode, _check_steam),
         ("faceit", "FaceIT API", get_integration_secret("faceit_api_key"), integration.faceit_health_mode, _check_faceit),
         ("telegram", "Telegram Bot API", _telegram_bot_token(), integration.telegram_health_mode, _check_telegram),
+        ("pandascore", "PandaScore (матчи мейджора)", get_integration_secret("pandascore_api_key"), integration.pandascore_health_mode, _check_pandascore),
     ]
     results: list[ExternalServiceHealth] = []
     for key, label, secret, mode, checker in checks:
@@ -317,6 +322,15 @@ def _check_faceit(api_key: str) -> tuple[str, str]:
     if response.status_code in {401, 403}:
         return ("degraded", "FaceIT API отклонил ключ (401/403).")
     return ("degraded", f"FaceIT API вернул HTTP {response.status_code}.")
+
+
+def _check_pandascore(api_key: str) -> tuple[str, str]:
+    from modules.v2.majors.pandascore import PandaScoreError, check_key
+
+    try:
+        return ("up", check_key(api_key))
+    except PandaScoreError as exc:
+        return ("degraded" if exc.status_code else "down", str(exc))
 
 
 def _telegram_bot_token() -> str:

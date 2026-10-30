@@ -1,13 +1,14 @@
 """Promo codes: activation, limits and the four kinds of benefit.
 
 * Balance bonus — credited at activation (LedgerReason.PROMO_BONUS).
-* Top-up bonus — waits for the next real top-up of at least ``min_topup`` and adds ``percent`` of it
-  (ledger hook on TOPUP, after commit).
+* Top-up bonus — waits for the next real top-up of at least ``min_topup`` and adds ``percent`` of it,
+  or the fixed ``amount`` (ledger hook on TOPUP, after commit).
 * Subscription discount — waits for the next subscription purchase; the quote takes the larger of the
   referral discount and this one, and the purchase uses the code up only if the code's discount won.
 * Free case — waits for the next opening of that case, which then costs nothing.
 
-One activation per code per account; at most one pending code of each kind at a time.
+One activation per code per account; at most one pending code of each kind at a time. A new code of
+the same kind replaces the pending one only when the user confirmed it (``replace=True``).
 """
 from __future__ import annotations
 
@@ -35,6 +36,15 @@ _WRONG_PREFIX = "promo-wrong:"
 
 class PromoError(ValueError):
     pass
+
+
+class PromoReplaceRequired(PromoError):
+    """The user already holds an unused code of this kind; activating the new one would drop it."""
+
+    def __init__(self, *, current: PromoActivation, new_code: str):
+        self.current = current
+        self.new_code = new_code
+        super().__init__(f"У вас уже активен промокод {current.promo.code}. Заменить его на {new_code}?")
 
 
 @dataclass(frozen=True)
@@ -77,7 +87,8 @@ def _has_real_topups(user) -> bool:
     return payments.exists()
 
 
-def _check_limits(promo: PromoCode, user) -> None:
+def _check_limits(promo: PromoCode, user, *, replace: bool = False) -> PromoActivation | None:
+    """Raise PromoError when the code cannot be activated; return the pending code it would replace."""
     now = timezone.now()
     if not promo.is_active:
         raise PromoError("Этот промокод больше не действует.")
@@ -100,10 +111,13 @@ def _check_limits(promo: PromoCode, user) -> None:
     if promo.kind != PromoCode.Kind.BALANCE_BONUS:
         pending = PromoActivation.objects.select_related("promo").filter(user=user, status=PromoActivation.Status.PENDING, promo__kind=promo.kind).first()
         if pending is not None and pending.is_usable:
-            raise PromoError(f"У вас уже есть неиспользованный промокод этого типа ({pending.promo.code}). Сначала используйте его.")
+            if not replace:
+                raise PromoReplaceRequired(current=pending, new_code=promo.code)
+            return pending
+    return None
 
 
-def activate(*, user, raw_code: str, ip_address: str | None = None) -> ActivationResult:
+def activate(*, user, raw_code: str, ip_address: str | None = None, replace: bool = False) -> ActivationResult:
     code = normalize_code(raw_code)
     if not code:
         raise PromoError("Введите промокод.")
@@ -117,7 +131,9 @@ def activate(*, user, raw_code: str, ip_address: str | None = None) -> Activatio
     with transaction.atomic():
         # Lock only the promo row: Postgres refuses FOR UPDATE on the nullable side of the joins.
         promo = PromoCode.objects.select_for_update(of=("self",)).select_related("case", "owner").get(pk=promo.pk)
-        _check_limits(promo, user)
+        replaced = _check_limits(promo, user, replace=replace)
+        if replaced is not None:
+            _release(replaced)
         try:
             with transaction.atomic():
                 activation = PromoActivation.objects.create(promo=promo, user=user, ip_address=ip_address or None)
@@ -140,8 +156,19 @@ def activate(*, user, raw_code: str, ip_address: str | None = None) -> Activatio
             message = f"Промокод активирован: следующее открытие кейса «{promo.case.name}» — бесплатно."
 
     referrer = _bind_blogger(promo, user, ip_address)
-    _log(user, "promo.activated", f"Активировал промокод {promo.code}: {promo.benefit_label}", obj=activation)
+    summary = f"Активировал промокод {promo.code}: {promo.benefit_label}"
+    if replaced is not None:
+        summary += f" (вместо {replaced.promo.code})"
+        message = message.replace("Промокод активирован", f"Промокод {replaced.promo.code} заменён на {promo.code}", 1)
+    _log(user, "promo.activated", summary, obj=activation)
     return ActivationResult(activation=activation, message=message, became_referral_of=referrer)
+
+
+def _release(activation: PromoActivation) -> None:
+    """Drop an unused activation as if the code was never entered: the user may come back to it later,
+    and its activation slot goes back to the code's limit."""
+    PromoCode.objects.filter(pk=activation.promo_id, activations_count__gt=0).update(activations_count=F("activations_count") - 1)
+    PromoActivation.objects.filter(pk=activation.pk, status=PromoActivation.Status.PENDING).delete()
 
 
 def _bind_blogger(promo: PromoCode, user, ip_address):
@@ -220,6 +247,18 @@ def free_case_activation(user, case) -> PromoActivation | None:
     return other if other is not None and other.is_usable else None
 
 
+def topup_bonus_for(promo: PromoCode, topup: Decimal) -> Decimal:
+    """What a top-up of ``topup`` earns with this code: the fixed amount, or the percent capped by max_bonus."""
+    if promo.min_topup and topup < promo.min_topup:
+        return Decimal("0")
+    if promo.amount:
+        return Decimal(promo.amount).quantize(MONEY_Q)
+    bonus = (Decimal(topup) * Decimal(promo.percent or 0) / HUNDRED).quantize(MONEY_Q, rounding=ROUND_DOWN)
+    if promo.max_bonus:
+        bonus = min(bonus, Decimal(promo.max_bonus))
+    return bonus
+
+
 def apply_topup_bonus(entry) -> PromoActivation | None:
     """After a top-up: pay the pending top-up code if the payment qualifies (real money, big enough)."""
     from modules.v2.payments.models import Payment
@@ -241,14 +280,14 @@ def apply_topup_bonus(entry) -> PromoActivation | None:
         if activation is None or activation.promo.is_expired:
             return None
         promo = activation.promo
-        if promo.min_topup and entry.delta < promo.min_topup:
-            return None
-        bonus = (Decimal(entry.delta) * Decimal(promo.percent or 0) / HUNDRED).quantize(MONEY_Q, rounding=ROUND_DOWN)
-        if promo.max_bonus:
-            bonus = min(bonus, Decimal(promo.max_bonus))
+        bonus = topup_bonus_for(promo, Decimal(entry.delta))
         if bonus < MONEY_Q:
             return None
-        ledger_entry = _credit(activation.user, bonus, activation, comment=f"Промокод {promo.code}: +{promo.percent}% к пополнению {entry.delta:.2f} ₽", key_suffix=f":{entry.pk}")
+        if promo.amount:
+            comment = f"Промокод {promo.code}: +{bonus:.2f} ₽ к пополнению {entry.delta:.2f} ₽"
+        else:
+            comment = f"Промокод {promo.code}: +{promo.percent}% к пополнению {entry.delta:.2f} ₽"
+        ledger_entry = _credit(activation.user, bonus, activation, comment=comment, key_suffix=f":{entry.pk}")
         _mark_used(activation, amount=bonus, entry=ledger_entry, note=f"Пополнение {entry.delta:.2f} ₽")
     _notify_bonus(activation.user, promo, bonus)
     return activation

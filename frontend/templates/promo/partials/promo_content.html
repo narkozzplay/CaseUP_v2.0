@@ -10,6 +10,7 @@
     <article class="ops-panel">
         <div class="ops-panel__head"><h2 class="ops-panel__title">Активировать промокод</h2></div>
         <div class="ref-body">
+            {% if replace_prompt %}{% include "promo/partials/_replace_prompt.html" %}{% endif %}
             <form method="post" class="ref-link promo-form" data-dashboard-shell-form>
                 {% csrf_token %}
                 <input class="form-control ref-link__input promo-form__code" type="text" name="code" value="{{ prefill_code }}" maxlength="32" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Например, CASEUP50" aria-label="Промокод" required>

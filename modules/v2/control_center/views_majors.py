@@ -9,8 +9,9 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from modules.v2.majors.forms import MajorForm, MatchFormSet, RewardRuleForm, StageForm, StageTeamFormSet, TeamForm
-from modules.v2.majors.models import BracketPick, Major, RewardGrant, RewardRule, Stage, SwissPick, Team
+from modules.v2.majors.forms import MajorForm, MatchFormSet, MatchPostForm, RewardRuleForm, StageForm, StageTeamFormSet, TeamForm
+from modules.v2.majors.models import BracketPick, Major, MatchPost, RewardGrant, RewardRule, Stage, SwissPick, Team
+from modules.v2.majors import match_posts, pandascore
 from modules.v2.majors import services as pickem
 
 from .models import AuditAction
@@ -104,6 +105,18 @@ def major_edit(request, major_id: int | None = None):
     if role_access is None:
         return _forbidden()
     major = get_object_or_404(Major, pk=major_id) if major_id else None
+    if request.method == "POST" and major is not None and request.POST.get("action") == "sync_posts":
+        if not major.pandascore_serie_id:
+            messages.error(request, "Сначала укажите ID серии PandaScore.")
+        else:
+            try:
+                counts = match_posts.sync_major(major)
+            except pandascore.PandaScoreError as exc:
+                messages.error(request, str(exc))
+            else:
+                _log(request, f"Мейджор «{major.name}»: проверка матчей PandaScore", major=major.pk, **counts)
+                messages.success(request, f"Новых матчей: {counts['new']}, опубликовано: {counts['posted']}, пропущено старых: {counts['skipped']}, ошибок: {counts['errors']}.")
+        return redirect(reverse("control_center:major_edit", args=[major.pk]) + "#match-posts")
     if request.method == "POST" and major is not None and request.POST.get("action") in ("settle", "publish"):
         if request.POST["action"] == "settle":
             report = pickem.settle_major(major)
@@ -140,9 +153,47 @@ def major_edit(request, major_id: int | None = None):
             "rules": major.reward_rules.select_related("stage", "plan", "item").annotate(grants_count=Count("grants")),
             "participants": _participants(major),
             "open_grants": RewardGrant.objects.filter(rule__major=major, status__in=OPEN_GRANT_STATUSES).count(),
+            "match_posts": major.match_posts.all()[:50],
+            "pandascore_key_set": bool(pandascore.api_key()),
         })
+    if "find_series" in request.GET:
+        context["series_query"] = (request.GET.get("find_series") or "").strip()
+        try:
+            context["series"] = pandascore.find_series(context["series_query"])
+        except pandascore.PandaScoreError as exc:
+            context["series_error"] = str(exc)
     title = f"{major.name} · Мейджоры" if major else "Новый мейджор"
     return _render(request, partial="control_center/partials/major_edit_content.html", context=context, title=title, tab="majors")
+
+
+# --------------------------------------------------------------------------- match posts in the channel
+
+
+@login_required
+def match_post_edit(request, post_id: int):
+    role_access = _admin_access(request)
+    if role_access is None:
+        return _forbidden()
+    post = get_object_or_404(MatchPost.objects.select_related("major"), pk=post_id)
+    form = MatchPostForm(request.POST or None, instance=post)
+    if request.method == "POST":
+        if form.is_valid():
+            post = form.save()
+            if request.POST.get("action") == "send":
+                was_posted = bool(post.message_id)
+                try:
+                    match_posts.send_post(post)
+                except match_posts.MatchPostError as exc:
+                    messages.error(request, f"Telegram: {exc}")
+                else:
+                    messages.success(request, "Пост в канале обновлён." if was_posted else "Пост опубликован в канале.")
+                    _log(request, f"Мейджор «{post.major.name}»: пост о матче {post} {'обновлён' if was_posted else 'опубликован'}", match_post=post.pk)
+            else:
+                messages.success(request, "Сохранено. Пост в канале не менялся.")
+            return redirect("control_center:match_post_edit", post_id=post.pk)
+        messages.error(request, "Проверьте поля формы.")
+    context = {"role_access": role_access, "post": post, "major": post.major, "form": form, "preview": match_posts.build_text(post)}
+    return _render(request, partial="control_center/partials/major_match_post_content.html", context=context, title=f"{post} · Посты о матчах", tab="majors")
 
 
 # --------------------------------------------------------------------------- stage: teams, records, matches

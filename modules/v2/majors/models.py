@@ -86,6 +86,8 @@ class Major(models.Model):
     items_keyword = models.CharField("Предметы: ключ в названии", max_length=60, blank=True, default="", help_text="Наклейки, капсулы и сувенирные наборы из каталога, в названии которых есть эти слова, например «Singapore 2026».")
     extra_items = models.ManyToManyField("steam_catalog.SteamItem", blank=True, related_name="+", verbose_name="Предметы вручную", help_text="Если предмет не нашёлся по ключу.")
     items_known_count = models.PositiveIntegerField(default=0, editable=False)
+    pandascore_serie_id = models.PositiveIntegerField("PandaScore: ID серии", null=True, blank=True, help_text="Мейджор целиком в PandaScore. Найти ID можно кнопкой ниже.")
+    match_posts_enabled = models.BooleanField("Постить результаты матчей в канал", default=False, help_text="После каждого матча — пост со счётом, картами и выходом по сетке.")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -371,3 +373,44 @@ class RewardGrant(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} · {self.rule.title} · {self.get_status_display()}"
+
+
+class MatchPost(models.Model):
+    """A finished Major match (from PandaScore) and its post in the Telegram channel."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Отправляется"
+        SENT = "sent", "Опубликован"
+        ERROR = "error", "Ошибка"
+        SKIPPED = "skipped", "Пропущен"
+
+    major = models.ForeignKey(Major, on_delete=models.CASCADE, related_name="match_posts")
+    external_id = models.PositiveBigIntegerField("ID матча в PandaScore", unique=True)
+    stage_name = models.CharField("Стадия", max_length=120, blank=True, default="")
+    round_name = models.CharField("Раунд", max_length=60, blank=True, default="")
+    team_a = models.CharField("Команда A", max_length=80)
+    team_b = models.CharField("Команда B", max_length=80)
+    score_a = models.PositiveSmallIntegerField("Карт у A", default=0)
+    score_b = models.PositiveSmallIntegerField("Карт у B", default=0)
+    winner = models.CharField("Победитель", max_length=80, blank=True, default="")
+    # [{"name": "Mirage", "winner": "NAVI", "score_a": 13, "score_b": 9}, ...]; name and rounds may be empty.
+    maps = models.JSONField("Карты", default=list, blank=True)
+    progress = models.CharField("Сетка", max_length=255, blank=True, default="", help_text="Кто прошёл дальше и кто вылетел.")
+    mvp = models.CharField("MVP", max_length=80, blank=True, default="")
+    finished_at = models.DateTimeField("Конец матча", null=True, blank=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING, db_index=True)
+    chat_id = models.CharField(max_length=128, blank=True, default="")
+    message_id = models.BigIntegerField(null=True, blank=True)
+    text = models.TextField(blank=True, default="")
+    error = models.TextField(blank=True, default="")
+    posted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-finished_at", "-id")
+        verbose_name = "Пост о матче"
+        verbose_name_plural = "Посты о матчах"
+
+    def __str__(self) -> str:
+        return f"{self.team_a} {self.score_a}:{self.score_b} {self.team_b}"

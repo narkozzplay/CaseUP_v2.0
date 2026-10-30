@@ -863,6 +863,7 @@ def system_health(request):
             ("Steam API", bool(integration.steam_api_key)),
             ("FACEIT API", bool(integration.faceit_api_key)),
             ("Telegram Bot", bool(integration.telegram_bot_token)),
+            ("PandaScore", bool(integration.pandascore_api_key)),
         ],
         "modules": [
             {"key": key, "label": module.label, "enabled": bool(state_map.get(key, module.default_enabled))}
