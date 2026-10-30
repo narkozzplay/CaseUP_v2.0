@@ -990,6 +990,7 @@ class HostingSettings(models.Model):
     api_synced_at = models.DateTimeField(null=True, blank=True)
     api_error = models.CharField(max_length=300, blank=True, default="")
     api_resources = models.JSONField(default=list, blank=True)
+    api_hourly_cost = models.DecimalField(max_digits=12, decimal_places=5, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

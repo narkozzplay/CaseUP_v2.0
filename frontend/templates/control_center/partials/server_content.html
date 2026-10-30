@@ -68,9 +68,6 @@
 
             <article class="ops-panel" id="items">
                 <div class="ops-panel__head"><h2 class="ops-panel__title">Что оплачиваем с баланса</h2><span class="ops-panel__hint">сменили тариф или добавили IP — измените цену здесь</span></div>
-                {% if forecast.cost_source == "api" and config.api_resources %}
-                    <p class="cc-help srv-pad">Расход считается по данным API провайдера (таблица «По данным API» ниже). Список ниже — для справки.</p>
-                {% endif %}
                 <div class="table-wrap">
                     <table class="table cc-table">
                         <thead><tr><th>Услуга</th><th class="cc-num">Цена</th><th class="cc-num">В месяц</th><th></th></tr></thead>
@@ -89,9 +86,14 @@
                                 <tr><td colspan="4" class="text-muted">Добавьте сервер и IP-адреса, чтобы посчитать расход.</td></tr>
                             {% endfor %}
                         </tbody>
-                        {% if balance_items %}<tfoot><tr><td colspan="2"><b>Итого</b></td><td class="cc-num"><b>{{ forecast.monthly_cost|floatformat:2 }} ₽</b></td><td></td></tr></tfoot>{% endif %}
+                        {% if balance_items %}<tfoot><tr><td colspan="2"><b>Итого</b></td><td class="cc-num"><b>{{ forecast.items_monthly|floatformat:2 }} ₽</b></td><td></td></tr></tfoot>{% endif %}
                     </table>
                 </div>
+                {% if forecast.cost_source == "manual" %}
+                    <p class="cc-help srv-pad">Прогноз считается по расходу, заданному вручную в настройках: {{ forecast.monthly_cost|floatformat:2 }} ₽ в месяц.</p>
+                {% elif forecast.api_monthly is not None and forecast.api_monthly != forecast.items_monthly %}
+                    <p class="cc-help srv-pad">По API провайдера: {{ forecast.api_monthly|floatformat:2 }} ₽ в месяц. {% if forecast.cost_source == "api" %}Это больше списка: возможно, в списке чего-то не хватает.{% else %}Это меньше списка: API показывает не все услуги.{% endif %} Прогноз считается по большей сумме, чтобы не опоздать с пополнением.</p>
+                {% endif %}
             </article>
 
             {% localize off %}
