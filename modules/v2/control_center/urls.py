@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, views_majors
+from . import views, views_majors, views_server
 
 app_name = "control_center"
 
@@ -59,6 +59,7 @@ urlpatterns = [
     path("moderation/", views.moderation, name="moderation"),
     path("moderation/action/", views.moderation_action, name="moderation_action"),
     path("health/", views.system_health, name="health"),
+    path("server/", views_server.server, name="server"),
     path("errors/", views.error_journal, name="errors"),
     path("errors/action/", views.error_journal_action, name="errors_action"),
 ]

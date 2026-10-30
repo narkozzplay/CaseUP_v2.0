@@ -16,6 +16,16 @@ app.conf.beat_schedule = {
         "task": "system.watchdog",
         "schedule": 120.0,
     },
+    # Server load for Control Center → «Сервер» + alerts when memory / CPU stay overloaded.
+    "server-snapshot": {
+        "task": "system.server_snapshot",
+        "schedule": 300.0,
+    },
+    # Cloud balance (provider API when REGRU_CLOUDVPS_TOKEN is set) + «пора пополнить / продлить» alerts.
+    "hosting-check": {
+        "task": "system.hosting_check",
+        "schedule": 3600.0,
+    },
     "run-due-price-auto-updates": {
         "task": "celery_tasks.run_due_price_auto_updates",
         "schedule": float(settings.CELERY_BEAT_PRICE_UPDATE_SCHEDULER_SECONDS),

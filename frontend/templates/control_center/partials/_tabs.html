@@ -18,6 +18,7 @@
     <a href="{% url 'control_center:activity' %}" class="cc-tab{% if cc_tab == 'activity' %} is-active{% endif %}">{% include "components/icon.html" with name="clock" %}<span>Логи</span></a>
     <a href="{% url 'control_center:errors' %}" class="cc-tab{% if cc_tab == 'errors' %} is-active{% endif %}">{% include "components/icon.html" with name="warn" %}<span>Ошибки</span></a>
     <a href="{% url 'control_center:health' %}" class="cc-tab{% if cc_tab == 'health' %} is-active{% endif %}">{% include "components/icon.html" with name="cc_health" %}<span>Система</span></a>
+    <a href="{% url 'control_center:server' %}" class="cc-tab{% if cc_tab == 'server' %} is-active{% endif %}">{% include "components/icon.html" with name="box" %}<span>Сервер</span></a>
     <span class="cc-tabs__spacer"></span>
     <a href="{% url 'system_config:settings' %}" class="cc-tab cc-tab--ghost{% if cc_tab == 'settings' %} is-active{% endif %}" title="System Settings">{% include "components/icon.html" with name="system_settings" %}<span>Настройки</span></a>
     {% if feature_flags.celery_tasks %}<a href="{% url 'celery_tasks:control_center' %}" class="cc-tab cc-tab--ghost{% if cc_tab == 'celery' %} is-active{% endif %}" title="Автообновление цен">{% include "components/icon.html" with name="celery_tasks" %}<span>Автоцены</span></a>{% endif %}

@@ -1,0 +1,287 @@
+{% load l10n %}
+<section class="section section--compact ops cc srv" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <span class="eyebrow">Control Center</span>
+            <h1 class="cc-pagehead__title">Сервер</h1>
+            <p class="ops-hero__text">Оплата сервера ({{ config.provider_name }}) и его нагрузка. Баланс показан за вычетом запаса на {{ forecast.reserve_days }} дн.: пополните до даты ниже, и сервер не остановится, даже если оплата задержится.</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Доступно</dt><dd class="{% if forecast.state == 'ok' %}metric-positive{% elif forecast.state == 'fail' or forecast.state == 'warn' %}metric-negative{% endif %}">{% if forecast.has_balance %}{{ forecast.available|floatformat:2 }} ₽{% else %}—{% endif %}</dd></div>
+            <div><dt>Пополнить до</dt><dd>{% if forecast.renew_by %}{{ forecast.renew_by|date:"d.m.Y" }}{% else %}—{% endif %}</dd></div>
+            <div><dt>Расход</dt><dd>{{ forecast.monthly_cost|floatformat:2 }} ₽/мес</dd></div>
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    {# ------------------------------------------------------------------ balance #}
+    <div id="hosting" class="ops-kpis">
+        <div class="ops-kpi srv-kpi srv-kpi--{{ forecast.state }}">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="cc_wallet" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Доступно без запаса</span>
+                <strong class="ops-kpi__value">{% if forecast.has_balance %}{{ forecast.available|floatformat:2 }} ₽{% else %}—{% endif %}</strong>
+                <span class="ops-kpi__meta">{% if forecast.has_balance %}на балансе ≈ {{ forecast.balance|floatformat:2 }} ₽, запас {{ forecast.reserve_rub|floatformat:2 }} ₽{% else %}укажите баланс ниже{% endif %}</span>
+            </div>
+        </div>
+        <div class="ops-kpi srv-kpi srv-kpi--{{ forecast.state }}">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="clock" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Пополнить до</span>
+                <strong class="ops-kpi__value">{% if forecast.renew_by %}{{ forecast.renew_by|date:"d.m.Y" }}{% else %}—{% endif %}</strong>
+                <span class="ops-kpi__meta">{% if forecast.renew_by %}{% if forecast.days_to_renew <= 0 %}запас уже тратится{% else %}через {{ forecast.days_to_renew|floatformat:0 }} дн.{% endif %} · на {{ forecast.topup_amount|floatformat:2 }} ₽{% endif %}</span>
+            </div>
+        </div>
+        <div class="ops-kpi">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="warn" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Деньги закончатся</span>
+                <strong class="ops-kpi__value">{% if forecast.runs_out_at %}{{ forecast.runs_out_at|date:"d.m.Y" }}{% else %}—{% endif %}</strong>
+                <span class="ops-kpi__meta">{% if forecast.days_left is not None %}в {{ forecast.runs_out_at|date:"H:i" }}, через {{ forecast.days_left|floatformat:1 }} дн. сервер остановится{% endif %}</span>
+            </div>
+        </div>
+        <div class="ops-kpi">
+            <span class="ops-kpi__icon">{% include "components/icon.html" with name="cc_ledger" %}</span>
+            <div class="ops-kpi__body">
+                <span class="ops-kpi__label">Расход</span>
+                <strong class="ops-kpi__value">{{ forecast.hourly_cost|floatformat:2 }} ₽/час</strong>
+                <span class="ops-kpi__meta">{{ forecast.monthly_cost|floatformat:2 }} ₽ в месяц{% if forecast.cost_source == "api" %} · по данным API{% elif forecast.cost_source == "manual" %} · задан вручную{% endif %}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="ops-grid">
+        <div class="ops-grid__main">
+            {% localize off %}
+            <form method="post" class="ops-panel" data-srv-topup data-balance="{{ forecast.balance|default:0 }}" data-hourly="{{ forecast.hourly_cost }}" data-reserve-days="{{ forecast.reserve_days }}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="topup">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Баланс пополнен</h2>{% if config.panel_url %}<a href="{{ config.panel_url }}" class="ops-panel__link" target="_blank" rel="noopener">Панель {{ config.provider_name }} →</a>{% endif %}</div>
+                <div class="srv-topup">
+                    <label class="cc-field"><span>Сумма, ₽</span><input class="form-control" type="number" name="amount" min="1" step="0.01" value="{% if forecast.topup_amount %}{{ forecast.topup_amount }}{% endif %}" required data-srv-topup-amount></label>
+                    <button type="submit" class="btn btn-primary btn-sm">Пополнено</button>
+                </div>
+                <p class="cc-help srv-topup__preview" data-srv-topup-preview>{% if forecast.topup_amount %}Чтобы хватило на {{ forecast.topup_months }} мес. и остался запас, пополните на <b>{{ forecast.topup_amount|floatformat:2 }} ₽</b>.{% endif %}</p>
+            </form>
+            {% endlocalize %}
+
+            <article class="ops-panel" id="items">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Что оплачиваем с баланса</h2><span class="ops-panel__hint">сменили тариф или добавили IP — измените цену здесь</span></div>
+                {% if forecast.cost_source == "api" and config.api_resources %}
+                    <p class="cc-help srv-pad">Расход считается по данным API провайдера (таблица «По данным API» ниже). Список ниже — для справки.</p>
+                {% endif %}
+                <div class="table-wrap">
+                    <table class="table cc-table">
+                        <thead><tr><th>Услуга</th><th class="cc-num">Цена</th><th class="cc-num">В месяц</th><th></th></tr></thead>
+                        <tbody>
+                            {% for item in balance_items %}
+                                <tr>
+                                    <td><b>{{ item.name }}</b><br><span class="text-muted">{{ item.get_kind_display }}{% if item.plan %} · {{ item.plan }}{% endif %}</span></td>
+                                    <td class="cc-num">{{ item.price_rub|floatformat:"-2" }} ₽ {{ item.get_period_display }}</td>
+                                    <td class="cc-num">{{ item.monthly_price|floatformat:2 }} ₽</td>
+                                    <td class="cc-row-actions">
+                                        <a href="?edit={{ item.pk }}#item-form" class="btn btn-ghost btn-sm">Изменить</a>
+                                        <form method="post" onsubmit="return confirm('Убрать «{{ item.name|escapejs }}» из расходов?');">{% csrf_token %}<input type="hidden" name="action" value="item_delete"><input type="hidden" name="item_id" value="{{ item.pk }}"><input type="hidden" name="anchor" value="items"><button type="submit" class="btn btn-ghost btn-sm">Убрать</button></form>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="4" class="text-muted">Добавьте сервер и IP-адреса, чтобы посчитать расход.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                        {% if balance_items %}<tfoot><tr><td colspan="2"><b>Итого</b></td><td class="cc-num"><b>{{ forecast.monthly_cost|floatformat:2 }} ₽</b></td><td></td></tr></tfoot>{% endif %}
+                    </table>
+                </div>
+            </article>
+
+            {% localize off %}
+            <form method="post" class="ops-panel" id="item-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="item_save">
+                <input type="hidden" name="anchor" value="items">
+                {% if edit_item %}<input type="hidden" name="item_id" value="{{ edit_item.pk }}">{% endif %}
+                <div class="ops-panel__head"><h2 class="ops-panel__title">{% if edit_item %}Изменить: {{ edit_item.name }}{% else %}Добавить услугу{% endif %}</h2>{% if edit_item %}<a href="?#item-form" class="ops-panel__link">Отмена</a>{% endif %}</div>
+                <div class="cc-form-grid">
+                    <label class="cc-field"><span>Название</span><input class="form-control" name="name" maxlength="120" required value="{{ edit_item.name|default:'' }}" placeholder="Плавающий IP / Хостинг / case-up.ru"></label>
+                    <label class="cc-field"><span>Тариф</span><input class="form-control" name="plan" maxlength="120" value="{{ edit_item.plan|default:'' }}" placeholder="Stdp C4-M4-D80 · 4 vCPU, 4 ГБ"></label>
+                    <label class="cc-field"><span>Тип</span><select class="form-control" name="kind">{% for code, label in kind_options %}<option value="{{ code }}"{% if edit_item.kind == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+                    <label class="cc-field"><span>Оплата</span><select class="form-control" name="billing">{% for code, label in billing_options %}<option value="{{ code }}"{% if edit_item.billing == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+                    <label class="cc-field"><span>Цена, ₽</span><input class="form-control" type="number" name="price_rub" min="0" step="0.0001" required value="{{ edit_item.price_rub|default:'' }}"></label>
+                    <label class="cc-field"><span>За</span><select class="form-control" name="period">{% for code, label in period_options %}<option value="{{ code }}"{% if edit_item.period == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+                    <label class="cc-field"><span>Оплачено до (для продления)</span><input class="form-control" type="date" name="paid_until" value="{{ edit_item.paid_until|date:'Y-m-d' }}"></label>
+                    <label class="cc-field"><span>Заметка</span><input class="form-control" name="note" maxlength="200" value="{{ edit_item.note|default:'' }}" placeholder="где продлевать, автопродление…"></label>
+                </div>
+                <div class="srv-pad"><button type="submit" class="btn btn-primary btn-sm">Сохранить</button></div>
+            </form>
+            {% endlocalize %}
+
+            <article class="ops-panel" id="renewals">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Продление по дате</h2><span class="ops-panel__hint">хостинг, домены: напомним за {{ config.renewal_warn_days }} дн.</span></div>
+                <div class="table-wrap">
+                    <table class="table cc-table">
+                        <thead><tr><th>Услуга</th><th>Оплачено до</th><th class="cc-num">Осталось</th><th class="cc-num">Цена</th><th></th></tr></thead>
+                        <tbody>
+                            {% for row in renewals %}
+                                <tr>
+                                    <td><b>{{ row.item.name }}</b><br><span class="text-muted">{{ row.item.get_kind_display }}{% if row.item.plan %} · {{ row.item.plan }}{% endif %}</span></td>
+                                    <td class="cc-mono">{{ row.item.paid_until|date:"d.m.Y"|default:"—" }}</td>
+                                    <td class="cc-num"><span class="cc-chip cc-chip--{{ row.state }}">{% if row.days_left is None %}—{% elif row.days_left < 0 %}просрочено{% else %}{{ row.days_left }} дн.{% endif %}</span></td>
+                                    <td class="cc-num">{{ row.item.price_rub|floatformat:"-2" }} ₽ {{ row.item.get_period_display }}</td>
+                                    <td class="cc-row-actions"><a href="?edit={{ row.item.pk }}#item-form" class="btn btn-ghost btn-sm">Продлил</a></td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="5" class="text-muted">Нет услуг с датой продления. Добавьте хостинг или домен с оплатой «Продлевается до даты».</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </div>
+
+        <aside class="ops-grid__side">
+            {% localize off %}
+            <form method="post" class="ops-panel">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="set_balance">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Точный баланс</h2></div>
+                <div class="cc-form-grid cc-form-grid--single srv-pad-top">
+                    <p class="cc-help">Между пополнениями баланс уменьшается сам по расходу в час. Если он разошёлся с панелью — впишите цифру из панели.{% if config.balance_at %} Последний раз: {{ config.balance_at|date:"d.m.Y H:i" }} ({{ config.get_balance_source_display }}).{% endif %}</p>
+                    <label class="cc-field"><span>Баланс в панели, ₽</span><input class="form-control" type="number" name="balance" min="0" step="0.01" required value="{{ forecast.balance|default:'' }}"></label>
+                    <div><button type="submit" class="btn btn-ghost btn-sm">Сохранить баланс</button></div>
+                </div>
+            </form>
+            {% endlocalize %}
+
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">API провайдера</h2></div>
+                <div class="cc-form-grid cc-form-grid--single srv-pad-top">
+                    {% if api_configured %}
+                        <p class="cc-help">Ключ задан. Баланс обновляется раз в час.{% if config.api_synced_at %} Последний раз: {{ config.api_synced_at|date:"d.m.Y H:i" }}.{% endif %}</p>
+                        {% if config.api_error %}<p class="cc-help srv-error">{{ config.api_error }}</p>{% endif %}
+                        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="api_sync"><button type="submit" class="btn btn-ghost btn-sm">Обновить сейчас</button></form>
+                        {% if config.api_resources %}
+                            <dl class="cc-facts cc-facts--single">
+                                {% for row in config.api_resources %}<div><dt>{{ row.name }} · {{ row.plan }}</dt><dd>{{ row.price }} ₽/ч</dd></div>{% endfor %}
+                            </dl>
+                        {% endif %}
+                    {% else %}
+                        <p class="cc-help">Баланс ведётся вручную. Чтобы сайт сам брал его у Рег.облака: панель → <b>API-ключи</b> → скопируйте ключ в <code>.env.prod</code> строкой <code>REGRU_CLOUDVPS_TOKEN=…</code> и перезапустите контейнеры.</p>
+                    {% endif %}
+                </div>
+            </article>
+
+            <article class="ops-panel">
+                <div class="ops-panel__head"><h2 class="ops-panel__title">Пополнения</h2></div>
+                <dl class="cc-facts cc-facts--single">
+                    {% for topup in topups %}<div><dt>{{ topup.created_at|date:"d.m.Y H:i" }}{% if topup.created_by %} · {{ topup.created_by.username }}{% endif %}</dt><dd>+{{ topup.amount_rub|floatformat:2 }} ₽ → {{ topup.balance_after_rub|floatformat:2 }} ₽</dd></div>{% empty %}<div><dt>Пока нет</dt><dd>—</dd></div>{% endfor %}
+                </dl>
+            </article>
+        </aside>
+    </div>
+
+    {# ------------------------------------------------------------------ load #}
+    <div id="load" class="cc-checks">
+        {% for card in now_cards %}
+            <article class="cc-check-card cc-check--{{ card.state }}">
+                <span class="cc-dot cc-dot--{{ card.state }}"></span>
+                <span class="cc-check-card__label">{{ card.label }}</span>
+                <strong class="cc-check-card__value">{{ card.value }}</strong>
+                <span class="cc-check-card__hint">{{ card.hint }}</span>
+            </article>
+        {% endfor %}
+    </div>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head">
+            <h2 class="ops-panel__title">Нагрузка {% if last_snapshot %}<small class="text-muted">снимок каждые 5 мин, последний {{ last_snapshot.created_at|date:"H:i" }}</small>{% endif %}</h2>
+            <nav class="price-panel__ranges" aria-label="Период">
+                {% for item in range_links %}<a href="{{ item.url }}" class="price-chart__range-btn{% if item.is_active %} is-active{% endif %}"{% if item.is_active %} aria-current="true"{% endif %}>{{ item.label }}</a>{% endfor %}
+            </nav>
+        </div>
+        {% if not snapshots_count %}
+            <div class="srv-pad">
+                <p class="cc-help">Истории пока нет: первый снимок появится через 5 минут после запуска celery_beat.</p>
+                <form method="post">{% csrf_token %}<input type="hidden" name="action" value="snapshot"><input type="hidden" name="anchor" value="load"><button type="submit" class="btn btn-ghost btn-sm">Сделать снимок сейчас</button></form>
+            </div>
+        {% else %}
+            <div class="srv-charts">
+                {% for item in charts %}
+                    <div class="srv-chart">
+                        <h3 class="srv-chart__title">{{ item.title }}{% if item.chart.has_data %} <small>сред. {{ item.chart.avg|floatformat:0 }}% · макс. {{ item.chart.max|floatformat:0 }}%</small>{% endif %}</h3>
+                        {% if item.chart.has_data %}
+                            {% with chart=item.chart %}
+                            {% localize off %}
+                            <div class="pc srv-pc" data-price-chart data-currency="%">
+                                {{ chart.points_json|json_script:item.key }}
+                                <div class="pc__plot" data-price-chart-plot>
+                                    <svg class="pc__svg" viewBox="0 0 {{ chart.view_width }} {{ chart.view_height }}" preserveAspectRatio="none" role="img" aria-label="{{ item.title }}, %">
+                                        {% for tick in chart.y_ticks %}<line x1="0" x2="{{ chart.view_width }}" y1="{% widthratio tick.y 100 chart.view_height %}" y2="{% widthratio tick.y 100 chart.view_height %}" class="pc__grid"></line>{% endfor %}
+                                        {% if chart.area_path %}<path d="{{ chart.area_path }}" class="pc__area srv-pc__area"></path>{% endif %}
+                                        <path d="{{ chart.line_path }}" class="pc__line{% if chart.is_single %} pc__line--single{% endif %}"></path>
+                                    </svg>
+                                    <span class="pc__last" style="left: {{ chart.last_point.x }}%; top: {{ chart.last_point.y }}%;"></span>
+                                    <div class="pc__cursor" data-price-chart-cursor hidden></div>
+                                    <span class="pc__cursor-dot" data-price-chart-cursor-dot hidden></span>
+                                    <div class="pc__tooltip" data-price-chart-tooltip hidden></div>
+                                </div>
+                                <div class="pc__yaxis" aria-hidden="true">
+                                    {% for tick in chart.y_ticks %}<span style="top: {{ tick.y }}%;">{{ tick.label }}</span>{% endfor %}
+                                </div>
+                                <div class="pc__xaxis" aria-hidden="true">
+                                    {% for tick in chart.x_ticks %}<span class="is-{{ tick.align }}" style="left: {{ tick.x }}%;">{{ tick.label }}</span>{% endfor %}
+                                </div>
+                            </div>
+                            {% endlocalize %}
+                            {% endwith %}
+                        {% else %}
+                            <p class="cc-help">Нет данных за период.</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </article>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Контейнеры</h2><span class="ops-panel__hint">{% if containers_live %}обновляется раз в минуту{% elif containers %}из последнего снимка{% endif %}</span></div>
+        <div class="table-wrap">
+            <table class="table cc-table">
+                <thead><tr><th>Контейнер</th><th>Состояние</th><th class="cc-num">CPU</th><th class="cc-num">Память</th><th class="cc-num">Пик за сутки</th></tr></thead>
+                <tbody>
+                    {% for item in containers %}
+                        <tr>
+                            <td class="cc-mono">{{ item.name }}</td>
+                            <td><span class="cc-chip {% if item.state == 'running' %}{% if 'unhealthy' in item.status %}cc-chip--fail{% else %}cc-chip--ok{% endif %}{% else %}cc-chip--warn{% endif %}">{{ item.status|default:item.state }}</span></td>
+                            <td class="cc-num">{% if item.cpu is not None %}{{ item.cpu|floatformat:1 }}%{% else %}—{% endif %}</td>
+                            <td class="cc-num">{{ item.mem_label }}{% if item.mem_share %} <span class="text-muted">· {{ item.mem_share|floatformat:0 }}%</span>{% endif %}</td>
+                            <td class="cc-num">{{ item.peak_label }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="5" class="text-muted">Нет данных о контейнерах: их собирает сервис container_stats из docker-compose.prod.yml. После обновления сервера он запустится сам вместе с остальными.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    {% localize off %}
+    <form method="post" class="ops-panel" id="settings">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="settings">
+        <input type="hidden" name="anchor" value="settings">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Настройки и предупреждения</h2><span class="ops-panel__hint">предупреждения приходят в Telegram-чат команды и пушем админам, не чаще раза в сутки</span></div>
+        <div class="cc-form-grid">
+            <label class="cc-field"><span>Провайдер</span><input class="form-control" name="provider_name" maxlength="80" value="{{ config.provider_name }}"></label>
+            <label class="cc-field"><span>Ссылка на панель</span><input class="form-control" name="panel_url" maxlength="200" value="{{ config.panel_url }}"></label>
+            <label class="cc-field"><span>Запас, дней</span><input class="form-control" type="number" name="reserve_days" min="0" max="60" value="{{ config.reserve_days }}"></label>
+            <label class="cc-field"><span>Напомнить о пополнении за, дней</span><input class="form-control" type="number" name="balance_warn_days" min="0" max="60" value="{{ config.balance_warn_days }}"></label>
+            <label class="cc-field"><span>Пополнять на, месяцев</span><input class="form-control" type="number" name="topup_months" min="1" max="24" value="{{ config.topup_months }}"></label>
+            <label class="cc-field"><span>Напомнить о продлении за, дней</span><input class="form-control" type="number" name="renewal_warn_days" min="0" max="120" value="{{ config.renewal_warn_days }}"></label>
+            <label class="cc-field"><span>Расход в месяц вручную, ₽</span><input class="form-control" type="number" name="monthly_cost_rub" min="0" step="0.01" value="{{ config.monthly_cost_rub|default:'' }}" placeholder="пусто — по списку услуг"></label>
+            <label class="cc-field"><span>Память занята больше, %</span><input class="form-control" type="number" name="ram_warn_percent" min="50" max="100" value="{{ config.ram_warn_percent }}"></label>
+            <label class="cc-field-check cc-span-2"><input type="checkbox" name="alerts_enabled" value="1"{% if config.alerts_enabled %} checked{% endif %}><span>Слать предупреждения: баланс, продление, память и процессор (держатся 15 минут). Диск — во вкладке «Система».</span></label>
+        </div>
+        <div class="srv-pad"><button type="submit" class="btn btn-primary btn-sm">Сохранить</button></div>
+    </form>
+    {% endlocalize %}
+</section>
