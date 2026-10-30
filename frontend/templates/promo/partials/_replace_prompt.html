@@ -1,0 +1,18 @@
+{# expects: replace_prompt (PromoReplaceRequired); optional: action (form URL), extra (hidden "next" value) #}
+<div class="promo-replace" role="alertdialog" aria-labelledby="promo-replace-title">
+    <div class="promo-replace__text">
+        <strong id="promo-replace-title">Заменить промокод?</strong>
+        <p>Сейчас активен <b>{{ replace_prompt.current.promo.code }}</b>: {{ replace_prompt.current.promo.benefit_label }}. Если заменить его на <b>{{ replace_prompt.new_code }}</b>, старый код перестанет действовать, но его можно будет ввести снова позже.</p>
+    </div>
+    <div class="promo-replace__actions">
+        <form method="post"{% if action %} action="{{ action }}"{% endif %}>
+            {% csrf_token %}
+            <input type="hidden" name="code" value="{{ replace_prompt.new_code }}">
+            <input type="hidden" name="replace" value="1">
+            <input type="hidden" name="promo_action" value="apply">
+            {% if extra %}<input type="hidden" name="next" value="{{ extra }}">{% endif %}
+            <button type="submit" class="btn btn-primary btn-sm">Заменить на {{ replace_prompt.new_code }}</button>
+        </form>
+        <a href="{% if action %}{{ action }}{% else %}{{ request.path }}{% endif %}" class="btn btn-ghost btn-sm" data-dashboard-nav="true">Оставить {{ replace_prompt.current.promo.code }}</a>
+    </div>
+</div>
