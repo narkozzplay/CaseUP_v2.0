@@ -1,4 +1,4 @@
-"""Reg.ru services renewed by date, as of 30.10.2026: the shared hosting with the relay and the SSL certificate."""
+"""Reg.ru services renewed by date, as of 30.10.2026: the shared hosting with the relay, the SSL certificate, the domain."""
 
 from datetime import date
 from decimal import Decimal
@@ -23,6 +23,15 @@ ITEMS = (
         "period": "year",
         "paid_until": date(2026, 12, 28),
         "note": "Автопродление 13.12.2026: нужна привязанная карта или деньги на балансе Рег.ру",
+    },
+    {
+        "name": "Домен case-up.ru",
+        "kind": "domain",
+        "plan": "Рег.ру, DNS ns1/ns2.hosting.reg.ru",
+        "price_rub": Decimal("0"),
+        "period": "year",
+        "paid_until": date(2027, 6, 12),
+        "note": "Цена продления не указана. Продлить можно с 13.04.2027, автопродление 29.05.2027 (нужна карта или баланс Рег.ру)",
     },
 )
 
