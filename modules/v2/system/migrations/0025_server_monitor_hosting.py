@@ -9,7 +9,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("system_config", "0023_payment_unpaid_timeout"),
+        ("system_config", "0024_pandascore_integration"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

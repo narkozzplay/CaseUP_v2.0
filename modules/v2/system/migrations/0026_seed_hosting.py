@@ -29,6 +29,6 @@ def seed(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [("system_config", "0024_server_monitor_hosting")]
+    dependencies = [("system_config", "0025_server_monitor_hosting")]
 
     operations = [migrations.RunPython(seed, migrations.RunPython.noop)]
