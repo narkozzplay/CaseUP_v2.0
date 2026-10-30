@@ -53,8 +53,6 @@ class CaseSimulatorServiceTests(TestCase):
 
     def test_custom_cases_use_bundled_covers(self):
         for case in SimCase.objects.filter(kind__in=[SimCase.Kind.CUSTOM, SimCase.Kind.TERMINAL]).exclude(slug="test-case"):
-            if case.slug in NEW_CASES:
-                continue
             with self.subTest(slug=case.slug):
                 self.assertTrue(case.cover_url.endswith(f"img/cases/{case.slug}.webp"))
         self.assertEqual(self.case.cover_url, "")
