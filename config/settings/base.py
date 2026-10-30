@@ -483,6 +483,12 @@ PROMO_COUNT_TEST_PAYMENTS = os.getenv("PROMO_COUNT_TEST_PAYMENTS", "0").strip().
 ACTIVITY_LOG_RETENTION_DAYS = int(os.getenv("ACTIVITY_LOG_RETENTION_DAYS", "365"))
 ACTIVITY_LOG_REQUEST_RETENTION_DAYS = int(os.getenv("ACTIVITY_LOG_REQUEST_RETENTION_DAYS", "90"))
 
+# Control Center → «Сервер»: server load snapshots and the cloud balance (modules/v2/system/server_stats.py, hosting.py).
+SERVER_STATS_DIR = os.getenv("SERVER_STATS_DIR", str(BASE_DIR / "var" / "server_stats"))
+SERVER_STATS_KEEP_DAYS = int(os.getenv("SERVER_STATS_KEEP_DAYS", "35"))
+REGRU_CLOUDVPS_TOKEN = os.getenv("REGRU_CLOUDVPS_TOKEN", "")
+REGRU_CLOUDVPS_API_URL = os.getenv("REGRU_CLOUDVPS_API_URL", "https://api.cloudvps.reg.ru/v1")
+
 # Secrets stored in the DB (API keys, bot tokens) are encrypted with these Fernet keys (common.encryption).
 # Comma-separated: the first encrypts, all decrypt. Empty = key derived from SECRET_KEY.
 FIELD_ENCRYPTION_KEYS = get_env_list("FIELD_ENCRYPTION_KEYS", "")

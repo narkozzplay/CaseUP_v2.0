@@ -909,3 +909,162 @@ class ErrorGroup(models.Model):
     @property
     def is_open(self) -> bool:
         return self.resolved_at is None
+
+
+class ServerMetricSnapshot(models.Model):
+    """Server load every 5 minutes (system.server_snapshot): CPU, memory, swap, disk and docker containers.
+
+    Read from /proc of the worker container, which shows the whole VPS; containers come from the
+    container_stats sidecar (docker-compose.prod.yml). Kept SERVER_STATS_KEEP_DAYS days.
+    """
+
+    created_at = models.DateTimeField(db_index=True)
+    cpu_count = models.PositiveSmallIntegerField(default=1)
+    cpu_percent = models.FloatField(null=True, blank=True)
+    load1 = models.FloatField(default=0)
+    load5 = models.FloatField(default=0)
+    load15 = models.FloatField(default=0)
+    mem_total = models.BigIntegerField(default=0)
+    mem_available = models.BigIntegerField(default=0)
+    swap_total = models.BigIntegerField(default=0)
+    swap_used = models.BigIntegerField(default=0)
+    disk_total = models.BigIntegerField(default=0)
+    disk_used = models.BigIntegerField(default=0)
+    uptime_seconds = models.BigIntegerField(default=0)
+    containers = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Снимок нагрузки сервера"
+        verbose_name_plural = "Снимки нагрузки сервера"
+
+    @property
+    def mem_used(self) -> int:
+        return max(0, self.mem_total - self.mem_available)
+
+    @property
+    def mem_percent(self) -> float:
+        return self.mem_used * 100 / self.mem_total if self.mem_total else 0.0
+
+    @property
+    def swap_percent(self) -> float:
+        return self.swap_used * 100 / self.swap_total if self.swap_total else 0.0
+
+    @property
+    def disk_percent(self) -> float:
+        return self.disk_used * 100 / self.disk_total if self.disk_total else 0.0
+
+
+class HostingSettings(models.Model):
+    """Cloud server balance and the alert thresholds (Control Center → «Сервер»). One row, pk=1.
+
+    The balance comes from the Reg.cloud API when REGRU_CLOUDVPS_TOKEN is set, otherwise it is typed in by hand.
+    """
+
+    class Source(models.TextChoices):
+        MANUAL = "manual", "вручную"
+        API = "api", "API провайдера"
+
+    provider_name = models.CharField("Провайдер", max_length=80, default="Рег.облако")
+    panel_url = models.URLField("Ссылка на панель (пополнить)", blank=True, default="https://cloud.reg.ru/panel/")
+    balance_rub = models.DecimalField("Баланс, ₽", max_digits=12, decimal_places=2, null=True, blank=True)
+    bonus_rub = models.DecimalField("Бонусный баланс, ₽", max_digits=12, decimal_places=2, default=Decimal("0"))
+    balance_at = models.DateTimeField("Когда баланс был таким", null=True, blank=True)
+    balance_source = models.CharField(max_length=16, choices=Source.choices, default=Source.MANUAL)
+    monthly_cost_rub = models.DecimalField(
+        "Расход в месяц, ₽", max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text="Пусто — сумма услуг «списывается с баланса» из списка.",
+    )
+    reserve_days = models.PositiveSmallIntegerField(
+        "Запас, дней", default=7,
+        help_text="Баланс на сайте показывается за вычетом этих дней: продлить нужно, пока запас не начал тратиться.",
+    )
+    balance_warn_days = models.PositiveSmallIntegerField("Предупредить за N дней до даты продления", default=3)
+    renewal_warn_days = models.PositiveSmallIntegerField("Предупредить о продлении за N дней", default=14)
+    topup_months = models.PositiveSmallIntegerField("Пополнять на N месяцев", default=1)
+    ram_warn_percent = models.PositiveSmallIntegerField("Память занята больше, %", default=90)
+    alerts_enabled = models.BooleanField("Слать предупреждения", default=True)
+    api_synced_at = models.DateTimeField(null=True, blank=True)
+    api_error = models.CharField(max_length=300, blank=True, default="")
+    api_resources = models.JSONField(default=list, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Хостинг: настройки"
+        verbose_name_plural = "Хостинг: настройки"
+
+    @classmethod
+    def load(cls) -> "HostingSettings":
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
+# Reg.cloud bills by the hour and shows a month as 720 hours (0,26 ₽/ч ≈ 187,38 ₽/мес).
+HOURS_PER_MONTH = 720
+
+
+class HostingItem(models.Model):
+    """A paid service of the project: the server, an IP, backups (paid from the cloud balance by the hour),
+    or something renewed by date (shared hosting, a domain)."""
+
+    class Kind(models.TextChoices):
+        SERVER = "server", "Сервер"
+        IP = "ip", "IP-адрес"
+        BACKUP = "backup", "Бэкапы / снэпшоты"
+        HOSTING = "hosting", "Хостинг"
+        DOMAIN = "domain", "Домен"
+        OTHER = "other", "Другое"
+
+    class Billing(models.TextChoices):
+        BALANCE = "balance", "Списывается с баланса"
+        RENEWAL = "renewal", "Продлевается до даты"
+
+    class Period(models.TextChoices):
+        HOUR = "hour", "в час"
+        MONTH = "month", "в месяц"
+        YEAR = "year", "в год"
+
+    name = models.CharField("Название", max_length=120)
+    kind = models.CharField("Тип", max_length=16, choices=Kind.choices, default=Kind.OTHER)
+    billing = models.CharField("Оплата", max_length=16, choices=Billing.choices, default=Billing.BALANCE)
+    plan = models.CharField("Тариф", max_length=120, blank=True, default="")
+    price_rub = models.DecimalField("Цена, ₽", max_digits=12, decimal_places=4, default=Decimal("0"))
+    period = models.CharField("За период", max_length=8, choices=Period.choices, default=Period.HOUR)
+    paid_until = models.DateField("Оплачено до", null=True, blank=True)
+    note = models.CharField("Заметка", max_length=200, blank=True, default="")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["billing", "kind", "name"]
+        verbose_name = "Хостинг: услуга"
+        verbose_name_plural = "Хостинг: услуги"
+
+    def __str__(self) -> str:
+        return self.name
+
+    @property
+    def hourly_price(self) -> Decimal:
+        price = self.price_rub or Decimal("0")
+        if self.period == self.Period.HOUR:
+            return price
+        hours = HOURS_PER_MONTH * (12 if self.period == self.Period.YEAR else 1)
+        return price / hours
+
+    @property
+    def monthly_price(self) -> Decimal:
+        return (self.hourly_price * HOURS_PER_MONTH).quantize(Decimal("0.01"))
+
+
+class HostingTopUp(models.Model):
+    """«Баланс пополнен на X ₽» from Control Center → «Сервер»: the history of payments for the server."""
+
+    amount_rub = models.DecimalField(max_digits=12, decimal_places=2)
+    balance_after_rub = models.DecimalField(max_digits=12, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Хостинг: пополнение"
+        verbose_name_plural = "Хостинг: пополнения"

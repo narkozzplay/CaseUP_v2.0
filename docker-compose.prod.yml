@@ -37,6 +37,7 @@ services:
       - media_data:/app/media
       - static_data:/app/staticfiles
       - backup_data:/app/backups
+      - server_stats:/app/var/server_stats:ro
 
   celery_beat:
     depends_on:
@@ -79,6 +80,26 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
+  # Docker containers for Control Center → «Сервер»: once a minute `docker ps` / `docker stats` into a volume
+  # the worker reads. The docker socket stays here, in a container without network, never in the site itself.
+  container_stats:
+    image: docker:27-cli
+    restart: unless-stopped
+    network_mode: none
+    mem_limit: 64m
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - server_stats:/stats
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        while true; do
+        docker ps -a --format '{{json .}}' > /stats/ps.tmp && mv /stats/ps.tmp /stats/ps.jsonl;
+        docker stats --no-stream --format '{{json .}}' > /stats/stats.tmp && mv /stats/stats.tmp /stats/stats.jsonl;
+        sleep 60;
+        done
+
 volumes:
+  server_stats:
   caddy_data:
   caddy_config:

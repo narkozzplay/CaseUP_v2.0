@@ -2989,3 +2989,93 @@
 .cc-formset input[type="text"] { width: 80px; }
 .cc-formset input[type="datetime-local"] { min-width: 200px; }
 .cc-nowrap { white-space: nowrap; }
+
+/* server (Сервер): balance forecast, load charts */
+
+.srv-pad {
+    padding: 14px 18px;
+}
+
+.srv-pad-top {
+    padding-top: 14px;
+}
+
+.srv-error {
+    color: var(--danger, #ff6b6b);
+}
+
+.srv-kpi--warn::before {
+    background: #f5a623;
+}
+
+.srv-kpi--fail::before {
+    width: 100%;
+    background: var(--danger, #ff6b6b);
+}
+
+.srv-kpi--ok::before {
+    background: var(--success, #3ecf8e);
+}
+
+.srv-topup {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    padding: 14px 18px 0;
+}
+
+.srv-topup .cc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 220px;
+}
+
+.srv-topup__preview {
+    margin: 0;
+    padding: 10px 18px 16px;
+}
+
+.srv-charts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    padding: 14px 18px 18px;
+}
+
+.srv-chart {
+    min-width: 0;
+}
+
+.srv-chart__title {
+    margin: 0 0 8px;
+    font-size: 0.9rem;
+}
+
+.srv-chart__title small {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 400;
+}
+
+.srv .srv-pc {
+    grid-template-columns: minmax(0, 1fr) 44px;
+    grid-template-rows: 150px auto;
+}
+
+.srv-pc__area {
+    fill: rgba(245, 166, 35, 0.12);
+}
+
+@media (max-width: 1100px) {
+    .srv-charts {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .srv-topup {
+        flex-wrap: wrap;
+    }
+}
