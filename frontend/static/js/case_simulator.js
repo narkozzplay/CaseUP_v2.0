@@ -705,6 +705,48 @@
         invSync(root);
     }
 
+    // Live feed: every few seconds ask for drops newer than the last one shown and slide them in.
+    const FEED_POLL_MS = 5000;
+    let feedBusy = false;
+
+    async function pollFeed() {
+        const feed = document.querySelector('[data-sim-feed]');
+        if (!feed || feedBusy || document.visibilityState !== 'visible') {
+            return;
+        }
+        feedBusy = true;
+        try {
+            const url = feed.dataset.feedUrl + '?after=' + encodeURIComponent(feed.dataset.lastId || '0');
+            const response = await fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
+            const payload = response.ok ? await response.json() : null;
+            if (!payload || !payload.ok || !payload.items.length || !feed.isConnected) {
+                return;
+            }
+            const track = feed.querySelector('[data-sim-feed-track]');
+            payload.items.forEach((item) => {
+                const holder = document.createElement('div');
+                holder.innerHTML = item.html.trim();
+                const tile = holder.firstElementChild;
+                if (tile) {
+                    tile.classList.add('is-new');
+                    track.prepend(tile);
+                }
+                feed.dataset.lastId = String(Math.max(Number(feed.dataset.lastId || 0), item.id));
+            });
+            const limit = Number(feed.dataset.limit || 14);
+            while (track.children.length > limit) {
+                track.lastElementChild.remove();
+            }
+            feed.classList.remove('is-empty');
+        } catch (error) {
+            // Network hiccup: try again on the next tick.
+        } finally {
+            feedBusy = false;
+        }
+    }
+
+    window.setInterval(pollFeed, FEED_POLL_MS);
+
     function initAll() {
         document.querySelectorAll('[data-terminal]').forEach(initTerminal);
         document.querySelectorAll('[data-sim-inventory]').forEach(initInventory);

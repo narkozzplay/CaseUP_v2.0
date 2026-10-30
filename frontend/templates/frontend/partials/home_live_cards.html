@@ -1,0 +1,14 @@
+{% load site_formatters %}{% for row in home_feed %}
+    <div class="home-live__card ud-rarity--{{ row.rarity|default:'none' }}" data-key="{{ row.kind }}-{{ row.user_id }}-{{ row.created_at|date:'U.u' }}"{% if row.kind != "drop" and row.rarity %} style="--rarity: #{{ row.rarity }};"{% endif %}>
+        <span class="home-live__thumb">{% if row.item_icon %}<img src="{{ row.item_icon }}" alt="" loading="lazy">{% endif %}</span>
+        {% if row.url %}<a href="{{ row.url }}" class="home-live__item">{{ row.item_name }}</a>{% else %}<strong class="home-live__item">{{ row.item_name }}</strong>{% endif %}
+        <span class="home-live__who">
+            <{% if row.profile_url %}a href="{{ row.profile_url }}"{% else %}span{% endif %} class="home-live__player"><img src="{{ row.user_avatar }}" alt="" loading="lazy">{{ row.user_name }}</{% if row.profile_url %}a{% else %}span{% endif %}>
+            {% if row.kind == "buy" %}{% if LANGUAGE_CODE == "ru" %}купил{% else %}bought{% endif %}{% elif row.kind == "list" %}{% if LANGUAGE_CODE == "ru" %}продаёт{% else %}sells{% endif %}{% else %}{% if LANGUAGE_CODE == "ru" %}выбил{% else %}unboxed{% endif %}{% endif %}
+        </span>
+        <span class="home-live__foot">
+            {% if row.price %}<b>{% money row.price %}</b>{% else %}<b></b>{% endif %}
+            <time datetime="{{ row.created_at|date:'c' }}">{% if LANGUAGE_CODE == "ru" %}{{ row.created_at|timesince }} назад{% else %}{{ row.created_at|timesince }} ago{% endif %}</time>
+        </span>
+    </div>
+{% endfor %}

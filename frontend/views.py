@@ -6,7 +6,9 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import DatabaseError
 from django.db.models import Count, Sum
+from django.http import JsonResponse
 from django.shortcuts import render
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 from common.errors import render_access_denied_page, render_not_found_page
@@ -70,6 +72,22 @@ def _build_home_tracker() -> list[dict[str, object]]:
     return rows
 
 
+HOME_FEED_LIMIT = 6
+
+
+def _home_feed(request, feature_flags: dict) -> list:
+    from .activity_feed import build_activity_feed
+
+    viewer_is_team = bool(request.user.is_authenticated and get_user_role(request.user).is_moder_plus)
+    return build_activity_feed(feature_flags, limit=HOME_FEED_LIMIT, viewer_is_team=viewer_is_team)
+
+
+def home_live(request):
+    """Fresh cards for the «Сейчас на CaseUP» block; the home page polls this to stay live."""
+    html = render_to_string("frontend/partials/home_live_cards.html", {"home_feed": _home_feed(request, get_module_state_map())}, request=request)
+    return JsonResponse({"ok": True, "html": html})
+
+
 def home(request):
     context = {
         "home_tracker": [],
@@ -89,10 +107,7 @@ def home(request):
                 context["home_major_countdown"] = _countdown(major)
     except DatabaseError:
         pass
-    from .activity_feed import build_activity_feed
-
-    viewer_is_team = bool(request.user.is_authenticated and get_user_role(request.user).is_moder_plus)
-    context["home_feed"] = build_activity_feed(feature_flags, limit=6, viewer_is_team=viewer_is_team)
+    context["home_feed"] = _home_feed(request, feature_flags)
     try:
         context["home_tracker"] = _build_home_tracker()
         context["home_stats"] = {

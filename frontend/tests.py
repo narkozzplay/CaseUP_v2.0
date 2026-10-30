@@ -497,3 +497,24 @@ class AccessDeniedPageTests(TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertIn("Только для админов.", response.content.decode())
         self.assertIn("access-denied__card", response.content.decode())
+
+
+class HomeLiveFeedTests(TestCase):
+    def setUp(self):
+        from modules.v2.case_simulator.models import SimCase, SimCaseItem, SimOpening
+
+        self.user = get_user_model().objects.create_user(username="dropper", password="pass12345")
+        case = SimCase.objects.create(slug="live-case", name="Live Case", case_price=Decimal("10"))
+        item = SimCaseItem.objects.create(case=case, name="AK-47 | Live", weapon="AK-47", rarity="covert", value=Decimal("500"))
+        SimOpening.objects.create(user=self.user, case=case, item=item, item_value=item.value)
+
+    def test_home_page_wires_the_live_block(self):
+        response = self.client.get(reverse("frontend:home"))
+        self.assertContains(response, 'data-home-live')
+        self.assertContains(response, reverse("frontend:home_live"))
+
+    def test_live_endpoint_returns_fresh_cards_for_guests(self):
+        payload = self.client.get(reverse("frontend:home_live")).json()
+        self.assertTrue(payload["ok"])
+        self.assertIn("AK-47 | Live", payload["html"])
+        self.assertIn('data-key="drop-', payload["html"])

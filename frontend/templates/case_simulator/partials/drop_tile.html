@@ -7,4 +7,13 @@
         <span class="sim-drop__meta">{% if show_user %}{{ opening.user.username }} · {% endif %}{{ opening.case.name }}</span>
     </div>
     <span class="sim-drop__value">{% money opening.item_value %}</span>
+    {% if show_user %}
+        <a href="{% url 'case_simulator:player_inventory' opening.user_id %}" class="sim-drop__owner" data-dashboard-nav="true" title="Инвентарь {{ opening.owner_name|default:opening.user.username }}">
+            <span class="sim-drop__avatar">{% if opening.owner_avatar %}<img src="{{ opening.owner_avatar }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}</span>
+            <span class="sim-drop__owner-body">
+                <strong>{{ opening.owner_name|default:opening.user.username }}</strong>
+                <span>Смотреть инвентарь →</span>
+            </span>
+        </a>
+    {% endif %}
 </div>

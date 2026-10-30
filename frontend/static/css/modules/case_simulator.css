@@ -67,10 +67,95 @@
 
 .sim-feed__track::-webkit-scrollbar { display: none; }
 
+.sim-feed.is-empty { display: none; }
+
 .sim-feed .sim-drop {
+    position: relative;
+    overflow: hidden;
     flex: 0 0 210px;
     border: 0;
     border-bottom: 2px solid var(--rarity, var(--border));
+}
+
+.sim-feed .sim-drop.is-new {
+    animation: sim-feed-in 0.45s ease-out;
+}
+
+@keyframes sim-feed-in {
+    from { flex-basis: 0; opacity: 0; transform: translateX(-24px); }
+    to { flex-basis: 210px; opacity: 1; transform: none; }
+}
+
+/* Hovering a feed tile slides the owner up from the bottom; the owner links to their inventory. */
+.sim-drop__owner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    background: linear-gradient(0deg, color-mix(in srgb, var(--rarity, var(--accent)) 28%, var(--panel)), var(--panel) 85%);
+    color: var(--text);
+    text-decoration: none;
+    transform: translateY(100%);
+    transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.sim-drop:hover .sim-drop__owner,
+.sim-drop__owner:focus-visible {
+    transform: translateY(0);
+}
+
+.sim-drop__avatar,
+.sim-owner__avatar {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    border: 2px solid var(--rarity, var(--border));
+    background: var(--panel-2, #1b1f27);
+    overflow: hidden;
+}
+
+.sim-drop__avatar img,
+.sim-owner__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sim-drop__owner-body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.sim-drop__owner-body strong {
+    font-size: 0.86rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sim-drop__owner-body span {
+    font-size: 0.72rem;
+    color: var(--accent);
+}
+
+.sim-owner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.sim-owner__avatar {
+    width: 52px;
+    height: 52px;
+    border-color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sim-drop__owner { transition: none; }
+    .sim-feed .sim-drop.is-new { animation: none; }
 }
 
 /* ---------- drop tile (feed, side lists) ---------- */
