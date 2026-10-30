@@ -11,7 +11,8 @@ class PromoCode(models.Model):
     """A code users type in on the «Промокоды» page. What it gives depends on ``kind``:
 
     * BALANCE_BONUS — ``amount`` bonus units on the balance right away;
-    * TOPUP_BONUS — ``percent`` extra on the next real top-up of at least ``min_topup`` (capped by ``max_bonus``);
+    * TOPUP_BONUS — ``percent`` extra (capped by ``max_bonus``) or a fixed ``amount`` on the next real top-up
+      of at least ``min_topup``;
     * SUBSCRIPTION_DISCOUNT — ``percent`` off one subscription purchase (optionally one plan family);
     * FREE_CASE — one free opening of ``case``.
 
@@ -74,10 +75,10 @@ class PromoCode(models.Model):
         if self.kind == self.Kind.BALANCE_BONUS:
             return f"+{self.amount or Decimal('0'):.0f} ₽ на баланс"
         if self.kind == self.Kind.TOPUP_BONUS:
-            text = f"+{self.percent or 0}% к пополнению"
+            text = f"+{self.amount:.0f} ₽ к пополнению" if self.amount else f"+{self.percent or 0}% к пополнению"
             if self.min_topup:
                 text += f" от {self.min_topup:.0f} ₽"
-            if self.max_bonus:
+            if self.max_bonus and not self.amount:
                 text += f" (до {self.max_bonus:.0f} ₽)"
             return text
         if self.kind == self.Kind.SUBSCRIPTION_DISCOUNT:

@@ -111,17 +111,66 @@ class TopupBonusTests(PromoTestCase):
         self.top_up(self.user, "5000")
         self.assertEqual(balance(self.user), Decimal("10100.00"))  # capped at 100
 
-    def test_only_one_pending_code_of_a_kind(self):
-        PromoCode.objects.create(code="PLUS20", kind=PromoCode.Kind.TOPUP_BONUS, percent=20)
-        services.activate(user=self.user, raw_code="PLUS10")
-        with self.assertRaisesMessage(services.PromoError, "неиспользованный промокод этого типа"):
-            services.activate(user=self.user, raw_code="PLUS20")
+    def test_fixed_bonus_from_a_minimum(self):
+        PromoCode.objects.create(code="FIX150", kind=PromoCode.Kind.TOPUP_BONUS, amount=Decimal("150"), min_topup=Decimal("1000"))
+        services.activate(user=self.user, raw_code="FIX150")
+        self.top_up(self.user, "999")
+        self.assertEqual(balance(self.user), Decimal("999.00"))
+        self.top_up(self.user, "1000")
+        self.assertEqual(balance(self.user), Decimal("2149.00"))  # +150
+        self.assertEqual(PromoActivation.objects.get(user=self.user).benefit_amount, Decimal("150.00"))
 
-    def test_topup_page_shows_the_pending_code(self):
+    def test_new_code_replaces_the_pending_one_only_when_confirmed(self):
+        PromoCode.objects.create(code="PLUS20", kind=PromoCode.Kind.TOPUP_BONUS, percent=20, max_activations=1)
+        old = PromoCode.objects.get(code="PLUS10")
+        services.activate(user=self.user, raw_code="PLUS10")
+        with self.assertRaises(services.PromoReplaceRequired) as caught:
+            services.activate(user=self.user, raw_code="PLUS20")
+        self.assertEqual(caught.exception.current.promo.code, "PLUS10")
+        self.assertEqual(PromoCode.objects.get(code="PLUS20").activations_count, 0)
+
+        result = services.activate(user=self.user, raw_code="PLUS20", replace=True)
+        self.assertIn("PLUS10 заменён на PLUS20", result.message)
+        self.assertEqual(services.pending_activation(self.user, PromoCode.Kind.TOPUP_BONUS).promo.code, "PLUS20")
+        old.refresh_from_db()
+        self.assertEqual(old.activations_count, 0)  # the slot goes back
+        self.top_up(self.user, "500")
+        self.assertEqual(balance(self.user), Decimal("600.00"))  # +20%
+
+        # The replaced code can be entered again later.
+        services.activate(user=self.user, raw_code="PLUS10")
+        self.assertEqual(services.pending_activation(self.user, PromoCode.Kind.TOPUP_BONUS).promo.code, "PLUS10")
+
+    def test_canceled_payment_keeps_the_code(self):
+        services.activate(user=self.user, raw_code="PLUS10")
+        Payment.objects.create(user=self.user, provider="freekassa", amount=Decimal("500"), status=Payment.Status.CANCELED)
+        self.assertIsNotNone(services.pending_activation(self.user, PromoCode.Kind.TOPUP_BONUS))
+
+    def test_topup_page_applies_and_replaces_a_code(self):
+        PromoCode.objects.create(code="PLUS20", kind=PromoCode.Kind.TOPUP_BONUS, percent=20)
+        client = Client()
+        client.force_login(self.user)
+        url = reverse("payments:topup")
+        self.assertContains(client.get(url), "Применить")
+
+        response = client.post(url, {"promo_action": "apply", "code": "plus10"}, follow=True)
+        self.assertContains(response, "Активен <strong>PLUS10</strong>")
+
+        response = client.post(url, {"promo_action": "apply", "code": "PLUS20"})
+        self.assertContains(response, "Заменить промокод?")
+        self.assertEqual(services.pending_activation(self.user, PromoCode.Kind.TOPUP_BONUS).promo.code, "PLUS10")
+
+        response = client.post(url, {"promo_action": "apply", "code": "PLUS20", "replace": "1", "next": "/market/"})
+        self.assertRedirects(response, f"{url}?next=%2Fmarket%2F", fetch_redirect_response=False)
+        self.assertEqual(services.pending_activation(self.user, PromoCode.Kind.TOPUP_BONUS).promo.code, "PLUS20")
+        self.assertFalse(Payment.objects.filter(user=self.user).exists())
+
+    def test_promo_page_asks_before_replacing(self):
+        PromoCode.objects.create(code="PLUS20", kind=PromoCode.Kind.TOPUP_BONUS, percent=20)
         services.activate(user=self.user, raw_code="PLUS10")
         client = Client()
         client.force_login(self.user)
-        self.assertContains(client.get(reverse("payments:topup")), "Активен промокод")
+        self.assertContains(client.post(reverse("promo:dashboard"), {"code": "PLUS20"}), "Заменить на PLUS20")
 
 
 class SubscriptionDiscountTests(PromoTestCase):
@@ -229,12 +278,12 @@ class PagesTests(PromoTestCase):
 
     def test_admin_creates_and_edits_a_code(self):
         response = self.admin_client.post(reverse("control_center:promo_create"), {
-            "code": "stream-50", "kind": "topup_bonus", "percent": "50", "min_topup": "500", "max_bonus": "", "amount": "999",
+            "code": "stream-50", "kind": "topup_bonus", "percent": "50", "min_topup": "500", "max_bonus": "", "amount": "",
             "subscription_family": "", "title": "Стрим", "owner_username": "", "max_activations": "100", "is_active": "on",
         })
         promo = PromoCode.objects.get(code="STREAM-50")
         self.assertRedirects(response, reverse("control_center:promo_edit", args=[promo.pk]), fetch_redirect_response=False)
-        self.assertIsNone(promo.amount)  # irrelevant field for this kind is cleared
+        self.assertIsNone(promo.amount)
         self.assertEqual(promo.created_by, self.admin)
         self.assertTrue(AdminAuditLog.objects.filter(action=AuditAction.PROMO_CREATE, actor=self.admin).exists())
 
@@ -249,6 +298,18 @@ class PagesTests(PromoTestCase):
         self.assertIn("code", form.errors)
         self.assertIn("percent", form.errors)
         self.assertFalse(PromoCode.objects.exists())
+
+        both = {"code": "BOTH", "kind": "topup_bonus", "percent": "10", "amount": "100", "is_active": "on"}
+        self.assertIn("amount", self.admin_client.post(reverse("control_center:promo_create"), both).context["form"].errors)
+
+    def test_admin_creates_a_fixed_topup_bonus(self):
+        self.admin_client.post(reverse("control_center:promo_create"), {
+            "code": "FIX100", "kind": "topup_bonus", "percent": "", "amount": "100", "min_topup": "1000", "max_bonus": "50",
+            "subscription_family": "", "is_active": "on",
+        })
+        promo = PromoCode.objects.get(code="FIX100")
+        self.assertEqual((promo.amount, promo.percent, promo.max_bonus), (Decimal("100.00"), None, None))
+        self.assertEqual(promo.benefit_label, "+100 ₽ к пополнению от 1000 ₽")
 
     def test_admin_cancels_a_pending_activation(self):
         PromoCode.objects.create(code="LATER", kind=PromoCode.Kind.TOPUP_BONUS, percent=5)

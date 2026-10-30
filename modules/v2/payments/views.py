@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
@@ -53,18 +54,45 @@ def _pending_topup_promo(user):
     return pending_activation(user, PromoCode.Kind.TOPUP_BONUS)
 
 
+def _apply_promo(request):
+    """The promo field on the top-up page: activate the code, or ask before it replaces the current one."""
+    from modules.v2.control_center._compat import client_ip
+    from modules.v2.promo.services import PromoError, PromoReplaceRequired, activate
+
+    try:
+        result = activate(
+            user=request.user,
+            raw_code=request.POST.get("code", ""),
+            ip_address=client_ip(request),
+            replace=request.POST.get("replace") == "1",
+        )
+    except PromoReplaceRequired as exc:
+        return exc
+    except PromoError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, result.message)
+    return None
+
+
 @login_required
 def topup_view(request):
     provider = get_provider()
     data = None
-    if request.method == "POST":
+    return_to = _safe_return_to(request.POST.get("next") or request.GET.get("next") or "")
+    promo_replace = None
+    if request.method == "POST" and request.POST.get("promo_action") == "apply":
+        promo_replace = _apply_promo(request)
+        if promo_replace is None:
+            url = reverse("payments:topup")
+            return redirect(f"{url}?{urlencode({'next': return_to})}" if return_to else url)
+    elif request.method == "POST":
         data = request.POST.copy()
         if data.get("preset"):
             data["amount"] = data["preset"]
     form = TopupForm(data, initial={"amount": request.GET.get("amount") or None})
-    return_to = _safe_return_to(request.POST.get("next") or request.GET.get("next") or "")
 
-    if request.method == "POST":
+    if data is not None:
         if form.is_valid():
             try:
                 payment = create_topup_payment(
@@ -96,6 +124,7 @@ def topup_view(request):
         "topup_balance": profile.balance_coins,
         "topup_payments": Payment.objects.filter(user=request.user).order_by("-created_at", "-id")[:10],
         "topup_promo": _pending_topup_promo(request.user),
+        "topup_promo_replace": promo_replace,
         "topup_fee_percent": topup_fee_percent(),
         "topup_preset_quotes": [(preset, quote_topup(preset)[1]) for preset in get_topup_presets()],
         "topup_next": return_to,

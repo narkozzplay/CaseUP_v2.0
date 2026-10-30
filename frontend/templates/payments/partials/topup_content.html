@@ -29,9 +29,26 @@
         </dl>
     </header>
 
-    {% if topup_promo %}
-        <div class="topup-promo">{% include "components/icon.html" with name="promo" %}<span>Активен промокод <strong>{{ topup_promo.promo.code }}</strong>: {{ topup_promo.promo.benefit_label }}. Бонус придёт на баланс сразу после оплаты.</span></div>
-    {% endif %}
+    <article class="topup-card topup-promo-card">
+        <div class="topup-promo-card__head">
+            <h2 class="topup-card__title">{% if LANGUAGE_CODE == "ru" %}Промокод{% else %}Promo code{% endif %}</h2>
+            {% if topup_promo %}
+                <div class="topup-promo">{% include "components/icon.html" with name="promo" %}<span>{% if LANGUAGE_CODE == "ru" %}Активен <strong>{{ topup_promo.promo.code }}</strong>: {{ topup_promo.promo.benefit_label }}{% if topup_promo.promo.expires_at %}, до {{ topup_promo.promo.expires_at|date:"d.m.Y H:i" }}{% endif %}. Бонус придёт на баланс сразу после подтверждения оплаты.{% else %}Active <strong>{{ topup_promo.promo.code }}</strong>: {{ topup_promo.promo.benefit_label }}. The bonus lands as soon as the payment is confirmed.{% endif %}</span></div>
+            {% endif %}
+        </div>
+        {% if topup_promo_replace %}
+            {% url 'payments:topup' as topup_url %}
+            {% include "promo/partials/_replace_prompt.html" with replace_prompt=topup_promo_replace action=topup_url extra=topup_next %}
+        {% else %}
+            <form method="post" action="{% url 'payments:topup' %}" class="topup-promo-form">
+                {% csrf_token %}
+                <input type="hidden" name="promo_action" value="apply">
+                {% if topup_next %}<input type="hidden" name="next" value="{{ topup_next }}">{% endif %}
+                <input class="form-control topup-promo-form__input" type="text" name="code" maxlength="32" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="{% if topup_promo %}{% if LANGUAGE_CODE == 'ru' %}Другой промокод{% else %}Another code{% endif %}{% else %}{% if LANGUAGE_CODE == 'ru' %}Например, CASEUP10{% else %}e.g. CASEUP10{% endif %}{% endif %}" aria-label="{% if LANGUAGE_CODE == 'ru' %}Промокод{% else %}Promo code{% endif %}" required>
+                <button type="submit" class="btn btn-secondary">{% if LANGUAGE_CODE == "ru" %}Применить{% else %}Apply{% endif %}</button>
+            </form>
+        {% endif %}
+    </article>
 
     {% if not topup_provider %}
         <div class="topup-off">

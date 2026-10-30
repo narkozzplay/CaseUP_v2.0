@@ -548,3 +548,33 @@ a.wallet-chip:hover {
 .topup-preset__total { flex-basis: 100%; white-space: nowrap; letter-spacing: 0; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.68rem; font-weight: 400; }
 .topup-table__fee { display: block; color: var(--text-muted); font-size: 0.7rem; }
 .topup-preset { flex-wrap: wrap; }
+
+/* Promo code on the top-up page (and the replace prompt shared with Profile → Промокоды) */
+.topup-promo-card { display: flex; flex-direction: column; gap: 12px; }
+.topup-promo-card .topup-card__title { margin: 0; }
+.topup-promo-card__head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.topup-promo-card__head .topup-promo { flex: 1 1 320px; }
+.topup-promo-form { display: flex; gap: 10px; max-width: 460px; }
+.topup-promo-form__input { flex: 1 1 auto; min-width: 0; font-family: var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.topup-promo-form .btn { flex: 0 0 auto; }
+
+.promo-replace {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--warning, var(--accent));
+    background: color-mix(in srgb, var(--warning, var(--accent)) 8%, transparent);
+}
+.promo-replace__text { flex: 1 1 320px; }
+.promo-replace__text p { margin: 4px 0 0; font-size: 0.9rem; color: var(--text-muted); }
+.promo-replace__actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.promo-replace__actions form { margin: 0; }
+
+@media (max-width: 560px) {
+    .topup-promo-form { max-width: none; }
+    .promo-replace__actions, .promo-replace__actions form, .promo-replace__actions .btn { width: 100%; }
+}

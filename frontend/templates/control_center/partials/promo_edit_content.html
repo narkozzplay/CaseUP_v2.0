@@ -23,10 +23,10 @@
         <div class="cc-form-grid">
             {% include "control_center/partials/_promo_field.html" with f=form.code hint="Латиница, цифры, «-» и «_». Регистр не важен." %}
             {% include "control_center/partials/_promo_field.html" with f=form.kind %}
-            {% include "control_center/partials/_promo_field.html" with f=form.amount kinds="balance_bonus" hint="Сколько бонусных ₽ зачислить сразу при активации." %}
-            {% include "control_center/partials/_promo_field.html" with f=form.percent kinds="topup_bonus subscription_discount" hint="Бонус к пополнению — 1–100%, скидка на подписку — 1–90%. Со скидкой рефералов не суммируется: берётся бо́льшая." %}
+            {% include "control_center/partials/_promo_field.html" with f=form.amount kinds="balance_bonus topup_bonus" hint="Бонус на баланс — зачисляется сразу при активации. Бонус к пополнению — фиксированная прибавка к пополнению (вместо процента)." %}
+            {% include "control_center/partials/_promo_field.html" with f=form.percent kinds="topup_bonus subscription_discount" hint="Бонус к пополнению — 1–100% (или укажите сумму выше), скидка на подписку — 1–90%. Со скидкой рефералов не суммируется: берётся бо́льшая." %}
             {% include "control_center/partials/_promo_field.html" with f=form.min_topup kinds="topup_bonus" hint="Пополнение меньше этой суммы бонус не даёт. Пусто — любое." %}
-            {% include "control_center/partials/_promo_field.html" with f=form.max_bonus kinds="topup_bonus" hint="Потолок бонуса. Пусто — без потолка." %}
+            {% include "control_center/partials/_promo_field.html" with f=form.max_bonus kinds="topup_bonus" hint="Потолок процентного бонуса. Пусто — без потолка." %}
             {% include "control_center/partials/_promo_field.html" with f=form.subscription_family kinds="subscription_discount" %}
             {% include "control_center/partials/_promo_field.html" with f=form.case kinds="free_case" hint="Одно бесплатное открытие этого кейса." %}
             {% include "control_center/partials/_promo_field.html" with f=form.owner_username %}
