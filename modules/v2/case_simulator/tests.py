@@ -53,8 +53,6 @@ class CaseSimulatorServiceTests(TestCase):
 
     def test_custom_cases_use_bundled_covers(self):
         for case in SimCase.objects.filter(kind__in=[SimCase.Kind.CUSTOM, SimCase.Kind.TERMINAL]).exclude(slug="test-case"):
-            if case.slug in NEW_CASES:
-                continue
             with self.subTest(slug=case.slug):
                 self.assertTrue(case.cover_url.endswith(f"img/cases/{case.slug}.webp"))
         self.assertEqual(self.case.cover_url, "")
@@ -351,6 +349,57 @@ class InventorySellTests(TestCase):
         again = self.client.post(reverse("case_simulator:inventory_sell"), {"ids": [self.cheap.pk]}, HTTP_ACCEPT="application/json")
         self.assertEqual(again.status_code, 400)
         self.assertFalse(again.json()["ok"])
+
+
+class LiveFeedTests(TestCase):
+    def setUp(self):
+        self.viewer = get_user_model().objects.create_user(username="watcher", password="pass12345")
+        self.lucky = get_user_model().objects.create_user(username="lucky", password="pass12345")
+        self.client.force_login(self.viewer)
+        self.case = _make_case()
+        self.knife = self.case.items.get(rarity="gold")
+        self.cheap = self.case.items.filter(rarity="milspec").first()
+
+    def _drop(self, item, user=None):
+        return SimOpening.objects.create(user=user or self.lucky, case=self.case, item=item, item_value=item.value)
+
+    def test_feed_returns_only_rare_drops_after_the_given_id(self):
+        old = self._drop(self.knife)
+        self._drop(self.cheap)
+        first, second = self._drop(self.knife), self._drop(self.knife)
+        payload = self.client.get(reverse("case_simulator:feed"), {"after": old.pk}).json()
+        self.assertEqual([row["id"] for row in payload["items"]], [first.pk, second.pk])
+        inventory_url = reverse("case_simulator:player_inventory", args=[self.lucky.pk])
+        self.assertIn(inventory_url, payload["items"][0]["html"])
+        self.assertIn("sim-drop__owner", payload["items"][0]["html"])
+
+    def test_feed_with_nothing_new_is_empty(self):
+        drop = self._drop(self.knife)
+        payload = self.client.get(reverse("case_simulator:feed"), {"after": drop.pk}).json()
+        self.assertEqual(payload["items"], [])
+        self.assertEqual(self.client.get(reverse("case_simulator:feed"), {"after": "junk"}).status_code, 200)
+
+    def test_list_page_marks_last_feed_id(self):
+        drop = self._drop(self.knife)
+        response = self.client.get(reverse("case_simulator:list"))
+        self.assertContains(response, f'data-last-id="{drop.pk}"')
+        self.assertContains(response, reverse("case_simulator:player_inventory", args=[self.lucky.pk]))
+
+    def test_player_inventory_is_read_only(self):
+        self._drop(self.knife)
+        response = self.client.get(reverse("case_simulator:player_inventory", args=[self.lucky.pk]))
+        self.assertContains(response, "Инвентарь lucky")
+        self.assertContains(response, self.knife.skin_name)
+        self.assertNotContains(response, "data-sim-check")
+        self.assertNotContains(response, 'name="sell"')
+
+    def test_own_inventory_link_redirects_to_my_inventory(self):
+        response = self.client.get(reverse("case_simulator:player_inventory", args=[self.viewer.pk]))
+        self.assertRedirects(response, reverse("case_simulator:inventory"))
+
+    def test_unknown_player_is_404(self):
+        response = self.client.get(reverse("case_simulator:player_inventory", args=[999999]))
+        self.assertEqual(response.status_code, 404)
 
 
 class ControlCenterCaseTests(TestCase):

@@ -7,13 +7,16 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Count, Q, Sum
 from django.http import JsonResponse
+from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404, redirect
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.http import urlencode
 from django.views.decorators.http import require_POST
 
 from frontend.templatetags.site_formatters import money
 from modules.v2.profiles.models import UserProfile
+from modules.v2.profiles.presentation import get_user_avatar_url, get_user_display_name
 from modules.v2.daily_bonus.services import free_case_for
 from modules.v2.promo.services import free_case_activation
 from modules.v2.system.services import get_site_configuration
@@ -25,6 +28,7 @@ from .models import ZERO, SimCase, SimCaseItem, SimOpening, TerminalSession
 
 MENU_KEY = "case_simulator"
 FEED_RARITIES = (SimCaseItem.Rarity.CLASSIFIED, SimCaseItem.Rarity.COVERT, SimCaseItem.Rarity.GOLD)
+FEED_LIMIT = 14
 
 
 def _balance(user) -> Decimal:
@@ -64,12 +68,31 @@ def _with_previews(cases: list[SimCase]) -> list[SimCase]:
     return cases
 
 
-def _recent_drops(limit: int = 14):
-    return list(
-        SimOpening.objects.filter(item__rarity__in=FEED_RARITIES)
-        .select_related("item", "case", "user")
-        .order_by("-created_at")[:limit]
-    )
+def _recent_drops(limit: int = FEED_LIMIT, *, after_id: int = 0):
+    """Newest rare drops first, with the owner's avatar and name for the live feed."""
+    queryset = SimOpening.objects.filter(item__rarity__in=FEED_RARITIES).select_related("item", "case", "user", "user__profile_v2")
+    if after_id:
+        queryset = queryset.filter(pk__gt=after_id)
+    drops = list(queryset.order_by("-id")[:limit])
+    for opening in drops:
+        opening.owner_avatar = get_user_avatar_url(opening.user)
+        opening.owner_name = get_user_display_name(opening.user)
+    return drops
+
+
+@login_required
+def live_feed(request):
+    """Drops newer than ?after=<id>, oldest first, as ready tiles for the live feed."""
+    try:
+        after_id = max(0, int(request.GET.get("after") or 0))
+    except ValueError:
+        after_id = 0
+    drops = list(reversed(_recent_drops(after_id=after_id)))
+    items = [
+        {"id": opening.pk, "html": render_to_string("case_simulator/partials/drop_tile.html", {"opening": opening, "show_user": True}, request=request)}
+        for opening in drops
+    ]
+    return JsonResponse({"ok": True, "items": items})
 
 
 @login_required
@@ -94,6 +117,7 @@ def case_list(request):
             "total_cases": len(cases),
             "stats": _user_stats(request.user),
             "recent_drops": _recent_drops(),
+            "feed_limit": FEED_LIMIT,
         },
         page_title=build_page_title("Кейсы"),
         active_menu_key=MENU_KEY,
@@ -253,10 +277,9 @@ def terminal_decline(request, session_id: int):
     return JsonResponse({"ok": True, **_terminal_state(session, user=request.user)})
 
 
-@login_required
-def inventory(request):
+def _render_inventory(request, owner, *, readonly: bool):
     rarity = request.GET.get("rarity") or ""
-    queryset = SimOpening.objects.filter(user=request.user, sold_at__isnull=True).select_related("item", "case")
+    queryset = SimOpening.objects.filter(user=owner, sold_at__isnull=True).select_related("item", "case")
     rarity_counts = dict(queryset.values_list("item__rarity").annotate(n=Count("id")).values_list("item__rarity", "n"))
     if rarity in SimCaseItem.Rarity.values:
         queryset = queryset.filter(item__rarity=rarity)
@@ -266,7 +289,8 @@ def inventory(request):
     labels = dict(SimCaseItem.Rarity.choices)
     rarity_tabs = [(key, labels[key], rarity_counts[key]) for key in services.RARITY_ORDER if rarity_counts.get(key)]
     selection_value = queryset.aggregate(total=Sum("item_value"))["total"] or ZERO
-    best = SimOpening.objects.filter(user=request.user).select_related("item").order_by("-item_value", "-id").first()
+    best = SimOpening.objects.filter(user=owner).select_related("item").order_by("-item_value", "-id").first()
+    owner_name = get_user_display_name(owner)
     return render_dashboard_page(
         request,
         full_template="case_simulator/inventory.html",
@@ -278,12 +302,31 @@ def inventory(request):
             "selected_rarity": rarity,
             "selection_count": page_obj.paginator.count,
             "selection_value": selection_value,
-            "stats": _user_stats(request.user),
+            "stats": _user_stats(owner),
             "best_drop": best,
+            "readonly": readonly,
+            "owner": owner,
+            "owner_name": owner_name,
+            "owner_avatar": get_user_avatar_url(owner),
+            "inventory_url": request.path,
         },
-        page_title=build_page_title("Инвентарь симулятора", "Кейсы"),
+        page_title=build_page_title(f"Инвентарь {owner_name}" if readonly else "Инвентарь симулятора", "Кейсы"),
         active_menu_key=MENU_KEY,
     )
+
+
+@login_required
+def inventory(request):
+    return _render_inventory(request, request.user, readonly=False)
+
+
+@login_required
+def player_inventory(request, user_id: int):
+    """Someone else's simulator inventory, opened from the live feed. Read only."""
+    if user_id == request.user.pk:
+        return redirect("case_simulator:inventory")
+    owner = get_object_or_404(get_user_model().objects.select_related("profile_v2"), pk=user_id, is_active=True)
+    return _render_inventory(request, owner, readonly=True)
 
 
 @login_required

@@ -17,14 +17,13 @@
         <div class="stat-tile"><span class="stat-tile__label">Стоимость дропа</span><span class="stat-tile__value">{% money stats.value %}</span><span class="stat-tile__meta">оценка всех выпадений</span></div>
     </div>
 
-    {% if recent_drops %}
-        <div class="sim-feed" aria-label="Последние редкие выпадения">
-            <span class="sim-feed__label">Live</span>
-            <div class="sim-feed__track">
-                {% for opening in recent_drops %}{% include "case_simulator/partials/drop_tile.html" with show_user=True %}{% endfor %}
-            </div>
+    <div class="sim-feed{% if not recent_drops %} is-empty{% endif %}" aria-label="Последние редкие выпадения"
+        data-sim-feed data-feed-url="{% url 'case_simulator:feed' %}" data-last-id="{% if recent_drops %}{{ recent_drops.0.pk }}{% else %}0{% endif %}" data-limit="{{ feed_limit }}">
+        <span class="sim-feed__label">Live</span>
+        <div class="sim-feed__track" data-sim-feed-track aria-live="polite">
+            {% for opening in recent_drops %}{% include "case_simulator/partials/drop_tile.html" with show_user=True %}{% endfor %}
         </div>
-    {% endif %}
+    </div>
 
     {% if group_tabs|length > 1 %}
         <div class="chip-tabs sim-tabs">

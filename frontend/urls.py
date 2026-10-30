@@ -6,6 +6,7 @@ from .views import (
     cookies_page,
     dashboard_preview,
     home,
+    home_live,
     pd_consent_page,
     pickem_rules_page,
     privacy_page,
@@ -16,6 +17,7 @@ app_name = "frontend"
 
 urlpatterns = [
     path("", home, name="home"),
+    path("live-feed/", home_live, name="home_live"),
     path("dashboard-preview/", dashboard_preview, name="dashboard_preview"),
     path("agreement/", agreement_page, name="agreement"),
     path("privacy/", privacy_page, name="privacy"),
