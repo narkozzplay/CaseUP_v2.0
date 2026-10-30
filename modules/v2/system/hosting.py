@@ -60,6 +60,8 @@ class Forecast:
     days_left: float | None = None
     topup_amount: Decimal = Decimal("0")
     topup_months: int = 1
+    items_monthly: Decimal = Decimal("0")
+    api_monthly: Decimal | None = None
     state: str = "info"
     items: list = field(default_factory=list)
 
@@ -81,22 +83,34 @@ def balance_items():
     return HostingItem.objects.filter(is_active=True, billing=HostingItem.Billing.BALANCE)
 
 
-def _api_cost(config: HostingSettings) -> Decimal | None:
-    if config.balance_source != HostingSettings.Source.API or not config.api_resources:
+def api_cost(config: HostingSettings) -> Decimal | None:
+    """The provider's own hourly total, or the sum of its resources when it did not send one."""
+    if config.balance_source != HostingSettings.Source.API:
         return None
+    if config.api_hourly_cost:
+        return Decimal(config.api_hourly_cost)
     try:
-        return sum((Decimal(str(row.get("price") or 0)) for row in config.api_resources), Decimal("0"))
+        total = sum((Decimal(str(row.get("price") or 0)) for row in config.api_resources or []), Decimal("0"))
     except InvalidOperation:
         return None
+    return total or None
+
+
+def items_cost() -> Decimal:
+    return sum((item.hourly_price for item in balance_items()), Decimal("0"))
 
 
 def hourly_cost(config: HostingSettings) -> tuple[Decimal, str]:
-    api = _api_cost(config)
-    if api:
-        return api, "api"
+    """A cost typed in by hand wins; otherwise the larger of the list and the API. The API may leave something
+    out (the floating IP was missing from its resources, 30.10.2026), and a forecast that is too long is the
+    one that lets the server stop."""
     if config.monthly_cost_rub:
         return Decimal(config.monthly_cost_rub) / HOURS_PER_MONTH, "manual"
-    return sum((item.hourly_price for item in balance_items()), Decimal("0")), "items"
+    items = items_cost()
+    api = api_cost(config)
+    if api and api >= items:
+        return api, "api"
+    return items, "items"
 
 
 def build_forecast(config: HostingSettings | None = None, *, now: datetime | None = None) -> Forecast:
@@ -110,7 +124,11 @@ def build_forecast(config: HostingSettings | None = None, *, now: datetime | Non
         reserve_days=config.reserve_days,
         reserve_rub=_money(hourly * 24 * config.reserve_days),
         topup_months=max(1, config.topup_months),
+        items_monthly=_money(items_cost() * HOURS_PER_MONTH),
     )
+    api = api_cost(config)
+    if api:
+        forecast.api_monthly = _money(api * HOURS_PER_MONTH)
     if config.balance_rub is None:
         return forecast
     known = Decimal(config.balance_rub) + Decimal(config.bonus_rub or 0)
@@ -313,19 +331,31 @@ def sync_from_api(config: HostingSettings | None = None) -> bool:
         logger.warning("hosting api sync failed: %s", message)
         return False
     resources = []
-    for row in data.get("detalization") or []:
-        if not isinstance(row, dict):
-            continue
-        resources.append(
-            {
-                "name": str(row.get("name") or "")[:120],
-                "type": str(row.get("type") or "")[:20],
-                "plan": str(row.get("plan") or "")[:60],
-                "state": str(row.get("state") or "")[:20],
-                "price": str(row.get("price") or "0"),
-                "price_month": str(row.get("price_month") or "0"),
-            }
-        )
+
+    def collect(rows, parent: str = "") -> None:
+        # Child services (backups, IPs) come in `linked` of their server.
+        for row in rows or []:
+            if not isinstance(row, dict):
+                continue
+            name = str(row.get("name") or row.get("plan") or row.get("type") or "")
+            resources.append(
+                {
+                    "name": (f"{parent} → {name}" if parent else name)[:120],
+                    "type": str(row.get("type") or "")[:20],
+                    "plan": str(row.get("plan") or "")[:60],
+                    "state": str(row.get("state") or "")[:20],
+                    "price": str(row.get("price") or "0"),
+                    "price_month": str(row.get("price_month") or "0"),
+                }
+            )
+            linked = row.get("linked")
+            collect(linked if isinstance(linked, list) else [], name)
+
+    collect(data.get("detalization"))
+    try:
+        api_hourly = Decimal(str(data["hourly_cost"])) if data.get("hourly_cost") not in (None, "") else None
+    except InvalidOperation:
+        api_hourly = None
     config.balance_rub = _money(balance)
     config.bonus_rub = _money(bonus)
     config.balance_at = timezone.now()
@@ -333,6 +363,7 @@ def sync_from_api(config: HostingSettings | None = None) -> bool:
     config.api_synced_at = config.balance_at
     config.api_error = ""
     config.api_resources = resources
+    config.api_hourly_cost = api_hourly
     config.save()
     return True
 

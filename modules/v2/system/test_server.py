@@ -240,6 +240,35 @@ class HostingForecastTests(TestCase):
 
     @override_settings(REGRU_CLOUDVPS_TOKEN="secret")
     @patch("modules.v2.system.hosting.requests.get")
+    def test_api_without_the_floating_ip_does_not_shrink_the_cost(self, get):
+        # 30.10.2026: the API listed only the server (1,76204 ₽/ч) and no total, the IP was missing.
+        get.return_value = MagicMock(status_code=200, json=lambda: {"balance_data": {
+            "balance": 726.83, "detalization": [{"name": "CaseUP_prod", "plan": "c2-m2-d40-stdp", "price": "1.76204", "type": "reglet"}],
+        }})
+        self.assertTrue(hosting.sync_from_api())
+        config = HostingSettings.load()
+        hourly, source = hosting.hourly_cost(config)
+        self.assertEqual(source, "items")
+        self.assertAlmostEqual(float(hourly), 2.02025, places=4)
+        forecast = hosting.build_forecast(config)
+        self.assertEqual(forecast.items_monthly, Decimal("1454.58"))
+        self.assertEqual(forecast.api_monthly, Decimal("1268.67"))
+        self.assertEqual(forecast.monthly_cost, Decimal("1454.58"))
+
+    @override_settings(REGRU_CLOUDVPS_TOKEN="secret")
+    @patch("modules.v2.system.hosting.requests.get")
+    def test_api_linked_services_count(self, get):
+        get.return_value = MagicMock(status_code=200, json=lambda: {"balance_data": {
+            "balance": 500, "detalization": [{"name": "CaseUP_prod", "price": "3.5", "type": "reglet",
+                                              "linked": [{"name": "ip", "price": "0.26", "type": "ip"}]}],
+        }})
+        self.assertTrue(hosting.sync_from_api())
+        config = HostingSettings.load()
+        self.assertEqual(len(config.api_resources), 2)
+        self.assertEqual(hosting.hourly_cost(config), (Decimal("3.76"), "api"))
+
+    @override_settings(REGRU_CLOUDVPS_TOKEN="secret")
+    @patch("modules.v2.system.hosting.requests.get")
     def test_api_sync(self, get):
         get.return_value = MagicMock(status_code=200, json=lambda: {"balance_data": {
             "balance": 728.85, "bonus_balance": 0, "hourly_cost": 2.02, "monthly_cost": 1454.4, "days_left": 15,
@@ -252,7 +281,9 @@ class HostingForecastTests(TestCase):
         config = HostingSettings.load()
         self.assertEqual(config.balance_rub, Decimal("728.85"))
         self.assertEqual(config.balance_source, "api")
-        self.assertEqual(hosting.hourly_cost(config), (Decimal("2.02"), "api"))
+        self.assertEqual(hosting.api_cost(config), Decimal("2.02"))
+        # The list (1,76 + 187,38/720 = 2,02025 ₽/ч) is a bit more, so the forecast keeps it.
+        self.assertEqual(hosting.hourly_cost(config)[1], "items")
         self.assertEqual(get.call_args.kwargs["headers"]["Authorization"], "Bearer secret")
 
         get.return_value = MagicMock(status_code=401)
