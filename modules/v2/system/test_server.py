@@ -283,6 +283,8 @@ class ServerPageTests(FakeProcMixin, TestCase):
         self.assertIn("Пополнить до", content)
         self.assertIn("CaseUP_prod", content)  # seeded by the data migration
         self.assertIn("Stdp C2-M2-D40", content)
+        self.assertIn("Хост-А", content)  # renewals seeded by 0027
+        self.assertIn("14.11.2026", content)
         self.assertIn("caseup_prod-celery_worker-1", content)
         self.assertIn("data-price-chart", content)
 
