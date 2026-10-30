@@ -1,0 +1,42 @@
+<section class="section section--compact ops cc" data-control-center>
+    <header class="cc-pagehead">
+        <div>
+            <a href="{% url 'control_center:major_edit' major.pk %}#match-posts" class="back-link" data-dashboard-nav="true">← {{ major.name }}</a>
+            <span class="eyebrow">Control Center · Мейджоры · Посты о матчах</span>
+            <h1 class="cc-pagehead__title">{{ post.team_a }} {{ post.score_a }}:{{ post.score_b }} {{ post.team_b }}</h1>
+            <p class="ops-hero__text">{{ post.stage_name }}{% if post.round_name %} · {{ post.round_name }}{% endif %} · матч закончился {{ post.finished_at|date:"d.m.Y H:i" }}</p>
+        </div>
+        <dl class="ops-hero__meta">
+            <div><dt>Пост</dt><dd class="{% if post.status == 'sent' %}metric-positive{% elif post.status == 'error' %}metric-negative{% endif %}">{{ post.get_status_display }}</dd></div>
+            {% if post.posted_at %}<div><dt>Опубликован</dt><dd>{{ post.posted_at|date:"d.m H:i" }}</dd></div>{% endif %}
+        </dl>
+    </header>
+
+    {% include "control_center/partials/_tabs.html" %}
+
+    {% if post.error %}<div class="tfa-alert" role="alert">{{ post.error }}</div>{% endif %}
+
+    <form method="post" class="ops-panel" novalidate>
+        {% csrf_token %}
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Что в посте</h2><span class="ops-panel__hint">данные PandaScore можно поправить</span></div>
+        {% if form.non_field_errors %}<div class="tfa-alert" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+        <div class="cc-form-grid">
+            {% include "control_center/partials/_promo_field.html" with f=form.team_a %}
+            {% include "control_center/partials/_promo_field.html" with f=form.team_b %}
+            {% include "control_center/partials/_promo_field.html" with f=form.score_a %}
+            {% include "control_center/partials/_promo_field.html" with f=form.score_b %}
+            {% include "control_center/partials/_promo_field.html" with f=form.mvp hint="В бесплатных данных PandaScore MVP нет: впишите ник, например с HLTV." %}
+            {% include "control_center/partials/_promo_field.html" with f=form.maps_text %}
+            <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.progress %}</div>
+        </div>
+        <div class="cc-form-actions">
+            <button type="submit" name="action" value="send" class="btn btn-primary btn-sm">{% if post.message_id %}Сохранить и обновить пост в канале{% else %}Сохранить и опубликовать{% endif %}</button>
+            <button type="submit" name="action" value="save" class="btn btn-ghost btn-sm">Только сохранить</button>
+        </div>
+    </form>
+
+    <article class="ops-panel">
+        <div class="ops-panel__head"><h2 class="ops-panel__title">Как выглядит пост</h2><span class="ops-panel__hint">по сохранённым данным</span></div>
+        <div class="ref-body"><pre class="ref-text" style="white-space:pre-wrap">{{ preview }}</pre></div>
+    </article>
+</section>

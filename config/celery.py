@@ -83,6 +83,11 @@ app.conf.beat_schedule = {
         "task": "majors.check_items",
         "schedule": crontab(hour=9, minute=30),
     },
+    # During a Major: finished matches from PandaScore go to the Telegram channel (score, maps, who advanced).
+    "majors-post-match-results": {
+        "task": "majors.post_match_results",
+        "schedule": 60.0,
+    },
     # 1st of the month: last month's top donors become «Спонсор» candidates; admins get a notification.
     "donations-monthly-sponsors": {
         "task": "donations.monthly_sponsors",

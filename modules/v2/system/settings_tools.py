@@ -37,13 +37,15 @@ INTEGRATION_FIELD_LABELS = {
     "steam_api_key": "Steam API key",
     "faceit_api_key": "FaceIT API key",
     "telegram_bot_token": "Telegram bot token",
+    "pandascore_api_key": "PandaScore API key",
     "steam_health_mode": "Steam health mode",
     "faceit_health_mode": "FaceIT health mode",
     "telegram_health_mode": "Telegram health mode",
+    "pandascore_health_mode": "PandaScore health mode",
     "degraded_stub_message": "Заглушка degraded",
     "down_stub_message": "Заглушка down",
 }
-SECRET_FIELDS = {"steam_api_key", "faceit_api_key", "telegram_bot_token"}
+SECRET_FIELDS = {"steam_api_key", "faceit_api_key", "telegram_bot_token", "pandascore_api_key"}
 
 
 def get_cached_integration_health(*, refresh: bool = False) -> dict[str, object]:
@@ -68,6 +70,7 @@ def _unchecked_health() -> list[ExternalServiceHealth]:
         ("steam", "Steam API", integration.steam_api_key, integration.steam_health_mode),
         ("faceit", "FaceIT API", integration.faceit_api_key, integration.faceit_health_mode),
         ("telegram", "Telegram Bot API", integration.telegram_bot_token, integration.telegram_health_mode),
+        ("pandascore", "PandaScore (матчи мейджора)", integration.pandascore_api_key, integration.pandascore_health_mode),
     )
     return [
         ExternalServiceHealth(
@@ -146,9 +149,11 @@ def export_settings_payload() -> dict[str, object]:
             "steam_api_key_set": bool(integration.steam_api_key),
             "faceit_api_key_set": bool(integration.faceit_api_key),
             "telegram_bot_token_set": bool(integration.telegram_bot_token),
+            "pandascore_api_key_set": bool(integration.pandascore_api_key),
             "steam_health_mode": integration.steam_health_mode,
             "faceit_health_mode": integration.faceit_health_mode,
             "telegram_health_mode": integration.telegram_health_mode,
+            "pandascore_health_mode": integration.pandascore_health_mode,
         },
         "modules": get_module_state_map(),
     }

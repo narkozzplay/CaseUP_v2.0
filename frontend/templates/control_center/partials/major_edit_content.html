@@ -72,6 +72,58 @@
                 </table>
             </div>
         </article>
+
+        <article class="ops-panel" id="match-posts">
+            <div class="ops-panel__head">
+                <h2 class="ops-panel__title">Посты о матчах в канал</h2>
+                <span class="ops-panel__hint">{% if major.match_posts_enabled and major.pandascore_serie_id %}включено, проверка раз в минуту{% else %}выключено{% endif %}</span>
+            </div>
+            <div class="ref-body">
+                <p class="ref-text">После каждого матча бот публикует в канал счёт, карты и кто прошёл дальше. Данные берутся из PandaScore по ID серии (поле внизу страницы). MVP в бесплатных данных нет: впишите его на странице поста, и сообщение в канале обновится. Матчи, закончившиеся больше 3 часов назад, автоматически не публикуются.</p>
+                {% if not pandascore_key_set %}<p class="ref-text metric-negative">Ключ PandaScore не задан: <a href="{% url 'system_config:settings' %}">System Settings → Интеграции</a>.</p>{% endif %}
+            </div>
+            <form method="get" class="cc-form-actions" action="#match-posts">
+                <input type="text" name="find_series" value="{{ series_query|default:'' }}" class="form-control" placeholder="Major, IEM, BLAST…" style="max-width:260px">
+                <button type="submit" class="btn btn-ghost btn-sm">Найти ID серии</button>
+            </form>
+            {% if series_error %}<div class="ref-body"><p class="ref-text metric-negative">{{ series_error }}</p></div>{% endif %}
+            {% if series is not None %}
+                <div class="table-wrap">
+                    <table class="table cc-table">
+                        <thead><tr><th class="cc-num">ID</th><th>Серия</th><th>Начало</th></tr></thead>
+                        <tbody>
+                            {% for row in series %}
+                                <tr><td class="cc-num"><b>{{ row.id }}</b></td><td>{{ row.title }}{% if row.running %}<span class="cc-sub">идёт сейчас</span>{% endif %}</td><td>{{ row.begin_at|date:"d.m.Y" }}</td></tr>
+                            {% empty %}
+                                <tr><td colspan="3" class="text-muted">Ничего не нашлось среди текущих и будущих серий CS2.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+            <form method="post" class="cc-form-actions">
+                {% csrf_token %}
+                <button type="submit" name="action" value="sync_posts" class="btn btn-primary btn-sm"{% if not major.pandascore_serie_id %} disabled{% endif %}>Проверить матчи сейчас</button>
+            </form>
+            <div class="table-wrap">
+                <table class="table cc-table">
+                    <thead><tr><th>Матч</th><th>Стадия</th><th>MVP</th><th>Конец</th><th>Пост</th></tr></thead>
+                    <tbody>
+                        {% for post in match_posts %}
+                            <tr>
+                                <td><a href="{% url 'control_center:match_post_edit' post.pk %}"><b>{{ post.team_a }} {{ post.score_a }}:{{ post.score_b }} {{ post.team_b }}</b></a></td>
+                                <td>{{ post.stage_name }}{% if post.round_name %}<span class="cc-sub">{{ post.round_name }}</span>{% endif %}</td>
+                                <td>{{ post.mvp|default:"—" }}</td>
+                                <td>{{ post.finished_at|date:"d.m H:i" }}</td>
+                                <td><span class="cc-chip{% if post.status == 'sent' %} cc-chip--ok{% elif post.status == 'error' %} cc-chip--fail{% endif %}">{{ post.get_status_display }}</span>{% if post.error %}<span class="cc-sub">{{ post.error|truncatechars:80 }}</span>{% endif %}</td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="5" class="text-muted">Сыгранных матчей пока нет.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
     {% endif %}
 
     <form method="post" enctype="multipart/form-data" class="ops-panel" novalidate>
@@ -92,6 +144,12 @@
             <div class="cc-span-2">{% include "control_center/partials/_promo_field.html" with f=form.banner %}</div>
             {% include "control_center/partials/_promo_field.html" with f=form.banner_video_mp4 %}
             {% include "control_center/partials/_promo_field.html" with f=form.banner_video_webm %}
+            {% include "control_center/partials/_promo_field.html" with f=form.pandascore_serie_id %}
+            <div class="cc-field promo-checks">
+                <span>Telegram-канал</span>
+                <label class="cc-field-check">{{ form.match_posts_enabled }}<span>{{ form.match_posts_enabled.label }}</span></label>
+                <small class="cc-field__hint">{{ form.match_posts_enabled.help_text }}</small>
+            </div>
             <div class="cc-field promo-checks cc-span-2">
                 <span>Доступ</span>
                 <label class="cc-field-check">{{ form.is_published }}<span>{{ form.is_published.label }}</span></label>

@@ -304,6 +304,7 @@ SOCIAL_AUTH_LOGIN_ERROR_URL = os.getenv("SOCIAL_AUTH_LOGIN_ERROR_URL", "/auth/lo
 SOCIAL_AUTH_URL_NAMESPACE = "social_auth"
 
 FACEIT_API_KEY = os.getenv("FACEIT_API_KEY", "").strip()
+PANDASCORE_API_KEY = os.getenv("PANDASCORE_API_KEY", "").strip()
 
 SOCIAL_AUTH_PIPELINE = (
     "social_core.pipeline.social_auth.social_details",
