@@ -1,10 +1,12 @@
 """Control Center forms: majors, stages with their teams and matches, teams and Pick'em rewards."""
 from __future__ import annotations
 
+import re
+
 from django import forms
 from django.utils.text import slugify
 
-from .models import Major, Match, RewardRule, Stage, StageTeam, Team
+from .models import Major, Match, MatchPost, RewardRule, Stage, StageTeam, Team
 
 _DT_FORMAT = "%Y-%m-%dT%H:%M"
 _DT_INPUTS = [_DT_FORMAT, "%Y-%m-%d %H:%M", "%Y-%m-%d"]
@@ -55,6 +57,7 @@ class MajorForm(_SlugFromNameMixin, forms.ModelForm):
         fields = (
             "name", "slug", "location", "venue", "starts_at", "ends_on", "prize_pool", "description",
             "banner", "banner_video_mp4", "banner_video_webm", "is_published", "require_steam", "items_keyword",
+            "pandascore_serie_id", "match_posts_enabled",
         )
         widgets = {
             "name": _text(),
@@ -66,6 +69,7 @@ class MajorForm(_SlugFromNameMixin, forms.ModelForm):
             "prize_pool": _text(placeholder="$1 250 000"),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "items_keyword": _text(),
+            "pandascore_serie_id": _number(min=1),
         }
 
     def __init__(self, *args, **kwargs):
@@ -73,6 +77,65 @@ class MajorForm(_SlugFromNameMixin, forms.ModelForm):
         self.fields["slug"].required = False
         self.fields["slug"].help_text = "Адрес страницы /majors/<slug>/. Пусто — из названия."
         self.fields["starts_at"].input_formats = _DT_INPUTS
+
+
+class MatchPostForm(forms.ModelForm):
+    """What the channel post says; the MVP is the usual addition after the match."""
+
+    maps_text = forms.CharField(
+        label="Карты",
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Mirage 13:9\nInferno 11:13"}),
+        help_text="По строке на карту: название и счёт по раундам (A:B), счёт можно не писать.",
+    )
+
+    class Meta:
+        model = MatchPost
+        fields = ("team_a", "score_a", "score_b", "team_b", "mvp", "progress")
+        widgets = {
+            "team_a": _text(),
+            "team_b": _text(),
+            "score_a": _number(min=0, max=5),
+            "score_b": _number(min=0, max=5),
+            "mvp": _text(placeholder="ник игрока"),
+            "progress": _text(),
+        }
+
+    MAP_LINE = re.compile(r"^(?P<name>.*?)(?:\s+(?P<a>\d{1,2})\s*[:\-]\s*(?P<b>\d{1,2}))?$")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        lines = []
+        for item in self.instance.maps or []:
+            rounds = f" {item['score_a']}:{item['score_b']}" if item.get("score_a") is not None and item.get("score_b") is not None else ""
+            lines.append(f"{item.get('name') or 'Карта'}{rounds}")
+        self.fields["maps_text"].initial = "\n".join(lines)
+
+    def clean_maps_text(self):
+        old = list(self.instance.maps or [])
+        team_a = self.cleaned_data.get("team_a") or self.instance.team_a
+        team_b = self.cleaned_data.get("team_b") or self.instance.team_b
+        maps = []
+        for line in (raw.strip() for raw in (self.cleaned_data.get("maps_text") or "").splitlines()):
+            if not line:
+                continue
+            match = self.MAP_LINE.match(line)
+            name = (match.group("name") or "").strip()
+            score_a = int(match.group("a")) if match.group("a") else None
+            score_b = int(match.group("b")) if match.group("b") else None
+            previous = old[len(maps)] if len(maps) < len(old) else {}
+            if score_a is not None and score_b is not None and score_a != score_b:
+                winner = team_a if score_a > score_b else team_b
+            else:
+                winner = previous.get("winner", "")
+            maps.append({"name": "" if name.lower() == "карта" else name[:40], "winner": winner, "score_a": score_a, "score_b": score_b})
+        return maps
+
+    def save(self, commit=True):
+        self.instance.maps = self.cleaned_data["maps_text"]
+        if self.instance.score_a != self.instance.score_b:
+            self.instance.winner = self.instance.team_a if self.instance.score_a > self.instance.score_b else self.instance.team_b
+        return super().save(commit=commit)
 
 
 class StageForm(forms.ModelForm):

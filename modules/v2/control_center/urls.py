@@ -42,6 +42,7 @@ urlpatterns = [
     path("majors/<int:major_id>/rewards/new/", views_majors.reward_edit, name="reward_create"),
     path("majors/rewards/<int:rule_id>/", views_majors.reward_edit, name="reward_edit"),
     path("majors/grants/<int:grant_id>/", views_majors.major_grant_action, name="major_grant_action"),
+    path("majors/match-posts/<int:post_id>/", views_majors.match_post_edit, name="match_post_edit"),
     path("majors/teams/", views_majors.teams, name="major_teams"),
     path("majors/teams/new/", views_majors.team_edit, name="team_create"),
     path("majors/teams/<int:team_id>/", views_majors.team_edit, name="team_edit"),

@@ -17,7 +17,7 @@ from .services import (
 )
 
 
-INTEGRATION_SECRET_FIELDS = ("steam_api_key", "faceit_api_key", "telegram_bot_token")
+INTEGRATION_SECRET_FIELDS = ("steam_api_key", "faceit_api_key", "telegram_bot_token", "pandascore_api_key")
 _SECRET_INPUT_ATTRS = {
     "class": "form-control",
     "autocomplete": "new-password",
@@ -31,12 +31,15 @@ class SiteConfigurationForm(forms.ModelForm):
     steam_api_key = forms.CharField(required=False, widget=forms.PasswordInput(render_value=False, attrs=_SECRET_INPUT_ATTRS))
     faceit_api_key = forms.CharField(required=False, widget=forms.PasswordInput(render_value=False, attrs=_SECRET_INPUT_ATTRS))
     telegram_bot_token = forms.CharField(required=False, widget=forms.PasswordInput(render_value=False, attrs=_SECRET_INPUT_ATTRS))
+    pandascore_api_key = forms.CharField(required=False, widget=forms.PasswordInput(render_value=False, attrs=_SECRET_INPUT_ATTRS))
     clear_steam_api_key = forms.BooleanField(required=False)
     clear_faceit_api_key = forms.BooleanField(required=False)
     clear_telegram_bot_token = forms.BooleanField(required=False)
+    clear_pandascore_api_key = forms.BooleanField(required=False)
     steam_health_mode = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
     faceit_health_mode = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
     telegram_health_mode = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
+    pandascore_health_mode = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
     degraded_stub_message = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     down_stub_message = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     current_project_version = forms.ModelChoiceField(
@@ -128,9 +131,11 @@ class SiteConfigurationForm(forms.ModelForm):
         self.fields["steam_health_mode"].choices = integration.HealthMode.choices
         self.fields["faceit_health_mode"].choices = integration.HealthMode.choices
         self.fields["telegram_health_mode"].choices = integration.HealthMode.choices
+        self.fields["pandascore_health_mode"].choices = integration.HealthMode.choices
         self.fields["steam_health_mode"].initial = integration.steam_health_mode
         self.fields["faceit_health_mode"].initial = integration.faceit_health_mode
         self.fields["telegram_health_mode"].initial = integration.telegram_health_mode
+        self.fields["pandascore_health_mode"].initial = integration.pandascore_health_mode
         self.fields["degraded_stub_message"].initial = integration.degraded_stub_message
         self.fields["down_stub_message"].initial = integration.down_stub_message
         self.masked_integration_secrets = masked
@@ -204,6 +209,7 @@ class SiteConfigurationForm(forms.ModelForm):
                 "steam_health_mode": self.cleaned_data.get("steam_health_mode"),
                 "faceit_health_mode": self.cleaned_data.get("faceit_health_mode"),
                 "telegram_health_mode": self.cleaned_data.get("telegram_health_mode"),
+                "pandascore_health_mode": self.cleaned_data.get("pandascore_health_mode"),
                 "degraded_stub_message": self.cleaned_data.get("degraded_stub_message", ""),
                 "down_stub_message": self.cleaned_data.get("down_stub_message", ""),
             }

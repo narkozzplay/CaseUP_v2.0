@@ -105,6 +105,11 @@
                                 <label class="cc-field form-field"><span>FaceIT API key</span><span class="cc-secret">{{ form.faceit_api_key }}<button type="button" class="cc-secret__toggle" data-cc-reveal aria-label="Показать ключ">👁</button></span>
                                     {% if masked_integration_secrets.faceit_api_key %}<small class="cc-help">Сейчас: {{ masked_integration_secrets.faceit_api_key }} · пустое поле оставит ключ как есть</small><span class="cc-help">{{ form.clear_faceit_api_key }} удалить ключ</span>{% endif %}{{ form.faceit_api_key.errors }}</label>
                                 <label class="cc-field form-field"><span>Health mode</span>{{ form.faceit_health_mode }}</label>
+                            {% elif item.key == "pandascore" %}
+                                <label class="cc-field form-field"><span>PandaScore API key</span><span class="cc-secret">{{ form.pandascore_api_key }}<button type="button" class="cc-secret__toggle" data-cc-reveal aria-label="Показать ключ">👁</button></span>
+                                    <small class="cc-help">Бесплатный ключ с pandascore.co: результаты матчей мейджора для постов в канал.</small>
+                                    {% if masked_integration_secrets.pandascore_api_key %}<small class="cc-help">Сейчас: {{ masked_integration_secrets.pandascore_api_key }} · пустое поле оставит ключ как есть</small><span class="cc-help">{{ form.clear_pandascore_api_key }} удалить ключ</span>{% endif %}{{ form.pandascore_api_key.errors }}</label>
+                                <label class="cc-field form-field"><span>Health mode</span>{{ form.pandascore_health_mode }}</label>
                             {% else %}
                                 <label class="cc-field form-field"><span>Telegram bot token</span><span class="cc-secret">{{ form.telegram_bot_token }}<button type="button" class="cc-secret__toggle" data-cc-reveal aria-label="Показать ключ">👁</button></span>
                                     {% if masked_integration_secrets.telegram_bot_token %}<small class="cc-help">Сейчас: {{ masked_integration_secrets.telegram_bot_token }} · пустое поле оставит ключ как есть</small><span class="cc-help">{{ form.clear_telegram_bot_token }} удалить ключ</span>{% endif %}{{ form.telegram_bot_token.errors }}</label>

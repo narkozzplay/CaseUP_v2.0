@@ -207,9 +207,11 @@ class ExternalServiceIntegration(models.Model):
     steam_api_key = EncryptedTextField(blank=True, default="")
     faceit_api_key = EncryptedTextField(blank=True, default="")
     telegram_bot_token = EncryptedTextField(blank=True, default="")
+    pandascore_api_key = EncryptedTextField(blank=True, default="")
     steam_health_mode = models.CharField(max_length=24, choices=HealthMode.choices, default=HealthMode.AUTO)
     faceit_health_mode = models.CharField(max_length=24, choices=HealthMode.choices, default=HealthMode.AUTO)
     telegram_health_mode = models.CharField(max_length=24, choices=HealthMode.choices, default=HealthMode.AUTO)
+    pandascore_health_mode = models.CharField(max_length=24, choices=HealthMode.choices, default=HealthMode.AUTO)
     degraded_stub_message = models.CharField(max_length=255, blank=True, default="Сервис временно работает с ограничениями.")
     down_stub_message = models.CharField(max_length=255, blank=True, default="Сервис временно недоступен.")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -224,6 +226,7 @@ class ExternalServiceIntegration(models.Model):
         self.steam_api_key = (self.steam_api_key or "").strip()
         self.faceit_api_key = (self.faceit_api_key or "").strip()
         self.telegram_bot_token = (self.telegram_bot_token or "").strip()
+        self.pandascore_api_key = (self.pandascore_api_key or "").strip()
         self.degraded_stub_message = (self.degraded_stub_message or "").strip() or "Сервис временно работает с ограничениями."
         self.down_stub_message = (self.down_stub_message or "").strip() or "Сервис временно недоступен."
         self.full_clean()
