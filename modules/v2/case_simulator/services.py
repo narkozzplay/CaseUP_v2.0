@@ -435,7 +435,7 @@ def seed_cases(rows: list[dict], *, update_existing: bool = False, case_model=No
             "key_price": Decimal(str(row.get("key_price", 0))),
             "image_url": row.get("image", ""),
             "accent_color": row.get("accent", "#f5a623"),
-            "sort_order": (order + 1) * 10,
+            "sort_order": row.get("sort_order", (order + 1) * 10),
         }
         case = SimCase.objects.filter(slug=row["slug"]).first()
         if case is None:
@@ -460,6 +460,7 @@ def seed_cases(rows: list[dict], *, update_existing: bool = False, case_model=No
                 value=Decimal(str(item.get("value", 0))),
                 min_float=Decimal(str(item["min_float"])) if item.get("min_float") is not None else None,
                 max_float=Decimal(str(item["max_float"])) if item.get("max_float") is not None else None,
+                weight=Decimal(str(item["weight"])) if item.get("weight") is not None else None,
                 stattrak_allowed=bool(item.get("stattrak", True)),
                 sort_order=index,
             )

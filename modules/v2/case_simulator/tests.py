@@ -1,4 +1,5 @@
 from decimal import ROUND_HALF_UP, Decimal
+from importlib import import_module
 from unittest import mock
 
 from django.contrib.auth import get_user_model
@@ -9,6 +10,8 @@ from modules.v2.profiles.models import LedgerEntry, LedgerReason, UserProfile
 
 from . import services
 from .models import SimCase, SimCaseItem, SimOpening, TerminalSession
+
+NEW_CASES = import_module("modules.v2.case_simulator.migrations.0004_seed_more_cases").NEW_CASES
 
 
 def _make_case(*, slug="test-case", kind=SimCase.Kind.CUSTOM, case_price="100", key_price="50"):
@@ -45,14 +48,60 @@ class CaseSimulatorServiceTests(TestCase):
     def test_seed_migration_loaded_default_cases(self):
         kinds = set(SimCase.objects.exclude(slug="test-case").values_list("kind", flat=True))
         self.assertEqual(kinds, {SimCase.Kind.OFFICIAL, SimCase.Kind.CUSTOM, SimCase.Kind.TERMINAL})
-        self.assertEqual(SimCase.objects.filter(kind=SimCase.Kind.CUSTOM).exclude(slug="test-case").count(), 10)
+        self.assertEqual(SimCase.objects.filter(kind=SimCase.Kind.CUSTOM).exclude(slug="test-case").count(), 25)
         self.assertTrue(SimCase.objects.get(slug="kilowatt").has_key)
 
     def test_custom_cases_use_bundled_covers(self):
         for case in SimCase.objects.filter(kind__in=[SimCase.Kind.CUSTOM, SimCase.Kind.TERMINAL]).exclude(slug="test-case"):
+            if case.slug in NEW_CASES:
+                continue
             with self.subTest(slug=case.slug):
                 self.assertTrue(case.cover_url.endswith(f"img/cases/{case.slug}.webp"))
         self.assertEqual(self.case.cover_url, "")
+
+    def test_new_cases_sort_after_existing_ones(self):
+        last_old = SimCase.objects.get(slug="genesis-uplink").sort_order
+        new_orders = SimCase.objects.filter(slug__in=NEW_CASES).values_list("sort_order", flat=True)
+        self.assertEqual(len(new_orders), len(NEW_CASES))
+        self.assertGreater(min(new_orders), last_old)
+
+    def test_single_tier_cases_hold_one_rarity(self):
+        expected = {
+            "cold-steel": {"gold"},
+            "shine-blades": {"gold"},
+            "night-blades": {"gold"},
+            "glove-box": {"gold"},
+            "red-line": {"covert"},
+            "pink-rush": {"classified"},
+            "purple-haze": {"restricted"},
+            "blue-print": {"milspec"},
+        }
+        for slug, rarities in expected.items():
+            with self.subTest(slug=slug):
+                self.assertEqual(set(SimCaseItem.objects.filter(case__slug=slug).values_list("rarity", flat=True)), rarities)
+        for name in SimCaseItem.objects.filter(case__slug__in=["cold-steel", "shine-blades", "night-blades"]).values_list("name", flat=True):
+            self.assertNotIn("Gloves", name)
+
+    def test_new_cases_return_less_than_they_cost(self):
+        stattrak_bonus = 1 + Decimal(str(services.STATTRAK_CHANCE)) * (services.STATTRAK_MULTIPLIER - 1)
+        for case in SimCase.objects.filter(slug__in=NEW_CASES).prefetch_related("items"):
+            expected = Decimal("0")
+            for item, chance in services.item_weights(list(case.items.all())):
+                value = item.value
+                if services._can_be_stattrak(item):
+                    value *= stattrak_bonus
+                if item.has_float:
+                    low, high = item.min_float, item.max_float
+                    wear, start = Decimal("0"), Decimal("0")
+                    for threshold, _, multiplier in services.EXTERIORS:
+                        wear += max(Decimal("0"), min(high, threshold) - max(low, start)) * multiplier
+                        start = threshold
+                    value *= wear / (high - low)
+                expected += chance * value
+            with self.subTest(slug=case.slug):
+                ratio = expected / case.open_price
+                self.assertGreater(ratio, Decimal("0.85"))
+                self.assertLess(ratio, Decimal("0.95"))
 
     def test_rarity_odds_follow_cs2_tiers(self):
         summary = {row["rarity"]: row["chance"] for row in services.rarity_summary(self.case)}
